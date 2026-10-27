@@ -22,7 +22,7 @@ open Iris Iris.BI Iris.ProofMode go_etcd_io.etcd.client.v3.leasing go_etcd_io.et
 /-! ## Pure lemmas -/
 
 section pure
-variable [ext : FfiSyntax]
+variable [GooseExts]
 
 /-- Two states have entries under the same keys with the same `*leaseKey`s. -/
 def SameLis (st st' : LeaseCacheSt) : Prop :=
@@ -295,7 +295,7 @@ theorem sameFacts_evictKeySt (st : LeaseCacheSt) (key : GoString) (t : time.Time
 end pure
 
 section defs
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [EM : EtcdModel GF]

@@ -51,7 +51,7 @@ def ivlLt (x y : IvlS) : Prop :=
 instance ivlLt_dec : DecidableRel ivlLt := fun _ _ => inferInstanceAs (Decidable (_ ∨ _))
 
 section entries
-variable [ext : FfiSyntax]
+variable [GooseExts]
 
 /-- An entry of the tree: an interval and the value stored with it. -/
 abbrev Entry := IvlS × GoInterface
@@ -184,7 +184,7 @@ theorem ivlLt_of_lt_of_le {x y z : IvlS} (h1 : ivlLt x y) (h2 : ¬ ivlLt z y) : 
 /-! ## `Insert` -/
 
 section entries
-variable [ext : FfiSyntax]
+variable [GooseExts]
 
 theorem ivtInsert_perm (z : Entry) (L : List Entry) : (ivtInsert z L).Perm (z :: L) := by
   induction L with

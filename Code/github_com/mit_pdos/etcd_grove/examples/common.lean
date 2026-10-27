@@ -36,85 +36,85 @@ end pkg_id
 
 namespace github_com.mit_pdos.etcd_grove.examples.common
 
-noncomputable def KV.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def KV.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"github.com/mit-pdos/etcd-grove/examples/common.KV" [])
 
 attribute [irreducible] KV.ty
 
-noncomputable def PutRec.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def PutRec.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"github.com/mit-pdos/etcd-grove/examples/common.PutRec" [])
 
 attribute [irreducible] PutRec.ty
 
-noncomputable def Event.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def Event.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"github.com/mit-pdos/etcd-grove/examples/common.Event" [])
 
 attribute [irreducible] Event.ty
 
-noncomputable def Writes.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def Writes.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"github.com/mit-pdos/etcd-grove/examples/common.Writes" [])
 
 attribute [irreducible] Writes.ty
 
-@[reducible] noncomputable def DialTimeout [FfiSyntax] [GoGlobalContext] : val :=
+@[reducible] noncomputable def DialTimeout [GooseExts] [GoGlobalContext] : val :=
   #(W64 2000000000)
 
-@[reducible] noncomputable def RequestTimeout [FfiSyntax] [GoGlobalContext] : val :=
+@[reducible] noncomputable def RequestTimeout [GooseExts] [GoGlobalContext] : val :=
   #(W64 5000000000)
 
-@[reducible] noncomputable def KeepAliveTime [FfiSyntax] [GoGlobalContext] : val :=
+@[reducible] noncomputable def KeepAliveTime [GooseExts] [GoGlobalContext] : val :=
   #(W64 2000000000)
 
-@[reducible] noncomputable def KeepAliveTimeout [FfiSyntax] [GoGlobalContext] : val :=
+@[reducible] noncomputable def KeepAliveTimeout [GooseExts] [GoGlobalContext] : val :=
   #(W64 6000000000)
 
-noncomputable def newServer [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def newServer [GooseExts] [GoGlobalContext] : GoString :=
   go!"github.com/mit-pdos/etcd-grove/examples/common.newServer"
 
-noncomputable def StartServer [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def StartServer [GooseExts] [GoGlobalContext] : GoString :=
   go!"github.com/mit-pdos/etcd-grove/examples/common.StartServer"
 
-noncomputable def NewMember [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def NewMember [GooseExts] [GoGlobalContext] : GoString :=
   go!"github.com/mit-pdos/etcd-grove/examples/common.NewMember"
 
-noncomputable def StartMember [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def StartMember [GooseExts] [GoGlobalContext] : GoString :=
   go!"github.com/mit-pdos/etcd-grove/examples/common.StartMember"
 
-noncomputable def Serve [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def Serve [GooseExts] [GoGlobalContext] : GoString :=
   go!"github.com/mit-pdos/etcd-grove/examples/common.Serve"
 
-noncomputable def NewClient [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def NewClient [GooseExts] [GoGlobalContext] : GoString :=
   go!"github.com/mit-pdos/etcd-grove/examples/common.NewClient"
 
-noncomputable def NewClients [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def NewClients [GooseExts] [GoGlobalContext] : GoString :=
   go!"github.com/mit-pdos/etcd-grove/examples/common.NewClients"
 
-noncomputable def Gen [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def Gen [GooseExts] [GoGlobalContext] : GoString :=
   go!"github.com/mit-pdos/etcd-grove/examples/common.Gen"
 
-noncomputable def GenAll [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def GenAll [GooseExts] [GoGlobalContext] : GoString :=
   go!"github.com/mit-pdos/etcd-grove/examples/common.GenAll"
 
-noncomputable def Writer [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def Writer [GooseExts] [GoGlobalContext] : GoString :=
   go!"github.com/mit-pdos/etcd-grove/examples/common.Writer"
 
-noncomputable def MaxRev [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def MaxRev [GooseExts] [GoGlobalContext] : GoString :=
   go!"github.com/mit-pdos/etcd-grove/examples/common.MaxRev"
 
-noncomputable def Collect [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def Collect [GooseExts] [GoGlobalContext] : GoString :=
   go!"github.com/mit-pdos/etcd-grove/examples/common.Collect"
 
-noncomputable def Attempted [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def Attempted [GooseExts] [GoGlobalContext] : GoString :=
   go!"github.com/mit-pdos/etcd-grove/examples/common.Attempted"
 
-noncomputable def Check [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def Check [GooseExts] [GoGlobalContext] : GoString :=
   go!"github.com/mit-pdos/etcd-grove/examples/common.Check"
 
 /-- newServer builds member name of a new cluster whose initial members' peer URLs are cluster and
     whose token is token: the member's peer URLs are peer, its one client URL http://client.
 
     go: common.go:46:6 -/
-noncomputable def newServer.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def newServer.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "name"
   (Lam "peer"
   (Lam "client"
@@ -164,7 +164,7 @@ noncomputable def newServer.impl [FfiSyntax] [GoGlobalContext] : val :=
     the one client URL http://clientAddr.
 
     go: common.go:80:6 -/
-noncomputable def StartServer.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def StartServer.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "name"
   (Lam "peerAddr"
   (Lam "clientAddr"
@@ -219,7 +219,7 @@ noncomputable def StartServer.impl [FfiSyntax] [GoGlobalContext] : val :=
     http://client, and serves its raft handler on a listener at peerAddr; it does not start it.
 
     go: common.go:94:6 -/
-noncomputable def NewMember.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def NewMember.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "name"
   (Lam "peer"
   (Lam "peerAddr"
@@ -293,7 +293,7 @@ noncomputable def NewMember.impl [FfiSyntax] [GoGlobalContext] : val :=
 /-- StartMember starts member name of a new cluster: NewMember, then the server started.
 
     go: common.go:110:6 -/
-noncomputable def StartMember.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def StartMember.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "name"
   (Lam "peer"
   (Lam "peerAddr"
@@ -348,7 +348,7 @@ noncomputable def StartMember.impl [FfiSyntax] [GoGlobalContext] : val :=
     connection).
 
     go: common.go:125:6 -/
-noncomputable def Serve.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def Serve.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam "addr"
   (App (Val exceptionDo)
@@ -400,7 +400,7 @@ noncomputable def Serve.impl [FfiSyntax] [GoGlobalContext] : val :=
     plainEndpoint): NewClients of it.
 
     go: common.go:139:6 -/
-noncomputable def NewClient.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def NewClient.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "addr"
   (Lam "lg"
   (App (Val exceptionDo)
@@ -422,7 +422,7 @@ noncomputable def NewClient.impl [FfiSyntax] [GoGlobalContext] : val :=
     which the examples' members never send, so it is sent at most once (notes/read-retry-plan.md).
 
     go: common.go:148:6 -/
-noncomputable def NewClients.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def NewClients.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "eps"
   (Lam "lg"
   (App (Val exceptionDo)
@@ -443,7 +443,7 @@ noncomputable def NewClients.impl [FfiSyntax] [GoGlobalContext] : val :=
 /-- Gen picks a key of keys and a value, from a small set.
 
     go: watch.go:46:6 -/
-noncomputable def Gen.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def Gen.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "keys"
   (App (Val exceptionDo)
   (Let "keys" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType go.string)))) (Var "keys"))
@@ -481,7 +481,7 @@ noncomputable def Gen.impl [FfiSyntax] [GoGlobalContext] : val :=
 /-- GenAll picks n Puts (Gen of keys): the writers' Puts, writer i's at [i*nops, (i+1)*nops).
 
     go: watch.go:55:6 -/
-noncomputable def GenAll.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def GenAll.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "n"
   (Lam "keys"
   (App (Val exceptionDo)
@@ -514,7 +514,7 @@ noncomputable def GenAll.impl [FfiSyntax] [GoGlobalContext] : val :=
     with its reply's revision.
 
     go: watch.go:66:6 -/
-noncomputable def Writer.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def Writer.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "cli"
   (Lam "w"
   (Lam "tried"
@@ -601,7 +601,7 @@ noncomputable def Writer.impl [FfiSyntax] [GoGlobalContext] : val :=
 /-- MaxRev is the highest revision of the successful Puts oks (0 if there is none).
 
     go: watch.go:81:6 -/
-noncomputable def MaxRev.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def MaxRev.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "oks"
   (App (Val exceptionDo)
   (Let "oks" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType PutRec.ty)))) (Var "oks"))
@@ -632,7 +632,7 @@ noncomputable def MaxRev.impl [FfiSyntax] [GoGlobalContext] : val :=
     reported an error, before.
 
     go: watch.go:94:6 -/
-noncomputable def Collect.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def Collect.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "wch"
   (Lam "upTo"
   (App (Val exceptionDo)
@@ -700,7 +700,7 @@ noncomputable def Collect.impl [FfiSyntax] [GoGlobalContext] : val :=
 /-- Attempted reports whether (key, val) is one of the Puts tried.
 
     go: watch.go:120:6 -/
-noncomputable def Attempted.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def Attempted.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "tried"
   (Lam "key"
   (Lam "val"
@@ -734,7 +734,7 @@ noncomputable def Attempted.impl [FfiSyntax] [GoGlobalContext] : val :=
     call a write put.
 
     go: watch.go:133:6 -/
-noncomputable def Check.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def Check.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "name"
   (Lam "put"
   (Lam "evs"
@@ -836,7 +836,7 @@ noncomputable def Check.impl [FfiSyntax] [GoGlobalContext] : val :=
 noncomputable instance info' : PkgInfo pkg_id.github_com.mit_pdos.etcd_grove.examples.common where
   pkgImportedPkgs := [pkg_id.net, pkg_id.net.http, pkg_id.time, pkg_id.go_uber_org.zap, pkg_id.google_golang_org.grpc, pkg_id.google_golang_org.grpc.keepalive, pkg_id.go_etcd_io.etcd.client.pkg.v3.types, pkg_id.go_etcd_io.etcd.client.v3, pkg_id.go_etcd_io.etcd.server.v3.config, pkg_id.go_etcd_io.etcd.server.v3.etcdserver, pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc, pkg_id.go_etcd_io.etcd.server.v3.features, pkg_id.context, pkg_id.sync, pkg_id.github_com.goose_lang.primitive, pkg_id.go_etcd_io.etcd.api.v3.mvccpb]
 
-noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (App (Val (package.init pkg_id.github_com.mit_pdos.etcd_grove.examples.common)) (Lam BAnon
   (App (Val exceptionDo)
@@ -888,35 +888,37 @@ noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val _root_.Perennial.go_etcd_io.etcd.api.v3.mvccpb.initialize') (Val #()))))))))
 
-structure KV [FfiSyntax] where
+structure KV [GooseExts] where
   mk ::
   Key' : GoString
   Val' : GoString
 
-noncomputable instance KV.zero_val [FfiSyntax] : ZeroVal KV :=
+noncomputable instance KV.zero_val [GooseExts] : ZeroVal KV :=
   ⟨KV.mk zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def KV.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def KV.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"Key" go.string),
 (go.field_decl.FieldDecl go!"Val" go.string)]
 
-@[irreducible] noncomputable def KV.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def KV.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   KV.fieldsUnsealed
 
-noncomputable instance equals_unfold_KV [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_KV [GooseExts] [GoGlobalContext] :
     EqualsUnfold KV.fields KV.fieldsUnsealed :=
   ⟨by unfold KV.fields; rfl⟩
 
-@[reducible] noncomputable def KV.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def KV.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType KV.fields)
 
-class KV.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class KV.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying KV.underlying KV
   underlying : go.UnderlyingDirectedEq KV.ty KV.underlying
   get_Key : ∀ (x : KV), go.IsGoStepPureDetTagged under (StructFieldGet KV.underlying go!"Key") #x (Val #(x.Key'))
   set_Key : ∀ (x : KV) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet KV.underlying go!"Key") (PairV #x #y) (Val #(({ x with Key' := y } : KV)))
   get_Val : ∀ (x : KV), go.IsGoStepPureDetTagged under (StructFieldGet KV.underlying go!"Val") #x (Val #(x.Val'))
   set_Val : ∀ (x : KV) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet KV.underlying go!"Val") (PairV #x #y) (Val #(({ x with Val' := y } : KV)))
+  method_set : go.MethodSetIs KV.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType KV.ty) []
 
 attribute [instance] KV.TypeAssumptions.type_repr
   KV.TypeAssumptions.underlying
@@ -924,32 +926,34 @@ attribute [instance] KV.TypeAssumptions.type_repr
   KV.TypeAssumptions.set_Key
   KV.TypeAssumptions.get_Val
   KV.TypeAssumptions.set_Val
+  KV.TypeAssumptions.method_set
+  KV.TypeAssumptions.ptr_method_set
 
-structure PutRec [FfiSyntax] where
+structure PutRec [GooseExts] where
   mk ::
   Rev' : w64
   Key' : GoString
   Val' : GoString
 
-noncomputable instance PutRec.zero_val [FfiSyntax] : ZeroVal PutRec :=
+noncomputable instance PutRec.zero_val [GooseExts] : ZeroVal PutRec :=
   ⟨PutRec.mk zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def PutRec.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def PutRec.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"Rev" go.int64),
 (go.field_decl.FieldDecl go!"Key" go.string),
 (go.field_decl.FieldDecl go!"Val" go.string)]
 
-@[irreducible] noncomputable def PutRec.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def PutRec.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   PutRec.fieldsUnsealed
 
-noncomputable instance equals_unfold_PutRec [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_PutRec [GooseExts] [GoGlobalContext] :
     EqualsUnfold PutRec.fields PutRec.fieldsUnsealed :=
   ⟨by unfold PutRec.fields; rfl⟩
 
-@[reducible] noncomputable def PutRec.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def PutRec.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType PutRec.fields)
 
-class PutRec.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class PutRec.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying PutRec.underlying PutRec
   underlying : go.UnderlyingDirectedEq PutRec.ty PutRec.underlying
   get_Rev : ∀ (x : PutRec), go.IsGoStepPureDetTagged under (StructFieldGet PutRec.underlying go!"Rev") #x (Val #(x.Rev'))
@@ -958,6 +962,8 @@ class PutRec.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoS
   set_Key : ∀ (x : PutRec) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet PutRec.underlying go!"Key") (PairV #x #y) (Val #(({ x with Key' := y } : PutRec)))
   get_Val : ∀ (x : PutRec), go.IsGoStepPureDetTagged under (StructFieldGet PutRec.underlying go!"Val") #x (Val #(x.Val'))
   set_Val : ∀ (x : PutRec) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet PutRec.underlying go!"Val") (PairV #x #y) (Val #(({ x with Val' := y } : PutRec)))
+  method_set : go.MethodSetIs PutRec.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType PutRec.ty) []
 
 attribute [instance] PutRec.TypeAssumptions.type_repr
   PutRec.TypeAssumptions.underlying
@@ -967,34 +973,36 @@ attribute [instance] PutRec.TypeAssumptions.type_repr
   PutRec.TypeAssumptions.set_Key
   PutRec.TypeAssumptions.get_Val
   PutRec.TypeAssumptions.set_Val
+  PutRec.TypeAssumptions.method_set
+  PutRec.TypeAssumptions.ptr_method_set
 
-structure Event [FfiSyntax] where
+structure Event [GooseExts] where
   mk ::
   Rev' : w64
   Key' : GoString
   Val' : GoString
   Put' : Bool
 
-noncomputable instance Event.zero_val [FfiSyntax] : ZeroVal Event :=
+noncomputable instance Event.zero_val [GooseExts] : ZeroVal Event :=
   ⟨Event.mk zeroValDef zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def Event.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def Event.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"Rev" go.int64),
 (go.field_decl.FieldDecl go!"Key" go.string),
 (go.field_decl.FieldDecl go!"Val" go.string),
 (go.field_decl.FieldDecl go!"Put" go.bool)]
 
-@[irreducible] noncomputable def Event.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def Event.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   Event.fieldsUnsealed
 
-noncomputable instance equals_unfold_Event [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_Event [GooseExts] [GoGlobalContext] :
     EqualsUnfold Event.fields Event.fieldsUnsealed :=
   ⟨by unfold Event.fields; rfl⟩
 
-@[reducible] noncomputable def Event.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def Event.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType Event.fields)
 
-class Event.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class Event.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying Event.underlying Event
   underlying : go.UnderlyingDirectedEq Event.ty Event.underlying
   get_Rev : ∀ (x : Event), go.IsGoStepPureDetTagged under (StructFieldGet Event.underlying go!"Rev") #x (Val #(x.Rev'))
@@ -1005,6 +1013,8 @@ class Event.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSe
   set_Val : ∀ (x : Event) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet Event.underlying go!"Val") (PairV #x #y) (Val #(({ x with Val' := y } : Event)))
   get_Put : ∀ (x : Event), go.IsGoStepPureDetTagged under (StructFieldGet Event.underlying go!"Put") #x (Val #(x.Put'))
   set_Put : ∀ (x : Event) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet Event.underlying go!"Put") (PairV #x #y) (Val #(({ x with Put' := y } : Event)))
+  method_set : go.MethodSetIs Event.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType Event.ty) []
 
 attribute [instance] Event.TypeAssumptions.type_repr
   Event.TypeAssumptions.underlying
@@ -1016,36 +1026,40 @@ attribute [instance] Event.TypeAssumptions.type_repr
   Event.TypeAssumptions.set_Val
   Event.TypeAssumptions.get_Put
   Event.TypeAssumptions.set_Put
+  Event.TypeAssumptions.method_set
+  Event.TypeAssumptions.ptr_method_set
 
-structure Writes [FfiSyntax] where
+structure Writes [GooseExts] where
   mk ::
   Mu' : _root_.Perennial.sync.Mutex
   Ok' : GoSlice
 
-noncomputable instance Writes.zero_val [FfiSyntax] : ZeroVal Writes :=
+noncomputable instance Writes.zero_val [GooseExts] : ZeroVal Writes :=
   ⟨Writes.mk zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def Writes.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def Writes.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"Mu" _root_.Perennial.sync.Mutex.ty),
 (go.field_decl.FieldDecl go!"Ok" (go.GoType.SliceType PutRec.ty))]
 
-@[irreducible] noncomputable def Writes.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def Writes.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   Writes.fieldsUnsealed
 
-noncomputable instance equals_unfold_Writes [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_Writes [GooseExts] [GoGlobalContext] :
     EqualsUnfold Writes.fields Writes.fieldsUnsealed :=
   ⟨by unfold Writes.fields; rfl⟩
 
-@[reducible] noncomputable def Writes.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def Writes.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType Writes.fields)
 
-class Writes.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class Writes.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying Writes.underlying Writes
   underlying : go.UnderlyingDirectedEq Writes.ty Writes.underlying
   get_Mu : ∀ (x : Writes), go.IsGoStepPureDetTagged under (StructFieldGet Writes.underlying go!"Mu") #x (Val #(x.Mu'))
   set_Mu : ∀ (x : Writes) (y : _root_.Perennial.sync.Mutex), go.IsGoStepPureDetTagged under (StructFieldSet Writes.underlying go!"Mu") (PairV #x #y) (Val #(({ x with Mu' := y } : Writes)))
   get_Ok : ∀ (x : Writes), go.IsGoStepPureDetTagged under (StructFieldGet Writes.underlying go!"Ok") #x (Val #(x.Ok'))
   set_Ok : ∀ (x : Writes) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet Writes.underlying go!"Ok") (PairV #x #y) (Val #(({ x with Ok' := y } : Writes)))
+  method_set : go.MethodSetIs Writes.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType Writes.ty) []
 
 attribute [instance] Writes.TypeAssumptions.type_repr
   Writes.TypeAssumptions.underlying
@@ -1053,8 +1067,10 @@ attribute [instance] Writes.TypeAssumptions.type_repr
   Writes.TypeAssumptions.set_Mu
   Writes.TypeAssumptions.get_Ok
   Writes.TypeAssumptions.set_Ok
+  Writes.TypeAssumptions.method_set
+  Writes.TypeAssumptions.ptr_method_set
 
-class Assumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   KV_instance : KV.TypeAssumptions
   PutRec_instance : PutRec.TypeAssumptions
   Event_instance : Event.TypeAssumptions

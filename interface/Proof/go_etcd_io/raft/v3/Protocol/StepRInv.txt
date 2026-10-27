@@ -19,11 +19,11 @@ theorem NoConfIn.mono {l : List EntryM} {lo hi lo' hi' : Nat} (h : NoConfIn l lo
 theorem confCount_drop_le (l : List EntryM) {a b : Nat} (h : a ≤ b) : confCount (List.drop b l) ≤
     confCount (List.drop a l)
 
-theorem RInv_propDrop {dec : CCDec} {c0 : CCState} {r : RState} (m : Msg) (cs : List (Option CCMsg))
-    (H : RInv dec c0 r) (hrole : r.p.role = Role.leader) (hcs : CCTypesOk m.entries cs) (hnw :
-    plogLastIndexZ r.p.base r.p.log + ↑m.entries.length < 2 ^ 64) : RInv dec c0 { p := r.p, applied
-    := r.applied, pci := (propBatch r m.entries cs).snd, snap := r.snap, cidx := r.cidx, cfg :=
-    r.cfg, fp := r.fp }
+theorem RInv_propDrop {dec : CCDec} {c0 : CCState} {r : RState} (m : Msg) (cs : List (Option
+    ConfChangeIM)) (H : RInv dec c0 r) (hrole : r.p.role = Role.leader) (hcs : CCTypesOk m.entries
+    cs) (hnw : plogLastIndexZ r.p.base r.p.log + ↑m.entries.length < 2 ^ 64) : RInv dec c0 { p :=
+    r.p, applied := r.applied, pci := (propBatch r m.entries cs).snd, snap := r.snap, cidx :=
+    r.cidx, cfg := r.cfg, fp := r.fp }
 
 theorem RInv_applyConf {dec : CCDec} {c0 : CCState} {r : RState} (k : Nat) (e : EntryM) (op : CCOp)
     (cs' : CCState) (H : RInv dec c0 r) (hs : r.snap = false) (hk : r.cidx ≤ k) (hkc : k < uint.nat
@@ -53,8 +53,8 @@ theorem RInv_snapRestore {dec : CCDec} {c0 : CCState} {r : RState} (m : Msg) (fp
       applied := r.applied, pci := r.pci, snap := true, cidx := uint.nat m.index, cfg := cs', fp := fp' }
 
 theorem RInv_propose {dec : CCDec} {c0 : CCState} {r : RState} (id : w64) (m : Msg) (cs : List
-    (Option CCMsg)) (ms : List Msg) (H : RInv dec c0 r) (hrole : r.p.role = Role.leader) (hcs :
-    CCTypesOk m.entries cs) (hnw : plogLastIndexZ r.p.base r.p.log + ↑m.entries.length < 2 ^ 64) :
+    (Option ConfChangeIM)) (ms : List Msg) (H : RInv dec c0 r) (hrole : r.p.role = Role.leader) (hcs
+    : CCTypesOk m.entries cs) (hnw : plogLastIndexZ r.p.base r.p.log + ↑m.entries.length < 2 ^ 64) :
     RInv dec c0 { p := psendMsgs (pappend r.p (List.mapIdx (stamp r.p.term (plastIndex r.p))
     (propBatch r m.entries cs).fst)) ms, applied := r.applied, pci := (propBatch r m.entries
     cs).snd, snap := r.snap, cidx := r.cidx, cfg := r.cfg, fp := r.fp }
@@ -91,9 +91,9 @@ theorem ConfI1.confCount_drop {l : List EntryM} {a c : Nat} (h : ConfI1 l c) (hn
     confCount (List.drop a l) ≤ 1
 
 theorem propConfStep_inv (joint : Bool) {applied li pci : w64} {acc : List EntryM × w64} {x : EntryM
-    × Option CCMsg} (h : PCInv applied li pci acc) (hx : x.snd.isSome = decide (IsConfEnt x.fst))
-    (hal : uint.Z applied ≤ uint.Z li) (hb : uint.Z li + ↑acc.fst.length + 1 < 2 ^ 64) : PCInv
-    applied li pci (propConfStep joint applied li acc x)
+    × Option ConfChangeIM} (h : PCInv applied li pci acc) (hx : x.snd.isSome = decide (IsConfEnt
+    x.fst)) (hal : uint.Z applied ≤ uint.Z li) (hb : uint.Z li + ↑acc.fst.length + 1 < 2 ^ 64) :
+    PCInv applied li pci (propConfStep joint applied li acc x)
 
 def ConfI3 (l : List EntryM) (pci a : Nat) : Prop :=
   (∀ (k : Nat) (e : EntryM), l[k]? = some e → IsConfEnt e → k < pci) ∧ confCount (List.drop a l) ≤ 1
@@ -144,13 +144,13 @@ theorem preadRespondAll_fields (id : w64) (s : PState) (qs : List ReadReq) : (pr
     s.commit ∧ (preadRespondAll id s qs).role = s.role
 
 theorem propConf_foldl_inv (joint : Bool) {applied li pci : w64} (hal : uint.Z applied ≤ uint.Z li)
-    (xs : List (EntryM × Option CCMsg)) (hx : ∀ (x : EntryM × Option CCMsg), x ∈ xs → x.snd.isSome =
-    decide (IsConfEnt x.fst)) (acc : List EntryM × w64) : PCInv applied li pci acc → uint.Z li +
-    ↑acc.fst.length + ↑xs.length < 2 ^ 64 → PCInv applied li pci (List.foldl (propConfStep joint
-    applied li) acc xs)
+    (xs : List (EntryM × Option ConfChangeIM)) (hx : ∀ (x : EntryM × Option ConfChangeIM), x ∈ xs →
+    x.snd.isSome = decide (IsConfEnt x.fst)) (acc : List EntryM × w64) : PCInv applied li pci acc →
+    uint.Z li + ↑acc.fst.length + ↑xs.length < 2 ^ 64 → PCInv applied li pci (List.foldl
+    (propConfStep joint applied li) acc xs)
 
 theorem propConf_inv (joint : Bool) {applied li pci : w64} {ents : List EntryM} {cs : List (Option
-    CCMsg)} (hcs : CCTypesOk ents cs) (hal : uint.Z applied ≤ uint.Z li) (hnw : uint.Z li +
+    ConfChangeIM)} (hcs : CCTypesOk ents cs) (hal : uint.Z applied ≤ uint.Z li) (hnw : uint.Z li +
     ↑ents.length < 2 ^ 64) : PCInv applied li pci (propConf applied li pci ents cs joint)
 
 theorem ConfI1.mono {l : List EntryM} {c c' : Nat} (h : ConfI1 l c) (hc : c ≤ c') : ConfI1 l c'
@@ -193,8 +193,8 @@ structure RInv (dec : CCDec) (c0 : CCState) (r : RState) : Prop where
 theorem confCount_le_one {l : List EntryM} (h : ∀ (k1 k2 : Nat) (e1 e2 : EntryM), k1 < k2 → l[k1]? =
     some e1 → l[k2]? = some e2 → IsConfEnt e1 → IsConfEnt e2 → False) : confCount l ≤ 1
 
-theorem cctypes_iff {ents : List EntryM} {cs : List (Option CCMsg)} (H : CCTypesOk ents cs) (x :
-    EntryM × Option CCMsg) : x ∈ ents.zip cs → x.snd.isSome = decide (IsConfEnt x.fst)
+theorem cctypes_iff {ents : List EntryM} {cs : List (Option ConfChangeIM)} (H : CCTypesOk ents cs)
+    (x : EntryM × Option ConfChangeIM) : x ∈ ents.zip cs → x.snd.isSome = decide (IsConfEnt x.fst)
 
 theorem RInv.full_length {dec : CCDec} {c0 : CCState} {r : RState} (H : RInv dec c0 r) :
     ↑r.full.length = plogLastIndexZ r.p.base r.p.log

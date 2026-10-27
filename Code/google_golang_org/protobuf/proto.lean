@@ -23,159 +23,159 @@ end pkg_id
 
 namespace google_golang_org.protobuf.proto
 
-noncomputable def UnmarshalOptions.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def UnmarshalOptions.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"google.golang.org/protobuf/proto.UnmarshalOptions" [])
 
 attribute [irreducible] UnmarshalOptions.ty
 
-noncomputable def MarshalOptions.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def MarshalOptions.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"google.golang.org/protobuf/proto.MarshalOptions" [])
 
 attribute [irreducible] MarshalOptions.ty
 
-noncomputable def mergeOptions.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def mergeOptions.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"google.golang.org/protobuf/proto.mergeOptions" [])
 
 attribute [irreducible] mergeOptions.ty
 
-axiom UnmarshalOptions.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom UnmarshalOptions.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-@[reducible] noncomputable def Message.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def Message.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   _root_.Perennial.google_golang_org.protobuf.reflect.protoreflect.ProtoMessage.ty
 
-axiom speculativeLength [FfiSyntax] [GoGlobalContext] : val
+axiom speculativeLength [GooseExts] [GoGlobalContext] : val
 
-axiom hasProtoMethods [FfiSyntax] [GoGlobalContext] : val
+axiom hasProtoMethods [GooseExts] [GoGlobalContext] : val
 
-noncomputable def errUnknown [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def errUnknown [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/proto.errUnknown"
 
-noncomputable def errDecode [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def errDecode [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/proto.errDecode"
 
-noncomputable def errRecursionDepth [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def errRecursionDepth [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/proto.errRecursionDepth"
 
-noncomputable def emptyBuf [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def emptyBuf [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/proto.emptyBuf"
 
-noncomputable def wireTypes [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def wireTypes [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/proto.wireTypes"
 
-noncomputable def Error [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def Error [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/proto.Error"
 
-noncomputable def CheckInitialized [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def CheckInitialized [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/proto.CheckInitialized"
 
-noncomputable def checkInitialized [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def checkInitialized [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/proto.checkInitialized"
 
-noncomputable def checkInitializedSlow [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def checkInitializedSlow [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/proto.checkInitializedSlow"
 
-noncomputable def Unmarshal [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def Unmarshal [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/proto.Unmarshal"
 
-noncomputable def Marshal [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def Marshal [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/proto.Marshal"
 
-noncomputable def emptyBytesForMessage [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def emptyBytesForMessage [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/proto.emptyBytesForMessage"
 
-noncomputable def growcap [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def growcap [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/proto.growcap"
 
-noncomputable def appendSpeculativeLength [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def appendSpeculativeLength [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/proto.appendSpeculativeLength"
 
-noncomputable def finishSpeculativeLength [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def finishSpeculativeLength [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/proto.finishSpeculativeLength"
 
-noncomputable def Equal [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def Equal [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/proto.Equal"
 
-noncomputable def HasExtension [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def HasExtension [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/proto.HasExtension"
 
-noncomputable def ClearExtension [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ClearExtension [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/proto.ClearExtension"
 
-noncomputable def GetExtension [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def GetExtension [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/proto.GetExtension"
 
-noncomputable def SetExtension [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def SetExtension [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/proto.SetExtension"
 
-noncomputable def RangeExtensions [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def RangeExtensions [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/proto.RangeExtensions"
 
-noncomputable def Merge [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def Merge [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/proto.Merge"
 
-noncomputable def Clone [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def Clone [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/proto.Clone"
 
-noncomputable def CloneOf [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def CloneOf [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/proto.CloneOf"
 
-noncomputable def init.«0» [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def init.«0» [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/proto.init.0"
 
-noncomputable def MessageName [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def MessageName [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/proto.MessageName"
 
-noncomputable def protoMethods [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def protoMethods [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/proto.protoMethods"
 
-noncomputable def Reset [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def Reset [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/proto.Reset"
 
-noncomputable def resetMessage [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def resetMessage [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/proto.resetMessage"
 
-noncomputable def Size [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def Size [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/proto.Size"
 
-noncomputable def ValueOrNil [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ValueOrNil [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/proto.ValueOrNil"
 
-noncomputable def ValueOrDefault [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ValueOrDefault [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/proto.ValueOrDefault"
 
-noncomputable def ValueOrDefaultBytes [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ValueOrDefaultBytes [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/proto.ValueOrDefaultBytes"
 
-noncomputable def Bool' [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def Bool' [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/proto.Bool"
 
-noncomputable def Int32 [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def Int32 [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/proto.Int32"
 
-noncomputable def Int64 [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def Int64 [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/proto.Int64"
 
-noncomputable def Float32 [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def Float32 [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/proto.Float32"
 
-noncomputable def Float64 [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def Float64 [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/proto.Float64"
 
-noncomputable def Uint32 [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def Uint32 [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/proto.Uint32"
 
-noncomputable def Uint64 [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def Uint64 [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/proto.Uint64"
 
-noncomputable def String [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def String [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/proto.String"
 
 noncomputable instance info' : PkgInfo pkg_id.google_golang_org.protobuf.proto where
   pkgImportedPkgs := [pkg_id.google_golang_org.protobuf.reflect.protoreflect, pkg_id.google_golang_org.protobuf.internal.pragma]
 
-axiom «_».init [FfiSyntax] [GoGlobalContext] : val
+axiom «_».init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (App (Val (package.init pkg_id.google_golang_org.protobuf.proto)) (Lam BAnon
   (App (Val exceptionDo)
@@ -204,42 +204,60 @@ axiom UnmarshalOptions : Type
 axiom UnmarshalOptions.zero_val : ZeroVal UnmarshalOptions
 attribute [instance] UnmarshalOptions.zero_val
 
-class UnmarshalOptions.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class UnmarshalOptions.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying UnmarshalOptions.underlying UnmarshalOptions
   underlying : go.UnderlyingDirectedEq UnmarshalOptions.ty UnmarshalOptions.underlying
   isUnderlying : go.IsUnderlying UnmarshalOptions.underlying UnmarshalOptions.underlying
+  method_set : go.MethodSetIs UnmarshalOptions.ty [(go!"Unmarshal", (some (go.signature.Signature [(go.GoType.SliceType go.byte), Message.ty] false [go.error]))), (go!"UnmarshalState", (some (go.signature.Signature [(go.GoType.StructType [(go.field_decl.EmbeddedField go!"NoUnkeyedLiterals" _root_.Perennial.google_golang_org.protobuf.internal.pragma.NoUnkeyedLiterals.ty),
+(go.field_decl.FieldDecl go!"Message" _root_.Perennial.google_golang_org.protobuf.reflect.protoreflect.Message.ty),
+(go.field_decl.FieldDecl go!"Buf" (go.GoType.SliceType go.byte)),
+(go.field_decl.FieldDecl go!"Flags" go.uint8),
+(go.field_decl.FieldDecl go!"Resolver" (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"FindExtensionByName" (go.signature.Signature [_root_.Perennial.google_golang_org.protobuf.reflect.protoreflect.FullName.ty] false [_root_.Perennial.google_golang_org.protobuf.reflect.protoreflect.ExtensionType.ty, go.error])), (go.InterfaceElem.MethodElem go!"FindExtensionByNumber" (go.signature.Signature [_root_.Perennial.google_golang_org.protobuf.reflect.protoreflect.FullName.ty, (go.GoType.Named go!"google.golang.org/protobuf/encoding/protowire.Number" [])] false [_root_.Perennial.google_golang_org.protobuf.reflect.protoreflect.ExtensionType.ty, go.error]))])),
+(go.field_decl.FieldDecl go!"Depth" go.int)])] false [(go.GoType.StructType [(go.field_decl.EmbeddedField go!"NoUnkeyedLiterals" _root_.Perennial.google_golang_org.protobuf.internal.pragma.NoUnkeyedLiterals.ty),
+(go.field_decl.FieldDecl go!"Flags" go.uint8)]), go.error]))), (go!"google.golang.org/protobuf/proto.unmarshal", (some (go.signature.Signature [(go.GoType.SliceType go.byte), _root_.Perennial.google_golang_org.protobuf.reflect.protoreflect.Message.ty] false [(go.GoType.StructType [(go.field_decl.EmbeddedField go!"NoUnkeyedLiterals" _root_.Perennial.google_golang_org.protobuf.internal.pragma.NoUnkeyedLiterals.ty),
+(go.field_decl.FieldDecl go!"Flags" go.uint8)]), go.error]))), (go!"google.golang.org/protobuf/proto.unmarshalList", (some (go.signature.Signature [(go.GoType.SliceType go.byte), (go.GoType.Named go!"google.golang.org/protobuf/encoding/protowire.Type" []), _root_.Perennial.google_golang_org.protobuf.reflect.protoreflect.List'.ty, _root_.Perennial.google_golang_org.protobuf.reflect.protoreflect.FieldDescriptor.ty] false [go.int, go.error]))), (go!"google.golang.org/protobuf/proto.unmarshalMap", (some (go.signature.Signature [(go.GoType.SliceType go.byte), (go.GoType.Named go!"google.golang.org/protobuf/encoding/protowire.Type" []), _root_.Perennial.google_golang_org.protobuf.reflect.protoreflect.Map.ty, _root_.Perennial.google_golang_org.protobuf.reflect.protoreflect.FieldDescriptor.ty] false [go.int, go.error]))), (go!"google.golang.org/protobuf/proto.unmarshalMessage", (some (go.signature.Signature [(go.GoType.SliceType go.byte), _root_.Perennial.google_golang_org.protobuf.reflect.protoreflect.Message.ty] false [go.error]))), (go!"google.golang.org/protobuf/proto.unmarshalMessageSet", (some (go.signature.Signature [(go.GoType.SliceType go.byte), _root_.Perennial.google_golang_org.protobuf.reflect.protoreflect.Message.ty] false [go.error]))), (go!"google.golang.org/protobuf/proto.unmarshalMessageSetField", (some (go.signature.Signature [_root_.Perennial.google_golang_org.protobuf.reflect.protoreflect.Message.ty, (go.GoType.Named go!"google.golang.org/protobuf/encoding/protowire.Number" []), (go.GoType.SliceType go.byte)] false [go.error]))), (go!"google.golang.org/protobuf/proto.unmarshalMessageSlow", (some (go.signature.Signature [(go.GoType.SliceType go.byte), _root_.Perennial.google_golang_org.protobuf.reflect.protoreflect.Message.ty] false [go.error]))), (go!"google.golang.org/protobuf/proto.unmarshalScalar", (some (go.signature.Signature [(go.GoType.SliceType go.byte), (go.GoType.Named go!"google.golang.org/protobuf/encoding/protowire.Type" []), _root_.Perennial.google_golang_org.protobuf.reflect.protoreflect.FieldDescriptor.ty] false [_root_.Perennial.google_golang_org.protobuf.reflect.protoreflect.Value.ty, go.int, go.error]))), (go!"google.golang.org/protobuf/proto.unmarshalSingular", (some (go.signature.Signature [(go.GoType.SliceType go.byte), (go.GoType.Named go!"google.golang.org/protobuf/encoding/protowire.Type" []), _root_.Perennial.google_golang_org.protobuf.reflect.protoreflect.Message.ty, _root_.Perennial.google_golang_org.protobuf.reflect.protoreflect.FieldDescriptor.ty] false [go.int, go.error])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType UnmarshalOptions.ty) [(go!"Unmarshal", (some (go.signature.Signature [(go.GoType.SliceType go.byte), Message.ty] false [go.error]))), (go!"UnmarshalState", (some (go.signature.Signature [(go.GoType.StructType [(go.field_decl.EmbeddedField go!"NoUnkeyedLiterals" _root_.Perennial.google_golang_org.protobuf.internal.pragma.NoUnkeyedLiterals.ty),
+(go.field_decl.FieldDecl go!"Message" _root_.Perennial.google_golang_org.protobuf.reflect.protoreflect.Message.ty),
+(go.field_decl.FieldDecl go!"Buf" (go.GoType.SliceType go.byte)),
+(go.field_decl.FieldDecl go!"Flags" go.uint8),
+(go.field_decl.FieldDecl go!"Resolver" (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"FindExtensionByName" (go.signature.Signature [_root_.Perennial.google_golang_org.protobuf.reflect.protoreflect.FullName.ty] false [_root_.Perennial.google_golang_org.protobuf.reflect.protoreflect.ExtensionType.ty, go.error])), (go.InterfaceElem.MethodElem go!"FindExtensionByNumber" (go.signature.Signature [_root_.Perennial.google_golang_org.protobuf.reflect.protoreflect.FullName.ty, (go.GoType.Named go!"google.golang.org/protobuf/encoding/protowire.Number" [])] false [_root_.Perennial.google_golang_org.protobuf.reflect.protoreflect.ExtensionType.ty, go.error]))])),
+(go.field_decl.FieldDecl go!"Depth" go.int)])] false [(go.GoType.StructType [(go.field_decl.EmbeddedField go!"NoUnkeyedLiterals" _root_.Perennial.google_golang_org.protobuf.internal.pragma.NoUnkeyedLiterals.ty),
+(go.field_decl.FieldDecl go!"Flags" go.uint8)]), go.error]))), (go!"google.golang.org/protobuf/proto.unmarshal", (some (go.signature.Signature [(go.GoType.SliceType go.byte), _root_.Perennial.google_golang_org.protobuf.reflect.protoreflect.Message.ty] false [(go.GoType.StructType [(go.field_decl.EmbeddedField go!"NoUnkeyedLiterals" _root_.Perennial.google_golang_org.protobuf.internal.pragma.NoUnkeyedLiterals.ty),
+(go.field_decl.FieldDecl go!"Flags" go.uint8)]), go.error]))), (go!"google.golang.org/protobuf/proto.unmarshalList", (some (go.signature.Signature [(go.GoType.SliceType go.byte), (go.GoType.Named go!"google.golang.org/protobuf/encoding/protowire.Type" []), _root_.Perennial.google_golang_org.protobuf.reflect.protoreflect.List'.ty, _root_.Perennial.google_golang_org.protobuf.reflect.protoreflect.FieldDescriptor.ty] false [go.int, go.error]))), (go!"google.golang.org/protobuf/proto.unmarshalMap", (some (go.signature.Signature [(go.GoType.SliceType go.byte), (go.GoType.Named go!"google.golang.org/protobuf/encoding/protowire.Type" []), _root_.Perennial.google_golang_org.protobuf.reflect.protoreflect.Map.ty, _root_.Perennial.google_golang_org.protobuf.reflect.protoreflect.FieldDescriptor.ty] false [go.int, go.error]))), (go!"google.golang.org/protobuf/proto.unmarshalMessage", (some (go.signature.Signature [(go.GoType.SliceType go.byte), _root_.Perennial.google_golang_org.protobuf.reflect.protoreflect.Message.ty] false [go.error]))), (go!"google.golang.org/protobuf/proto.unmarshalMessageSet", (some (go.signature.Signature [(go.GoType.SliceType go.byte), _root_.Perennial.google_golang_org.protobuf.reflect.protoreflect.Message.ty] false [go.error]))), (go!"google.golang.org/protobuf/proto.unmarshalMessageSetField", (some (go.signature.Signature [_root_.Perennial.google_golang_org.protobuf.reflect.protoreflect.Message.ty, (go.GoType.Named go!"google.golang.org/protobuf/encoding/protowire.Number" []), (go.GoType.SliceType go.byte)] false [go.error]))), (go!"google.golang.org/protobuf/proto.unmarshalMessageSlow", (some (go.signature.Signature [(go.GoType.SliceType go.byte), _root_.Perennial.google_golang_org.protobuf.reflect.protoreflect.Message.ty] false [go.error]))), (go!"google.golang.org/protobuf/proto.unmarshalScalar", (some (go.signature.Signature [(go.GoType.SliceType go.byte), (go.GoType.Named go!"google.golang.org/protobuf/encoding/protowire.Type" []), _root_.Perennial.google_golang_org.protobuf.reflect.protoreflect.FieldDescriptor.ty] false [_root_.Perennial.google_golang_org.protobuf.reflect.protoreflect.Value.ty, go.int, go.error]))), (go!"google.golang.org/protobuf/proto.unmarshalSingular", (some (go.signature.Signature [(go.GoType.SliceType go.byte), (go.GoType.Named go!"google.golang.org/protobuf/encoding/protowire.Type" []), _root_.Perennial.google_golang_org.protobuf.reflect.protoreflect.Message.ty, _root_.Perennial.google_golang_org.protobuf.reflect.protoreflect.FieldDescriptor.ty] false [go.int, go.error])))]
 
 attribute [instance] UnmarshalOptions.TypeAssumptions.type_repr
   UnmarshalOptions.TypeAssumptions.underlying
   UnmarshalOptions.TypeAssumptions.isUnderlying
+  UnmarshalOptions.TypeAssumptions.method_set
+  UnmarshalOptions.TypeAssumptions.ptr_method_set
 
-structure MarshalOptions [FfiSyntax] where
+structure MarshalOptions [GooseExts] where
   mk ::
   NoUnkeyedLiterals' : _root_.Perennial.google_golang_org.protobuf.internal.pragma.NoUnkeyedLiterals
   AllowPartial' : Bool
   Deterministic' : Bool
   UseCachedSize' : Bool
 
-noncomputable instance MarshalOptions.zero_val [FfiSyntax] : ZeroVal MarshalOptions :=
+noncomputable instance MarshalOptions.zero_val [GooseExts] : ZeroVal MarshalOptions :=
   ⟨MarshalOptions.mk zeroValDef zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def MarshalOptions.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def MarshalOptions.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.EmbeddedField go!"NoUnkeyedLiterals" _root_.Perennial.google_golang_org.protobuf.internal.pragma.NoUnkeyedLiterals.ty),
 (go.field_decl.FieldDecl go!"AllowPartial" go.bool),
 (go.field_decl.FieldDecl go!"Deterministic" go.bool),
 (go.field_decl.FieldDecl go!"UseCachedSize" go.bool)]
 
-@[irreducible] noncomputable def MarshalOptions.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def MarshalOptions.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   MarshalOptions.fieldsUnsealed
 
-noncomputable instance equals_unfold_MarshalOptions [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_MarshalOptions [GooseExts] [GoGlobalContext] :
     EqualsUnfold MarshalOptions.fields MarshalOptions.fieldsUnsealed :=
   ⟨by unfold MarshalOptions.fields; rfl⟩
 
-@[reducible] noncomputable def MarshalOptions.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def MarshalOptions.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType MarshalOptions.fields)
 
-class MarshalOptions.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class MarshalOptions.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying MarshalOptions.underlying MarshalOptions
   underlying : go.UnderlyingDirectedEq MarshalOptions.ty MarshalOptions.underlying
   get_NoUnkeyedLiterals : ∀ (x : MarshalOptions), go.IsGoStepPureDetTagged under (StructFieldGet MarshalOptions.underlying go!"NoUnkeyedLiterals") #x (Val #(x.NoUnkeyedLiterals'))
@@ -250,6 +268,18 @@ class MarshalOptions.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalConte
   set_Deterministic : ∀ (x : MarshalOptions) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet MarshalOptions.underlying go!"Deterministic") (PairV #x #y) (Val #(({ x with Deterministic' := y } : MarshalOptions)))
   get_UseCachedSize : ∀ (x : MarshalOptions), go.IsGoStepPureDetTagged under (StructFieldGet MarshalOptions.underlying go!"UseCachedSize") #x (Val #(x.UseCachedSize'))
   set_UseCachedSize : ∀ (x : MarshalOptions) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet MarshalOptions.underlying go!"UseCachedSize") (PairV #x #y) (Val #(({ x with UseCachedSize' := y } : MarshalOptions)))
+  method_set : go.MethodSetIs MarshalOptions.ty [(go!"Marshal", (some (go.signature.Signature [Message.ty] false [(go.GoType.SliceType go.byte), go.error]))), (go!"MarshalAppend", (some (go.signature.Signature [(go.GoType.SliceType go.byte), Message.ty] false [(go.GoType.SliceType go.byte), go.error]))), (go!"MarshalState", (some (go.signature.Signature [(go.GoType.StructType [(go.field_decl.EmbeddedField go!"NoUnkeyedLiterals" _root_.Perennial.google_golang_org.protobuf.internal.pragma.NoUnkeyedLiterals.ty),
+(go.field_decl.FieldDecl go!"Message" _root_.Perennial.google_golang_org.protobuf.reflect.protoreflect.Message.ty),
+(go.field_decl.FieldDecl go!"Buf" (go.GoType.SliceType go.byte)),
+(go.field_decl.FieldDecl go!"Flags" go.uint8)])] false [(go.GoType.StructType [(go.field_decl.EmbeddedField go!"NoUnkeyedLiterals" _root_.Perennial.google_golang_org.protobuf.internal.pragma.NoUnkeyedLiterals.ty),
+(go.field_decl.FieldDecl go!"Buf" (go.GoType.SliceType go.byte))]), go.error]))), (go!"Size", (some (go.signature.Signature [Message.ty] false [go.int]))), (go!"google.golang.org/protobuf/proto.flags", (some (go.signature.Signature [] false [go.uint8]))), (go!"google.golang.org/protobuf/proto.marshal", (some (go.signature.Signature [(go.GoType.SliceType go.byte), _root_.Perennial.google_golang_org.protobuf.reflect.protoreflect.Message.ty] false [(go.GoType.StructType [(go.field_decl.EmbeddedField go!"NoUnkeyedLiterals" _root_.Perennial.google_golang_org.protobuf.internal.pragma.NoUnkeyedLiterals.ty),
+(go.field_decl.FieldDecl go!"Buf" (go.GoType.SliceType go.byte))]), go.error]))), (go!"google.golang.org/protobuf/proto.marshalField", (some (go.signature.Signature [(go.GoType.SliceType go.byte), _root_.Perennial.google_golang_org.protobuf.reflect.protoreflect.FieldDescriptor.ty, _root_.Perennial.google_golang_org.protobuf.reflect.protoreflect.Value.ty] false [(go.GoType.SliceType go.byte), go.error]))), (go!"google.golang.org/protobuf/proto.marshalList", (some (go.signature.Signature [(go.GoType.SliceType go.byte), _root_.Perennial.google_golang_org.protobuf.reflect.protoreflect.FieldDescriptor.ty, _root_.Perennial.google_golang_org.protobuf.reflect.protoreflect.List'.ty] false [(go.GoType.SliceType go.byte), go.error]))), (go!"google.golang.org/protobuf/proto.marshalMap", (some (go.signature.Signature [(go.GoType.SliceType go.byte), _root_.Perennial.google_golang_org.protobuf.reflect.protoreflect.FieldDescriptor.ty, _root_.Perennial.google_golang_org.protobuf.reflect.protoreflect.Map.ty] false [(go.GoType.SliceType go.byte), go.error]))), (go!"google.golang.org/protobuf/proto.marshalMessage", (some (go.signature.Signature [(go.GoType.SliceType go.byte), _root_.Perennial.google_golang_org.protobuf.reflect.protoreflect.Message.ty] false [(go.GoType.SliceType go.byte), go.error]))), (go!"google.golang.org/protobuf/proto.marshalMessageSet", (some (go.signature.Signature [(go.GoType.SliceType go.byte), _root_.Perennial.google_golang_org.protobuf.reflect.protoreflect.Message.ty] false [(go.GoType.SliceType go.byte), go.error]))), (go!"google.golang.org/protobuf/proto.marshalMessageSetField", (some (go.signature.Signature [(go.GoType.SliceType go.byte), _root_.Perennial.google_golang_org.protobuf.reflect.protoreflect.FieldDescriptor.ty, _root_.Perennial.google_golang_org.protobuf.reflect.protoreflect.Value.ty] false [(go.GoType.SliceType go.byte), go.error]))), (go!"google.golang.org/protobuf/proto.marshalMessageSlow", (some (go.signature.Signature [(go.GoType.SliceType go.byte), _root_.Perennial.google_golang_org.protobuf.reflect.protoreflect.Message.ty] false [(go.GoType.SliceType go.byte), go.error]))), (go!"google.golang.org/protobuf/proto.marshalSingular", (some (go.signature.Signature [(go.GoType.SliceType go.byte), _root_.Perennial.google_golang_org.protobuf.reflect.protoreflect.FieldDescriptor.ty, _root_.Perennial.google_golang_org.protobuf.reflect.protoreflect.Value.ty] false [(go.GoType.SliceType go.byte), go.error]))), (go!"google.golang.org/protobuf/proto.size", (some (go.signature.Signature [_root_.Perennial.google_golang_org.protobuf.reflect.protoreflect.Message.ty] false [go.int]))), (go!"google.golang.org/protobuf/proto.sizeField", (some (go.signature.Signature [_root_.Perennial.google_golang_org.protobuf.reflect.protoreflect.FieldDescriptor.ty, _root_.Perennial.google_golang_org.protobuf.reflect.protoreflect.Value.ty] false [go.int]))), (go!"google.golang.org/protobuf/proto.sizeList", (some (go.signature.Signature [(go.GoType.Named go!"google.golang.org/protobuf/encoding/protowire.Number" []), _root_.Perennial.google_golang_org.protobuf.reflect.protoreflect.FieldDescriptor.ty, _root_.Perennial.google_golang_org.protobuf.reflect.protoreflect.List'.ty] false [go.int]))), (go!"google.golang.org/protobuf/proto.sizeMap", (some (go.signature.Signature [(go.GoType.Named go!"google.golang.org/protobuf/encoding/protowire.Number" []), _root_.Perennial.google_golang_org.protobuf.reflect.protoreflect.FieldDescriptor.ty, _root_.Perennial.google_golang_org.protobuf.reflect.protoreflect.Map.ty] false [go.int]))), (go!"google.golang.org/protobuf/proto.sizeMessageSet", (some (go.signature.Signature [_root_.Perennial.google_golang_org.protobuf.reflect.protoreflect.Message.ty] false [go.int]))), (go!"google.golang.org/protobuf/proto.sizeMessageSlow", (some (go.signature.Signature [_root_.Perennial.google_golang_org.protobuf.reflect.protoreflect.Message.ty] false [go.int]))), (go!"google.golang.org/protobuf/proto.sizeSingular", (some (go.signature.Signature [(go.GoType.Named go!"google.golang.org/protobuf/encoding/protowire.Number" []), _root_.Perennial.google_golang_org.protobuf.reflect.protoreflect.Kind.ty, _root_.Perennial.google_golang_org.protobuf.reflect.protoreflect.Value.ty] false [go.int])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType MarshalOptions.ty) [(go!"Marshal", (some (go.signature.Signature [Message.ty] false [(go.GoType.SliceType go.byte), go.error]))), (go!"MarshalAppend", (some (go.signature.Signature [(go.GoType.SliceType go.byte), Message.ty] false [(go.GoType.SliceType go.byte), go.error]))), (go!"MarshalState", (some (go.signature.Signature [(go.GoType.StructType [(go.field_decl.EmbeddedField go!"NoUnkeyedLiterals" _root_.Perennial.google_golang_org.protobuf.internal.pragma.NoUnkeyedLiterals.ty),
+(go.field_decl.FieldDecl go!"Message" _root_.Perennial.google_golang_org.protobuf.reflect.protoreflect.Message.ty),
+(go.field_decl.FieldDecl go!"Buf" (go.GoType.SliceType go.byte)),
+(go.field_decl.FieldDecl go!"Flags" go.uint8)])] false [(go.GoType.StructType [(go.field_decl.EmbeddedField go!"NoUnkeyedLiterals" _root_.Perennial.google_golang_org.protobuf.internal.pragma.NoUnkeyedLiterals.ty),
+(go.field_decl.FieldDecl go!"Buf" (go.GoType.SliceType go.byte))]), go.error]))), (go!"Size", (some (go.signature.Signature [Message.ty] false [go.int]))), (go!"google.golang.org/protobuf/proto.flags", (some (go.signature.Signature [] false [go.uint8]))), (go!"google.golang.org/protobuf/proto.marshal", (some (go.signature.Signature [(go.GoType.SliceType go.byte), _root_.Perennial.google_golang_org.protobuf.reflect.protoreflect.Message.ty] false [(go.GoType.StructType [(go.field_decl.EmbeddedField go!"NoUnkeyedLiterals" _root_.Perennial.google_golang_org.protobuf.internal.pragma.NoUnkeyedLiterals.ty),
+(go.field_decl.FieldDecl go!"Buf" (go.GoType.SliceType go.byte))]), go.error]))), (go!"google.golang.org/protobuf/proto.marshalField", (some (go.signature.Signature [(go.GoType.SliceType go.byte), _root_.Perennial.google_golang_org.protobuf.reflect.protoreflect.FieldDescriptor.ty, _root_.Perennial.google_golang_org.protobuf.reflect.protoreflect.Value.ty] false [(go.GoType.SliceType go.byte), go.error]))), (go!"google.golang.org/protobuf/proto.marshalList", (some (go.signature.Signature [(go.GoType.SliceType go.byte), _root_.Perennial.google_golang_org.protobuf.reflect.protoreflect.FieldDescriptor.ty, _root_.Perennial.google_golang_org.protobuf.reflect.protoreflect.List'.ty] false [(go.GoType.SliceType go.byte), go.error]))), (go!"google.golang.org/protobuf/proto.marshalMap", (some (go.signature.Signature [(go.GoType.SliceType go.byte), _root_.Perennial.google_golang_org.protobuf.reflect.protoreflect.FieldDescriptor.ty, _root_.Perennial.google_golang_org.protobuf.reflect.protoreflect.Map.ty] false [(go.GoType.SliceType go.byte), go.error]))), (go!"google.golang.org/protobuf/proto.marshalMessage", (some (go.signature.Signature [(go.GoType.SliceType go.byte), _root_.Perennial.google_golang_org.protobuf.reflect.protoreflect.Message.ty] false [(go.GoType.SliceType go.byte), go.error]))), (go!"google.golang.org/protobuf/proto.marshalMessageSet", (some (go.signature.Signature [(go.GoType.SliceType go.byte), _root_.Perennial.google_golang_org.protobuf.reflect.protoreflect.Message.ty] false [(go.GoType.SliceType go.byte), go.error]))), (go!"google.golang.org/protobuf/proto.marshalMessageSetField", (some (go.signature.Signature [(go.GoType.SliceType go.byte), _root_.Perennial.google_golang_org.protobuf.reflect.protoreflect.FieldDescriptor.ty, _root_.Perennial.google_golang_org.protobuf.reflect.protoreflect.Value.ty] false [(go.GoType.SliceType go.byte), go.error]))), (go!"google.golang.org/protobuf/proto.marshalMessageSlow", (some (go.signature.Signature [(go.GoType.SliceType go.byte), _root_.Perennial.google_golang_org.protobuf.reflect.protoreflect.Message.ty] false [(go.GoType.SliceType go.byte), go.error]))), (go!"google.golang.org/protobuf/proto.marshalSingular", (some (go.signature.Signature [(go.GoType.SliceType go.byte), _root_.Perennial.google_golang_org.protobuf.reflect.protoreflect.FieldDescriptor.ty, _root_.Perennial.google_golang_org.protobuf.reflect.protoreflect.Value.ty] false [(go.GoType.SliceType go.byte), go.error]))), (go!"google.golang.org/protobuf/proto.size", (some (go.signature.Signature [_root_.Perennial.google_golang_org.protobuf.reflect.protoreflect.Message.ty] false [go.int]))), (go!"google.golang.org/protobuf/proto.sizeField", (some (go.signature.Signature [_root_.Perennial.google_golang_org.protobuf.reflect.protoreflect.FieldDescriptor.ty, _root_.Perennial.google_golang_org.protobuf.reflect.protoreflect.Value.ty] false [go.int]))), (go!"google.golang.org/protobuf/proto.sizeList", (some (go.signature.Signature [(go.GoType.Named go!"google.golang.org/protobuf/encoding/protowire.Number" []), _root_.Perennial.google_golang_org.protobuf.reflect.protoreflect.FieldDescriptor.ty, _root_.Perennial.google_golang_org.protobuf.reflect.protoreflect.List'.ty] false [go.int]))), (go!"google.golang.org/protobuf/proto.sizeMap", (some (go.signature.Signature [(go.GoType.Named go!"google.golang.org/protobuf/encoding/protowire.Number" []), _root_.Perennial.google_golang_org.protobuf.reflect.protoreflect.FieldDescriptor.ty, _root_.Perennial.google_golang_org.protobuf.reflect.protoreflect.Map.ty] false [go.int]))), (go!"google.golang.org/protobuf/proto.sizeMessageSet", (some (go.signature.Signature [_root_.Perennial.google_golang_org.protobuf.reflect.protoreflect.Message.ty] false [go.int]))), (go!"google.golang.org/protobuf/proto.sizeMessageSlow", (some (go.signature.Signature [_root_.Perennial.google_golang_org.protobuf.reflect.protoreflect.Message.ty] false [go.int]))), (go!"google.golang.org/protobuf/proto.sizeSingular", (some (go.signature.Signature [(go.GoType.Named go!"google.golang.org/protobuf/encoding/protowire.Number" []), _root_.Perennial.google_golang_org.protobuf.reflect.protoreflect.Kind.ty, _root_.Perennial.google_golang_org.protobuf.reflect.protoreflect.Value.ty] false [go.int])))]
 
 attribute [instance] MarshalOptions.TypeAssumptions.type_repr
   MarshalOptions.TypeAssumptions.underlying
@@ -261,34 +291,40 @@ attribute [instance] MarshalOptions.TypeAssumptions.type_repr
   MarshalOptions.TypeAssumptions.set_Deterministic
   MarshalOptions.TypeAssumptions.get_UseCachedSize
   MarshalOptions.TypeAssumptions.set_UseCachedSize
+  MarshalOptions.TypeAssumptions.method_set
+  MarshalOptions.TypeAssumptions.ptr_method_set
 
-structure mergeOptions [FfiSyntax] where
+structure mergeOptions [GooseExts] where
   mk ::
 
-noncomputable instance mergeOptions.zero_val [FfiSyntax] : ZeroVal mergeOptions :=
+noncomputable instance mergeOptions.zero_val [GooseExts] : ZeroVal mergeOptions :=
   ⟨mergeOptions.mk⟩
 
-@[reducible] noncomputable def mergeOptions.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def mergeOptions.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   []
 
-@[irreducible] noncomputable def mergeOptions.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def mergeOptions.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   mergeOptions.fieldsUnsealed
 
-noncomputable instance equals_unfold_mergeOptions [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_mergeOptions [GooseExts] [GoGlobalContext] :
     EqualsUnfold mergeOptions.fields mergeOptions.fieldsUnsealed :=
   ⟨by unfold mergeOptions.fields; rfl⟩
 
-@[reducible] noncomputable def mergeOptions.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def mergeOptions.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType mergeOptions.fields)
 
-class mergeOptions.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class mergeOptions.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying mergeOptions.underlying mergeOptions
   underlying : go.UnderlyingDirectedEq mergeOptions.ty mergeOptions.underlying
+  method_set : go.MethodSetIs mergeOptions.ty [(go!"google.golang.org/protobuf/proto.cloneBytes", (some (go.signature.Signature [_root_.Perennial.google_golang_org.protobuf.reflect.protoreflect.Value.ty] false [_root_.Perennial.google_golang_org.protobuf.reflect.protoreflect.Value.ty]))), (go!"google.golang.org/protobuf/proto.mergeList", (some (go.signature.Signature [_root_.Perennial.google_golang_org.protobuf.reflect.protoreflect.List'.ty, _root_.Perennial.google_golang_org.protobuf.reflect.protoreflect.List'.ty, _root_.Perennial.google_golang_org.protobuf.reflect.protoreflect.FieldDescriptor.ty] false []))), (go!"google.golang.org/protobuf/proto.mergeMap", (some (go.signature.Signature [_root_.Perennial.google_golang_org.protobuf.reflect.protoreflect.Map.ty, _root_.Perennial.google_golang_org.protobuf.reflect.protoreflect.Map.ty, _root_.Perennial.google_golang_org.protobuf.reflect.protoreflect.FieldDescriptor.ty] false []))), (go!"google.golang.org/protobuf/proto.mergeMessage", (some (go.signature.Signature [_root_.Perennial.google_golang_org.protobuf.reflect.protoreflect.Message.ty, _root_.Perennial.google_golang_org.protobuf.reflect.protoreflect.Message.ty] false [])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType mergeOptions.ty) [(go!"google.golang.org/protobuf/proto.cloneBytes", (some (go.signature.Signature [_root_.Perennial.google_golang_org.protobuf.reflect.protoreflect.Value.ty] false [_root_.Perennial.google_golang_org.protobuf.reflect.protoreflect.Value.ty]))), (go!"google.golang.org/protobuf/proto.mergeList", (some (go.signature.Signature [_root_.Perennial.google_golang_org.protobuf.reflect.protoreflect.List'.ty, _root_.Perennial.google_golang_org.protobuf.reflect.protoreflect.List'.ty, _root_.Perennial.google_golang_org.protobuf.reflect.protoreflect.FieldDescriptor.ty] false []))), (go!"google.golang.org/protobuf/proto.mergeMap", (some (go.signature.Signature [_root_.Perennial.google_golang_org.protobuf.reflect.protoreflect.Map.ty, _root_.Perennial.google_golang_org.protobuf.reflect.protoreflect.Map.ty, _root_.Perennial.google_golang_org.protobuf.reflect.protoreflect.FieldDescriptor.ty] false []))), (go!"google.golang.org/protobuf/proto.mergeMessage", (some (go.signature.Signature [_root_.Perennial.google_golang_org.protobuf.reflect.protoreflect.Message.ty, _root_.Perennial.google_golang_org.protobuf.reflect.protoreflect.Message.ty] false [])))]
 
 attribute [instance] mergeOptions.TypeAssumptions.type_repr
   mergeOptions.TypeAssumptions.underlying
+  mergeOptions.TypeAssumptions.method_set
+  mergeOptions.TypeAssumptions.ptr_method_set
 
-class Assumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   UnmarshalOptions_instance : UnmarshalOptions.TypeAssumptions
   MarshalOptions_instance : MarshalOptions.TypeAssumptions
   mergeOptions_instance : mergeOptions.TypeAssumptions

@@ -22,608 +22,608 @@ end pkg_id
 
 namespace go_uber_org.zap.zapcore
 
-noncomputable def BufferedWriteSyncer.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def BufferedWriteSyncer.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.uber.org/zap/zapcore.BufferedWriteSyncer" [])
 
 attribute [irreducible] BufferedWriteSyncer.ty
 
-noncomputable def Clock.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def Clock.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.uber.org/zap/zapcore.Clock" [])
 
 attribute [irreducible] Clock.ty
 
-noncomputable def systemClock.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def systemClock.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.uber.org/zap/zapcore.systemClock" [])
 
 attribute [irreducible] systemClock.ty
 
-noncomputable def consoleEncoder.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def consoleEncoder.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.uber.org/zap/zapcore.consoleEncoder" [])
 
 attribute [irreducible] consoleEncoder.ty
 
-noncomputable def Core.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def Core.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.uber.org/zap/zapcore.Core" [])
 
 attribute [irreducible] Core.ty
 
-noncomputable def nopCore.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def nopCore.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.uber.org/zap/zapcore.nopCore" [])
 
 attribute [irreducible] nopCore.ty
 
-noncomputable def ioCore.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def ioCore.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.uber.org/zap/zapcore.ioCore" [])
 
 attribute [irreducible] ioCore.ty
 
-noncomputable def LevelEncoder.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def LevelEncoder.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.uber.org/zap/zapcore.LevelEncoder" [])
 
 attribute [irreducible] LevelEncoder.ty
 
-noncomputable def TimeEncoder.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def TimeEncoder.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.uber.org/zap/zapcore.TimeEncoder" [])
 
 attribute [irreducible] TimeEncoder.ty
 
-noncomputable def DurationEncoder.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def DurationEncoder.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.uber.org/zap/zapcore.DurationEncoder" [])
 
 attribute [irreducible] DurationEncoder.ty
 
-noncomputable def CallerEncoder.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def CallerEncoder.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.uber.org/zap/zapcore.CallerEncoder" [])
 
 attribute [irreducible] CallerEncoder.ty
 
-noncomputable def NameEncoder.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def NameEncoder.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.uber.org/zap/zapcore.NameEncoder" [])
 
 attribute [irreducible] NameEncoder.ty
 
-noncomputable def EncoderConfig.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def EncoderConfig.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.uber.org/zap/zapcore.EncoderConfig" [])
 
 attribute [irreducible] EncoderConfig.ty
 
-noncomputable def ObjectEncoder.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def ObjectEncoder.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.uber.org/zap/zapcore.ObjectEncoder" [])
 
 attribute [irreducible] ObjectEncoder.ty
 
-noncomputable def ArrayEncoder.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def ArrayEncoder.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.uber.org/zap/zapcore.ArrayEncoder" [])
 
 attribute [irreducible] ArrayEncoder.ty
 
-noncomputable def PrimitiveArrayEncoder.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def PrimitiveArrayEncoder.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.uber.org/zap/zapcore.PrimitiveArrayEncoder" [])
 
 attribute [irreducible] PrimitiveArrayEncoder.ty
 
-noncomputable def Encoder.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def Encoder.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.uber.org/zap/zapcore.Encoder" [])
 
 attribute [irreducible] Encoder.ty
 
-noncomputable def EntryCaller.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def EntryCaller.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.uber.org/zap/zapcore.EntryCaller" [])
 
 attribute [irreducible] EntryCaller.ty
 
-noncomputable def Entry.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def Entry.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.uber.org/zap/zapcore.Entry" [])
 
 attribute [irreducible] Entry.ty
 
-noncomputable def CheckWriteHook.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def CheckWriteHook.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.uber.org/zap/zapcore.CheckWriteHook" [])
 
 attribute [irreducible] CheckWriteHook.ty
 
-noncomputable def CheckWriteAction.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def CheckWriteAction.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.uber.org/zap/zapcore.CheckWriteAction" [])
 
 attribute [irreducible] CheckWriteAction.ty
 
-noncomputable def CheckPreWriteHook.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def CheckPreWriteHook.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.uber.org/zap/zapcore.CheckPreWriteHook" [])
 
 attribute [irreducible] CheckPreWriteHook.ty
 
-noncomputable def CheckedEntry.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def CheckedEntry.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.uber.org/zap/zapcore.CheckedEntry" [])
 
 attribute [irreducible] CheckedEntry.ty
 
-noncomputable def errorGroup.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def errorGroup.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.uber.org/zap/zapcore.errorGroup" [])
 
 attribute [irreducible] errorGroup.ty
 
-noncomputable def errArray.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def errArray.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.uber.org/zap/zapcore.errArray" [])
 
 attribute [irreducible] errArray.ty
 
-noncomputable def errArrayElem.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def errArrayElem.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.uber.org/zap/zapcore.errArrayElem" [])
 
 attribute [irreducible] errArrayElem.ty
 
-noncomputable def FieldType.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def FieldType.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.uber.org/zap/zapcore.FieldType" [])
 
 attribute [irreducible] FieldType.ty
 
-noncomputable def Field.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def Field.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.uber.org/zap/zapcore.Field" [])
 
 attribute [irreducible] Field.ty
 
-noncomputable def hooked.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def hooked.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.uber.org/zap/zapcore.hooked" [])
 
 attribute [irreducible] hooked.ty
 
-noncomputable def levelFilterCore.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def levelFilterCore.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.uber.org/zap/zapcore.levelFilterCore" [])
 
 attribute [irreducible] levelFilterCore.ty
 
-noncomputable def jsonEncoder.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def jsonEncoder.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.uber.org/zap/zapcore.jsonEncoder" [])
 
 attribute [irreducible] jsonEncoder.ty
 
-noncomputable def lazyWithCore.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def lazyWithCore.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.uber.org/zap/zapcore.lazyWithCore" [])
 
 attribute [irreducible] lazyWithCore.ty
 
-noncomputable def Level.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def Level.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.uber.org/zap/zapcore.Level" [])
 
 attribute [irreducible] Level.ty
 
-noncomputable def leveledEnabler.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def leveledEnabler.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.uber.org/zap/zapcore.leveledEnabler" [])
 
 attribute [irreducible] leveledEnabler.ty
 
-noncomputable def LevelEnabler.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def LevelEnabler.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.uber.org/zap/zapcore.LevelEnabler" [])
 
 attribute [irreducible] LevelEnabler.ty
 
-noncomputable def ObjectMarshaler.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def ObjectMarshaler.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.uber.org/zap/zapcore.ObjectMarshaler" [])
 
 attribute [irreducible] ObjectMarshaler.ty
 
-noncomputable def ObjectMarshalerFunc.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def ObjectMarshalerFunc.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.uber.org/zap/zapcore.ObjectMarshalerFunc" [])
 
 attribute [irreducible] ObjectMarshalerFunc.ty
 
-noncomputable def ArrayMarshaler.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def ArrayMarshaler.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.uber.org/zap/zapcore.ArrayMarshaler" [])
 
 attribute [irreducible] ArrayMarshaler.ty
 
-noncomputable def ArrayMarshalerFunc.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def ArrayMarshalerFunc.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.uber.org/zap/zapcore.ArrayMarshalerFunc" [])
 
 attribute [irreducible] ArrayMarshalerFunc.ty
 
-noncomputable def MapObjectEncoder.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def MapObjectEncoder.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.uber.org/zap/zapcore.MapObjectEncoder" [])
 
 attribute [irreducible] MapObjectEncoder.ty
 
-noncomputable def sliceArrayEncoder.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def sliceArrayEncoder.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.uber.org/zap/zapcore.sliceArrayEncoder" [])
 
 attribute [irreducible] sliceArrayEncoder.ty
 
-noncomputable def ReflectedEncoder.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def ReflectedEncoder.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.uber.org/zap/zapcore.ReflectedEncoder" [])
 
 attribute [irreducible] ReflectedEncoder.ty
 
-noncomputable def counter.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def counter.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.uber.org/zap/zapcore.counter" [])
 
 attribute [irreducible] counter.ty
 
-noncomputable def counters.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def counters.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.uber.org/zap/zapcore.counters" [])
 
 attribute [irreducible] counters.ty
 
-noncomputable def SamplingDecision.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def SamplingDecision.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.uber.org/zap/zapcore.SamplingDecision" [])
 
 attribute [irreducible] SamplingDecision.ty
 
-noncomputable def optionFunc.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def optionFunc.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.uber.org/zap/zapcore.optionFunc" [])
 
 attribute [irreducible] optionFunc.ty
 
-noncomputable def SamplerOption.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def SamplerOption.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.uber.org/zap/zapcore.SamplerOption" [])
 
 attribute [irreducible] SamplerOption.ty
 
-noncomputable def sampler.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def sampler.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.uber.org/zap/zapcore.sampler" [])
 
 attribute [irreducible] sampler.ty
 
-noncomputable def multiCore.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def multiCore.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.uber.org/zap/zapcore.multiCore" [])
 
 attribute [irreducible] multiCore.ty
 
-noncomputable def WriteSyncer.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def WriteSyncer.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.uber.org/zap/zapcore.WriteSyncer" [])
 
 attribute [irreducible] WriteSyncer.ty
 
-noncomputable def lockedWriteSyncer.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def lockedWriteSyncer.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.uber.org/zap/zapcore.lockedWriteSyncer" [])
 
 attribute [irreducible] lockedWriteSyncer.ty
 
-noncomputable def writerWrapper.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def writerWrapper.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.uber.org/zap/zapcore.writerWrapper" [])
 
 attribute [irreducible] writerWrapper.ty
 
-noncomputable def multiWriteSyncer.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def multiWriteSyncer.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.uber.org/zap/zapcore.multiWriteSyncer" [])
 
 attribute [irreducible] multiWriteSyncer.ty
 
-axiom BufferedWriteSyncer.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom BufferedWriteSyncer.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom Encoder.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom Encoder.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom jsonEncoder.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom jsonEncoder.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom lazyWithCore.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom lazyWithCore.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom counter.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom counter.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom lockedWriteSyncer.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom lockedWriteSyncer.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom _defaultBufferSize [FfiSyntax] [GoGlobalContext] : val
+axiom _defaultBufferSize [GooseExts] [GoGlobalContext] : val
 
-axiom _defaultFlushInterval [FfiSyntax] [GoGlobalContext] : val
+axiom _defaultFlushInterval [GooseExts] [GoGlobalContext] : val
 
-axiom DefaultLineEnding [FfiSyntax] [GoGlobalContext] : val
+axiom DefaultLineEnding [GooseExts] [GoGlobalContext] : val
 
-axiom OmitKey [FfiSyntax] [GoGlobalContext] : val
+axiom OmitKey [GooseExts] [GoGlobalContext] : val
 
-axiom WriteThenNoop [FfiSyntax] [GoGlobalContext] : val
+axiom WriteThenNoop [GooseExts] [GoGlobalContext] : val
 
-axiom WriteThenGoexit [FfiSyntax] [GoGlobalContext] : val
+axiom WriteThenGoexit [GooseExts] [GoGlobalContext] : val
 
-axiom WriteThenPanic [FfiSyntax] [GoGlobalContext] : val
+axiom WriteThenPanic [GooseExts] [GoGlobalContext] : val
 
-axiom WriteThenFatal [FfiSyntax] [GoGlobalContext] : val
+axiom WriteThenFatal [GooseExts] [GoGlobalContext] : val
 
-axiom UnknownType [FfiSyntax] [GoGlobalContext] : val
+axiom UnknownType [GooseExts] [GoGlobalContext] : val
 
-axiom ArrayMarshalerType [FfiSyntax] [GoGlobalContext] : val
+axiom ArrayMarshalerType [GooseExts] [GoGlobalContext] : val
 
-axiom ObjectMarshalerType [FfiSyntax] [GoGlobalContext] : val
+axiom ObjectMarshalerType [GooseExts] [GoGlobalContext] : val
 
-axiom BinaryType [FfiSyntax] [GoGlobalContext] : val
+axiom BinaryType [GooseExts] [GoGlobalContext] : val
 
-axiom BoolType [FfiSyntax] [GoGlobalContext] : val
+axiom BoolType [GooseExts] [GoGlobalContext] : val
 
-axiom ByteStringType [FfiSyntax] [GoGlobalContext] : val
+axiom ByteStringType [GooseExts] [GoGlobalContext] : val
 
-axiom Complex128Type [FfiSyntax] [GoGlobalContext] : val
+axiom Complex128Type [GooseExts] [GoGlobalContext] : val
 
-axiom Complex64Type [FfiSyntax] [GoGlobalContext] : val
+axiom Complex64Type [GooseExts] [GoGlobalContext] : val
 
-axiom DurationType [FfiSyntax] [GoGlobalContext] : val
+axiom DurationType [GooseExts] [GoGlobalContext] : val
 
-axiom Float64Type [FfiSyntax] [GoGlobalContext] : val
+axiom Float64Type [GooseExts] [GoGlobalContext] : val
 
-axiom Float32Type [FfiSyntax] [GoGlobalContext] : val
+axiom Float32Type [GooseExts] [GoGlobalContext] : val
 
-axiom Int64Type [FfiSyntax] [GoGlobalContext] : val
+axiom Int64Type [GooseExts] [GoGlobalContext] : val
 
-axiom Int32Type [FfiSyntax] [GoGlobalContext] : val
+axiom Int32Type [GooseExts] [GoGlobalContext] : val
 
-axiom Int16Type [FfiSyntax] [GoGlobalContext] : val
+axiom Int16Type [GooseExts] [GoGlobalContext] : val
 
-axiom Int8Type [FfiSyntax] [GoGlobalContext] : val
+axiom Int8Type [GooseExts] [GoGlobalContext] : val
 
-axiom StringType [FfiSyntax] [GoGlobalContext] : val
+axiom StringType [GooseExts] [GoGlobalContext] : val
 
-axiom TimeType [FfiSyntax] [GoGlobalContext] : val
+axiom TimeType [GooseExts] [GoGlobalContext] : val
 
-axiom TimeFullType [FfiSyntax] [GoGlobalContext] : val
+axiom TimeFullType [GooseExts] [GoGlobalContext] : val
 
-axiom Uint64Type [FfiSyntax] [GoGlobalContext] : val
+axiom Uint64Type [GooseExts] [GoGlobalContext] : val
 
-axiom Uint32Type [FfiSyntax] [GoGlobalContext] : val
+axiom Uint32Type [GooseExts] [GoGlobalContext] : val
 
-axiom Uint16Type [FfiSyntax] [GoGlobalContext] : val
+axiom Uint16Type [GooseExts] [GoGlobalContext] : val
 
-axiom Uint8Type [FfiSyntax] [GoGlobalContext] : val
+axiom Uint8Type [GooseExts] [GoGlobalContext] : val
 
-axiom UintptrType [FfiSyntax] [GoGlobalContext] : val
+axiom UintptrType [GooseExts] [GoGlobalContext] : val
 
-axiom ReflectType [FfiSyntax] [GoGlobalContext] : val
+axiom ReflectType [GooseExts] [GoGlobalContext] : val
 
-axiom NamespaceType [FfiSyntax] [GoGlobalContext] : val
+axiom NamespaceType [GooseExts] [GoGlobalContext] : val
 
-axiom StringerType [FfiSyntax] [GoGlobalContext] : val
+axiom StringerType [GooseExts] [GoGlobalContext] : val
 
-axiom ErrorType [FfiSyntax] [GoGlobalContext] : val
+axiom ErrorType [GooseExts] [GoGlobalContext] : val
 
-axiom SkipType [FfiSyntax] [GoGlobalContext] : val
+axiom SkipType [GooseExts] [GoGlobalContext] : val
 
-axiom InlineMarshalerType [FfiSyntax] [GoGlobalContext] : val
+axiom InlineMarshalerType [GooseExts] [GoGlobalContext] : val
 
-axiom _hex [FfiSyntax] [GoGlobalContext] : val
+axiom _hex [GooseExts] [GoGlobalContext] : val
 
-@[reducible] noncomputable def DebugLevel [FfiSyntax] [GoGlobalContext] : val :=
+@[reducible] noncomputable def DebugLevel [GooseExts] [GoGlobalContext] : val :=
   #(W8 (-1))
 
-axiom InfoLevel [FfiSyntax] [GoGlobalContext] : val
+axiom InfoLevel [GooseExts] [GoGlobalContext] : val
 
-axiom WarnLevel [FfiSyntax] [GoGlobalContext] : val
+axiom WarnLevel [GooseExts] [GoGlobalContext] : val
 
-axiom ErrorLevel [FfiSyntax] [GoGlobalContext] : val
+axiom ErrorLevel [GooseExts] [GoGlobalContext] : val
 
-axiom DPanicLevel [FfiSyntax] [GoGlobalContext] : val
+axiom DPanicLevel [GooseExts] [GoGlobalContext] : val
 
-axiom PanicLevel [FfiSyntax] [GoGlobalContext] : val
+axiom PanicLevel [GooseExts] [GoGlobalContext] : val
 
-axiom FatalLevel [FfiSyntax] [GoGlobalContext] : val
+axiom FatalLevel [GooseExts] [GoGlobalContext] : val
 
-axiom _minLevel [FfiSyntax] [GoGlobalContext] : val
+axiom _minLevel [GooseExts] [GoGlobalContext] : val
 
-axiom _maxLevel [FfiSyntax] [GoGlobalContext] : val
+axiom _maxLevel [GooseExts] [GoGlobalContext] : val
 
-axiom InvalidLevel [FfiSyntax] [GoGlobalContext] : val
+axiom InvalidLevel [GooseExts] [GoGlobalContext] : val
 
-axiom _numLevels [FfiSyntax] [GoGlobalContext] : val
+axiom _numLevels [GooseExts] [GoGlobalContext] : val
 
-axiom _countersPerLevel [FfiSyntax] [GoGlobalContext] : val
+axiom _countersPerLevel [GooseExts] [GoGlobalContext] : val
 
-axiom LogDropped [FfiSyntax] [GoGlobalContext] : val
+axiom LogDropped [GooseExts] [GoGlobalContext] : val
 
-axiom LogSampled [FfiSyntax] [GoGlobalContext] : val
+axiom LogSampled [GooseExts] [GoGlobalContext] : val
 
-noncomputable def DefaultClock [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def DefaultClock [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.uber.org/zap/zapcore.DefaultClock"
 
-axiom DefaultClock.init [FfiSyntax] [GoGlobalContext] : val
+axiom DefaultClock.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def _sliceEncoderPool [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def _sliceEncoderPool [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.uber.org/zap/zapcore._sliceEncoderPool"
 
-axiom _sliceEncoderPool.init [FfiSyntax] [GoGlobalContext] : val
+axiom _sliceEncoderPool.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def _cePool [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def _cePool [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.uber.org/zap/zapcore._cePool"
 
-axiom _cePool.init [FfiSyntax] [GoGlobalContext] : val
+axiom _cePool.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def _errArrayElemPool [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def _errArrayElemPool [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.uber.org/zap/zapcore._errArrayElemPool"
 
-axiom _errArrayElemPool.init [FfiSyntax] [GoGlobalContext] : val
+axiom _errArrayElemPool.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def _jsonPool [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def _jsonPool [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.uber.org/zap/zapcore._jsonPool"
 
-axiom _jsonPool.init [FfiSyntax] [GoGlobalContext] : val
+axiom _jsonPool.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def nullLiteralBytes [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def nullLiteralBytes [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.uber.org/zap/zapcore.nullLiteralBytes"
 
-axiom nullLiteralBytes.init [FfiSyntax] [GoGlobalContext] : val
+axiom nullLiteralBytes.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def errUnmarshalNilLevel [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def errUnmarshalNilLevel [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.uber.org/zap/zapcore.errUnmarshalNilLevel"
 
-axiom errUnmarshalNilLevel.init [FfiSyntax] [GoGlobalContext] : val
+axiom errUnmarshalNilLevel.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def _levelToColor [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def _levelToColor [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.uber.org/zap/zapcore._levelToColor"
 
-axiom _levelToColor.init [FfiSyntax] [GoGlobalContext] : val
+axiom _levelToColor.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def _unknownLevelColor [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def _unknownLevelColor [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.uber.org/zap/zapcore._unknownLevelColor"
 
-axiom _unknownLevelColor.init [FfiSyntax] [GoGlobalContext] : val
+axiom _unknownLevelColor.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def _levelToLowercaseColorString [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def _levelToLowercaseColorString [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.uber.org/zap/zapcore._levelToLowercaseColorString"
 
-axiom _levelToLowercaseColorString.init [FfiSyntax] [GoGlobalContext] : val
+axiom _levelToLowercaseColorString.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def _levelToCapitalColorString [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def _levelToCapitalColorString [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.uber.org/zap/zapcore._levelToCapitalColorString"
 
-axiom _levelToCapitalColorString.init [FfiSyntax] [GoGlobalContext] : val
+axiom _levelToCapitalColorString.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def getSliceEncoder [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def getSliceEncoder [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.uber.org/zap/zapcore.getSliceEncoder"
 
-noncomputable def putSliceEncoder [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def putSliceEncoder [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.uber.org/zap/zapcore.putSliceEncoder"
 
-noncomputable def NewConsoleEncoder [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def NewConsoleEncoder [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.uber.org/zap/zapcore.NewConsoleEncoder"
 
-noncomputable def NewNopCore [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def NewNopCore [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.uber.org/zap/zapcore.NewNopCore"
 
-noncomputable def NewCore [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def NewCore [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.uber.org/zap/zapcore.NewCore"
 
-noncomputable def LowercaseLevelEncoder [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def LowercaseLevelEncoder [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.uber.org/zap/zapcore.LowercaseLevelEncoder"
 
-noncomputable def LowercaseColorLevelEncoder [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def LowercaseColorLevelEncoder [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.uber.org/zap/zapcore.LowercaseColorLevelEncoder"
 
-noncomputable def CapitalLevelEncoder [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def CapitalLevelEncoder [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.uber.org/zap/zapcore.CapitalLevelEncoder"
 
-noncomputable def CapitalColorLevelEncoder [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def CapitalColorLevelEncoder [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.uber.org/zap/zapcore.CapitalColorLevelEncoder"
 
-noncomputable def EpochTimeEncoder [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def EpochTimeEncoder [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.uber.org/zap/zapcore.EpochTimeEncoder"
 
-noncomputable def EpochMillisTimeEncoder [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def EpochMillisTimeEncoder [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.uber.org/zap/zapcore.EpochMillisTimeEncoder"
 
-noncomputable def EpochNanosTimeEncoder [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def EpochNanosTimeEncoder [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.uber.org/zap/zapcore.EpochNanosTimeEncoder"
 
-noncomputable def encodeTimeLayout [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def encodeTimeLayout [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.uber.org/zap/zapcore.encodeTimeLayout"
 
-noncomputable def ISO8601TimeEncoder [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ISO8601TimeEncoder [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.uber.org/zap/zapcore.ISO8601TimeEncoder"
 
-noncomputable def RFC3339TimeEncoder [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def RFC3339TimeEncoder [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.uber.org/zap/zapcore.RFC3339TimeEncoder"
 
-noncomputable def RFC3339NanoTimeEncoder [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def RFC3339NanoTimeEncoder [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.uber.org/zap/zapcore.RFC3339NanoTimeEncoder"
 
-noncomputable def TimeEncoderOfLayout [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def TimeEncoderOfLayout [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.uber.org/zap/zapcore.TimeEncoderOfLayout"
 
-noncomputable def SecondsDurationEncoder [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def SecondsDurationEncoder [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.uber.org/zap/zapcore.SecondsDurationEncoder"
 
-noncomputable def NanosDurationEncoder [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def NanosDurationEncoder [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.uber.org/zap/zapcore.NanosDurationEncoder"
 
-noncomputable def MillisDurationEncoder [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def MillisDurationEncoder [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.uber.org/zap/zapcore.MillisDurationEncoder"
 
-noncomputable def StringDurationEncoder [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def StringDurationEncoder [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.uber.org/zap/zapcore.StringDurationEncoder"
 
-noncomputable def FullCallerEncoder [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def FullCallerEncoder [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.uber.org/zap/zapcore.FullCallerEncoder"
 
-noncomputable def ShortCallerEncoder [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ShortCallerEncoder [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.uber.org/zap/zapcore.ShortCallerEncoder"
 
-noncomputable def FullNameEncoder [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def FullNameEncoder [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.uber.org/zap/zapcore.FullNameEncoder"
 
-noncomputable def getCheckedEntry [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def getCheckedEntry [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.uber.org/zap/zapcore.getCheckedEntry"
 
-noncomputable def putCheckedEntry [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def putCheckedEntry [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.uber.org/zap/zapcore.putCheckedEntry"
 
-noncomputable def NewEntryCaller [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def NewEntryCaller [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.uber.org/zap/zapcore.NewEntryCaller"
 
-noncomputable def encodeError [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def encodeError [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.uber.org/zap/zapcore.encodeError"
 
-noncomputable def newErrArrayElem [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def newErrArrayElem [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.uber.org/zap/zapcore.newErrArrayElem"
 
-noncomputable def addFields [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def addFields [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.uber.org/zap/zapcore.addFields"
 
-noncomputable def encodeStringer [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def encodeStringer [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.uber.org/zap/zapcore.encodeStringer"
 
-noncomputable def RegisterHooks [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def RegisterHooks [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.uber.org/zap/zapcore.RegisterHooks"
 
-noncomputable def NewIncreaseLevelCore [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def NewIncreaseLevelCore [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.uber.org/zap/zapcore.NewIncreaseLevelCore"
 
-noncomputable def putJSONEncoder [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def putJSONEncoder [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.uber.org/zap/zapcore.putJSONEncoder"
 
-noncomputable def NewJSONEncoder [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def NewJSONEncoder [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.uber.org/zap/zapcore.NewJSONEncoder"
 
-noncomputable def newJSONEncoder [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def newJSONEncoder [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.uber.org/zap/zapcore.newJSONEncoder"
 
-noncomputable def safeAppendStringLike [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def safeAppendStringLike [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.uber.org/zap/zapcore.safeAppendStringLike"
 
-noncomputable def NewLazyWith [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def NewLazyWith [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.uber.org/zap/zapcore.NewLazyWith"
 
-noncomputable def ParseLevel [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ParseLevel [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.uber.org/zap/zapcore.ParseLevel"
 
-noncomputable def LevelOf [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def LevelOf [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.uber.org/zap/zapcore.LevelOf"
 
-noncomputable def init.«0» [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def init.«0» [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.uber.org/zap/zapcore.init.0"
 
-noncomputable def NewMapObjectEncoder [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def NewMapObjectEncoder [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.uber.org/zap/zapcore.NewMapObjectEncoder"
 
-noncomputable def defaultReflectedEncoder [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def defaultReflectedEncoder [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.uber.org/zap/zapcore.defaultReflectedEncoder"
 
-noncomputable def newCounters [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def newCounters [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.uber.org/zap/zapcore.newCounters"
 
-noncomputable def fnv32a [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def fnv32a [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.uber.org/zap/zapcore.fnv32a"
 
-noncomputable def nopSamplingHook [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def nopSamplingHook [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.uber.org/zap/zapcore.nopSamplingHook"
 
-noncomputable def SamplerHook [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def SamplerHook [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.uber.org/zap/zapcore.SamplerHook"
 
-noncomputable def NewSamplerWithOptions [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def NewSamplerWithOptions [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.uber.org/zap/zapcore.NewSamplerWithOptions"
 
-noncomputable def NewSampler [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def NewSampler [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.uber.org/zap/zapcore.NewSampler"
 
-noncomputable def NewTee [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def NewTee [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.uber.org/zap/zapcore.NewTee"
 
-noncomputable def AddSync [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def AddSync [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.uber.org/zap/zapcore.AddSync"
 
-noncomputable def Lock [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def Lock [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.uber.org/zap/zapcore.Lock"
 
-noncomputable def NewMultiWriteSyncer [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def NewMultiWriteSyncer [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.uber.org/zap/zapcore.NewMultiWriteSyncer"
 
 noncomputable instance info' : PkgInfo pkg_id.go_uber_org.zap.zapcore where
   pkgImportedPkgs := [pkg_id.time, pkg_id.io]
 
-axiom «_».init [FfiSyntax] [GoGlobalContext] : val
+axiom «_».init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (App (Val (package.init pkg_id.go_uber_org.zap.zapcore)) (Lam BAnon
   (App (Val exceptionDo)
@@ -706,176 +706,212 @@ axiom BufferedWriteSyncer : Type
 axiom BufferedWriteSyncer.zero_val : ZeroVal BufferedWriteSyncer
 attribute [instance] BufferedWriteSyncer.zero_val
 
-class BufferedWriteSyncer.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class BufferedWriteSyncer.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying BufferedWriteSyncer.underlying BufferedWriteSyncer
   underlying : go.UnderlyingDirectedEq BufferedWriteSyncer.ty BufferedWriteSyncer.underlying
   isUnderlying : go.IsUnderlying BufferedWriteSyncer.underlying BufferedWriteSyncer.underlying
+  method_set : go.MethodSetIs BufferedWriteSyncer.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType BufferedWriteSyncer.ty) [(go!"Stop", (some (go.signature.Signature [] false [go.error]))), (go!"Sync", (some (go.signature.Signature [] false [go.error]))), (go!"Write", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"go.uber.org/zap/zapcore.flushLoop", (some (go.signature.Signature [] false []))), (go!"go.uber.org/zap/zapcore.initialize", (some (go.signature.Signature [] false [])))]
 
 attribute [instance] BufferedWriteSyncer.TypeAssumptions.type_repr
   BufferedWriteSyncer.TypeAssumptions.underlying
   BufferedWriteSyncer.TypeAssumptions.isUnderlying
+  BufferedWriteSyncer.TypeAssumptions.method_set
+  BufferedWriteSyncer.TypeAssumptions.ptr_method_set
 
-abbrev Clock [FfiSyntax] : Type := GoInterface
+abbrev Clock [GooseExts] : Type := GoInterface
 
-@[reducible] noncomputable def Clock.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def Clock.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"NewTicker" (go.signature.Signature [_root_.Perennial.time.Duration.ty] false [(go.GoType.PointerType _root_.Perennial.time.Ticker.ty)])), (go.InterfaceElem.MethodElem go!"Now" (go.signature.Signature [] false [_root_.Perennial.time.Time.ty]))])
 
-class Clock.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class Clock.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq Clock.ty Clock.underlying
+  method_set : go.MethodSetIs Clock.ty [(go!"NewTicker", (some (go.signature.Signature [_root_.Perennial.time.Duration.ty] false [(go.GoType.PointerType _root_.Perennial.time.Ticker.ty)]))), (go!"Now", (some (go.signature.Signature [] false [_root_.Perennial.time.Time.ty])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType Clock.ty) []
 
 attribute [instance] Clock.TypeAssumptions.underlying
+  Clock.TypeAssumptions.method_set
+  Clock.TypeAssumptions.ptr_method_set
 
-structure systemClock [FfiSyntax] where
+structure systemClock [GooseExts] where
   mk ::
 
-noncomputable instance systemClock.zero_val [FfiSyntax] : ZeroVal systemClock :=
+noncomputable instance systemClock.zero_val [GooseExts] : ZeroVal systemClock :=
   ⟨systemClock.mk⟩
 
-@[reducible] noncomputable def systemClock.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def systemClock.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   []
 
-@[irreducible] noncomputable def systemClock.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def systemClock.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   systemClock.fieldsUnsealed
 
-noncomputable instance equals_unfold_systemClock [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_systemClock [GooseExts] [GoGlobalContext] :
     EqualsUnfold systemClock.fields systemClock.fieldsUnsealed :=
   ⟨by unfold systemClock.fields; rfl⟩
 
-@[reducible] noncomputable def systemClock.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def systemClock.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType systemClock.fields)
 
-class systemClock.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class systemClock.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying systemClock.underlying systemClock
   underlying : go.UnderlyingDirectedEq systemClock.ty systemClock.underlying
+  method_set : go.MethodSetIs systemClock.ty [(go!"NewTicker", (some (go.signature.Signature [_root_.Perennial.time.Duration.ty] false [(go.GoType.PointerType _root_.Perennial.time.Ticker.ty)]))), (go!"Now", (some (go.signature.Signature [] false [_root_.Perennial.time.Time.ty])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType systemClock.ty) [(go!"NewTicker", (some (go.signature.Signature [_root_.Perennial.time.Duration.ty] false [(go.GoType.PointerType _root_.Perennial.time.Ticker.ty)]))), (go!"Now", (some (go.signature.Signature [] false [_root_.Perennial.time.Time.ty])))]
 
 attribute [instance] systemClock.TypeAssumptions.type_repr
   systemClock.TypeAssumptions.underlying
+  systemClock.TypeAssumptions.method_set
+  systemClock.TypeAssumptions.ptr_method_set
 
-structure consoleEncoder [FfiSyntax] where
+structure consoleEncoder [GooseExts] where
   mk ::
   jsonEncoder' : Loc
 
-noncomputable instance consoleEncoder.zero_val [FfiSyntax] : ZeroVal consoleEncoder :=
+noncomputable instance consoleEncoder.zero_val [GooseExts] : ZeroVal consoleEncoder :=
   ⟨consoleEncoder.mk zeroValDef⟩
 
-@[reducible] noncomputable def consoleEncoder.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def consoleEncoder.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.EmbeddedField go!"jsonEncoder" (go.GoType.PointerType jsonEncoder.ty))]
 
-@[irreducible] noncomputable def consoleEncoder.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def consoleEncoder.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   consoleEncoder.fieldsUnsealed
 
-noncomputable instance equals_unfold_consoleEncoder [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_consoleEncoder [GooseExts] [GoGlobalContext] :
     EqualsUnfold consoleEncoder.fields consoleEncoder.fieldsUnsealed :=
   ⟨by unfold consoleEncoder.fields; rfl⟩
 
-@[reducible] noncomputable def consoleEncoder.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def consoleEncoder.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType consoleEncoder.fields)
 
-class consoleEncoder.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class consoleEncoder.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying consoleEncoder.underlying consoleEncoder
   underlying : go.UnderlyingDirectedEq consoleEncoder.ty consoleEncoder.underlying
   get_jsonEncoder : ∀ (x : consoleEncoder), go.IsGoStepPureDetTagged under (StructFieldGet consoleEncoder.underlying go!"jsonEncoder") #x (Val #(x.jsonEncoder'))
   set_jsonEncoder : ∀ (x : consoleEncoder) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet consoleEncoder.underlying go!"jsonEncoder") (PairV #x #y) (Val #(({ x with jsonEncoder' := y } : consoleEncoder)))
+  method_set : go.MethodSetIs consoleEncoder.ty [(go!"AddArray", (some (go.signature.Signature [go.string, ArrayMarshaler.ty] false [go.error]))), (go!"AddBinary", (some (go.signature.Signature [go.string, (go.GoType.SliceType go.byte)] false []))), (go!"AddBool", (some (go.signature.Signature [go.string, go.bool] false []))), (go!"AddByteString", (some (go.signature.Signature [go.string, (go.GoType.SliceType go.byte)] false []))), (go!"AddComplex128", (some (go.signature.Signature [go.string, go.complex128] false []))), (go!"AddComplex64", (some (go.signature.Signature [go.string, go.complex64] false []))), (go!"AddDuration", (some (go.signature.Signature [go.string, _root_.Perennial.time.Duration.ty] false []))), (go!"AddFloat32", (some (go.signature.Signature [go.string, go.float32] false []))), (go!"AddFloat64", (some (go.signature.Signature [go.string, go.float64] false []))), (go!"AddInt", (some (go.signature.Signature [go.string, go.int] false []))), (go!"AddInt16", (some (go.signature.Signature [go.string, go.int16] false []))), (go!"AddInt32", (some (go.signature.Signature [go.string, go.int32] false []))), (go!"AddInt64", (some (go.signature.Signature [go.string, go.int64] false []))), (go!"AddInt8", (some (go.signature.Signature [go.string, go.int8] false []))), (go!"AddObject", (some (go.signature.Signature [go.string, ObjectMarshaler.ty] false [go.error]))), (go!"AddReflected", (some (go.signature.Signature [go.string, (go.GoType.InterfaceType [])] false [go.error]))), (go!"AddString", (some (go.signature.Signature [go.string, go.string] false []))), (go!"AddTime", (some (go.signature.Signature [go.string, _root_.Perennial.time.Time.ty] false []))), (go!"AddUint", (some (go.signature.Signature [go.string, go.uint] false []))), (go!"AddUint16", (some (go.signature.Signature [go.string, go.uint16] false []))), (go!"AddUint32", (some (go.signature.Signature [go.string, go.uint32] false []))), (go!"AddUint64", (some (go.signature.Signature [go.string, go.uint64] false []))), (go!"AddUint8", (some (go.signature.Signature [go.string, go.uint8] false []))), (go!"AddUintptr", (some (go.signature.Signature [go.string, go.uintptr] false []))), (go!"AppendArray", (some (go.signature.Signature [ArrayMarshaler.ty] false [go.error]))), (go!"AppendBool", (some (go.signature.Signature [go.bool] false []))), (go!"AppendByteString", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false []))), (go!"AppendComplex128", (some (go.signature.Signature [go.complex128] false []))), (go!"AppendComplex64", (some (go.signature.Signature [go.complex64] false []))), (go!"AppendDuration", (some (go.signature.Signature [_root_.Perennial.time.Duration.ty] false []))), (go!"AppendFloat32", (some (go.signature.Signature [go.float32] false []))), (go!"AppendFloat64", (some (go.signature.Signature [go.float64] false []))), (go!"AppendInt", (some (go.signature.Signature [go.int] false []))), (go!"AppendInt16", (some (go.signature.Signature [go.int16] false []))), (go!"AppendInt32", (some (go.signature.Signature [go.int32] false []))), (go!"AppendInt64", (some (go.signature.Signature [go.int64] false []))), (go!"AppendInt8", (some (go.signature.Signature [go.int8] false []))), (go!"AppendObject", (some (go.signature.Signature [ObjectMarshaler.ty] false [go.error]))), (go!"AppendReflected", (some (go.signature.Signature [(go.GoType.InterfaceType [])] false [go.error]))), (go!"AppendString", (some (go.signature.Signature [go.string] false []))), (go!"AppendTime", (some (go.signature.Signature [_root_.Perennial.time.Time.ty] false []))), (go!"AppendTimeLayout", (some (go.signature.Signature [_root_.Perennial.time.Time.ty, go.string] false []))), (go!"AppendUint", (some (go.signature.Signature [go.uint] false []))), (go!"AppendUint16", (some (go.signature.Signature [go.uint16] false []))), (go!"AppendUint32", (some (go.signature.Signature [go.uint32] false []))), (go!"AppendUint64", (some (go.signature.Signature [go.uint64] false []))), (go!"AppendUint8", (some (go.signature.Signature [go.uint8] false []))), (go!"AppendUintptr", (some (go.signature.Signature [go.uintptr] false []))), (go!"Clone", (some (go.signature.Signature [] false [Encoder.ty]))), (go!"EncodeEntry", (some (go.signature.Signature [Entry.ty, (go.GoType.SliceType Field.ty)] false [(go.GoType.PointerType (go.GoType.Named go!"go.uber.org/zap/buffer.Buffer" [])), go.error]))), (go!"OpenNamespace", (some (go.signature.Signature [go.string] false []))), (go!"go.uber.org/zap/zapcore.addElementSeparator", (some (go.signature.Signature [] false []))), (go!"go.uber.org/zap/zapcore.addKey", (some (go.signature.Signature [go.string] false []))), (go!"go.uber.org/zap/zapcore.addSeparatorIfNecessary", (some (go.signature.Signature [(go.GoType.PointerType (go.GoType.Named go!"go.uber.org/zap/buffer.Buffer" []))] false []))), (go!"go.uber.org/zap/zapcore.appendComplex", (some (go.signature.Signature [go.complex128, go.int] false []))), (go!"go.uber.org/zap/zapcore.appendFloat", (some (go.signature.Signature [go.float64, go.int] false []))), (go!"go.uber.org/zap/zapcore.clone", (some (go.signature.Signature [] false [(go.GoType.PointerType jsonEncoder.ty)]))), (go!"go.uber.org/zap/zapcore.closeOpenNamespaces", (some (go.signature.Signature [] false []))), (go!"go.uber.org/zap/zapcore.encodeReflected", (some (go.signature.Signature [(go.GoType.InterfaceType [])] false [(go.GoType.SliceType go.byte), go.error]))), (go!"go.uber.org/zap/zapcore.resetReflectBuf", (some (go.signature.Signature [] false []))), (go!"go.uber.org/zap/zapcore.safeAddByteString", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false []))), (go!"go.uber.org/zap/zapcore.safeAddString", (some (go.signature.Signature [go.string] false []))), (go!"go.uber.org/zap/zapcore.truncate", (some (go.signature.Signature [] false []))), (go!"go.uber.org/zap/zapcore.writeContext", (some (go.signature.Signature [(go.GoType.PointerType (go.GoType.Named go!"go.uber.org/zap/buffer.Buffer" [])), (go.GoType.SliceType Field.ty)] false [])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType consoleEncoder.ty) [(go!"AddArray", (some (go.signature.Signature [go.string, ArrayMarshaler.ty] false [go.error]))), (go!"AddBinary", (some (go.signature.Signature [go.string, (go.GoType.SliceType go.byte)] false []))), (go!"AddBool", (some (go.signature.Signature [go.string, go.bool] false []))), (go!"AddByteString", (some (go.signature.Signature [go.string, (go.GoType.SliceType go.byte)] false []))), (go!"AddComplex128", (some (go.signature.Signature [go.string, go.complex128] false []))), (go!"AddComplex64", (some (go.signature.Signature [go.string, go.complex64] false []))), (go!"AddDuration", (some (go.signature.Signature [go.string, _root_.Perennial.time.Duration.ty] false []))), (go!"AddFloat32", (some (go.signature.Signature [go.string, go.float32] false []))), (go!"AddFloat64", (some (go.signature.Signature [go.string, go.float64] false []))), (go!"AddInt", (some (go.signature.Signature [go.string, go.int] false []))), (go!"AddInt16", (some (go.signature.Signature [go.string, go.int16] false []))), (go!"AddInt32", (some (go.signature.Signature [go.string, go.int32] false []))), (go!"AddInt64", (some (go.signature.Signature [go.string, go.int64] false []))), (go!"AddInt8", (some (go.signature.Signature [go.string, go.int8] false []))), (go!"AddObject", (some (go.signature.Signature [go.string, ObjectMarshaler.ty] false [go.error]))), (go!"AddReflected", (some (go.signature.Signature [go.string, (go.GoType.InterfaceType [])] false [go.error]))), (go!"AddString", (some (go.signature.Signature [go.string, go.string] false []))), (go!"AddTime", (some (go.signature.Signature [go.string, _root_.Perennial.time.Time.ty] false []))), (go!"AddUint", (some (go.signature.Signature [go.string, go.uint] false []))), (go!"AddUint16", (some (go.signature.Signature [go.string, go.uint16] false []))), (go!"AddUint32", (some (go.signature.Signature [go.string, go.uint32] false []))), (go!"AddUint64", (some (go.signature.Signature [go.string, go.uint64] false []))), (go!"AddUint8", (some (go.signature.Signature [go.string, go.uint8] false []))), (go!"AddUintptr", (some (go.signature.Signature [go.string, go.uintptr] false []))), (go!"AppendArray", (some (go.signature.Signature [ArrayMarshaler.ty] false [go.error]))), (go!"AppendBool", (some (go.signature.Signature [go.bool] false []))), (go!"AppendByteString", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false []))), (go!"AppendComplex128", (some (go.signature.Signature [go.complex128] false []))), (go!"AppendComplex64", (some (go.signature.Signature [go.complex64] false []))), (go!"AppendDuration", (some (go.signature.Signature [_root_.Perennial.time.Duration.ty] false []))), (go!"AppendFloat32", (some (go.signature.Signature [go.float32] false []))), (go!"AppendFloat64", (some (go.signature.Signature [go.float64] false []))), (go!"AppendInt", (some (go.signature.Signature [go.int] false []))), (go!"AppendInt16", (some (go.signature.Signature [go.int16] false []))), (go!"AppendInt32", (some (go.signature.Signature [go.int32] false []))), (go!"AppendInt64", (some (go.signature.Signature [go.int64] false []))), (go!"AppendInt8", (some (go.signature.Signature [go.int8] false []))), (go!"AppendObject", (some (go.signature.Signature [ObjectMarshaler.ty] false [go.error]))), (go!"AppendReflected", (some (go.signature.Signature [(go.GoType.InterfaceType [])] false [go.error]))), (go!"AppendString", (some (go.signature.Signature [go.string] false []))), (go!"AppendTime", (some (go.signature.Signature [_root_.Perennial.time.Time.ty] false []))), (go!"AppendTimeLayout", (some (go.signature.Signature [_root_.Perennial.time.Time.ty, go.string] false []))), (go!"AppendUint", (some (go.signature.Signature [go.uint] false []))), (go!"AppendUint16", (some (go.signature.Signature [go.uint16] false []))), (go!"AppendUint32", (some (go.signature.Signature [go.uint32] false []))), (go!"AppendUint64", (some (go.signature.Signature [go.uint64] false []))), (go!"AppendUint8", (some (go.signature.Signature [go.uint8] false []))), (go!"AppendUintptr", (some (go.signature.Signature [go.uintptr] false []))), (go!"Clone", (some (go.signature.Signature [] false [Encoder.ty]))), (go!"EncodeEntry", (some (go.signature.Signature [Entry.ty, (go.GoType.SliceType Field.ty)] false [(go.GoType.PointerType (go.GoType.Named go!"go.uber.org/zap/buffer.Buffer" [])), go.error]))), (go!"OpenNamespace", (some (go.signature.Signature [go.string] false []))), (go!"go.uber.org/zap/zapcore.addElementSeparator", (some (go.signature.Signature [] false []))), (go!"go.uber.org/zap/zapcore.addKey", (some (go.signature.Signature [go.string] false []))), (go!"go.uber.org/zap/zapcore.addSeparatorIfNecessary", (some (go.signature.Signature [(go.GoType.PointerType (go.GoType.Named go!"go.uber.org/zap/buffer.Buffer" []))] false []))), (go!"go.uber.org/zap/zapcore.appendComplex", (some (go.signature.Signature [go.complex128, go.int] false []))), (go!"go.uber.org/zap/zapcore.appendFloat", (some (go.signature.Signature [go.float64, go.int] false []))), (go!"go.uber.org/zap/zapcore.clone", (some (go.signature.Signature [] false [(go.GoType.PointerType jsonEncoder.ty)]))), (go!"go.uber.org/zap/zapcore.closeOpenNamespaces", (some (go.signature.Signature [] false []))), (go!"go.uber.org/zap/zapcore.encodeReflected", (some (go.signature.Signature [(go.GoType.InterfaceType [])] false [(go.GoType.SliceType go.byte), go.error]))), (go!"go.uber.org/zap/zapcore.resetReflectBuf", (some (go.signature.Signature [] false []))), (go!"go.uber.org/zap/zapcore.safeAddByteString", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false []))), (go!"go.uber.org/zap/zapcore.safeAddString", (some (go.signature.Signature [go.string] false []))), (go!"go.uber.org/zap/zapcore.truncate", (some (go.signature.Signature [] false []))), (go!"go.uber.org/zap/zapcore.writeContext", (some (go.signature.Signature [(go.GoType.PointerType (go.GoType.Named go!"go.uber.org/zap/buffer.Buffer" [])), (go.GoType.SliceType Field.ty)] false [])))]
 
 attribute [instance] consoleEncoder.TypeAssumptions.type_repr
   consoleEncoder.TypeAssumptions.underlying
   consoleEncoder.TypeAssumptions.get_jsonEncoder
   consoleEncoder.TypeAssumptions.set_jsonEncoder
+  consoleEncoder.TypeAssumptions.method_set
+  consoleEncoder.TypeAssumptions.ptr_method_set
 
-abbrev Core [FfiSyntax] : Type := GoInterface
+abbrev Core [GooseExts] : Type := GoInterface
 
-@[reducible] noncomputable def Core.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
-  (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"Check" (go.signature.Signature [Entry.ty, (go.GoType.PointerType CheckedEntry.ty)] false [(go.GoType.PointerType CheckedEntry.ty)])), (go.InterfaceElem.MethodElem go!"Sync" (go.signature.Signature [] false [go.error])), (go.InterfaceElem.MethodElem go!"With" (go.signature.Signature [(go.GoType.SliceType Field.ty)] false [Core.ty])), (go.InterfaceElem.MethodElem go!"Write" (go.signature.Signature [Entry.ty, (go.GoType.SliceType Field.ty)] false [go.error])), (go.InterfaceElem.TypeElem [(go.type_term.TypeTerm LevelEnabler.ty)])])
+@[reducible] noncomputable def Core.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
+  (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"Check" (go.signature.Signature [Entry.ty, (go.GoType.PointerType CheckedEntry.ty)] false [(go.GoType.PointerType CheckedEntry.ty)])), (go.InterfaceElem.MethodElem go!"Enabled" (go.signature.Signature [Level.ty] false [go.bool])), (go.InterfaceElem.MethodElem go!"Sync" (go.signature.Signature [] false [go.error])), (go.InterfaceElem.MethodElem go!"With" (go.signature.Signature [(go.GoType.SliceType Field.ty)] false [Core.ty])), (go.InterfaceElem.MethodElem go!"Write" (go.signature.Signature [Entry.ty, (go.GoType.SliceType Field.ty)] false [go.error]))])
 
-class Core.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class Core.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq Core.ty Core.underlying
+  method_set : go.MethodSetIs Core.ty [(go!"Check", (some (go.signature.Signature [Entry.ty, (go.GoType.PointerType CheckedEntry.ty)] false [(go.GoType.PointerType CheckedEntry.ty)]))), (go!"Enabled", (some (go.signature.Signature [Level.ty] false [go.bool]))), (go!"Sync", (some (go.signature.Signature [] false [go.error]))), (go!"With", (some (go.signature.Signature [(go.GoType.SliceType Field.ty)] false [Core.ty]))), (go!"Write", (some (go.signature.Signature [Entry.ty, (go.GoType.SliceType Field.ty)] false [go.error])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType Core.ty) []
 
 attribute [instance] Core.TypeAssumptions.underlying
+  Core.TypeAssumptions.method_set
+  Core.TypeAssumptions.ptr_method_set
 
-structure nopCore [FfiSyntax] where
+structure nopCore [GooseExts] where
   mk ::
 
-noncomputable instance nopCore.zero_val [FfiSyntax] : ZeroVal nopCore :=
+noncomputable instance nopCore.zero_val [GooseExts] : ZeroVal nopCore :=
   ⟨nopCore.mk⟩
 
-@[reducible] noncomputable def nopCore.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def nopCore.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   []
 
-@[irreducible] noncomputable def nopCore.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def nopCore.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   nopCore.fieldsUnsealed
 
-noncomputable instance equals_unfold_nopCore [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_nopCore [GooseExts] [GoGlobalContext] :
     EqualsUnfold nopCore.fields nopCore.fieldsUnsealed :=
   ⟨by unfold nopCore.fields; rfl⟩
 
-@[reducible] noncomputable def nopCore.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def nopCore.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType nopCore.fields)
 
-class nopCore.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class nopCore.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying nopCore.underlying nopCore
   underlying : go.UnderlyingDirectedEq nopCore.ty nopCore.underlying
+  method_set : go.MethodSetIs nopCore.ty [(go!"Check", (some (go.signature.Signature [Entry.ty, (go.GoType.PointerType CheckedEntry.ty)] false [(go.GoType.PointerType CheckedEntry.ty)]))), (go!"Enabled", (some (go.signature.Signature [Level.ty] false [go.bool]))), (go!"Sync", (some (go.signature.Signature [] false [go.error]))), (go!"With", (some (go.signature.Signature [(go.GoType.SliceType Field.ty)] false [Core.ty]))), (go!"Write", (some (go.signature.Signature [Entry.ty, (go.GoType.SliceType Field.ty)] false [go.error])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType nopCore.ty) [(go!"Check", (some (go.signature.Signature [Entry.ty, (go.GoType.PointerType CheckedEntry.ty)] false [(go.GoType.PointerType CheckedEntry.ty)]))), (go!"Enabled", (some (go.signature.Signature [Level.ty] false [go.bool]))), (go!"Sync", (some (go.signature.Signature [] false [go.error]))), (go!"With", (some (go.signature.Signature [(go.GoType.SliceType Field.ty)] false [Core.ty]))), (go!"Write", (some (go.signature.Signature [Entry.ty, (go.GoType.SliceType Field.ty)] false [go.error])))]
 
 attribute [instance] nopCore.TypeAssumptions.type_repr
   nopCore.TypeAssumptions.underlying
+  nopCore.TypeAssumptions.method_set
+  nopCore.TypeAssumptions.ptr_method_set
 
-abbrev LevelEnabler [FfiSyntax] : Type := GoInterface
+abbrev LevelEnabler [GooseExts] : Type := GoInterface
 
-@[reducible] noncomputable def LevelEnabler.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def LevelEnabler.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"Enabled" (go.signature.Signature [Level.ty] false [go.bool]))])
 
-class LevelEnabler.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class LevelEnabler.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq LevelEnabler.ty LevelEnabler.underlying
+  method_set : go.MethodSetIs LevelEnabler.ty [(go!"Enabled", (some (go.signature.Signature [Level.ty] false [go.bool])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType LevelEnabler.ty) []
 
 attribute [instance] LevelEnabler.TypeAssumptions.underlying
+  LevelEnabler.TypeAssumptions.method_set
+  LevelEnabler.TypeAssumptions.ptr_method_set
 
 axiom Encoder : Type
 axiom Encoder.zero_val : ZeroVal Encoder
 attribute [instance] Encoder.zero_val
 
-class Encoder.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class Encoder.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying Encoder.underlying Encoder
   underlying : go.UnderlyingDirectedEq Encoder.ty Encoder.underlying
   isUnderlying : go.IsUnderlying Encoder.underlying Encoder.underlying
+  method_set : go.MethodSetIs Encoder.ty [(go!"AddArray", (some (go.signature.Signature [go.string, ArrayMarshaler.ty] false [go.error]))), (go!"AddBinary", (some (go.signature.Signature [go.string, (go.GoType.SliceType go.byte)] false []))), (go!"AddBool", (some (go.signature.Signature [go.string, go.bool] false []))), (go!"AddByteString", (some (go.signature.Signature [go.string, (go.GoType.SliceType go.byte)] false []))), (go!"AddComplex128", (some (go.signature.Signature [go.string, go.complex128] false []))), (go!"AddComplex64", (some (go.signature.Signature [go.string, go.complex64] false []))), (go!"AddDuration", (some (go.signature.Signature [go.string, _root_.Perennial.time.Duration.ty] false []))), (go!"AddFloat32", (some (go.signature.Signature [go.string, go.float32] false []))), (go!"AddFloat64", (some (go.signature.Signature [go.string, go.float64] false []))), (go!"AddInt", (some (go.signature.Signature [go.string, go.int] false []))), (go!"AddInt16", (some (go.signature.Signature [go.string, go.int16] false []))), (go!"AddInt32", (some (go.signature.Signature [go.string, go.int32] false []))), (go!"AddInt64", (some (go.signature.Signature [go.string, go.int64] false []))), (go!"AddInt8", (some (go.signature.Signature [go.string, go.int8] false []))), (go!"AddObject", (some (go.signature.Signature [go.string, ObjectMarshaler.ty] false [go.error]))), (go!"AddReflected", (some (go.signature.Signature [go.string, (go.GoType.InterfaceType [])] false [go.error]))), (go!"AddString", (some (go.signature.Signature [go.string, go.string] false []))), (go!"AddTime", (some (go.signature.Signature [go.string, _root_.Perennial.time.Time.ty] false []))), (go!"AddUint", (some (go.signature.Signature [go.string, go.uint] false []))), (go!"AddUint16", (some (go.signature.Signature [go.string, go.uint16] false []))), (go!"AddUint32", (some (go.signature.Signature [go.string, go.uint32] false []))), (go!"AddUint64", (some (go.signature.Signature [go.string, go.uint64] false []))), (go!"AddUint8", (some (go.signature.Signature [go.string, go.uint8] false []))), (go!"AddUintptr", (some (go.signature.Signature [go.string, go.uintptr] false []))), (go!"Clone", (some (go.signature.Signature [] false [Encoder.ty]))), (go!"EncodeEntry", (some (go.signature.Signature [Entry.ty, (go.GoType.SliceType Field.ty)] false [(go.GoType.PointerType (go.GoType.Named go!"go.uber.org/zap/buffer.Buffer" [])), go.error]))), (go!"OpenNamespace", (some (go.signature.Signature [go.string] false [])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType Encoder.ty) []
 
 attribute [instance] Encoder.TypeAssumptions.type_repr
   Encoder.TypeAssumptions.underlying
   Encoder.TypeAssumptions.isUnderlying
+  Encoder.TypeAssumptions.method_set
+  Encoder.TypeAssumptions.ptr_method_set
 
-abbrev WriteSyncer [FfiSyntax] : Type := GoInterface
+abbrev WriteSyncer [GooseExts] : Type := GoInterface
 
-@[reducible] noncomputable def WriteSyncer.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
-  (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"Sync" (go.signature.Signature [] false [go.error])), (go.InterfaceElem.TypeElem [(go.type_term.TypeTerm _root_.Perennial.io.Writer.ty)])])
+@[reducible] noncomputable def WriteSyncer.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
+  (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"Sync" (go.signature.Signature [] false [go.error])), (go.InterfaceElem.MethodElem go!"Write" (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))])
 
-class WriteSyncer.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class WriteSyncer.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq WriteSyncer.ty WriteSyncer.underlying
+  method_set : go.MethodSetIs WriteSyncer.ty [(go!"Sync", (some (go.signature.Signature [] false [go.error]))), (go!"Write", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType WriteSyncer.ty) []
 
 attribute [instance] WriteSyncer.TypeAssumptions.underlying
+  WriteSyncer.TypeAssumptions.method_set
+  WriteSyncer.TypeAssumptions.ptr_method_set
 
-structure ioCore [FfiSyntax] where
+structure ioCore [GooseExts] where
   mk ::
   LevelEnabler' : LevelEnabler
   enc' : Encoder
   out' : WriteSyncer
 
-noncomputable instance ioCore.zero_val [FfiSyntax] : ZeroVal ioCore :=
+noncomputable instance ioCore.zero_val [GooseExts] : ZeroVal ioCore :=
   ⟨ioCore.mk zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def ioCore.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def ioCore.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.EmbeddedField go!"LevelEnabler" LevelEnabler.ty),
 (go.field_decl.FieldDecl go!"enc" Encoder.ty),
 (go.field_decl.FieldDecl go!"out" WriteSyncer.ty)]
 
-@[irreducible] noncomputable def ioCore.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def ioCore.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   ioCore.fieldsUnsealed
 
-noncomputable instance equals_unfold_ioCore [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_ioCore [GooseExts] [GoGlobalContext] :
     EqualsUnfold ioCore.fields ioCore.fieldsUnsealed :=
   ⟨by unfold ioCore.fields; rfl⟩
 
-@[reducible] noncomputable def ioCore.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def ioCore.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType ioCore.fields)
 
-class ioCore.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class ioCore.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying ioCore.underlying ioCore
   underlying : go.UnderlyingDirectedEq ioCore.ty ioCore.underlying
   get_LevelEnabler : ∀ (x : ioCore), go.IsGoStepPureDetTagged under (StructFieldGet ioCore.underlying go!"LevelEnabler") #x (Val #(x.LevelEnabler'))
@@ -884,6 +920,8 @@ class ioCore.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoS
   set_enc : ∀ (x : ioCore) (y : Encoder), go.IsGoStepPureDetTagged under (StructFieldSet ioCore.underlying go!"enc") (PairV #x #y) (Val #(({ x with enc' := y } : ioCore)))
   get_out : ∀ (x : ioCore), go.IsGoStepPureDetTagged under (StructFieldGet ioCore.underlying go!"out") #x (Val #(x.out'))
   set_out : ∀ (x : ioCore) (y : WriteSyncer), go.IsGoStepPureDetTagged under (StructFieldSet ioCore.underlying go!"out") (PairV #x #y) (Val #(({ x with out' := y } : ioCore)))
+  method_set : go.MethodSetIs ioCore.ty [(go!"Enabled", (some (go.signature.Signature [Level.ty] false [go.bool])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType ioCore.ty) [(go!"Check", (some (go.signature.Signature [Entry.ty, (go.GoType.PointerType CheckedEntry.ty)] false [(go.GoType.PointerType CheckedEntry.ty)]))), (go!"Enabled", (some (go.signature.Signature [Level.ty] false [go.bool]))), (go!"Level", (some (go.signature.Signature [] false [Level.ty]))), (go!"Sync", (some (go.signature.Signature [] false [go.error]))), (go!"With", (some (go.signature.Signature [(go.GoType.SliceType Field.ty)] false [Core.ty]))), (go!"Write", (some (go.signature.Signature [Entry.ty, (go.GoType.SliceType Field.ty)] false [go.error]))), (go!"go.uber.org/zap/zapcore.clone", (some (go.signature.Signature [] false [(go.GoType.PointerType ioCore.ty)])))]
 
 attribute [instance] ioCore.TypeAssumptions.type_repr
   ioCore.TypeAssumptions.underlying
@@ -893,58 +931,80 @@ attribute [instance] ioCore.TypeAssumptions.type_repr
   ioCore.TypeAssumptions.set_enc
   ioCore.TypeAssumptions.get_out
   ioCore.TypeAssumptions.set_out
+  ioCore.TypeAssumptions.method_set
+  ioCore.TypeAssumptions.ptr_method_set
 
-abbrev LevelEncoder [FfiSyntax] : Type := GoFunc
+abbrev LevelEncoder [GooseExts] : Type := GoFunc
 
-@[reducible] noncomputable def LevelEncoder.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def LevelEncoder.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.FunctionType (go.signature.Signature [Level.ty, PrimitiveArrayEncoder.ty] false []))
 
-class LevelEncoder.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class LevelEncoder.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq LevelEncoder.ty LevelEncoder.underlying
+  method_set : go.MethodSetIs LevelEncoder.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType LevelEncoder.ty) [(go!"UnmarshalText", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.error])))]
 
 attribute [instance] LevelEncoder.TypeAssumptions.underlying
+  LevelEncoder.TypeAssumptions.method_set
+  LevelEncoder.TypeAssumptions.ptr_method_set
 
-abbrev TimeEncoder [FfiSyntax] : Type := GoFunc
+abbrev TimeEncoder [GooseExts] : Type := GoFunc
 
-@[reducible] noncomputable def TimeEncoder.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def TimeEncoder.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.FunctionType (go.signature.Signature [_root_.Perennial.time.Time.ty, PrimitiveArrayEncoder.ty] false []))
 
-class TimeEncoder.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class TimeEncoder.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq TimeEncoder.ty TimeEncoder.underlying
+  method_set : go.MethodSetIs TimeEncoder.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType TimeEncoder.ty) [(go!"UnmarshalJSON", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.error]))), (go!"UnmarshalText", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.error]))), (go!"UnmarshalYAML", (some (go.signature.Signature [(go.GoType.FunctionType (go.signature.Signature [(go.GoType.InterfaceType [])] false [go.error]))] false [go.error])))]
 
 attribute [instance] TimeEncoder.TypeAssumptions.underlying
+  TimeEncoder.TypeAssumptions.method_set
+  TimeEncoder.TypeAssumptions.ptr_method_set
 
-abbrev DurationEncoder [FfiSyntax] : Type := GoFunc
+abbrev DurationEncoder [GooseExts] : Type := GoFunc
 
-@[reducible] noncomputable def DurationEncoder.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def DurationEncoder.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.FunctionType (go.signature.Signature [_root_.Perennial.time.Duration.ty, PrimitiveArrayEncoder.ty] false []))
 
-class DurationEncoder.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class DurationEncoder.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq DurationEncoder.ty DurationEncoder.underlying
+  method_set : go.MethodSetIs DurationEncoder.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType DurationEncoder.ty) [(go!"UnmarshalText", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.error])))]
 
 attribute [instance] DurationEncoder.TypeAssumptions.underlying
+  DurationEncoder.TypeAssumptions.method_set
+  DurationEncoder.TypeAssumptions.ptr_method_set
 
-abbrev CallerEncoder [FfiSyntax] : Type := GoFunc
+abbrev CallerEncoder [GooseExts] : Type := GoFunc
 
-@[reducible] noncomputable def CallerEncoder.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def CallerEncoder.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.FunctionType (go.signature.Signature [EntryCaller.ty, PrimitiveArrayEncoder.ty] false []))
 
-class CallerEncoder.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class CallerEncoder.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq CallerEncoder.ty CallerEncoder.underlying
+  method_set : go.MethodSetIs CallerEncoder.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType CallerEncoder.ty) [(go!"UnmarshalText", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.error])))]
 
 attribute [instance] CallerEncoder.TypeAssumptions.underlying
+  CallerEncoder.TypeAssumptions.method_set
+  CallerEncoder.TypeAssumptions.ptr_method_set
 
-abbrev NameEncoder [FfiSyntax] : Type := GoFunc
+abbrev NameEncoder [GooseExts] : Type := GoFunc
 
-@[reducible] noncomputable def NameEncoder.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def NameEncoder.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.FunctionType (go.signature.Signature [go.string, PrimitiveArrayEncoder.ty] false []))
 
-class NameEncoder.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class NameEncoder.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq NameEncoder.ty NameEncoder.underlying
+  method_set : go.MethodSetIs NameEncoder.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType NameEncoder.ty) [(go!"UnmarshalText", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.error])))]
 
 attribute [instance] NameEncoder.TypeAssumptions.underlying
+  NameEncoder.TypeAssumptions.method_set
+  NameEncoder.TypeAssumptions.ptr_method_set
 
-structure EncoderConfig [FfiSyntax] where
+structure EncoderConfig [GooseExts] where
   mk ::
   MessageKey' : GoString
   LevelKey' : GoString
@@ -963,10 +1023,10 @@ structure EncoderConfig [FfiSyntax] where
   NewReflectedEncoder' : GoFunc
   ConsoleSeparator' : GoString
 
-noncomputable instance EncoderConfig.zero_val [FfiSyntax] : ZeroVal EncoderConfig :=
+noncomputable instance EncoderConfig.zero_val [GooseExts] : ZeroVal EncoderConfig :=
   ⟨EncoderConfig.mk zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def EncoderConfig.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def EncoderConfig.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"MessageKey" go.string),
 (go.field_decl.FieldDecl go!"LevelKey" go.string),
 (go.field_decl.FieldDecl go!"TimeKey" go.string),
@@ -984,17 +1044,17 @@ noncomputable instance EncoderConfig.zero_val [FfiSyntax] : ZeroVal EncoderConfi
 (go.field_decl.FieldDecl go!"NewReflectedEncoder" (go.GoType.FunctionType (go.signature.Signature [_root_.Perennial.io.Writer.ty] false [ReflectedEncoder.ty]))),
 (go.field_decl.FieldDecl go!"ConsoleSeparator" go.string)]
 
-@[irreducible] noncomputable def EncoderConfig.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def EncoderConfig.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   EncoderConfig.fieldsUnsealed
 
-noncomputable instance equals_unfold_EncoderConfig [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_EncoderConfig [GooseExts] [GoGlobalContext] :
     EqualsUnfold EncoderConfig.fields EncoderConfig.fieldsUnsealed :=
   ⟨by unfold EncoderConfig.fields; rfl⟩
 
-@[reducible] noncomputable def EncoderConfig.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def EncoderConfig.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType EncoderConfig.fields)
 
-class EncoderConfig.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class EncoderConfig.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying EncoderConfig.underlying EncoderConfig
   underlying : go.UnderlyingDirectedEq EncoderConfig.ty EncoderConfig.underlying
   get_MessageKey : ∀ (x : EncoderConfig), go.IsGoStepPureDetTagged under (StructFieldGet EncoderConfig.underlying go!"MessageKey") #x (Val #(x.MessageKey'))
@@ -1029,6 +1089,8 @@ class EncoderConfig.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContex
   set_NewReflectedEncoder : ∀ (x : EncoderConfig) (y : GoFunc), go.IsGoStepPureDetTagged under (StructFieldSet EncoderConfig.underlying go!"NewReflectedEncoder") (PairV #x #y) (Val #(({ x with NewReflectedEncoder' := y } : EncoderConfig)))
   get_ConsoleSeparator : ∀ (x : EncoderConfig), go.IsGoStepPureDetTagged under (StructFieldGet EncoderConfig.underlying go!"ConsoleSeparator") #x (Val #(x.ConsoleSeparator'))
   set_ConsoleSeparator : ∀ (x : EncoderConfig) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet EncoderConfig.underlying go!"ConsoleSeparator") (PairV #x #y) (Val #(({ x with ConsoleSeparator' := y } : EncoderConfig)))
+  method_set : go.MethodSetIs EncoderConfig.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType EncoderConfig.ty) []
 
 attribute [instance] EncoderConfig.TypeAssumptions.type_repr
   EncoderConfig.TypeAssumptions.underlying
@@ -1064,38 +1126,52 @@ attribute [instance] EncoderConfig.TypeAssumptions.type_repr
   EncoderConfig.TypeAssumptions.set_NewReflectedEncoder
   EncoderConfig.TypeAssumptions.get_ConsoleSeparator
   EncoderConfig.TypeAssumptions.set_ConsoleSeparator
+  EncoderConfig.TypeAssumptions.method_set
+  EncoderConfig.TypeAssumptions.ptr_method_set
 
-abbrev ObjectEncoder [FfiSyntax] : Type := GoInterface
+abbrev ObjectEncoder [GooseExts] : Type := GoInterface
 
-@[reducible] noncomputable def ObjectEncoder.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def ObjectEncoder.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"AddArray" (go.signature.Signature [go.string, ArrayMarshaler.ty] false [go.error])), (go.InterfaceElem.MethodElem go!"AddBinary" (go.signature.Signature [go.string, (go.GoType.SliceType go.byte)] false [])), (go.InterfaceElem.MethodElem go!"AddBool" (go.signature.Signature [go.string, go.bool] false [])), (go.InterfaceElem.MethodElem go!"AddByteString" (go.signature.Signature [go.string, (go.GoType.SliceType go.byte)] false [])), (go.InterfaceElem.MethodElem go!"AddComplex128" (go.signature.Signature [go.string, go.complex128] false [])), (go.InterfaceElem.MethodElem go!"AddComplex64" (go.signature.Signature [go.string, go.complex64] false [])), (go.InterfaceElem.MethodElem go!"AddDuration" (go.signature.Signature [go.string, _root_.Perennial.time.Duration.ty] false [])), (go.InterfaceElem.MethodElem go!"AddFloat32" (go.signature.Signature [go.string, go.float32] false [])), (go.InterfaceElem.MethodElem go!"AddFloat64" (go.signature.Signature [go.string, go.float64] false [])), (go.InterfaceElem.MethodElem go!"AddInt" (go.signature.Signature [go.string, go.int] false [])), (go.InterfaceElem.MethodElem go!"AddInt16" (go.signature.Signature [go.string, go.int16] false [])), (go.InterfaceElem.MethodElem go!"AddInt32" (go.signature.Signature [go.string, go.int32] false [])), (go.InterfaceElem.MethodElem go!"AddInt64" (go.signature.Signature [go.string, go.int64] false [])), (go.InterfaceElem.MethodElem go!"AddInt8" (go.signature.Signature [go.string, go.int8] false [])), (go.InterfaceElem.MethodElem go!"AddObject" (go.signature.Signature [go.string, ObjectMarshaler.ty] false [go.error])), (go.InterfaceElem.MethodElem go!"AddReflected" (go.signature.Signature [go.string, (go.GoType.InterfaceType [])] false [go.error])), (go.InterfaceElem.MethodElem go!"AddString" (go.signature.Signature [go.string, go.string] false [])), (go.InterfaceElem.MethodElem go!"AddTime" (go.signature.Signature [go.string, _root_.Perennial.time.Time.ty] false [])), (go.InterfaceElem.MethodElem go!"AddUint" (go.signature.Signature [go.string, go.uint] false [])), (go.InterfaceElem.MethodElem go!"AddUint16" (go.signature.Signature [go.string, go.uint16] false [])), (go.InterfaceElem.MethodElem go!"AddUint32" (go.signature.Signature [go.string, go.uint32] false [])), (go.InterfaceElem.MethodElem go!"AddUint64" (go.signature.Signature [go.string, go.uint64] false [])), (go.InterfaceElem.MethodElem go!"AddUint8" (go.signature.Signature [go.string, go.uint8] false [])), (go.InterfaceElem.MethodElem go!"AddUintptr" (go.signature.Signature [go.string, go.uintptr] false [])), (go.InterfaceElem.MethodElem go!"OpenNamespace" (go.signature.Signature [go.string] false []))])
 
-class ObjectEncoder.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class ObjectEncoder.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq ObjectEncoder.ty ObjectEncoder.underlying
+  method_set : go.MethodSetIs ObjectEncoder.ty [(go!"AddArray", (some (go.signature.Signature [go.string, ArrayMarshaler.ty] false [go.error]))), (go!"AddBinary", (some (go.signature.Signature [go.string, (go.GoType.SliceType go.byte)] false []))), (go!"AddBool", (some (go.signature.Signature [go.string, go.bool] false []))), (go!"AddByteString", (some (go.signature.Signature [go.string, (go.GoType.SliceType go.byte)] false []))), (go!"AddComplex128", (some (go.signature.Signature [go.string, go.complex128] false []))), (go!"AddComplex64", (some (go.signature.Signature [go.string, go.complex64] false []))), (go!"AddDuration", (some (go.signature.Signature [go.string, _root_.Perennial.time.Duration.ty] false []))), (go!"AddFloat32", (some (go.signature.Signature [go.string, go.float32] false []))), (go!"AddFloat64", (some (go.signature.Signature [go.string, go.float64] false []))), (go!"AddInt", (some (go.signature.Signature [go.string, go.int] false []))), (go!"AddInt16", (some (go.signature.Signature [go.string, go.int16] false []))), (go!"AddInt32", (some (go.signature.Signature [go.string, go.int32] false []))), (go!"AddInt64", (some (go.signature.Signature [go.string, go.int64] false []))), (go!"AddInt8", (some (go.signature.Signature [go.string, go.int8] false []))), (go!"AddObject", (some (go.signature.Signature [go.string, ObjectMarshaler.ty] false [go.error]))), (go!"AddReflected", (some (go.signature.Signature [go.string, (go.GoType.InterfaceType [])] false [go.error]))), (go!"AddString", (some (go.signature.Signature [go.string, go.string] false []))), (go!"AddTime", (some (go.signature.Signature [go.string, _root_.Perennial.time.Time.ty] false []))), (go!"AddUint", (some (go.signature.Signature [go.string, go.uint] false []))), (go!"AddUint16", (some (go.signature.Signature [go.string, go.uint16] false []))), (go!"AddUint32", (some (go.signature.Signature [go.string, go.uint32] false []))), (go!"AddUint64", (some (go.signature.Signature [go.string, go.uint64] false []))), (go!"AddUint8", (some (go.signature.Signature [go.string, go.uint8] false []))), (go!"AddUintptr", (some (go.signature.Signature [go.string, go.uintptr] false []))), (go!"OpenNamespace", (some (go.signature.Signature [go.string] false [])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType ObjectEncoder.ty) []
 
 attribute [instance] ObjectEncoder.TypeAssumptions.underlying
+  ObjectEncoder.TypeAssumptions.method_set
+  ObjectEncoder.TypeAssumptions.ptr_method_set
 
-abbrev ArrayEncoder [FfiSyntax] : Type := GoInterface
+abbrev ArrayEncoder [GooseExts] : Type := GoInterface
 
-@[reducible] noncomputable def ArrayEncoder.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
-  (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"AppendArray" (go.signature.Signature [ArrayMarshaler.ty] false [go.error])), (go.InterfaceElem.MethodElem go!"AppendDuration" (go.signature.Signature [_root_.Perennial.time.Duration.ty] false [])), (go.InterfaceElem.MethodElem go!"AppendObject" (go.signature.Signature [ObjectMarshaler.ty] false [go.error])), (go.InterfaceElem.MethodElem go!"AppendReflected" (go.signature.Signature [(go.GoType.InterfaceType [])] false [go.error])), (go.InterfaceElem.MethodElem go!"AppendTime" (go.signature.Signature [_root_.Perennial.time.Time.ty] false [])), (go.InterfaceElem.TypeElem [(go.type_term.TypeTerm PrimitiveArrayEncoder.ty)])])
+@[reducible] noncomputable def ArrayEncoder.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
+  (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"AppendArray" (go.signature.Signature [ArrayMarshaler.ty] false [go.error])), (go.InterfaceElem.MethodElem go!"AppendBool" (go.signature.Signature [go.bool] false [])), (go.InterfaceElem.MethodElem go!"AppendByteString" (go.signature.Signature [(go.GoType.SliceType go.byte)] false [])), (go.InterfaceElem.MethodElem go!"AppendComplex128" (go.signature.Signature [go.complex128] false [])), (go.InterfaceElem.MethodElem go!"AppendComplex64" (go.signature.Signature [go.complex64] false [])), (go.InterfaceElem.MethodElem go!"AppendDuration" (go.signature.Signature [_root_.Perennial.time.Duration.ty] false [])), (go.InterfaceElem.MethodElem go!"AppendFloat32" (go.signature.Signature [go.float32] false [])), (go.InterfaceElem.MethodElem go!"AppendFloat64" (go.signature.Signature [go.float64] false [])), (go.InterfaceElem.MethodElem go!"AppendInt" (go.signature.Signature [go.int] false [])), (go.InterfaceElem.MethodElem go!"AppendInt16" (go.signature.Signature [go.int16] false [])), (go.InterfaceElem.MethodElem go!"AppendInt32" (go.signature.Signature [go.int32] false [])), (go.InterfaceElem.MethodElem go!"AppendInt64" (go.signature.Signature [go.int64] false [])), (go.InterfaceElem.MethodElem go!"AppendInt8" (go.signature.Signature [go.int8] false [])), (go.InterfaceElem.MethodElem go!"AppendObject" (go.signature.Signature [ObjectMarshaler.ty] false [go.error])), (go.InterfaceElem.MethodElem go!"AppendReflected" (go.signature.Signature [(go.GoType.InterfaceType [])] false [go.error])), (go.InterfaceElem.MethodElem go!"AppendString" (go.signature.Signature [go.string] false [])), (go.InterfaceElem.MethodElem go!"AppendTime" (go.signature.Signature [_root_.Perennial.time.Time.ty] false [])), (go.InterfaceElem.MethodElem go!"AppendUint" (go.signature.Signature [go.uint] false [])), (go.InterfaceElem.MethodElem go!"AppendUint16" (go.signature.Signature [go.uint16] false [])), (go.InterfaceElem.MethodElem go!"AppendUint32" (go.signature.Signature [go.uint32] false [])), (go.InterfaceElem.MethodElem go!"AppendUint64" (go.signature.Signature [go.uint64] false [])), (go.InterfaceElem.MethodElem go!"AppendUint8" (go.signature.Signature [go.uint8] false [])), (go.InterfaceElem.MethodElem go!"AppendUintptr" (go.signature.Signature [go.uintptr] false []))])
 
-class ArrayEncoder.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class ArrayEncoder.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq ArrayEncoder.ty ArrayEncoder.underlying
+  method_set : go.MethodSetIs ArrayEncoder.ty [(go!"AppendArray", (some (go.signature.Signature [ArrayMarshaler.ty] false [go.error]))), (go!"AppendBool", (some (go.signature.Signature [go.bool] false []))), (go!"AppendByteString", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false []))), (go!"AppendComplex128", (some (go.signature.Signature [go.complex128] false []))), (go!"AppendComplex64", (some (go.signature.Signature [go.complex64] false []))), (go!"AppendDuration", (some (go.signature.Signature [_root_.Perennial.time.Duration.ty] false []))), (go!"AppendFloat32", (some (go.signature.Signature [go.float32] false []))), (go!"AppendFloat64", (some (go.signature.Signature [go.float64] false []))), (go!"AppendInt", (some (go.signature.Signature [go.int] false []))), (go!"AppendInt16", (some (go.signature.Signature [go.int16] false []))), (go!"AppendInt32", (some (go.signature.Signature [go.int32] false []))), (go!"AppendInt64", (some (go.signature.Signature [go.int64] false []))), (go!"AppendInt8", (some (go.signature.Signature [go.int8] false []))), (go!"AppendObject", (some (go.signature.Signature [ObjectMarshaler.ty] false [go.error]))), (go!"AppendReflected", (some (go.signature.Signature [(go.GoType.InterfaceType [])] false [go.error]))), (go!"AppendString", (some (go.signature.Signature [go.string] false []))), (go!"AppendTime", (some (go.signature.Signature [_root_.Perennial.time.Time.ty] false []))), (go!"AppendUint", (some (go.signature.Signature [go.uint] false []))), (go!"AppendUint16", (some (go.signature.Signature [go.uint16] false []))), (go!"AppendUint32", (some (go.signature.Signature [go.uint32] false []))), (go!"AppendUint64", (some (go.signature.Signature [go.uint64] false []))), (go!"AppendUint8", (some (go.signature.Signature [go.uint8] false []))), (go!"AppendUintptr", (some (go.signature.Signature [go.uintptr] false [])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType ArrayEncoder.ty) []
 
 attribute [instance] ArrayEncoder.TypeAssumptions.underlying
+  ArrayEncoder.TypeAssumptions.method_set
+  ArrayEncoder.TypeAssumptions.ptr_method_set
 
-abbrev PrimitiveArrayEncoder [FfiSyntax] : Type := GoInterface
+abbrev PrimitiveArrayEncoder [GooseExts] : Type := GoInterface
 
-@[reducible] noncomputable def PrimitiveArrayEncoder.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def PrimitiveArrayEncoder.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"AppendBool" (go.signature.Signature [go.bool] false [])), (go.InterfaceElem.MethodElem go!"AppendByteString" (go.signature.Signature [(go.GoType.SliceType go.byte)] false [])), (go.InterfaceElem.MethodElem go!"AppendComplex128" (go.signature.Signature [go.complex128] false [])), (go.InterfaceElem.MethodElem go!"AppendComplex64" (go.signature.Signature [go.complex64] false [])), (go.InterfaceElem.MethodElem go!"AppendFloat32" (go.signature.Signature [go.float32] false [])), (go.InterfaceElem.MethodElem go!"AppendFloat64" (go.signature.Signature [go.float64] false [])), (go.InterfaceElem.MethodElem go!"AppendInt" (go.signature.Signature [go.int] false [])), (go.InterfaceElem.MethodElem go!"AppendInt16" (go.signature.Signature [go.int16] false [])), (go.InterfaceElem.MethodElem go!"AppendInt32" (go.signature.Signature [go.int32] false [])), (go.InterfaceElem.MethodElem go!"AppendInt64" (go.signature.Signature [go.int64] false [])), (go.InterfaceElem.MethodElem go!"AppendInt8" (go.signature.Signature [go.int8] false [])), (go.InterfaceElem.MethodElem go!"AppendString" (go.signature.Signature [go.string] false [])), (go.InterfaceElem.MethodElem go!"AppendUint" (go.signature.Signature [go.uint] false [])), (go.InterfaceElem.MethodElem go!"AppendUint16" (go.signature.Signature [go.uint16] false [])), (go.InterfaceElem.MethodElem go!"AppendUint32" (go.signature.Signature [go.uint32] false [])), (go.InterfaceElem.MethodElem go!"AppendUint64" (go.signature.Signature [go.uint64] false [])), (go.InterfaceElem.MethodElem go!"AppendUint8" (go.signature.Signature [go.uint8] false [])), (go.InterfaceElem.MethodElem go!"AppendUintptr" (go.signature.Signature [go.uintptr] false []))])
 
-class PrimitiveArrayEncoder.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class PrimitiveArrayEncoder.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq PrimitiveArrayEncoder.ty PrimitiveArrayEncoder.underlying
+  method_set : go.MethodSetIs PrimitiveArrayEncoder.ty [(go!"AppendBool", (some (go.signature.Signature [go.bool] false []))), (go!"AppendByteString", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false []))), (go!"AppendComplex128", (some (go.signature.Signature [go.complex128] false []))), (go!"AppendComplex64", (some (go.signature.Signature [go.complex64] false []))), (go!"AppendFloat32", (some (go.signature.Signature [go.float32] false []))), (go!"AppendFloat64", (some (go.signature.Signature [go.float64] false []))), (go!"AppendInt", (some (go.signature.Signature [go.int] false []))), (go!"AppendInt16", (some (go.signature.Signature [go.int16] false []))), (go!"AppendInt32", (some (go.signature.Signature [go.int32] false []))), (go!"AppendInt64", (some (go.signature.Signature [go.int64] false []))), (go!"AppendInt8", (some (go.signature.Signature [go.int8] false []))), (go!"AppendString", (some (go.signature.Signature [go.string] false []))), (go!"AppendUint", (some (go.signature.Signature [go.uint] false []))), (go!"AppendUint16", (some (go.signature.Signature [go.uint16] false []))), (go!"AppendUint32", (some (go.signature.Signature [go.uint32] false []))), (go!"AppendUint64", (some (go.signature.Signature [go.uint64] false []))), (go!"AppendUint8", (some (go.signature.Signature [go.uint8] false []))), (go!"AppendUintptr", (some (go.signature.Signature [go.uintptr] false [])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType PrimitiveArrayEncoder.ty) []
 
 attribute [instance] PrimitiveArrayEncoder.TypeAssumptions.underlying
+  PrimitiveArrayEncoder.TypeAssumptions.method_set
+  PrimitiveArrayEncoder.TypeAssumptions.ptr_method_set
 
-structure EntryCaller [FfiSyntax] where
+structure EntryCaller [GooseExts] where
   mk ::
   Defined' : Bool
   PC' : w64
@@ -1103,27 +1179,27 @@ structure EntryCaller [FfiSyntax] where
   Line' : w64
   Function' : GoString
 
-noncomputable instance EntryCaller.zero_val [FfiSyntax] : ZeroVal EntryCaller :=
+noncomputable instance EntryCaller.zero_val [GooseExts] : ZeroVal EntryCaller :=
   ⟨EntryCaller.mk zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def EntryCaller.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def EntryCaller.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"Defined" go.bool),
 (go.field_decl.FieldDecl go!"PC" go.uintptr),
 (go.field_decl.FieldDecl go!"File" go.string),
 (go.field_decl.FieldDecl go!"Line" go.int),
 (go.field_decl.FieldDecl go!"Function" go.string)]
 
-@[irreducible] noncomputable def EntryCaller.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def EntryCaller.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   EntryCaller.fieldsUnsealed
 
-noncomputable instance equals_unfold_EntryCaller [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_EntryCaller [GooseExts] [GoGlobalContext] :
     EqualsUnfold EntryCaller.fields EntryCaller.fieldsUnsealed :=
   ⟨by unfold EntryCaller.fields; rfl⟩
 
-@[reducible] noncomputable def EntryCaller.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def EntryCaller.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType EntryCaller.fields)
 
-class EntryCaller.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class EntryCaller.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying EntryCaller.underlying EntryCaller
   underlying : go.UnderlyingDirectedEq EntryCaller.ty EntryCaller.underlying
   get_Defined : ∀ (x : EntryCaller), go.IsGoStepPureDetTagged under (StructFieldGet EntryCaller.underlying go!"Defined") #x (Val #(x.Defined'))
@@ -1136,6 +1212,8 @@ class EntryCaller.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext]
   set_Line : ∀ (x : EntryCaller) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet EntryCaller.underlying go!"Line") (PairV #x #y) (Val #(({ x with Line' := y } : EntryCaller)))
   get_Function : ∀ (x : EntryCaller), go.IsGoStepPureDetTagged under (StructFieldGet EntryCaller.underlying go!"Function") #x (Val #(x.Function'))
   set_Function : ∀ (x : EntryCaller) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet EntryCaller.underlying go!"Function") (PairV #x #y) (Val #(({ x with Function' := y } : EntryCaller)))
+  method_set : go.MethodSetIs EntryCaller.ty [(go!"FullPath", (some (go.signature.Signature [] false [go.string]))), (go!"String", (some (go.signature.Signature [] false [go.string]))), (go!"TrimmedPath", (some (go.signature.Signature [] false [go.string])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType EntryCaller.ty) [(go!"FullPath", (some (go.signature.Signature [] false [go.string]))), (go!"String", (some (go.signature.Signature [] false [go.string]))), (go!"TrimmedPath", (some (go.signature.Signature [] false [go.string])))]
 
 attribute [instance] EntryCaller.TypeAssumptions.type_repr
   EntryCaller.TypeAssumptions.underlying
@@ -1149,18 +1227,24 @@ attribute [instance] EntryCaller.TypeAssumptions.type_repr
   EntryCaller.TypeAssumptions.set_Line
   EntryCaller.TypeAssumptions.get_Function
   EntryCaller.TypeAssumptions.set_Function
+  EntryCaller.TypeAssumptions.method_set
+  EntryCaller.TypeAssumptions.ptr_method_set
 
-abbrev Level [FfiSyntax] : Type := w8
+abbrev Level [GooseExts] : Type := w8
 
-@[reducible] noncomputable def Level.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def Level.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   go.int8
 
-class Level.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class Level.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq Level.ty Level.underlying
+  method_set : go.MethodSetIs Level.ty [(go!"CapitalString", (some (go.signature.Signature [] false [go.string]))), (go!"Enabled", (some (go.signature.Signature [Level.ty] false [go.bool]))), (go!"MarshalText", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), go.error]))), (go!"String", (some (go.signature.Signature [] false [go.string])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType Level.ty) [(go!"CapitalString", (some (go.signature.Signature [] false [go.string]))), (go!"Enabled", (some (go.signature.Signature [Level.ty] false [go.bool]))), (go!"Get", (some (go.signature.Signature [] false [(go.GoType.InterfaceType [])]))), (go!"MarshalText", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), go.error]))), (go!"Set", (some (go.signature.Signature [go.string] false [go.error]))), (go!"String", (some (go.signature.Signature [] false [go.string]))), (go!"UnmarshalText", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.error]))), (go!"go.uber.org/zap/zapcore.unmarshalText", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.bool])))]
 
 attribute [instance] Level.TypeAssumptions.underlying
+  Level.TypeAssumptions.method_set
+  Level.TypeAssumptions.ptr_method_set
 
-structure Entry [FfiSyntax] where
+structure Entry [GooseExts] where
   mk ::
   Level' : Level
   Time' : _root_.Perennial.time.Time
@@ -1169,10 +1253,10 @@ structure Entry [FfiSyntax] where
   Caller' : EntryCaller
   Stack' : GoString
 
-noncomputable instance Entry.zero_val [FfiSyntax] : ZeroVal Entry :=
+noncomputable instance Entry.zero_val [GooseExts] : ZeroVal Entry :=
   ⟨Entry.mk zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def Entry.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def Entry.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"Level" Level.ty),
 (go.field_decl.FieldDecl go!"Time" _root_.Perennial.time.Time.ty),
 (go.field_decl.FieldDecl go!"LoggerName" go.string),
@@ -1180,17 +1264,17 @@ noncomputable instance Entry.zero_val [FfiSyntax] : ZeroVal Entry :=
 (go.field_decl.FieldDecl go!"Caller" EntryCaller.ty),
 (go.field_decl.FieldDecl go!"Stack" go.string)]
 
-@[irreducible] noncomputable def Entry.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def Entry.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   Entry.fieldsUnsealed
 
-noncomputable instance equals_unfold_Entry [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_Entry [GooseExts] [GoGlobalContext] :
     EqualsUnfold Entry.fields Entry.fieldsUnsealed :=
   ⟨by unfold Entry.fields; rfl⟩
 
-@[reducible] noncomputable def Entry.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def Entry.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType Entry.fields)
 
-class Entry.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class Entry.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying Entry.underlying Entry
   underlying : go.UnderlyingDirectedEq Entry.ty Entry.underlying
   get_Level : ∀ (x : Entry), go.IsGoStepPureDetTagged under (StructFieldGet Entry.underlying go!"Level") #x (Val #(x.Level'))
@@ -1205,6 +1289,8 @@ class Entry.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSe
   set_Caller : ∀ (x : Entry) (y : EntryCaller), go.IsGoStepPureDetTagged under (StructFieldSet Entry.underlying go!"Caller") (PairV #x #y) (Val #(({ x with Caller' := y } : Entry)))
   get_Stack : ∀ (x : Entry), go.IsGoStepPureDetTagged under (StructFieldGet Entry.underlying go!"Stack") #x (Val #(x.Stack'))
   set_Stack : ∀ (x : Entry) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet Entry.underlying go!"Stack") (PairV #x #y) (Val #(({ x with Stack' := y } : Entry)))
+  method_set : go.MethodSetIs Entry.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType Entry.ty) []
 
 attribute [instance] Entry.TypeAssumptions.type_repr
   Entry.TypeAssumptions.underlying
@@ -1220,38 +1306,52 @@ attribute [instance] Entry.TypeAssumptions.type_repr
   Entry.TypeAssumptions.set_Caller
   Entry.TypeAssumptions.get_Stack
   Entry.TypeAssumptions.set_Stack
+  Entry.TypeAssumptions.method_set
+  Entry.TypeAssumptions.ptr_method_set
 
-abbrev CheckWriteHook [FfiSyntax] : Type := GoInterface
+abbrev CheckWriteHook [GooseExts] : Type := GoInterface
 
-@[reducible] noncomputable def CheckWriteHook.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def CheckWriteHook.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"OnWrite" (go.signature.Signature [(go.GoType.PointerType CheckedEntry.ty), (go.GoType.SliceType Field.ty)] false []))])
 
-class CheckWriteHook.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class CheckWriteHook.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq CheckWriteHook.ty CheckWriteHook.underlying
+  method_set : go.MethodSetIs CheckWriteHook.ty [(go!"OnWrite", (some (go.signature.Signature [(go.GoType.PointerType CheckedEntry.ty), (go.GoType.SliceType Field.ty)] false [])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType CheckWriteHook.ty) []
 
 attribute [instance] CheckWriteHook.TypeAssumptions.underlying
+  CheckWriteHook.TypeAssumptions.method_set
+  CheckWriteHook.TypeAssumptions.ptr_method_set
 
-abbrev CheckWriteAction [FfiSyntax] : Type := w8
+abbrev CheckWriteAction [GooseExts] : Type := w8
 
-@[reducible] noncomputable def CheckWriteAction.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def CheckWriteAction.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   go.uint8
 
-class CheckWriteAction.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class CheckWriteAction.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq CheckWriteAction.ty CheckWriteAction.underlying
+  method_set : go.MethodSetIs CheckWriteAction.ty [(go!"OnWrite", (some (go.signature.Signature [(go.GoType.PointerType CheckedEntry.ty), (go.GoType.SliceType Field.ty)] false [])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType CheckWriteAction.ty) [(go!"OnWrite", (some (go.signature.Signature [(go.GoType.PointerType CheckedEntry.ty), (go.GoType.SliceType Field.ty)] false [])))]
 
 attribute [instance] CheckWriteAction.TypeAssumptions.underlying
+  CheckWriteAction.TypeAssumptions.method_set
+  CheckWriteAction.TypeAssumptions.ptr_method_set
 
-abbrev CheckPreWriteHook [FfiSyntax] : Type := GoFunc
+abbrev CheckPreWriteHook [GooseExts] : Type := GoFunc
 
-@[reducible] noncomputable def CheckPreWriteHook.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def CheckPreWriteHook.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.FunctionType (go.signature.Signature [Entry.ty, (go.GoType.SliceType Field.ty)] false [Entry.ty, (go.GoType.SliceType Field.ty)]))
 
-class CheckPreWriteHook.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class CheckPreWriteHook.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq CheckPreWriteHook.ty CheckPreWriteHook.underlying
+  method_set : go.MethodSetIs CheckPreWriteHook.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType CheckPreWriteHook.ty) []
 
 attribute [instance] CheckPreWriteHook.TypeAssumptions.underlying
+  CheckPreWriteHook.TypeAssumptions.method_set
+  CheckPreWriteHook.TypeAssumptions.ptr_method_set
 
-structure CheckedEntry [FfiSyntax] where
+structure CheckedEntry [GooseExts] where
   mk ::
   Entry' : Entry
   ErrorOutput' : WriteSyncer
@@ -1260,10 +1360,10 @@ structure CheckedEntry [FfiSyntax] where
   cores' : GoSlice
   before' : GoSlice
 
-noncomputable instance CheckedEntry.zero_val [FfiSyntax] : ZeroVal CheckedEntry :=
+noncomputable instance CheckedEntry.zero_val [GooseExts] : ZeroVal CheckedEntry :=
   ⟨CheckedEntry.mk zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def CheckedEntry.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def CheckedEntry.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.EmbeddedField go!"Entry" Entry.ty),
 (go.field_decl.FieldDecl go!"ErrorOutput" WriteSyncer.ty),
 (go.field_decl.FieldDecl go!"dirty" go.bool),
@@ -1271,17 +1371,17 @@ noncomputable instance CheckedEntry.zero_val [FfiSyntax] : ZeroVal CheckedEntry 
 (go.field_decl.FieldDecl go!"cores" (go.GoType.SliceType Core.ty)),
 (go.field_decl.FieldDecl go!"before" (go.GoType.SliceType CheckPreWriteHook.ty))]
 
-@[irreducible] noncomputable def CheckedEntry.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def CheckedEntry.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   CheckedEntry.fieldsUnsealed
 
-noncomputable instance equals_unfold_CheckedEntry [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_CheckedEntry [GooseExts] [GoGlobalContext] :
     EqualsUnfold CheckedEntry.fields CheckedEntry.fieldsUnsealed :=
   ⟨by unfold CheckedEntry.fields; rfl⟩
 
-@[reducible] noncomputable def CheckedEntry.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def CheckedEntry.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType CheckedEntry.fields)
 
-class CheckedEntry.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class CheckedEntry.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying CheckedEntry.underlying CheckedEntry
   underlying : go.UnderlyingDirectedEq CheckedEntry.ty CheckedEntry.underlying
   get_Entry : ∀ (x : CheckedEntry), go.IsGoStepPureDetTagged under (StructFieldGet CheckedEntry.underlying go!"Entry") #x (Val #(x.Entry'))
@@ -1296,6 +1396,8 @@ class CheckedEntry.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext
   set_cores : ∀ (x : CheckedEntry) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet CheckedEntry.underlying go!"cores") (PairV #x #y) (Val #(({ x with cores' := y } : CheckedEntry)))
   get_before : ∀ (x : CheckedEntry), go.IsGoStepPureDetTagged under (StructFieldGet CheckedEntry.underlying go!"before") #x (Val #(x.before'))
   set_before : ∀ (x : CheckedEntry) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet CheckedEntry.underlying go!"before") (PairV #x #y) (Val #(({ x with before' := y } : CheckedEntry)))
+  method_set : go.MethodSetIs CheckedEntry.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType CheckedEntry.ty) [(go!"AddCore", (some (go.signature.Signature [Entry.ty, Core.ty] false [(go.GoType.PointerType CheckedEntry.ty)]))), (go!"After", (some (go.signature.Signature [Entry.ty, CheckWriteHook.ty] false [(go.GoType.PointerType CheckedEntry.ty)]))), (go!"Before", (some (go.signature.Signature [Entry.ty, CheckPreWriteHook.ty] false [(go.GoType.PointerType CheckedEntry.ty)]))), (go!"Should", (some (go.signature.Signature [Entry.ty, CheckWriteAction.ty] false [(go.GoType.PointerType CheckedEntry.ty)]))), (go!"Write", (some (go.signature.Signature [(go.GoType.SliceType Field.ty)] true []))), (go!"go.uber.org/zap/zapcore.reset", (some (go.signature.Signature [] false [])))]
 
 attribute [instance] CheckedEntry.TypeAssumptions.type_repr
   CheckedEntry.TypeAssumptions.underlying
@@ -1311,69 +1413,87 @@ attribute [instance] CheckedEntry.TypeAssumptions.type_repr
   CheckedEntry.TypeAssumptions.set_cores
   CheckedEntry.TypeAssumptions.get_before
   CheckedEntry.TypeAssumptions.set_before
+  CheckedEntry.TypeAssumptions.method_set
+  CheckedEntry.TypeAssumptions.ptr_method_set
 
-abbrev errorGroup [FfiSyntax] : Type := GoInterface
+abbrev errorGroup [GooseExts] : Type := GoInterface
 
-@[reducible] noncomputable def errorGroup.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def errorGroup.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"Errors" (go.signature.Signature [] false [(go.GoType.SliceType go.error)]))])
 
-class errorGroup.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class errorGroup.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq errorGroup.ty errorGroup.underlying
+  method_set : go.MethodSetIs errorGroup.ty [(go!"Errors", (some (go.signature.Signature [] false [(go.GoType.SliceType go.error)])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType errorGroup.ty) []
 
 attribute [instance] errorGroup.TypeAssumptions.underlying
+  errorGroup.TypeAssumptions.method_set
+  errorGroup.TypeAssumptions.ptr_method_set
 
-abbrev errArray [FfiSyntax] : Type := GoSlice
+abbrev errArray [GooseExts] : Type := GoSlice
 
-@[reducible] noncomputable def errArray.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def errArray.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.SliceType go.error)
 
-class errArray.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class errArray.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq errArray.ty errArray.underlying
+  method_set : go.MethodSetIs errArray.ty [(go!"MarshalLogArray", (some (go.signature.Signature [ArrayEncoder.ty] false [go.error])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType errArray.ty) [(go!"MarshalLogArray", (some (go.signature.Signature [ArrayEncoder.ty] false [go.error])))]
 
 attribute [instance] errArray.TypeAssumptions.underlying
+  errArray.TypeAssumptions.method_set
+  errArray.TypeAssumptions.ptr_method_set
 
-structure errArrayElem [FfiSyntax] where
+structure errArrayElem [GooseExts] where
   mk ::
   err' : GoError
 
-noncomputable instance errArrayElem.zero_val [FfiSyntax] : ZeroVal errArrayElem :=
+noncomputable instance errArrayElem.zero_val [GooseExts] : ZeroVal errArrayElem :=
   ⟨errArrayElem.mk zeroValDef⟩
 
-@[reducible] noncomputable def errArrayElem.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def errArrayElem.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"err" go.error)]
 
-@[irreducible] noncomputable def errArrayElem.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def errArrayElem.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   errArrayElem.fieldsUnsealed
 
-noncomputable instance equals_unfold_errArrayElem [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_errArrayElem [GooseExts] [GoGlobalContext] :
     EqualsUnfold errArrayElem.fields errArrayElem.fieldsUnsealed :=
   ⟨by unfold errArrayElem.fields; rfl⟩
 
-@[reducible] noncomputable def errArrayElem.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def errArrayElem.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType errArrayElem.fields)
 
-class errArrayElem.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class errArrayElem.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying errArrayElem.underlying errArrayElem
   underlying : go.UnderlyingDirectedEq errArrayElem.ty errArrayElem.underlying
   get_err : ∀ (x : errArrayElem), go.IsGoStepPureDetTagged under (StructFieldGet errArrayElem.underlying go!"err") #x (Val #(x.err'))
   set_err : ∀ (x : errArrayElem) (y : GoError), go.IsGoStepPureDetTagged under (StructFieldSet errArrayElem.underlying go!"err") (PairV #x #y) (Val #(({ x with err' := y } : errArrayElem)))
+  method_set : go.MethodSetIs errArrayElem.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType errArrayElem.ty) [(go!"Free", (some (go.signature.Signature [] false []))), (go!"MarshalLogArray", (some (go.signature.Signature [ArrayEncoder.ty] false [go.error]))), (go!"MarshalLogObject", (some (go.signature.Signature [ObjectEncoder.ty] false [go.error])))]
 
 attribute [instance] errArrayElem.TypeAssumptions.type_repr
   errArrayElem.TypeAssumptions.underlying
   errArrayElem.TypeAssumptions.get_err
   errArrayElem.TypeAssumptions.set_err
+  errArrayElem.TypeAssumptions.method_set
+  errArrayElem.TypeAssumptions.ptr_method_set
 
-abbrev FieldType [FfiSyntax] : Type := w8
+abbrev FieldType [GooseExts] : Type := w8
 
-@[reducible] noncomputable def FieldType.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def FieldType.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   go.uint8
 
-class FieldType.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class FieldType.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq FieldType.ty FieldType.underlying
+  method_set : go.MethodSetIs FieldType.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType FieldType.ty) []
 
 attribute [instance] FieldType.TypeAssumptions.underlying
+  FieldType.TypeAssumptions.method_set
+  FieldType.TypeAssumptions.ptr_method_set
 
-structure Field [FfiSyntax] where
+structure Field [GooseExts] where
   mk ::
   Key' : GoString
   Type' : FieldType
@@ -1381,27 +1501,27 @@ structure Field [FfiSyntax] where
   String' : GoString
   Interface' : GoInterface
 
-noncomputable instance Field.zero_val [FfiSyntax] : ZeroVal Field :=
+noncomputable instance Field.zero_val [GooseExts] : ZeroVal Field :=
   ⟨Field.mk zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def Field.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def Field.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"Key" go.string),
 (go.field_decl.FieldDecl go!"Type" FieldType.ty),
 (go.field_decl.FieldDecl go!"Integer" go.int64),
 (go.field_decl.FieldDecl go!"String" go.string),
 (go.field_decl.FieldDecl go!"Interface" (go.GoType.InterfaceType []))]
 
-@[irreducible] noncomputable def Field.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def Field.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   Field.fieldsUnsealed
 
-noncomputable instance equals_unfold_Field [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_Field [GooseExts] [GoGlobalContext] :
     EqualsUnfold Field.fields Field.fieldsUnsealed :=
   ⟨by unfold Field.fields; rfl⟩
 
-@[reducible] noncomputable def Field.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def Field.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType Field.fields)
 
-class Field.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class Field.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying Field.underlying Field
   underlying : go.UnderlyingDirectedEq Field.ty Field.underlying
   get_Key : ∀ (x : Field), go.IsGoStepPureDetTagged under (StructFieldGet Field.underlying go!"Key") #x (Val #(x.Key'))
@@ -1414,6 +1534,8 @@ class Field.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSe
   set_String : ∀ (x : Field) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet Field.underlying go!"String") (PairV #x #y) (Val #(({ x with String' := y } : Field)))
   get_Interface : ∀ (x : Field), go.IsGoStepPureDetTagged under (StructFieldGet Field.underlying go!"Interface") #x (Val #(x.Interface'))
   set_Interface : ∀ (x : Field) (y : GoInterface), go.IsGoStepPureDetTagged under (StructFieldSet Field.underlying go!"Interface") (PairV #x #y) (Val #(({ x with Interface' := y } : Field)))
+  method_set : go.MethodSetIs Field.ty [(go!"AddTo", (some (go.signature.Signature [ObjectEncoder.ty] false []))), (go!"Equals", (some (go.signature.Signature [Field.ty] false [go.bool])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType Field.ty) [(go!"AddTo", (some (go.signature.Signature [ObjectEncoder.ty] false []))), (go!"Equals", (some (go.signature.Signature [Field.ty] false [go.bool])))]
 
 attribute [instance] Field.TypeAssumptions.type_repr
   Field.TypeAssumptions.underlying
@@ -1427,36 +1549,40 @@ attribute [instance] Field.TypeAssumptions.type_repr
   Field.TypeAssumptions.set_String
   Field.TypeAssumptions.get_Interface
   Field.TypeAssumptions.set_Interface
+  Field.TypeAssumptions.method_set
+  Field.TypeAssumptions.ptr_method_set
 
-structure hooked [FfiSyntax] where
+structure hooked [GooseExts] where
   mk ::
   Core' : Core
   funcs' : GoSlice
 
-noncomputable instance hooked.zero_val [FfiSyntax] : ZeroVal hooked :=
+noncomputable instance hooked.zero_val [GooseExts] : ZeroVal hooked :=
   ⟨hooked.mk zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def hooked.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def hooked.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.EmbeddedField go!"Core" Core.ty),
 (go.field_decl.FieldDecl go!"funcs" (go.GoType.SliceType (go.GoType.FunctionType (go.signature.Signature [Entry.ty] false [go.error]))))]
 
-@[irreducible] noncomputable def hooked.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def hooked.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   hooked.fieldsUnsealed
 
-noncomputable instance equals_unfold_hooked [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_hooked [GooseExts] [GoGlobalContext] :
     EqualsUnfold hooked.fields hooked.fieldsUnsealed :=
   ⟨by unfold hooked.fields; rfl⟩
 
-@[reducible] noncomputable def hooked.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def hooked.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType hooked.fields)
 
-class hooked.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class hooked.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying hooked.underlying hooked
   underlying : go.UnderlyingDirectedEq hooked.ty hooked.underlying
   get_Core : ∀ (x : hooked), go.IsGoStepPureDetTagged under (StructFieldGet hooked.underlying go!"Core") #x (Val #(x.Core'))
   set_Core : ∀ (x : hooked) (y : Core), go.IsGoStepPureDetTagged under (StructFieldSet hooked.underlying go!"Core") (PairV #x #y) (Val #(({ x with Core' := y } : hooked)))
   get_funcs : ∀ (x : hooked), go.IsGoStepPureDetTagged under (StructFieldGet hooked.underlying go!"funcs") #x (Val #(x.funcs'))
   set_funcs : ∀ (x : hooked) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet hooked.underlying go!"funcs") (PairV #x #y) (Val #(({ x with funcs' := y } : hooked)))
+  method_set : go.MethodSetIs hooked.ty [(go!"Enabled", (some (go.signature.Signature [Level.ty] false [go.bool]))), (go!"Sync", (some (go.signature.Signature [] false [go.error])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType hooked.ty) [(go!"Check", (some (go.signature.Signature [Entry.ty, (go.GoType.PointerType CheckedEntry.ty)] false [(go.GoType.PointerType CheckedEntry.ty)]))), (go!"Enabled", (some (go.signature.Signature [Level.ty] false [go.bool]))), (go!"Level", (some (go.signature.Signature [] false [Level.ty]))), (go!"Sync", (some (go.signature.Signature [] false [go.error]))), (go!"With", (some (go.signature.Signature [(go.GoType.SliceType Field.ty)] false [Core.ty]))), (go!"Write", (some (go.signature.Signature [Entry.ty, (go.GoType.SliceType Field.ty)] false [go.error])))]
 
 attribute [instance] hooked.TypeAssumptions.type_repr
   hooked.TypeAssumptions.underlying
@@ -1464,36 +1590,40 @@ attribute [instance] hooked.TypeAssumptions.type_repr
   hooked.TypeAssumptions.set_Core
   hooked.TypeAssumptions.get_funcs
   hooked.TypeAssumptions.set_funcs
+  hooked.TypeAssumptions.method_set
+  hooked.TypeAssumptions.ptr_method_set
 
-structure levelFilterCore [FfiSyntax] where
+structure levelFilterCore [GooseExts] where
   mk ::
   core' : Core
   level' : LevelEnabler
 
-noncomputable instance levelFilterCore.zero_val [FfiSyntax] : ZeroVal levelFilterCore :=
+noncomputable instance levelFilterCore.zero_val [GooseExts] : ZeroVal levelFilterCore :=
   ⟨levelFilterCore.mk zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def levelFilterCore.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def levelFilterCore.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"core" Core.ty),
 (go.field_decl.FieldDecl go!"level" LevelEnabler.ty)]
 
-@[irreducible] noncomputable def levelFilterCore.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def levelFilterCore.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   levelFilterCore.fieldsUnsealed
 
-noncomputable instance equals_unfold_levelFilterCore [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_levelFilterCore [GooseExts] [GoGlobalContext] :
     EqualsUnfold levelFilterCore.fields levelFilterCore.fieldsUnsealed :=
   ⟨by unfold levelFilterCore.fields; rfl⟩
 
-@[reducible] noncomputable def levelFilterCore.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def levelFilterCore.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType levelFilterCore.fields)
 
-class levelFilterCore.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class levelFilterCore.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying levelFilterCore.underlying levelFilterCore
   underlying : go.UnderlyingDirectedEq levelFilterCore.ty levelFilterCore.underlying
   get_core : ∀ (x : levelFilterCore), go.IsGoStepPureDetTagged under (StructFieldGet levelFilterCore.underlying go!"core") #x (Val #(x.core'))
   set_core : ∀ (x : levelFilterCore) (y : Core), go.IsGoStepPureDetTagged under (StructFieldSet levelFilterCore.underlying go!"core") (PairV #x #y) (Val #(({ x with core' := y } : levelFilterCore)))
   get_level : ∀ (x : levelFilterCore), go.IsGoStepPureDetTagged under (StructFieldGet levelFilterCore.underlying go!"level") #x (Val #(x.level'))
   set_level : ∀ (x : levelFilterCore) (y : LevelEnabler), go.IsGoStepPureDetTagged under (StructFieldSet levelFilterCore.underlying go!"level") (PairV #x #y) (Val #(({ x with level' := y } : levelFilterCore)))
+  method_set : go.MethodSetIs levelFilterCore.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType levelFilterCore.ty) [(go!"Check", (some (go.signature.Signature [Entry.ty, (go.GoType.PointerType CheckedEntry.ty)] false [(go.GoType.PointerType CheckedEntry.ty)]))), (go!"Enabled", (some (go.signature.Signature [Level.ty] false [go.bool]))), (go!"Level", (some (go.signature.Signature [] false [Level.ty]))), (go!"Sync", (some (go.signature.Signature [] false [go.error]))), (go!"With", (some (go.signature.Signature [(go.GoType.SliceType Field.ty)] false [Core.ty]))), (go!"Write", (some (go.signature.Signature [Entry.ty, (go.GoType.SliceType Field.ty)] false [go.error])))]
 
 attribute [instance] levelFilterCore.TypeAssumptions.type_repr
   levelFilterCore.TypeAssumptions.underlying
@@ -1501,112 +1631,144 @@ attribute [instance] levelFilterCore.TypeAssumptions.type_repr
   levelFilterCore.TypeAssumptions.set_core
   levelFilterCore.TypeAssumptions.get_level
   levelFilterCore.TypeAssumptions.set_level
+  levelFilterCore.TypeAssumptions.method_set
+  levelFilterCore.TypeAssumptions.ptr_method_set
 
 axiom jsonEncoder : Type
 axiom jsonEncoder.zero_val : ZeroVal jsonEncoder
 attribute [instance] jsonEncoder.zero_val
 
-class jsonEncoder.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class jsonEncoder.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying jsonEncoder.underlying jsonEncoder
   underlying : go.UnderlyingDirectedEq jsonEncoder.ty jsonEncoder.underlying
   isUnderlying : go.IsUnderlying jsonEncoder.underlying jsonEncoder.underlying
+  method_set : go.MethodSetIs jsonEncoder.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType jsonEncoder.ty) [(go!"AddArray", (some (go.signature.Signature [go.string, ArrayMarshaler.ty] false [go.error]))), (go!"AddBinary", (some (go.signature.Signature [go.string, (go.GoType.SliceType go.byte)] false []))), (go!"AddBool", (some (go.signature.Signature [go.string, go.bool] false []))), (go!"AddByteString", (some (go.signature.Signature [go.string, (go.GoType.SliceType go.byte)] false []))), (go!"AddComplex128", (some (go.signature.Signature [go.string, go.complex128] false []))), (go!"AddComplex64", (some (go.signature.Signature [go.string, go.complex64] false []))), (go!"AddDuration", (some (go.signature.Signature [go.string, _root_.Perennial.time.Duration.ty] false []))), (go!"AddFloat32", (some (go.signature.Signature [go.string, go.float32] false []))), (go!"AddFloat64", (some (go.signature.Signature [go.string, go.float64] false []))), (go!"AddInt", (some (go.signature.Signature [go.string, go.int] false []))), (go!"AddInt16", (some (go.signature.Signature [go.string, go.int16] false []))), (go!"AddInt32", (some (go.signature.Signature [go.string, go.int32] false []))), (go!"AddInt64", (some (go.signature.Signature [go.string, go.int64] false []))), (go!"AddInt8", (some (go.signature.Signature [go.string, go.int8] false []))), (go!"AddObject", (some (go.signature.Signature [go.string, ObjectMarshaler.ty] false [go.error]))), (go!"AddReflected", (some (go.signature.Signature [go.string, (go.GoType.InterfaceType [])] false [go.error]))), (go!"AddString", (some (go.signature.Signature [go.string, go.string] false []))), (go!"AddTime", (some (go.signature.Signature [go.string, _root_.Perennial.time.Time.ty] false []))), (go!"AddUint", (some (go.signature.Signature [go.string, go.uint] false []))), (go!"AddUint16", (some (go.signature.Signature [go.string, go.uint16] false []))), (go!"AddUint32", (some (go.signature.Signature [go.string, go.uint32] false []))), (go!"AddUint64", (some (go.signature.Signature [go.string, go.uint64] false []))), (go!"AddUint8", (some (go.signature.Signature [go.string, go.uint8] false []))), (go!"AddUintptr", (some (go.signature.Signature [go.string, go.uintptr] false []))), (go!"AppendArray", (some (go.signature.Signature [ArrayMarshaler.ty] false [go.error]))), (go!"AppendBool", (some (go.signature.Signature [go.bool] false []))), (go!"AppendByteString", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false []))), (go!"AppendComplex128", (some (go.signature.Signature [go.complex128] false []))), (go!"AppendComplex64", (some (go.signature.Signature [go.complex64] false []))), (go!"AppendDuration", (some (go.signature.Signature [_root_.Perennial.time.Duration.ty] false []))), (go!"AppendFloat32", (some (go.signature.Signature [go.float32] false []))), (go!"AppendFloat64", (some (go.signature.Signature [go.float64] false []))), (go!"AppendInt", (some (go.signature.Signature [go.int] false []))), (go!"AppendInt16", (some (go.signature.Signature [go.int16] false []))), (go!"AppendInt32", (some (go.signature.Signature [go.int32] false []))), (go!"AppendInt64", (some (go.signature.Signature [go.int64] false []))), (go!"AppendInt8", (some (go.signature.Signature [go.int8] false []))), (go!"AppendObject", (some (go.signature.Signature [ObjectMarshaler.ty] false [go.error]))), (go!"AppendReflected", (some (go.signature.Signature [(go.GoType.InterfaceType [])] false [go.error]))), (go!"AppendString", (some (go.signature.Signature [go.string] false []))), (go!"AppendTime", (some (go.signature.Signature [_root_.Perennial.time.Time.ty] false []))), (go!"AppendTimeLayout", (some (go.signature.Signature [_root_.Perennial.time.Time.ty, go.string] false []))), (go!"AppendUint", (some (go.signature.Signature [go.uint] false []))), (go!"AppendUint16", (some (go.signature.Signature [go.uint16] false []))), (go!"AppendUint32", (some (go.signature.Signature [go.uint32] false []))), (go!"AppendUint64", (some (go.signature.Signature [go.uint64] false []))), (go!"AppendUint8", (some (go.signature.Signature [go.uint8] false []))), (go!"AppendUintptr", (some (go.signature.Signature [go.uintptr] false []))), (go!"Clone", (some (go.signature.Signature [] false [Encoder.ty]))), (go!"EncodeEntry", (some (go.signature.Signature [Entry.ty, (go.GoType.SliceType Field.ty)] false [(go.GoType.PointerType (go.GoType.Named go!"go.uber.org/zap/buffer.Buffer" [])), go.error]))), (go!"OpenNamespace", (some (go.signature.Signature [go.string] false []))), (go!"go.uber.org/zap/zapcore.addElementSeparator", (some (go.signature.Signature [] false []))), (go!"go.uber.org/zap/zapcore.addKey", (some (go.signature.Signature [go.string] false []))), (go!"go.uber.org/zap/zapcore.appendComplex", (some (go.signature.Signature [go.complex128, go.int] false []))), (go!"go.uber.org/zap/zapcore.appendFloat", (some (go.signature.Signature [go.float64, go.int] false []))), (go!"go.uber.org/zap/zapcore.clone", (some (go.signature.Signature [] false [(go.GoType.PointerType jsonEncoder.ty)]))), (go!"go.uber.org/zap/zapcore.closeOpenNamespaces", (some (go.signature.Signature [] false []))), (go!"go.uber.org/zap/zapcore.encodeReflected", (some (go.signature.Signature [(go.GoType.InterfaceType [])] false [(go.GoType.SliceType go.byte), go.error]))), (go!"go.uber.org/zap/zapcore.resetReflectBuf", (some (go.signature.Signature [] false []))), (go!"go.uber.org/zap/zapcore.safeAddByteString", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false []))), (go!"go.uber.org/zap/zapcore.safeAddString", (some (go.signature.Signature [go.string] false []))), (go!"go.uber.org/zap/zapcore.truncate", (some (go.signature.Signature [] false [])))]
 
 attribute [instance] jsonEncoder.TypeAssumptions.type_repr
   jsonEncoder.TypeAssumptions.underlying
   jsonEncoder.TypeAssumptions.isUnderlying
+  jsonEncoder.TypeAssumptions.method_set
+  jsonEncoder.TypeAssumptions.ptr_method_set
 
 axiom lazyWithCore : Type
 axiom lazyWithCore.zero_val : ZeroVal lazyWithCore
 attribute [instance] lazyWithCore.zero_val
 
-class lazyWithCore.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class lazyWithCore.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying lazyWithCore.underlying lazyWithCore
   underlying : go.UnderlyingDirectedEq lazyWithCore.ty lazyWithCore.underlying
   isUnderlying : go.IsUnderlying lazyWithCore.underlying lazyWithCore.underlying
+  method_set : go.MethodSetIs lazyWithCore.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType lazyWithCore.ty) [(go!"Check", (some (go.signature.Signature [Entry.ty, (go.GoType.PointerType CheckedEntry.ty)] false [(go.GoType.PointerType CheckedEntry.ty)]))), (go!"Do", (some (go.signature.Signature [(go.GoType.FunctionType (go.signature.Signature [] false []))] false []))), (go!"Enabled", (some (go.signature.Signature [Level.ty] false [go.bool]))), (go!"Sync", (some (go.signature.Signature [] false [go.error]))), (go!"With", (some (go.signature.Signature [(go.GoType.SliceType Field.ty)] false [Core.ty]))), (go!"Write", (some (go.signature.Signature [Entry.ty, (go.GoType.SliceType Field.ty)] false [go.error]))), (go!"go.uber.org/zap/zapcore.initOnce", (some (go.signature.Signature [] false []))), (go!"sync.doSlow", (some (go.signature.Signature [(go.GoType.FunctionType (go.signature.Signature [] false []))] false [])))]
 
 attribute [instance] lazyWithCore.TypeAssumptions.type_repr
   lazyWithCore.TypeAssumptions.underlying
   lazyWithCore.TypeAssumptions.isUnderlying
+  lazyWithCore.TypeAssumptions.method_set
+  lazyWithCore.TypeAssumptions.ptr_method_set
 
-abbrev leveledEnabler [FfiSyntax] : Type := GoInterface
+abbrev leveledEnabler [GooseExts] : Type := GoInterface
 
-@[reducible] noncomputable def leveledEnabler.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
-  (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"Level" (go.signature.Signature [] false [Level.ty])), (go.InterfaceElem.TypeElem [(go.type_term.TypeTerm LevelEnabler.ty)])])
+@[reducible] noncomputable def leveledEnabler.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
+  (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"Enabled" (go.signature.Signature [Level.ty] false [go.bool])), (go.InterfaceElem.MethodElem go!"Level" (go.signature.Signature [] false [Level.ty]))])
 
-class leveledEnabler.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class leveledEnabler.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq leveledEnabler.ty leveledEnabler.underlying
+  method_set : go.MethodSetIs leveledEnabler.ty [(go!"Enabled", (some (go.signature.Signature [Level.ty] false [go.bool]))), (go!"Level", (some (go.signature.Signature [] false [Level.ty])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType leveledEnabler.ty) []
 
 attribute [instance] leveledEnabler.TypeAssumptions.underlying
+  leveledEnabler.TypeAssumptions.method_set
+  leveledEnabler.TypeAssumptions.ptr_method_set
 
-abbrev ObjectMarshaler [FfiSyntax] : Type := GoInterface
+abbrev ObjectMarshaler [GooseExts] : Type := GoInterface
 
-@[reducible] noncomputable def ObjectMarshaler.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def ObjectMarshaler.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"MarshalLogObject" (go.signature.Signature [ObjectEncoder.ty] false [go.error]))])
 
-class ObjectMarshaler.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class ObjectMarshaler.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq ObjectMarshaler.ty ObjectMarshaler.underlying
+  method_set : go.MethodSetIs ObjectMarshaler.ty [(go!"MarshalLogObject", (some (go.signature.Signature [ObjectEncoder.ty] false [go.error])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType ObjectMarshaler.ty) []
 
 attribute [instance] ObjectMarshaler.TypeAssumptions.underlying
+  ObjectMarshaler.TypeAssumptions.method_set
+  ObjectMarshaler.TypeAssumptions.ptr_method_set
 
-abbrev ObjectMarshalerFunc [FfiSyntax] : Type := GoFunc
+abbrev ObjectMarshalerFunc [GooseExts] : Type := GoFunc
 
-@[reducible] noncomputable def ObjectMarshalerFunc.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def ObjectMarshalerFunc.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.FunctionType (go.signature.Signature [ObjectEncoder.ty] false [go.error]))
 
-class ObjectMarshalerFunc.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class ObjectMarshalerFunc.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq ObjectMarshalerFunc.ty ObjectMarshalerFunc.underlying
+  method_set : go.MethodSetIs ObjectMarshalerFunc.ty [(go!"MarshalLogObject", (some (go.signature.Signature [ObjectEncoder.ty] false [go.error])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType ObjectMarshalerFunc.ty) [(go!"MarshalLogObject", (some (go.signature.Signature [ObjectEncoder.ty] false [go.error])))]
 
 attribute [instance] ObjectMarshalerFunc.TypeAssumptions.underlying
+  ObjectMarshalerFunc.TypeAssumptions.method_set
+  ObjectMarshalerFunc.TypeAssumptions.ptr_method_set
 
-abbrev ArrayMarshaler [FfiSyntax] : Type := GoInterface
+abbrev ArrayMarshaler [GooseExts] : Type := GoInterface
 
-@[reducible] noncomputable def ArrayMarshaler.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def ArrayMarshaler.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"MarshalLogArray" (go.signature.Signature [ArrayEncoder.ty] false [go.error]))])
 
-class ArrayMarshaler.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class ArrayMarshaler.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq ArrayMarshaler.ty ArrayMarshaler.underlying
+  method_set : go.MethodSetIs ArrayMarshaler.ty [(go!"MarshalLogArray", (some (go.signature.Signature [ArrayEncoder.ty] false [go.error])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType ArrayMarshaler.ty) []
 
 attribute [instance] ArrayMarshaler.TypeAssumptions.underlying
+  ArrayMarshaler.TypeAssumptions.method_set
+  ArrayMarshaler.TypeAssumptions.ptr_method_set
 
-abbrev ArrayMarshalerFunc [FfiSyntax] : Type := GoFunc
+abbrev ArrayMarshalerFunc [GooseExts] : Type := GoFunc
 
-@[reducible] noncomputable def ArrayMarshalerFunc.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def ArrayMarshalerFunc.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.FunctionType (go.signature.Signature [ArrayEncoder.ty] false [go.error]))
 
-class ArrayMarshalerFunc.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class ArrayMarshalerFunc.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq ArrayMarshalerFunc.ty ArrayMarshalerFunc.underlying
+  method_set : go.MethodSetIs ArrayMarshalerFunc.ty [(go!"MarshalLogArray", (some (go.signature.Signature [ArrayEncoder.ty] false [go.error])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType ArrayMarshalerFunc.ty) [(go!"MarshalLogArray", (some (go.signature.Signature [ArrayEncoder.ty] false [go.error])))]
 
 attribute [instance] ArrayMarshalerFunc.TypeAssumptions.underlying
+  ArrayMarshalerFunc.TypeAssumptions.method_set
+  ArrayMarshalerFunc.TypeAssumptions.ptr_method_set
 
-structure MapObjectEncoder [FfiSyntax] where
+structure MapObjectEncoder [GooseExts] where
   mk ::
   Fields' : GoMap
   cur' : GoMap
 
-noncomputable instance MapObjectEncoder.zero_val [FfiSyntax] : ZeroVal MapObjectEncoder :=
+noncomputable instance MapObjectEncoder.zero_val [GooseExts] : ZeroVal MapObjectEncoder :=
   ⟨MapObjectEncoder.mk zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def MapObjectEncoder.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def MapObjectEncoder.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"Fields" (go.GoType.MapType go.string (go.GoType.InterfaceType []))),
 (go.field_decl.FieldDecl go!"cur" (go.GoType.MapType go.string (go.GoType.InterfaceType [])))]
 
-@[irreducible] noncomputable def MapObjectEncoder.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def MapObjectEncoder.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   MapObjectEncoder.fieldsUnsealed
 
-noncomputable instance equals_unfold_MapObjectEncoder [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_MapObjectEncoder [GooseExts] [GoGlobalContext] :
     EqualsUnfold MapObjectEncoder.fields MapObjectEncoder.fieldsUnsealed :=
   ⟨by unfold MapObjectEncoder.fields; rfl⟩
 
-@[reducible] noncomputable def MapObjectEncoder.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def MapObjectEncoder.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType MapObjectEncoder.fields)
 
-class MapObjectEncoder.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class MapObjectEncoder.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying MapObjectEncoder.underlying MapObjectEncoder
   underlying : go.UnderlyingDirectedEq MapObjectEncoder.ty MapObjectEncoder.underlying
   get_Fields : ∀ (x : MapObjectEncoder), go.IsGoStepPureDetTagged under (StructFieldGet MapObjectEncoder.underlying go!"Fields") #x (Val #(x.Fields'))
   set_Fields : ∀ (x : MapObjectEncoder) (y : GoMap), go.IsGoStepPureDetTagged under (StructFieldSet MapObjectEncoder.underlying go!"Fields") (PairV #x #y) (Val #(({ x with Fields' := y } : MapObjectEncoder)))
   get_cur : ∀ (x : MapObjectEncoder), go.IsGoStepPureDetTagged under (StructFieldGet MapObjectEncoder.underlying go!"cur") #x (Val #(x.cur'))
   set_cur : ∀ (x : MapObjectEncoder) (y : GoMap), go.IsGoStepPureDetTagged under (StructFieldSet MapObjectEncoder.underlying go!"cur") (PairV #x #y) (Val #(({ x with cur' := y } : MapObjectEncoder)))
+  method_set : go.MethodSetIs MapObjectEncoder.ty [(go!"AddDuration", (some (go.signature.Signature [go.string, _root_.Perennial.time.Duration.ty] false []))), (go!"AddTime", (some (go.signature.Signature [go.string, _root_.Perennial.time.Time.ty] false [])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType MapObjectEncoder.ty) [(go!"AddArray", (some (go.signature.Signature [go.string, ArrayMarshaler.ty] false [go.error]))), (go!"AddBinary", (some (go.signature.Signature [go.string, (go.GoType.SliceType go.byte)] false []))), (go!"AddBool", (some (go.signature.Signature [go.string, go.bool] false []))), (go!"AddByteString", (some (go.signature.Signature [go.string, (go.GoType.SliceType go.byte)] false []))), (go!"AddComplex128", (some (go.signature.Signature [go.string, go.complex128] false []))), (go!"AddComplex64", (some (go.signature.Signature [go.string, go.complex64] false []))), (go!"AddDuration", (some (go.signature.Signature [go.string, _root_.Perennial.time.Duration.ty] false []))), (go!"AddFloat32", (some (go.signature.Signature [go.string, go.float32] false []))), (go!"AddFloat64", (some (go.signature.Signature [go.string, go.float64] false []))), (go!"AddInt", (some (go.signature.Signature [go.string, go.int] false []))), (go!"AddInt16", (some (go.signature.Signature [go.string, go.int16] false []))), (go!"AddInt32", (some (go.signature.Signature [go.string, go.int32] false []))), (go!"AddInt64", (some (go.signature.Signature [go.string, go.int64] false []))), (go!"AddInt8", (some (go.signature.Signature [go.string, go.int8] false []))), (go!"AddObject", (some (go.signature.Signature [go.string, ObjectMarshaler.ty] false [go.error]))), (go!"AddReflected", (some (go.signature.Signature [go.string, (go.GoType.InterfaceType [])] false [go.error]))), (go!"AddString", (some (go.signature.Signature [go.string, go.string] false []))), (go!"AddTime", (some (go.signature.Signature [go.string, _root_.Perennial.time.Time.ty] false []))), (go!"AddUint", (some (go.signature.Signature [go.string, go.uint] false []))), (go!"AddUint16", (some (go.signature.Signature [go.string, go.uint16] false []))), (go!"AddUint32", (some (go.signature.Signature [go.string, go.uint32] false []))), (go!"AddUint64", (some (go.signature.Signature [go.string, go.uint64] false []))), (go!"AddUint8", (some (go.signature.Signature [go.string, go.uint8] false []))), (go!"AddUintptr", (some (go.signature.Signature [go.string, go.uintptr] false []))), (go!"OpenNamespace", (some (go.signature.Signature [go.string] false [])))]
 
 attribute [instance] MapObjectEncoder.TypeAssumptions.type_repr
   MapObjectEncoder.TypeAssumptions.underlying
@@ -1614,102 +1776,132 @@ attribute [instance] MapObjectEncoder.TypeAssumptions.type_repr
   MapObjectEncoder.TypeAssumptions.set_Fields
   MapObjectEncoder.TypeAssumptions.get_cur
   MapObjectEncoder.TypeAssumptions.set_cur
+  MapObjectEncoder.TypeAssumptions.method_set
+  MapObjectEncoder.TypeAssumptions.ptr_method_set
 
-structure sliceArrayEncoder [FfiSyntax] where
+structure sliceArrayEncoder [GooseExts] where
   mk ::
   elems' : GoSlice
 
-noncomputable instance sliceArrayEncoder.zero_val [FfiSyntax] : ZeroVal sliceArrayEncoder :=
+noncomputable instance sliceArrayEncoder.zero_val [GooseExts] : ZeroVal sliceArrayEncoder :=
   ⟨sliceArrayEncoder.mk zeroValDef⟩
 
-@[reducible] noncomputable def sliceArrayEncoder.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def sliceArrayEncoder.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"elems" (go.GoType.SliceType (go.GoType.InterfaceType [])))]
 
-@[irreducible] noncomputable def sliceArrayEncoder.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def sliceArrayEncoder.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   sliceArrayEncoder.fieldsUnsealed
 
-noncomputable instance equals_unfold_sliceArrayEncoder [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_sliceArrayEncoder [GooseExts] [GoGlobalContext] :
     EqualsUnfold sliceArrayEncoder.fields sliceArrayEncoder.fieldsUnsealed :=
   ⟨by unfold sliceArrayEncoder.fields; rfl⟩
 
-@[reducible] noncomputable def sliceArrayEncoder.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def sliceArrayEncoder.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType sliceArrayEncoder.fields)
 
-class sliceArrayEncoder.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class sliceArrayEncoder.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying sliceArrayEncoder.underlying sliceArrayEncoder
   underlying : go.UnderlyingDirectedEq sliceArrayEncoder.ty sliceArrayEncoder.underlying
   get_elems : ∀ (x : sliceArrayEncoder), go.IsGoStepPureDetTagged under (StructFieldGet sliceArrayEncoder.underlying go!"elems") #x (Val #(x.elems'))
   set_elems : ∀ (x : sliceArrayEncoder) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet sliceArrayEncoder.underlying go!"elems") (PairV #x #y) (Val #(({ x with elems' := y } : sliceArrayEncoder)))
+  method_set : go.MethodSetIs sliceArrayEncoder.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType sliceArrayEncoder.ty) [(go!"AppendArray", (some (go.signature.Signature [ArrayMarshaler.ty] false [go.error]))), (go!"AppendBool", (some (go.signature.Signature [go.bool] false []))), (go!"AppendByteString", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false []))), (go!"AppendComplex128", (some (go.signature.Signature [go.complex128] false []))), (go!"AppendComplex64", (some (go.signature.Signature [go.complex64] false []))), (go!"AppendDuration", (some (go.signature.Signature [_root_.Perennial.time.Duration.ty] false []))), (go!"AppendFloat32", (some (go.signature.Signature [go.float32] false []))), (go!"AppendFloat64", (some (go.signature.Signature [go.float64] false []))), (go!"AppendInt", (some (go.signature.Signature [go.int] false []))), (go!"AppendInt16", (some (go.signature.Signature [go.int16] false []))), (go!"AppendInt32", (some (go.signature.Signature [go.int32] false []))), (go!"AppendInt64", (some (go.signature.Signature [go.int64] false []))), (go!"AppendInt8", (some (go.signature.Signature [go.int8] false []))), (go!"AppendObject", (some (go.signature.Signature [ObjectMarshaler.ty] false [go.error]))), (go!"AppendReflected", (some (go.signature.Signature [(go.GoType.InterfaceType [])] false [go.error]))), (go!"AppendString", (some (go.signature.Signature [go.string] false []))), (go!"AppendTime", (some (go.signature.Signature [_root_.Perennial.time.Time.ty] false []))), (go!"AppendUint", (some (go.signature.Signature [go.uint] false []))), (go!"AppendUint16", (some (go.signature.Signature [go.uint16] false []))), (go!"AppendUint32", (some (go.signature.Signature [go.uint32] false []))), (go!"AppendUint64", (some (go.signature.Signature [go.uint64] false []))), (go!"AppendUint8", (some (go.signature.Signature [go.uint8] false []))), (go!"AppendUintptr", (some (go.signature.Signature [go.uintptr] false [])))]
 
 attribute [instance] sliceArrayEncoder.TypeAssumptions.type_repr
   sliceArrayEncoder.TypeAssumptions.underlying
   sliceArrayEncoder.TypeAssumptions.get_elems
   sliceArrayEncoder.TypeAssumptions.set_elems
+  sliceArrayEncoder.TypeAssumptions.method_set
+  sliceArrayEncoder.TypeAssumptions.ptr_method_set
 
-abbrev ReflectedEncoder [FfiSyntax] : Type := GoInterface
+abbrev ReflectedEncoder [GooseExts] : Type := GoInterface
 
-@[reducible] noncomputable def ReflectedEncoder.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def ReflectedEncoder.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"Encode" (go.signature.Signature [(go.GoType.InterfaceType [])] false [go.error]))])
 
-class ReflectedEncoder.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class ReflectedEncoder.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq ReflectedEncoder.ty ReflectedEncoder.underlying
+  method_set : go.MethodSetIs ReflectedEncoder.ty [(go!"Encode", (some (go.signature.Signature [(go.GoType.InterfaceType [])] false [go.error])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType ReflectedEncoder.ty) []
 
 attribute [instance] ReflectedEncoder.TypeAssumptions.underlying
+  ReflectedEncoder.TypeAssumptions.method_set
+  ReflectedEncoder.TypeAssumptions.ptr_method_set
 
 axiom counter : Type
 axiom counter.zero_val : ZeroVal counter
 attribute [instance] counter.zero_val
 
-class counter.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class counter.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying counter.underlying counter
   underlying : go.UnderlyingDirectedEq counter.ty counter.underlying
   isUnderlying : go.IsUnderlying counter.underlying counter.underlying
+  method_set : go.MethodSetIs counter.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType counter.ty) [(go!"IncCheckReset", (some (go.signature.Signature [_root_.Perennial.time.Time.ty, _root_.Perennial.time.Duration.ty] false [go.uint64])))]
 
 attribute [instance] counter.TypeAssumptions.type_repr
   counter.TypeAssumptions.underlying
   counter.TypeAssumptions.isUnderlying
+  counter.TypeAssumptions.method_set
+  counter.TypeAssumptions.ptr_method_set
 
-abbrev counters [FfiSyntax] : Type := (GoArray (GoArray counter 4096) 7)
+abbrev counters [GooseExts] : Type := (GoArray (GoArray counter 4096) 7)
 
-@[reducible] noncomputable def counters.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def counters.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.ArrayType 7 (go.GoType.ArrayType 4096 counter.ty))
 
-class counters.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class counters.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq counters.ty counters.underlying
+  method_set : go.MethodSetIs counters.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType counters.ty) [(go!"go.uber.org/zap/zapcore.get", (some (go.signature.Signature [Level.ty, go.string] false [(go.GoType.PointerType counter.ty)])))]
 
 attribute [instance] counters.TypeAssumptions.underlying
+  counters.TypeAssumptions.method_set
+  counters.TypeAssumptions.ptr_method_set
 
-abbrev SamplingDecision [FfiSyntax] : Type := w32
+abbrev SamplingDecision [GooseExts] : Type := w32
 
-@[reducible] noncomputable def SamplingDecision.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def SamplingDecision.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   go.uint32
 
-class SamplingDecision.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class SamplingDecision.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq SamplingDecision.ty SamplingDecision.underlying
+  method_set : go.MethodSetIs SamplingDecision.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType SamplingDecision.ty) []
 
 attribute [instance] SamplingDecision.TypeAssumptions.underlying
+  SamplingDecision.TypeAssumptions.method_set
+  SamplingDecision.TypeAssumptions.ptr_method_set
 
-abbrev optionFunc [FfiSyntax] : Type := GoFunc
+abbrev optionFunc [GooseExts] : Type := GoFunc
 
-@[reducible] noncomputable def optionFunc.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def optionFunc.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.FunctionType (go.signature.Signature [(go.GoType.PointerType sampler.ty)] false []))
 
-class optionFunc.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class optionFunc.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq optionFunc.ty optionFunc.underlying
+  method_set : go.MethodSetIs optionFunc.ty [(go!"go.uber.org/zap/zapcore.apply", (some (go.signature.Signature [(go.GoType.PointerType sampler.ty)] false [])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType optionFunc.ty) [(go!"go.uber.org/zap/zapcore.apply", (some (go.signature.Signature [(go.GoType.PointerType sampler.ty)] false [])))]
 
 attribute [instance] optionFunc.TypeAssumptions.underlying
+  optionFunc.TypeAssumptions.method_set
+  optionFunc.TypeAssumptions.ptr_method_set
 
-abbrev SamplerOption [FfiSyntax] : Type := GoInterface
+abbrev SamplerOption [GooseExts] : Type := GoInterface
 
-@[reducible] noncomputable def SamplerOption.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
-  (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"apply" (go.signature.Signature [(go.GoType.PointerType sampler.ty)] false []))])
+@[reducible] noncomputable def SamplerOption.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
+  (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"go.uber.org/zap/zapcore.apply" (go.signature.Signature [(go.GoType.PointerType sampler.ty)] false []))])
 
-class SamplerOption.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class SamplerOption.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq SamplerOption.ty SamplerOption.underlying
+  method_set : go.MethodSetIs SamplerOption.ty [(go!"go.uber.org/zap/zapcore.apply", (some (go.signature.Signature [(go.GoType.PointerType sampler.ty)] false [])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType SamplerOption.ty) []
 
 attribute [instance] SamplerOption.TypeAssumptions.underlying
+  SamplerOption.TypeAssumptions.method_set
+  SamplerOption.TypeAssumptions.ptr_method_set
 
-structure sampler [FfiSyntax] where
+structure sampler [GooseExts] where
   mk ::
   Core' : Core
   counts' : Loc
@@ -1718,10 +1910,10 @@ structure sampler [FfiSyntax] where
   thereafter' : w64
   hook' : GoFunc
 
-noncomputable instance sampler.zero_val [FfiSyntax] : ZeroVal sampler :=
+noncomputable instance sampler.zero_val [GooseExts] : ZeroVal sampler :=
   ⟨sampler.mk zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def sampler.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def sampler.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.EmbeddedField go!"Core" Core.ty),
 (go.field_decl.FieldDecl go!"counts" (go.GoType.PointerType counters.ty)),
 (go.field_decl.FieldDecl go!"tick" _root_.Perennial.time.Duration.ty),
@@ -1729,17 +1921,17 @@ noncomputable instance sampler.zero_val [FfiSyntax] : ZeroVal sampler :=
 (go.field_decl.FieldDecl go!"thereafter" go.uint64),
 (go.field_decl.FieldDecl go!"hook" (go.GoType.FunctionType (go.signature.Signature [Entry.ty, SamplingDecision.ty] false [])))]
 
-@[irreducible] noncomputable def sampler.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def sampler.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   sampler.fieldsUnsealed
 
-noncomputable instance equals_unfold_sampler [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_sampler [GooseExts] [GoGlobalContext] :
     EqualsUnfold sampler.fields sampler.fieldsUnsealed :=
   ⟨by unfold sampler.fields; rfl⟩
 
-@[reducible] noncomputable def sampler.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def sampler.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType sampler.fields)
 
-class sampler.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class sampler.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying sampler.underlying sampler
   underlying : go.UnderlyingDirectedEq sampler.ty sampler.underlying
   get_Core : ∀ (x : sampler), go.IsGoStepPureDetTagged under (StructFieldGet sampler.underlying go!"Core") #x (Val #(x.Core'))
@@ -1754,6 +1946,8 @@ class sampler.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [Go
   set_thereafter : ∀ (x : sampler) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet sampler.underlying go!"thereafter") (PairV #x #y) (Val #(({ x with thereafter' := y } : sampler)))
   get_hook : ∀ (x : sampler), go.IsGoStepPureDetTagged under (StructFieldGet sampler.underlying go!"hook") #x (Val #(x.hook'))
   set_hook : ∀ (x : sampler) (y : GoFunc), go.IsGoStepPureDetTagged under (StructFieldSet sampler.underlying go!"hook") (PairV #x #y) (Val #(({ x with hook' := y } : sampler)))
+  method_set : go.MethodSetIs sampler.ty [(go!"Enabled", (some (go.signature.Signature [Level.ty] false [go.bool]))), (go!"Sync", (some (go.signature.Signature [] false [go.error]))), (go!"Write", (some (go.signature.Signature [Entry.ty, (go.GoType.SliceType Field.ty)] false [go.error])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType sampler.ty) [(go!"Check", (some (go.signature.Signature [Entry.ty, (go.GoType.PointerType CheckedEntry.ty)] false [(go.GoType.PointerType CheckedEntry.ty)]))), (go!"Enabled", (some (go.signature.Signature [Level.ty] false [go.bool]))), (go!"Level", (some (go.signature.Signature [] false [Level.ty]))), (go!"Sync", (some (go.signature.Signature [] false [go.error]))), (go!"With", (some (go.signature.Signature [(go.GoType.SliceType Field.ty)] false [Core.ty]))), (go!"Write", (some (go.signature.Signature [Entry.ty, (go.GoType.SliceType Field.ty)] false [go.error])))]
 
 attribute [instance] sampler.TypeAssumptions.type_repr
   sampler.TypeAssumptions.underlying
@@ -1769,72 +1963,90 @@ attribute [instance] sampler.TypeAssumptions.type_repr
   sampler.TypeAssumptions.set_thereafter
   sampler.TypeAssumptions.get_hook
   sampler.TypeAssumptions.set_hook
+  sampler.TypeAssumptions.method_set
+  sampler.TypeAssumptions.ptr_method_set
 
-abbrev multiCore [FfiSyntax] : Type := GoSlice
+abbrev multiCore [GooseExts] : Type := GoSlice
 
-@[reducible] noncomputable def multiCore.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def multiCore.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.SliceType Core.ty)
 
-class multiCore.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class multiCore.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq multiCore.ty multiCore.underlying
+  method_set : go.MethodSetIs multiCore.ty [(go!"Check", (some (go.signature.Signature [Entry.ty, (go.GoType.PointerType CheckedEntry.ty)] false [(go.GoType.PointerType CheckedEntry.ty)]))), (go!"Enabled", (some (go.signature.Signature [Level.ty] false [go.bool]))), (go!"Level", (some (go.signature.Signature [] false [Level.ty]))), (go!"Sync", (some (go.signature.Signature [] false [go.error]))), (go!"With", (some (go.signature.Signature [(go.GoType.SliceType Field.ty)] false [Core.ty]))), (go!"Write", (some (go.signature.Signature [Entry.ty, (go.GoType.SliceType Field.ty)] false [go.error])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType multiCore.ty) [(go!"Check", (some (go.signature.Signature [Entry.ty, (go.GoType.PointerType CheckedEntry.ty)] false [(go.GoType.PointerType CheckedEntry.ty)]))), (go!"Enabled", (some (go.signature.Signature [Level.ty] false [go.bool]))), (go!"Level", (some (go.signature.Signature [] false [Level.ty]))), (go!"Sync", (some (go.signature.Signature [] false [go.error]))), (go!"With", (some (go.signature.Signature [(go.GoType.SliceType Field.ty)] false [Core.ty]))), (go!"Write", (some (go.signature.Signature [Entry.ty, (go.GoType.SliceType Field.ty)] false [go.error])))]
 
 attribute [instance] multiCore.TypeAssumptions.underlying
+  multiCore.TypeAssumptions.method_set
+  multiCore.TypeAssumptions.ptr_method_set
 
 axiom lockedWriteSyncer : Type
 axiom lockedWriteSyncer.zero_val : ZeroVal lockedWriteSyncer
 attribute [instance] lockedWriteSyncer.zero_val
 
-class lockedWriteSyncer.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class lockedWriteSyncer.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying lockedWriteSyncer.underlying lockedWriteSyncer
   underlying : go.UnderlyingDirectedEq lockedWriteSyncer.ty lockedWriteSyncer.underlying
   isUnderlying : go.IsUnderlying lockedWriteSyncer.underlying lockedWriteSyncer.underlying
+  method_set : go.MethodSetIs lockedWriteSyncer.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType lockedWriteSyncer.ty) [(go!"Lock", (some (go.signature.Signature [] false []))), (go!"Sync", (some (go.signature.Signature [] false [go.error]))), (go!"TryLock", (some (go.signature.Signature [] false [go.bool]))), (go!"Unlock", (some (go.signature.Signature [] false []))), (go!"Write", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error])))]
 
 attribute [instance] lockedWriteSyncer.TypeAssumptions.type_repr
   lockedWriteSyncer.TypeAssumptions.underlying
   lockedWriteSyncer.TypeAssumptions.isUnderlying
+  lockedWriteSyncer.TypeAssumptions.method_set
+  lockedWriteSyncer.TypeAssumptions.ptr_method_set
 
-structure writerWrapper [FfiSyntax] where
+structure writerWrapper [GooseExts] where
   mk ::
   Writer' : _root_.Perennial.io.Writer
 
-noncomputable instance writerWrapper.zero_val [FfiSyntax] : ZeroVal writerWrapper :=
+noncomputable instance writerWrapper.zero_val [GooseExts] : ZeroVal writerWrapper :=
   ⟨writerWrapper.mk zeroValDef⟩
 
-@[reducible] noncomputable def writerWrapper.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def writerWrapper.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.EmbeddedField go!"Writer" _root_.Perennial.io.Writer.ty)]
 
-@[irreducible] noncomputable def writerWrapper.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def writerWrapper.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   writerWrapper.fieldsUnsealed
 
-noncomputable instance equals_unfold_writerWrapper [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_writerWrapper [GooseExts] [GoGlobalContext] :
     EqualsUnfold writerWrapper.fields writerWrapper.fieldsUnsealed :=
   ⟨by unfold writerWrapper.fields; rfl⟩
 
-@[reducible] noncomputable def writerWrapper.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def writerWrapper.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType writerWrapper.fields)
 
-class writerWrapper.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class writerWrapper.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying writerWrapper.underlying writerWrapper
   underlying : go.UnderlyingDirectedEq writerWrapper.ty writerWrapper.underlying
   get_Writer : ∀ (x : writerWrapper), go.IsGoStepPureDetTagged under (StructFieldGet writerWrapper.underlying go!"Writer") #x (Val #(x.Writer'))
   set_Writer : ∀ (x : writerWrapper) (y : _root_.Perennial.io.Writer), go.IsGoStepPureDetTagged under (StructFieldSet writerWrapper.underlying go!"Writer") (PairV #x #y) (Val #(({ x with Writer' := y } : writerWrapper)))
+  method_set : go.MethodSetIs writerWrapper.ty [(go!"Sync", (some (go.signature.Signature [] false [go.error]))), (go!"Write", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType writerWrapper.ty) [(go!"Sync", (some (go.signature.Signature [] false [go.error]))), (go!"Write", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error])))]
 
 attribute [instance] writerWrapper.TypeAssumptions.type_repr
   writerWrapper.TypeAssumptions.underlying
   writerWrapper.TypeAssumptions.get_Writer
   writerWrapper.TypeAssumptions.set_Writer
+  writerWrapper.TypeAssumptions.method_set
+  writerWrapper.TypeAssumptions.ptr_method_set
 
-abbrev multiWriteSyncer [FfiSyntax] : Type := GoSlice
+abbrev multiWriteSyncer [GooseExts] : Type := GoSlice
 
-@[reducible] noncomputable def multiWriteSyncer.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def multiWriteSyncer.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.SliceType WriteSyncer.ty)
 
-class multiWriteSyncer.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class multiWriteSyncer.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq multiWriteSyncer.ty multiWriteSyncer.underlying
+  method_set : go.MethodSetIs multiWriteSyncer.ty [(go!"Sync", (some (go.signature.Signature [] false [go.error]))), (go!"Write", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType multiWriteSyncer.ty) [(go!"Sync", (some (go.signature.Signature [] false [go.error]))), (go!"Write", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error])))]
 
 attribute [instance] multiWriteSyncer.TypeAssumptions.underlying
+  multiWriteSyncer.TypeAssumptions.method_set
+  multiWriteSyncer.TypeAssumptions.ptr_method_set
 
-class Assumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   BufferedWriteSyncer_instance : BufferedWriteSyncer.TypeAssumptions
   Clock_instance : Clock.TypeAssumptions
   systemClock_instance : systemClock.TypeAssumptions

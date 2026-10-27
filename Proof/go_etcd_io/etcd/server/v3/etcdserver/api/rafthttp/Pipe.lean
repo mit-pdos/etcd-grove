@@ -15,6 +15,7 @@ host names the message's destination and the receiver's host its own id.
 -/
 module
 
+public import Perennial.Golang.Theory.TypeSet
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.PbMessage
 public import Proof.net.http.Boundary
 public import Proof.go_etcd_io.etcd.client.pkg.v3.types.IDStr
@@ -31,7 +32,7 @@ namespace EtcdGrove
 open Iris Iris.BI Iris.ProofMode go_etcd_io.raft.v3
 
 section defs
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
@@ -45,6 +46,10 @@ class ErrorStringNotWriter [GoSemanticsFunctions] : Prop where
   notIn : go.typeSetContains (go.GoType.PointerType _root_.Perennial.errors.errorString.ty)
     go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.writerToResponse.ty = false
 
+/-- `ErrorStringNotWriter` holds, from the method sets goose emits. -/
+instance errorStringNotWriter_inst [_root_.Perennial.errors.Assumptions]
+    [go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Assumptions] : ErrorStringNotWriter := ⟨by go_type_set⟩
+
 /-- **The pipeline's deposit for the request of ticket `γk`** (persistent): the message's one-shot
 part, until the ticket's holder takes it and leaves the ticket. -/
 def pipeDeposit (N : NetPayload GF) (γk : GName) (st : MsgSt) : IProp GF :=
@@ -56,7 +61,7 @@ instance pipeDeposit_persistent (N : NetPayload GF) (γk : GName) (st : MsgSt) :
 
 /-- **The raft network over HTTP**: the network's names, the member owning each host, (stage 5)
 the streams' registry (`Stream.lean`) and (stage 6d) the members (a request's sender is one). -/
-structure RaftHttp (GF : BundledGFunctors) [FfiSyntax] where
+structure RaftHttp (GF : BundledGFunctors) [GooseExts] where
   γn : NetNames GF
   owner : GoString → w64
   γreg : GName
@@ -129,7 +134,7 @@ instance pipeReq_persistent (Rh : RaftHttp GF) (R : http.HReq) (γk : GName) :
 end defs
 
 section lemmas
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]

@@ -21,148 +21,160 @@ end pkg_id
 
 namespace k8s_io.apimachinery.pkg.sharding
 
-noncomputable def Selector.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def Selector.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/apimachinery/pkg/sharding.Selector" [])
 
 attribute [irreducible] Selector.ty
 
-noncomputable def everythingSelector.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def everythingSelector.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/apimachinery/pkg/sharding.everythingSelector" [])
 
 attribute [irreducible] everythingSelector.ty
 
-noncomputable def shardSelector.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def shardSelector.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/apimachinery/pkg/sharding.shardSelector" [])
 
 attribute [irreducible] shardSelector.ty
 
-noncomputable def ShardRangeRequirement.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def ShardRangeRequirement.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/apimachinery/pkg/sharding.ShardRangeRequirement" [])
 
 attribute [irreducible] ShardRangeRequirement.ty
 
-noncomputable def ResolveFieldValue [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ResolveFieldValue [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/sharding.ResolveFieldValue"
 
-noncomputable def HashField [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def HashField [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/sharding.HashField"
 
-noncomputable def Everything [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def Everything [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/sharding.Everything"
 
-noncomputable def HexLess [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def HexLess [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/sharding.HexLess"
 
-noncomputable def NewSelector [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def NewSelector [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/sharding.NewSelector"
 
-noncomputable def NewShardRangeSelector [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def NewShardRangeSelector [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/sharding.NewShardRangeSelector"
 
 noncomputable instance info' : PkgInfo pkg_id.k8s_io.apimachinery.pkg.sharding where
   pkgImportedPkgs := [pkg_id.k8s_io.apimachinery.pkg.runtime]
 
-axiom «_».init [FfiSyntax] [GoGlobalContext] : val
+axiom «_».init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (App (Val (package.init pkg_id.k8s_io.apimachinery.pkg.sharding)) (Lam BAnon
   (App (Val exceptionDo)
   (App (Val doExecute)
   (App (Val _root_.Perennial.k8s_io.apimachinery.pkg.runtime.initialize') (Val #())))))))
 
-abbrev Selector [FfiSyntax] : Type := GoInterface
+abbrev Selector [GooseExts] : Type := GoInterface
 
-@[reducible] noncomputable def Selector.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def Selector.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"DeepCopySelector" (go.signature.Signature [] false [Selector.ty])), (go.InterfaceElem.MethodElem go!"Empty" (go.signature.Signature [] false [go.bool])), (go.InterfaceElem.MethodElem go!"Matches" (go.signature.Signature [_root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty] false [go.bool, go.error])), (go.InterfaceElem.MethodElem go!"Requirements" (go.signature.Signature [] false [(go.GoType.SliceType ShardRangeRequirement.ty)])), (go.InterfaceElem.MethodElem go!"String" (go.signature.Signature [] false [go.string]))])
 
-class Selector.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class Selector.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq Selector.ty Selector.underlying
+  method_set : go.MethodSetIs Selector.ty [(go!"DeepCopySelector", (some (go.signature.Signature [] false [Selector.ty]))), (go!"Empty", (some (go.signature.Signature [] false [go.bool]))), (go!"Matches", (some (go.signature.Signature [_root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty] false [go.bool, go.error]))), (go!"Requirements", (some (go.signature.Signature [] false [(go.GoType.SliceType ShardRangeRequirement.ty)]))), (go!"String", (some (go.signature.Signature [] false [go.string])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType Selector.ty) []
 
 attribute [instance] Selector.TypeAssumptions.underlying
+  Selector.TypeAssumptions.method_set
+  Selector.TypeAssumptions.ptr_method_set
 
-structure everythingSelector [FfiSyntax] where
+structure everythingSelector [GooseExts] where
   mk ::
 
-noncomputable instance everythingSelector.zero_val [FfiSyntax] : ZeroVal everythingSelector :=
+noncomputable instance everythingSelector.zero_val [GooseExts] : ZeroVal everythingSelector :=
   ⟨everythingSelector.mk⟩
 
-@[reducible] noncomputable def everythingSelector.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def everythingSelector.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   []
 
-@[irreducible] noncomputable def everythingSelector.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def everythingSelector.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   everythingSelector.fieldsUnsealed
 
-noncomputable instance equals_unfold_everythingSelector [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_everythingSelector [GooseExts] [GoGlobalContext] :
     EqualsUnfold everythingSelector.fields everythingSelector.fieldsUnsealed :=
   ⟨by unfold everythingSelector.fields; rfl⟩
 
-@[reducible] noncomputable def everythingSelector.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def everythingSelector.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType everythingSelector.fields)
 
-class everythingSelector.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class everythingSelector.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying everythingSelector.underlying everythingSelector
   underlying : go.UnderlyingDirectedEq everythingSelector.ty everythingSelector.underlying
+  method_set : go.MethodSetIs everythingSelector.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType everythingSelector.ty) [(go!"DeepCopySelector", (some (go.signature.Signature [] false [Selector.ty]))), (go!"Empty", (some (go.signature.Signature [] false [go.bool]))), (go!"Matches", (some (go.signature.Signature [_root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty] false [go.bool, go.error]))), (go!"Requirements", (some (go.signature.Signature [] false [(go.GoType.SliceType ShardRangeRequirement.ty)]))), (go!"String", (some (go.signature.Signature [] false [go.string])))]
 
 attribute [instance] everythingSelector.TypeAssumptions.type_repr
   everythingSelector.TypeAssumptions.underlying
+  everythingSelector.TypeAssumptions.method_set
+  everythingSelector.TypeAssumptions.ptr_method_set
 
-structure shardSelector [FfiSyntax] where
+structure shardSelector [GooseExts] where
   mk ::
   requirements' : GoSlice
 
-noncomputable instance shardSelector.zero_val [FfiSyntax] : ZeroVal shardSelector :=
+noncomputable instance shardSelector.zero_val [GooseExts] : ZeroVal shardSelector :=
   ⟨shardSelector.mk zeroValDef⟩
 
-@[reducible] noncomputable def shardSelector.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def shardSelector.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"requirements" (go.GoType.SliceType ShardRangeRequirement.ty))]
 
-@[irreducible] noncomputable def shardSelector.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def shardSelector.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   shardSelector.fieldsUnsealed
 
-noncomputable instance equals_unfold_shardSelector [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_shardSelector [GooseExts] [GoGlobalContext] :
     EqualsUnfold shardSelector.fields shardSelector.fieldsUnsealed :=
   ⟨by unfold shardSelector.fields; rfl⟩
 
-@[reducible] noncomputable def shardSelector.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def shardSelector.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType shardSelector.fields)
 
-class shardSelector.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class shardSelector.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying shardSelector.underlying shardSelector
   underlying : go.UnderlyingDirectedEq shardSelector.ty shardSelector.underlying
   get_requirements : ∀ (x : shardSelector), go.IsGoStepPureDetTagged under (StructFieldGet shardSelector.underlying go!"requirements") #x (Val #(x.requirements'))
   set_requirements : ∀ (x : shardSelector) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet shardSelector.underlying go!"requirements") (PairV #x #y) (Val #(({ x with requirements' := y } : shardSelector)))
+  method_set : go.MethodSetIs shardSelector.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType shardSelector.ty) [(go!"DeepCopySelector", (some (go.signature.Signature [] false [Selector.ty]))), (go!"Empty", (some (go.signature.Signature [] false [go.bool]))), (go!"Matches", (some (go.signature.Signature [_root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty] false [go.bool, go.error]))), (go!"Requirements", (some (go.signature.Signature [] false [(go.GoType.SliceType ShardRangeRequirement.ty)]))), (go!"String", (some (go.signature.Signature [] false [go.string])))]
 
 attribute [instance] shardSelector.TypeAssumptions.type_repr
   shardSelector.TypeAssumptions.underlying
   shardSelector.TypeAssumptions.get_requirements
   shardSelector.TypeAssumptions.set_requirements
+  shardSelector.TypeAssumptions.method_set
+  shardSelector.TypeAssumptions.ptr_method_set
 
-structure ShardRangeRequirement [FfiSyntax] where
+structure ShardRangeRequirement [GooseExts] where
   mk ::
   Key' : GoString
   Start' : GoString
   End' : GoString
 
-noncomputable instance ShardRangeRequirement.zero_val [FfiSyntax] : ZeroVal ShardRangeRequirement :=
+noncomputable instance ShardRangeRequirement.zero_val [GooseExts] : ZeroVal ShardRangeRequirement :=
   ⟨ShardRangeRequirement.mk zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def ShardRangeRequirement.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def ShardRangeRequirement.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"Key" go.string),
 (go.field_decl.FieldDecl go!"Start" go.string),
 (go.field_decl.FieldDecl go!"End" go.string)]
 
-@[irreducible] noncomputable def ShardRangeRequirement.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def ShardRangeRequirement.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   ShardRangeRequirement.fieldsUnsealed
 
-noncomputable instance equals_unfold_ShardRangeRequirement [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_ShardRangeRequirement [GooseExts] [GoGlobalContext] :
     EqualsUnfold ShardRangeRequirement.fields ShardRangeRequirement.fieldsUnsealed :=
   ⟨by unfold ShardRangeRequirement.fields; rfl⟩
 
-@[reducible] noncomputable def ShardRangeRequirement.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def ShardRangeRequirement.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType ShardRangeRequirement.fields)
 
-class ShardRangeRequirement.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class ShardRangeRequirement.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying ShardRangeRequirement.underlying ShardRangeRequirement
   underlying : go.UnderlyingDirectedEq ShardRangeRequirement.ty ShardRangeRequirement.underlying
   get_Key : ∀ (x : ShardRangeRequirement), go.IsGoStepPureDetTagged under (StructFieldGet ShardRangeRequirement.underlying go!"Key") #x (Val #(x.Key'))
@@ -171,6 +183,8 @@ class ShardRangeRequirement.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLoc
   set_Start : ∀ (x : ShardRangeRequirement) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet ShardRangeRequirement.underlying go!"Start") (PairV #x #y) (Val #(({ x with Start' := y } : ShardRangeRequirement)))
   get_End : ∀ (x : ShardRangeRequirement), go.IsGoStepPureDetTagged under (StructFieldGet ShardRangeRequirement.underlying go!"End") #x (Val #(x.End'))
   set_End : ∀ (x : ShardRangeRequirement) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet ShardRangeRequirement.underlying go!"End") (PairV #x #y) (Val #(({ x with End' := y } : ShardRangeRequirement)))
+  method_set : go.MethodSetIs ShardRangeRequirement.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType ShardRangeRequirement.ty) []
 
 attribute [instance] ShardRangeRequirement.TypeAssumptions.type_repr
   ShardRangeRequirement.TypeAssumptions.underlying
@@ -180,8 +194,10 @@ attribute [instance] ShardRangeRequirement.TypeAssumptions.type_repr
   ShardRangeRequirement.TypeAssumptions.set_Start
   ShardRangeRequirement.TypeAssumptions.get_End
   ShardRangeRequirement.TypeAssumptions.set_End
+  ShardRangeRequirement.TypeAssumptions.method_set
+  ShardRangeRequirement.TypeAssumptions.ptr_method_set
 
-class Assumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   Selector_instance : Selector.TypeAssumptions
   everythingSelector_instance : everythingSelector.TypeAssumptions
   shardSelector_instance : shardSelector.TypeAssumptions

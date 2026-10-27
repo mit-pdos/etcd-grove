@@ -68,7 +68,7 @@ namespace EtcdGrove
 open Iris Iris.BI Iris.ProofMode go_etcd_io.etcd.server.v3.etcdserver go_etcd_io.raft.v3
 
 section defs
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
@@ -173,14 +173,7 @@ instance memberRO_persistent (dir : w64 → List GoString) (m : Loc) :
     Persistent (memberRO (GF := GF) dir m) := by
   unfold memberRO; infer_instance
 
-/-- **A member returned by `Members()`, its URLs the directory's** (D21 M2, 2026-10-19): owned
-(`membership.memberIs`'s fields), with id `id`, its peer URLs `dir id`. -/
-def memberDirIs (dir : w64 → List GoString) (m : Loc) (id : w64) : IProp GF :=
-  iprop(⌜m ≠ null⌝ ∗ ∃ (pu cu : GoSlice) (il : Bool) (nm : GoString) (pus cus : List GoString),
-    membership.mIDAddr m ↦ id ∗ membership.mPeerURLsAddr m ↦ pu ∗
-    membership.mIsLearnerAddr m ↦ il ∗ membership.mNameAddr m ↦ nm ∗
-    membership.mClientURLsAddr m ↦ cu ∗ pu ↦* pus ∗ cu ↦* cus ∗
-    ⌜membership.peerURLsOk pus ∧ pus = dir id⌝)
+-- (D22 J1a, 2026-10-26) `memberDirIs` moved to `SnapRO.lean`.
 
 /-- **A fresh alarm store** `a` (opaque, exclusive; D14i, 2026-10-17): made by
 `v3alarm.NewAlarmStore` over a fresh alarm bucket and not yet handed to an applier, it has no
@@ -188,114 +181,8 @@ alarm (`Activate`, the only writer of its map, is in its apply contract, which t
 gives: the axiom's postcondition). -/
 opaque alarmFresh (a : Loc) : IProp GF
 
-/-- **The alarm store `a`'s apply contract on whichever backend it is on** (persistent; D22 receiver
-epochs, S7c, 2026-10-23; `v3alarm.NewAlarmStore.spec`'s, the trust boundary): for a real backend
-`d` (its contract at some `W`, `Pk`, its frozen post-lock hook `f`) and a write right `RW` lending
-the tracked buckets' half of `d` and the store's user's half of `a.be` at an alarm backend over
-`d` (`alarmBeOn`), the apply package's contract at `d`'s batch lock `Pk` and hook `f`. The user's
-half, with the lock's (`alarmLockInv`), is what pins the store's writes to `d`, so the contract
-stays true when `Recover` moves the store to another backend (the old user's half is gone, the new
-one names the new backend; until S7c the contract was for `NewAlarmStore`'s backend only, false
-once `Recover` runs). -/
-def alarmApplyOk (a : Loc) : IProp GF :=
-  iprop(□ ∀ (d : mvcc.KBReal) (W Pk : IProp GF) (γ : mvcc.StoreNames) (f : GoFunc) (RW : IProp GF),
-    ⌜γ.kb = some d⌝ -∗ backend.isBackend d.γB d.P W Pk d.be -∗ backend.plHookRO d.γB f -∗
-    ⌜f ≠ func.nil⌝ -∗ rwLens RW iprop(srvRestRW d.γB ∗ alarmBeOn a d.be) -∗
-    apply.isAlarmStore a γ Pk #f RW)
-
-instance alarmApplyOk_persistent (a : Loc) : Persistent (alarmApplyOk (GF := GF) a) := by
-  unfold alarmApplyOk; infer_instance
-
-/-- **The auth store `stl`'s apply contract on whichever backend it is on, in the auth mode
-`M`** (the auth plan's E2i, 2026-10-26; until then in the mode `off` only, `authApplyOk`): with
-the store's verdicts in the mode `M`; the real store in the mode `on γa` meets it (`authApplyOkM_on`,
-`AuthApplyOn.lean`; its admin clauses vacuous there, `apply.adminAdmitted`). -/
-def authApplyOkM (M : auth.AuthMode) (stl : Loc) (RD : IProp GF) : IProp GF :=
-  iprop(□ ∀ (d : mvcc.KBReal) (W Pk : IProp GF) (γ : mvcc.StoreNames) (f : GoFunc) (RW : IProp GF),
-    ⌜γ.kb = some d⌝ -∗ backend.isBackend d.γB d.P W Pk d.be -∗ backend.plHookRO d.γB f -∗
-    ⌜f ≠ func.nil⌝ -∗ rwLens RW iprop(srvRestRW d.γB ∗ authBeOn stl d.be) -∗
-    apply.isAuthStore (auth.authIface stl) γ Pk #f RD M RW)
-
-/-- **The auth store `stl`'s apply contract on whichever backend it is on** (persistent; S7c;
-`auth.NewAuthStore.spec`'s, the trust boundary), with the reader resource `RD`: as
-`alarmApplyOk`, its writes pinned to the backend by the user's half of `st.be` (`authBeOn`). -/
-def authApplyOk (stl : Loc) (RD : IProp GF) : IProp GF :=
-  iprop(□ ∀ (d : mvcc.KBReal) (W Pk : IProp GF) (γ : mvcc.StoreNames) (f : GoFunc) (RW : IProp GF),
-    ⌜γ.kb = some d⌝ -∗ backend.isBackend d.γB d.P W Pk d.be -∗ backend.plHookRO d.γB f -∗
-    ⌜f ≠ func.nil⌝ -∗ rwLens RW iprop(srvRestRW d.γB ∗ authBeOn stl d.be) -∗
-    apply.isAuthStore (auth.authIface stl) γ Pk #f RD .off RW)
-
-theorem authApplyOk_eq (stl : Loc) (RD : IProp GF) :
-    authApplyOk (GF := GF) stl RD = authApplyOkM .off stl RD := rfl
-
-instance authApplyOkM_persistent (M : auth.AuthMode) (stl : Loc) (RD : IProp GF) :
-    Persistent (authApplyOkM (GF := GF) M stl RD) := by
-  unfold authApplyOkM; infer_instance
-
-/-- **The lessor `lp`'s backend contract on whichever backend it is on** (persistent; D22
-receiver epochs, S7c; `lease.NewLessor.spec`'s, the trust boundary): as `alarmApplyOk`, its writes
-pinned to the backend by the user's half of `le.b` (`lease.lessorBeOn`), which the write right
-lends; one write-back token per write, the reader's open share lent; the put into `Lease` (a
-tracked bucket, D22) with the client half of the tracked buckets (`backend.rbOwn`), given back with
-the record put (leases T3, L3c, 2026-10-27: until then the write right lent the half,
-`srvRestRW`, and the put's effect was not stated; the real backend's `LockInsideApply` does not
-need it, its `UnsafePut` does). -/
-def lessorApplyOk (lp : Loc) : IProp GF :=
-  iprop(□ ∀ (d : mvcc.KBReal) (W Pk : IProp GF) (f : GoFunc) (RW : IProp GF),
-    backend.isBackend d.γB d.P W Pk d.be -∗ backend.plHookRO d.γB f -∗ ⌜f ≠ func.nil⌝ -∗
-    rwLens RW (lease.lessorBeOn lp d.be) -∗
-    lease.lessorBackend lp Pk #f iprop(backend.wbTok d.γB ∗ RW) (mvcc.bkRTx d.γB d.P d.be)
-      (backend.rbOwn d.γB))
-
-instance lessorApplyOk_persistent (lp : Loc) : Persistent (lessorApplyOk (GF := GF) lp) := by
-  unfold lessorApplyOk; infer_instance
-
-omit [MemStorReg GF] in
-/-- The server's write right holds the lessor's write token's part (its half of `le.b`) and the
-tracked buckets' client half, the right its put takes (leases T3, L3c, 2026-10-27). -/
-theorem srvRestRWH_lessor (γB : backend.BNames) (al ast lp cl be : Loc) :
-    ⊢ □ (srvRestRWH (GF := GF) γB (srvObjsOn al ast lp cl be) -∗
-      lease.lessorBeOn lp be ∗ ∃ r, backend.rbOwn γB r) := by
-  iintro !> Hrw
-  iunfold srvRestRWH at Hrw
-  iunfold srvObjsOn at Hrw
-  icases Hrw with ⟨Hrw, -, -, Hle, -⟩
-  iunfold srvRestRW at Hrw
-  iframe Hle Hrw
-
-omit [MemStorReg GF] in
-/-- The lessor's write token's part lends itself. -/
-theorem lessorBeOn_lens (lp be : Loc) :
-    ⊢ rwLens (GF := GF) (lease.lessorBeOn lp be) (lease.lessorBeOn lp be) := by
-  iunfold rwLens
-  iintro !> Hle
-  iframe Hle
-  iintro Hle; iexact Hle
-
-/-- **The cluster `c`'s apply contract on whichever backend it is on** (persistent; D22 receiver
-epochs, S7e, 2026-10-23; `bootOk`'s, the bootstrap contract): for a real backend `d` (its
-contract at some `W`, `Pk`, its frozen post-lock hook `f`), the apply package's `isCluster` at `d`'s
-batch lock `Pk` and hook `f`, given a rest resource `RO` lending the backend's tracked buckets'
-half and the cluster's in-memory members with its `be` field at a membership backend over `d`
-(`clusterBeOn`, `roLens`), and a write right `RW` lending the half and the field (`rwLens`). The
-field (`c.be`: no lock guards it, the apply thread is its only reader and writer) pins the
-cluster's writes to `d`; `SetBackend` replaces it. Until S7e the contract was for the boot
-backend's batch lock only, false once `applySnapshot` calls `SetBackend`. -/
-def clusterApplyOk (c : Loc) : IProp GF :=
-  iprop(□ ∀ (d : mvcc.KBReal) (W Pk : IProp GF) (γ' : mvcc.StoreNames) (f : GoFunc)
-      (RO : apply.RestM → IProp GF) (RW : IProp GF),
-    ⌜γ'.kb = some d⌝ -∗ backend.isBackend d.γB d.P W Pk d.be -∗ backend.plHookRO d.γB f -∗
-    ⌜f ≠ func.nil⌝ -∗ (∃ n : Loc, membership.rcVersionChangedAddr c ↦□ n) -∗
-    roLens RO (fun r => iprop(srvRestOwn d.γB c r ∗ clusterBeOn c d.be)) -∗
-    rwLens RW iprop(srvRestRW d.γB ∗ clusterBeOn c d.be) -∗
-    apply.isCluster c γ' Pk #f RO RW)
-
-instance clusterApplyOk_persistent (c : Loc) : Persistent (clusterApplyOk (GF := GF) c) := by
-  unfold clusterApplyOk; infer_instance
-
-instance authApplyOk_persistent (stl : Loc) (RD : IProp GF) :
-    Persistent (authApplyOk (GF := GF) stl RD) := by
-  unfold authApplyOk; infer_instance
+-- (D22 J1a) the stores' apply contracts (`alarmApplyOk`, `authApplyOkM`, `authApplyOk`,
+-- `lessorApplyOk`, `clusterApplyOk`) moved to `SnapRO.lean`.
 
 /-- **The lessor's checkpointer's effects** (opaque, the named premise of D14g, 2026-10-17): the
 lessor's loop, once its lessor is promoted, calls the server's checkpointer (`NewServer`'s closure
@@ -442,6 +329,12 @@ def bootOk (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (γ : RaftNames
     "Hthr" ∷ applyThread γA ⟨W64 0, W64 0, W64 0, false⟩ ∗
     "Happ" ∷ ciApplying cil (W64 0) (W64 0) ∗ "Hown" ∷ ciOwner cil bk.be' ∗
     "#Hmeta" ∷ isMetaBackend bk.be' (⊤ \ ↑applyN) (readView γA) ∗
+    -- (D22 J1a, 2026-10-26) the backend's hooks over the consistent index (`bootstrapBackend`'s
+    -- `serverstorage.NewBackendHooks(cfg.Logger, ci)`), which the snapshot path's
+    -- `OpenSnapshotBackend` installs on each new backend
+    "#Hbh" ∷ (∃ lgh : Loc, storage.isBackendHooks bk.beHooks'
+      ⟨go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.cindex.consistentIndex.ty, #cil⟩
+      lgh) ∗
     -- the backend of the real instance, with the server's hooks
     "%Hbe" ∷ ⌜bk.be' = interface.mkOk
         (go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.backend.backend.ty) #d.be ∧
@@ -457,7 +350,10 @@ def bootOk (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (γ : RaftNames
       (fun γB => batchLockInv γA (metaTM γB d.P)) d.be D ∗
     "%HD" ∷ ⌜mvcc.keyView (backend.vData d.P (D, ⟨∅, W64 0⟩)) ∅⌝ ∗
     "%HN" ∷ ⌜N + 7 ≤ backend.wbInit⌝ ∗
-    "#Hsz" ∷ mvcc.keySized d.γB d.P d.be ∗ "Hlate" ∷ mvcc.lateReg d.gx ∗
+    -- (D22 J1a, 2026-10-26: of every backend at these parameters, for the snapshot path's backends;
+    -- until then of `d` only) the Key bucket's size bound (no bbolt file holds `2 ^ 62` keys)
+    "#Hsz" ∷ □ (∀ (γB : backend.BNames) (b : Loc), mvcc.keySized γB d.P b) ∗
+    "Hlate" ∷ mvcc.lateReg d.gx ∗
     -- (D22, 2026-10-23: the backend over every bucket; a widening of the fresh data directory's
     -- facts, until then the opaque tokens `bkFresh d.γB "lease"`, `"auth"`, `"alarm"`) every rest
     -- bucket of the fresh file empty (absent or empty), the membership's three present
@@ -481,7 +377,7 @@ def bootOk (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (γ : RaftNames
 /-- **The configuration's URLs, as `bootstrap` reads them** (D19r (F), 2026-10-18): the peer and
 client URL slices and the initial cluster's map (member name to its peer URLs' slice), with their
 contents. -/
-structure BootURLs [FfiSyntax] where
+structure BootURLs [GooseExts] where
   peer : List _root_.Perennial.net.url.URL
   client : List _root_.Perennial.net.url.URL
   initMap : GMap GoString GoSlice
@@ -521,7 +417,7 @@ instance bootstrapContract_persistent (cfg : go_etcd_io.etcd.server.v3.config.Se
 end defs
 
 section snap
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
@@ -567,7 +463,7 @@ theorem rnSnapOnce_of_tok (wp_Snapshot : MemoryStorage.Snapshot.spec (GF := GF) 
 end snap
 
 section transport
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]

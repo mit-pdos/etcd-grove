@@ -250,7 +250,7 @@ theorem ci_txn_step_ok {us : List ReqOp} {n : Nat} {nest : List NestRes} {pts pt
   · rw [List.foldl_append, hf]; simpa using hok
 
 section ffi
-variable [FfiSyntax]
+variable [GooseExts]
 
 theorem ci_hits_perm (L : List adt.Entry) (ds : List adt.IvlS) (k : GoString)
     (h : (L.map Prod.fst).Perm ds) :
@@ -465,7 +465,7 @@ open Iris Iris.BI Iris.ProofMode go_etcd_io.etcd.server.v3.etcdserver.api go_etc
   go_etcd_io.etcd.api.v3
 
 section proof
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]

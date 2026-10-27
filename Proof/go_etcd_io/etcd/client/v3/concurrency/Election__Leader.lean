@@ -55,7 +55,7 @@ theorem ownerOp_rev (pfx : GoString) : (ownerOp pfx).base.rev = W64 0 ∧
   by_cases h : pfx = [] <;> simp [ownerOp, op_simps, h]
 
 section proof
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [EM : EtcdModel GF]

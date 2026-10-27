@@ -29,7 +29,7 @@ namespace linkv3p
 open Iris Iris.BI go_etcd_io.raft.v3
 
 section spec
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
@@ -37,7 +37,7 @@ variable [package_sem : github_com.mit_pdos.etcd_grove.examples.linkv3p.Assumpti
 
 /-- See the file header. -/
 abbrev startCluster.spec : Prop :=
-  ∀ [go_etcd_io.etcd.cache.v3.Assumptions] [ErrorStringLeaf] [context.ErrorStringIsError]
+  ∀ [go_etcd_io.etcd.cache.v3.Assumptions]
     (N : Nat) (id₁ id₂ id₃ : w64) (bootLog : List EntryM) (lg : Loc)
     (pfx : GoString),
   BootFacts id₁ id₂ id₃ bootLog →  lg ≠ null →

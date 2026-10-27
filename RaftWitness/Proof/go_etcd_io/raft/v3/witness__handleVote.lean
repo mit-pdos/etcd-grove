@@ -33,7 +33,7 @@ theorem votesInSet_le (rs : List w64) (votes : GMap w64 Bool) :
   unfold votesInSet; exact List.length_filter_le _ _
 
 section proof
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]

@@ -20,1495 +20,1495 @@ end pkg_id
 
 namespace k8s_io.client_go.tools.cache
 
-noncomputable def Config.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def Config.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/tools/cache.Config" [])
 
 attribute [irreducible] Config.ty
 
-noncomputable def ShouldResyncFunc.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def ShouldResyncFunc.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/tools/cache.ShouldResyncFunc" [])
 
 attribute [irreducible] ShouldResyncFunc.ty
 
-noncomputable def ProcessFunc.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def ProcessFunc.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/tools/cache.ProcessFunc" [])
 
 attribute [irreducible] ProcessFunc.ty
 
-noncomputable def ProcessBatchFunc.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def ProcessBatchFunc.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/tools/cache.ProcessBatchFunc" [])
 
 attribute [irreducible] ProcessBatchFunc.ty
 
-noncomputable def controller.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def controller.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/tools/cache.controller" [])
 
 attribute [irreducible] controller.ty
 
-noncomputable def Controller.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def Controller.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/tools/cache.Controller" [])
 
 attribute [irreducible] Controller.ty
 
-noncomputable def ResourceEventHandler.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def ResourceEventHandler.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/tools/cache.ResourceEventHandler" [])
 
 attribute [irreducible] ResourceEventHandler.ty
 
-noncomputable def Object.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def Object.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/tools/cache.Object" [])
 
 attribute [irreducible] Object.ty
 
-noncomputable def TypedResourceEventHandler.ty [FfiSyntax] [GoGlobalContext] (T : go.GoType) : go.GoType :=
+noncomputable def TypedResourceEventHandler.ty [GooseExts] [GoGlobalContext] (T : go.GoType) : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/tools/cache.TypedResourceEventHandler" [T])
 
 attribute [irreducible] TypedResourceEventHandler.ty
 
-noncomputable def DeletedObject.ty [FfiSyntax] [GoGlobalContext] (T : go.GoType) : go.GoType :=
+noncomputable def DeletedObject.ty [GooseExts] [GoGlobalContext] (T : go.GoType) : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/tools/cache.DeletedObject" [T])
 
 attribute [irreducible] DeletedObject.ty
 
-noncomputable def ResourceEventHandlerFuncs.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def ResourceEventHandlerFuncs.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/tools/cache.ResourceEventHandlerFuncs" [])
 
 attribute [irreducible] ResourceEventHandlerFuncs.ty
 
-noncomputable def TypedResourceEventHandlerFuncs.ty [FfiSyntax] [GoGlobalContext] (T : go.GoType) : go.GoType :=
+noncomputable def TypedResourceEventHandlerFuncs.ty [GooseExts] [GoGlobalContext] (T : go.GoType) : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/tools/cache.TypedResourceEventHandlerFuncs" [T])
 
 attribute [irreducible] TypedResourceEventHandlerFuncs.ty
 
-noncomputable def ResourceEventHandlerDetailedFuncs.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def ResourceEventHandlerDetailedFuncs.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/tools/cache.ResourceEventHandlerDetailedFuncs" [])
 
 attribute [irreducible] ResourceEventHandlerDetailedFuncs.ty
 
-noncomputable def TypedResourceEventHandlerDetailedFuncs.ty [FfiSyntax] [GoGlobalContext] (T : go.GoType) : go.GoType :=
+noncomputable def TypedResourceEventHandlerDetailedFuncs.ty [GooseExts] [GoGlobalContext] (T : go.GoType) : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/tools/cache.TypedResourceEventHandlerDetailedFuncs" [T])
 
 attribute [irreducible] TypedResourceEventHandlerDetailedFuncs.ty
 
-noncomputable def FilteringResourceEventHandler.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def FilteringResourceEventHandler.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/tools/cache.FilteringResourceEventHandler" [])
 
 attribute [irreducible] FilteringResourceEventHandler.ty
 
-noncomputable def TypedFilteringResourceEventHandler.ty [FfiSyntax] [GoGlobalContext] (T : go.GoType) : go.GoType :=
+noncomputable def TypedFilteringResourceEventHandler.ty [GooseExts] [GoGlobalContext] (T : go.GoType) : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/tools/cache.TypedFilteringResourceEventHandler" [T])
 
 attribute [irreducible] TypedFilteringResourceEventHandler.ty
 
-noncomputable def InformerOptions.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def InformerOptions.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/tools/cache.InformerOptions" [])
 
 attribute [irreducible] InformerOptions.ty
 
-noncomputable def DeltaFIFOOptions.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def DeltaFIFOOptions.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/tools/cache.DeltaFIFOOptions" [])
 
 attribute [irreducible] DeltaFIFOOptions.ty
 
-noncomputable def DeltaFIFO.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def DeltaFIFO.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/tools/cache.DeltaFIFO" [])
 
 attribute [irreducible] DeltaFIFO.ty
 
-noncomputable def TransformFunc.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def TransformFunc.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/tools/cache.TransformFunc" [])
 
 attribute [irreducible] TransformFunc.ty
 
-noncomputable def DeltaType.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def DeltaType.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/tools/cache.DeltaType" [])
 
 attribute [irreducible] DeltaType.ty
 
-noncomputable def Delta.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def Delta.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/tools/cache.Delta" [])
 
 attribute [irreducible] Delta.ty
 
-noncomputable def Deltas.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def Deltas.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/tools/cache.Deltas" [])
 
 attribute [irreducible] Deltas.ty
 
-noncomputable def KeyListerGetter.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def KeyListerGetter.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/tools/cache.KeyListerGetter" [])
 
 attribute [irreducible] KeyListerGetter.ty
 
-noncomputable def KeyLister.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def KeyLister.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/tools/cache.KeyLister" [])
 
 attribute [irreducible] KeyLister.ty
 
-noncomputable def KeyGetter.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def KeyGetter.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/tools/cache.KeyGetter" [])
 
 attribute [irreducible] KeyGetter.ty
 
-noncomputable def DeletedFinalStateUnknown.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def DeletedFinalStateUnknown.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/tools/cache.DeletedFinalStateUnknown" [])
 
 attribute [irreducible] DeletedFinalStateUnknown.ty
 
-noncomputable def ExpirationCache.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def ExpirationCache.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/tools/cache.ExpirationCache" [])
 
 attribute [irreducible] ExpirationCache.ty
 
-noncomputable def ExpirationPolicy.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def ExpirationPolicy.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/tools/cache.ExpirationPolicy" [])
 
 attribute [irreducible] ExpirationPolicy.ty
 
-noncomputable def TTLPolicy.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def TTLPolicy.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/tools/cache.TTLPolicy" [])
 
 attribute [irreducible] TTLPolicy.ty
 
-noncomputable def TimestampedEntry.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def TimestampedEntry.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/tools/cache.TimestampedEntry" [])
 
 attribute [irreducible] TimestampedEntry.ty
 
-noncomputable def fakeThreadSafeMap.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def fakeThreadSafeMap.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/tools/cache.fakeThreadSafeMap" [])
 
 attribute [irreducible] fakeThreadSafeMap.ty
 
-noncomputable def FakeExpirationPolicy.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def FakeExpirationPolicy.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/tools/cache.FakeExpirationPolicy" [])
 
 attribute [irreducible] FakeExpirationPolicy.ty
 
-noncomputable def FakeCustomStore.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def FakeCustomStore.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/tools/cache.FakeCustomStore" [])
 
 attribute [irreducible] FakeCustomStore.ty
 
-noncomputable def PopProcessFunc.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def PopProcessFunc.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/tools/cache.PopProcessFunc" [])
 
 attribute [irreducible] PopProcessFunc.ty
 
-noncomputable def Queue.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def Queue.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/tools/cache.Queue" [])
 
 attribute [irreducible] Queue.ty
 
-noncomputable def QueueWithBatch.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def QueueWithBatch.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/tools/cache.QueueWithBatch" [])
 
 attribute [irreducible] QueueWithBatch.ty
 
-noncomputable def FIFO.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def FIFO.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/tools/cache.FIFO" [])
 
 attribute [irreducible] FIFO.ty
 
-noncomputable def LessFunc.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def LessFunc.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/tools/cache.LessFunc" [])
 
 attribute [irreducible] LessFunc.ty
 
-noncomputable def heapItem.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def heapItem.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/tools/cache.heapItem" [])
 
 attribute [irreducible] heapItem.ty
 
-noncomputable def itemKeyValue.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def itemKeyValue.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/tools/cache.itemKeyValue" [])
 
 attribute [irreducible] itemKeyValue.ty
 
-noncomputable def heapData.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def heapData.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/tools/cache.heapData" [])
 
 attribute [irreducible] heapData.ty
 
-noncomputable def Heap.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def Heap.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/tools/cache.Heap" [])
 
 attribute [irreducible] Heap.ty
 
-noncomputable def InformerName.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def InformerName.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/tools/cache.InformerName" [])
 
 attribute [irreducible] InformerName.ty
 
-noncomputable def InformerNameAndResource.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def InformerNameAndResource.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/tools/cache.InformerNameAndResource" [])
 
 attribute [irreducible] InformerNameAndResource.ty
 
-noncomputable def Indexer.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def Indexer.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/tools/cache.Indexer" [])
 
 attribute [irreducible] Indexer.ty
 
-noncomputable def IndexFunc.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def IndexFunc.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/tools/cache.IndexFunc" [])
 
 attribute [irreducible] IndexFunc.ty
 
-noncomputable def index.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def index.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/tools/cache.index" [])
 
 attribute [irreducible] index.ty
 
-noncomputable def Indexers.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def Indexers.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/tools/cache.Indexers" [])
 
 attribute [irreducible] Indexers.ty
 
-noncomputable def Indices.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def Indices.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/tools/cache.Indices" [])
 
 attribute [irreducible] Indices.ty
 
-noncomputable def TypedIndexers.ty [FfiSyntax] [GoGlobalContext] (T : go.GoType) : go.GoType :=
+noncomputable def TypedIndexers.ty [GooseExts] [GoGlobalContext] (T : go.GoType) : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/tools/cache.TypedIndexers" [T])
 
 attribute [irreducible] TypedIndexers.ty
 
-noncomputable def TypedIndexFunc.ty [FfiSyntax] [GoGlobalContext] (T : go.GoType) : go.GoType :=
+noncomputable def TypedIndexFunc.ty [GooseExts] [GoGlobalContext] (T : go.GoType) : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/tools/cache.TypedIndexFunc" [T])
 
 attribute [irreducible] TypedIndexFunc.ty
 
-noncomputable def TypedIndexer.ty [FfiSyntax] [GoGlobalContext] (T : go.GoType) : go.GoType :=
+noncomputable def TypedIndexer.ty [GooseExts] [GoGlobalContext] (T : go.GoType) : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/tools/cache.TypedIndexer" [T])
 
 attribute [irreducible] TypedIndexer.ty
 
-noncomputable def noopInformerMetricsProvider.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def noopInformerMetricsProvider.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/tools/cache.noopInformerMetricsProvider" [])
 
 attribute [irreducible] noopInformerMetricsProvider.ty
 
-noncomputable def InformerMetricsProvider.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def InformerMetricsProvider.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/tools/cache.InformerMetricsProvider" [])
 
 attribute [irreducible] InformerMetricsProvider.ty
 
-noncomputable def fifoMetrics.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def fifoMetrics.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/tools/cache.fifoMetrics" [])
 
 attribute [irreducible] fifoMetrics.ty
 
-noncomputable def storeMetrics.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def storeMetrics.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/tools/cache.storeMetrics" [])
 
 attribute [irreducible] storeMetrics.ty
 
-noncomputable def AppendFunc.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def AppendFunc.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/tools/cache.AppendFunc" [])
 
 attribute [irreducible] AppendFunc.ty
 
-noncomputable def GenericLister.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def GenericLister.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/tools/cache.GenericLister" [])
 
 attribute [irreducible] GenericLister.ty
 
-noncomputable def GenericNamespaceLister.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def GenericNamespaceLister.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/tools/cache.GenericNamespaceLister" [])
 
 attribute [irreducible] GenericNamespaceLister.ty
 
-noncomputable def genericLister.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def genericLister.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/tools/cache.genericLister" [])
 
 attribute [irreducible] genericLister.ty
 
-noncomputable def genericNamespaceLister.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def genericNamespaceLister.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/tools/cache.genericNamespaceLister" [])
 
 attribute [irreducible] genericNamespaceLister.ty
 
-noncomputable def Lister.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def Lister.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/tools/cache.Lister" [])
 
 attribute [irreducible] Lister.ty
 
-noncomputable def ListerWithContext.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def ListerWithContext.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/tools/cache.ListerWithContext" [])
 
 attribute [irreducible] ListerWithContext.ty
 
-noncomputable def listerWrapper.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def listerWrapper.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/tools/cache.listerWrapper" [])
 
 attribute [irreducible] listerWrapper.ty
 
-noncomputable def Watcher.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def Watcher.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/tools/cache.Watcher" [])
 
 attribute [irreducible] Watcher.ty
 
-noncomputable def WatcherWithContext.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def WatcherWithContext.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/tools/cache.WatcherWithContext" [])
 
 attribute [irreducible] WatcherWithContext.ty
 
-noncomputable def watcherWrapper.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def watcherWrapper.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/tools/cache.watcherWrapper" [])
 
 attribute [irreducible] watcherWrapper.ty
 
-noncomputable def ListerWatcher.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def ListerWatcher.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/tools/cache.ListerWatcher" [])
 
 attribute [irreducible] ListerWatcher.ty
 
-noncomputable def ListerWatcherWithContext.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def ListerWatcherWithContext.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/tools/cache.ListerWatcherWithContext" [])
 
 attribute [irreducible] ListerWatcherWithContext.ty
 
-noncomputable def listerWatcherWrapper.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def listerWatcherWrapper.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/tools/cache.listerWatcherWrapper" [])
 
 attribute [irreducible] listerWatcherWrapper.ty
 
-noncomputable def listWatcherWithWatchListSemanticsWrapper.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def listWatcherWithWatchListSemanticsWrapper.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/tools/cache.listWatcherWithWatchListSemanticsWrapper" [])
 
 attribute [irreducible] listWatcherWithWatchListSemanticsWrapper.ty
 
-noncomputable def ListFunc.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def ListFunc.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/tools/cache.ListFunc" [])
 
 attribute [irreducible] ListFunc.ty
 
-noncomputable def ListWithContextFunc.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def ListWithContextFunc.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/tools/cache.ListWithContextFunc" [])
 
 attribute [irreducible] ListWithContextFunc.ty
 
-noncomputable def WatchFunc.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def WatchFunc.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/tools/cache.WatchFunc" [])
 
 attribute [irreducible] WatchFunc.ty
 
-noncomputable def WatchFuncWithContext.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def WatchFuncWithContext.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/tools/cache.WatchFuncWithContext" [])
 
 attribute [irreducible] WatchFuncWithContext.ty
 
-noncomputable def ListWatch.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def ListWatch.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/tools/cache.ListWatch" [])
 
 attribute [irreducible] ListWatch.ty
 
-noncomputable def Getter.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def Getter.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/tools/cache.Getter" [])
 
 attribute [irreducible] Getter.ty
 
-noncomputable def shardedListWatch.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def shardedListWatch.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/tools/cache.shardedListWatch" [])
 
 attribute [irreducible] shardedListWatch.ty
 
-noncomputable def MutationCache.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def MutationCache.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/tools/cache.MutationCache" [])
 
 attribute [irreducible] MutationCache.ty
 
-noncomputable def ResourceVersionComparator.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def ResourceVersionComparator.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/tools/cache.ResourceVersionComparator" [])
 
 attribute [irreducible] ResourceVersionComparator.ty
 
-noncomputable def MutationCacheOptions.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def MutationCacheOptions.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/tools/cache.MutationCacheOptions" [])
 
 attribute [irreducible] MutationCacheOptions.ty
 
-noncomputable def mutationCache.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def mutationCache.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/tools/cache.mutationCache" [])
 
 attribute [irreducible] mutationCache.ty
 
-noncomputable def etcdObjectVersioner.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def etcdObjectVersioner.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/tools/cache.etcdObjectVersioner" [])
 
 attribute [irreducible] etcdObjectVersioner.ty
 
-noncomputable def tombstone.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def tombstone.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/tools/cache.tombstone" [])
 
 attribute [irreducible] tombstone.ty
 
-noncomputable def MutationDetector.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def MutationDetector.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/tools/cache.MutationDetector" [])
 
 attribute [irreducible] MutationDetector.ty
 
-noncomputable def dummyMutationDetector.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def dummyMutationDetector.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/tools/cache.dummyMutationDetector" [])
 
 attribute [irreducible] dummyMutationDetector.ty
 
-noncomputable def defaultCacheMutationDetector.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def defaultCacheMutationDetector.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/tools/cache.defaultCacheMutationDetector" [])
 
 attribute [irreducible] defaultCacheMutationDetector.ty
 
-noncomputable def cacheObj.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def cacheObj.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/tools/cache.cacheObj" [])
 
 attribute [irreducible] cacheObj.ty
 
-noncomputable def ObjectName.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def ObjectName.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/tools/cache.ObjectName" [])
 
 attribute [irreducible] ObjectName.ty
 
-noncomputable def ReflectorStore.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def ReflectorStore.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/tools/cache.ReflectorStore" [])
 
 attribute [irreducible] ReflectorStore.ty
 
-noncomputable def ReflectorBookmarkStore.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def ReflectorBookmarkStore.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/tools/cache.ReflectorBookmarkStore" [])
 
 attribute [irreducible] ReflectorBookmarkStore.ty
 
-noncomputable def TransformingStore.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def TransformingStore.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/tools/cache.TransformingStore" [])
 
 attribute [irreducible] TransformingStore.ty
 
-noncomputable def Reflector.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def Reflector.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/tools/cache.Reflector" [])
 
 attribute [irreducible] Reflector.ty
 
-noncomputable def ResourceVersionUpdater.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def ResourceVersionUpdater.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/tools/cache.ResourceVersionUpdater" [])
 
 attribute [irreducible] ResourceVersionUpdater.ty
 
-noncomputable def WatchErrorHandler.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def WatchErrorHandler.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/tools/cache.WatchErrorHandler" [])
 
 attribute [irreducible] WatchErrorHandler.ty
 
-noncomputable def WatchErrorHandlerWithContext.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def WatchErrorHandlerWithContext.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/tools/cache.WatchErrorHandlerWithContext" [])
 
 attribute [irreducible] WatchErrorHandlerWithContext.ty
 
-noncomputable def ReflectorOptions.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def ReflectorOptions.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/tools/cache.ReflectorOptions" [])
 
 attribute [irreducible] ReflectorOptions.ty
 
-noncomputable def initialEventsEndBookmarkTicker.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def initialEventsEndBookmarkTicker.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/tools/cache.initialEventsEndBookmarkTicker" [])
 
 attribute [irreducible] initialEventsEndBookmarkTicker.ty
 
-noncomputable def noopTicker.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def noopTicker.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/tools/cache.noopTicker" [])
 
 attribute [irreducible] noopTicker.ty
 
-noncomputable def VeryShortWatchError.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def VeryShortWatchError.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/tools/cache.VeryShortWatchError" [])
 
 attribute [irreducible] VeryShortWatchError.ty
 
-noncomputable def GaugeMetric.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def GaugeMetric.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/tools/cache.GaugeMetric" [])
 
 attribute [irreducible] GaugeMetric.ty
 
-noncomputable def CounterMetric.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def CounterMetric.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/tools/cache.CounterMetric" [])
 
 attribute [irreducible] CounterMetric.ty
 
-noncomputable def SummaryMetric.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def SummaryMetric.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/tools/cache.SummaryMetric" [])
 
 attribute [irreducible] SummaryMetric.ty
 
-noncomputable def HistogramMetric.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def HistogramMetric.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/tools/cache.HistogramMetric" [])
 
 attribute [irreducible] HistogramMetric.ty
 
-noncomputable def noopMetric.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def noopMetric.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/tools/cache.noopMetric" [])
 
 attribute [irreducible] noopMetric.ty
 
-noncomputable def MetricsProvider.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def MetricsProvider.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/tools/cache.MetricsProvider" [])
 
 attribute [irreducible] MetricsProvider.ty
 
-noncomputable def noopMetricsProvider.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def noopMetricsProvider.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/tools/cache.noopMetricsProvider" [])
 
 attribute [irreducible] noopMetricsProvider.ty
 
-noncomputable def RetryWithDeadline.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def RetryWithDeadline.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/tools/cache.RetryWithDeadline" [])
 
 attribute [irreducible] RetryWithDeadline.ty
 
-noncomputable def retryWithDeadlineImpl.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def retryWithDeadlineImpl.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/tools/cache.retryWithDeadlineImpl" [])
 
 attribute [irreducible] retryWithDeadlineImpl.ty
 
-noncomputable def SharedInformer.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def SharedInformer.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/tools/cache.SharedInformer" [])
 
 attribute [irreducible] SharedInformer.ty
 
-noncomputable def ResourceEventHandlerRegistration.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def ResourceEventHandlerRegistration.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/tools/cache.ResourceEventHandlerRegistration" [])
 
 attribute [irreducible] ResourceEventHandlerRegistration.ty
 
-noncomputable def HandlerOptions.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def HandlerOptions.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/tools/cache.HandlerOptions" [])
 
 attribute [irreducible] HandlerOptions.ty
 
-noncomputable def SharedIndexInformer.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def SharedIndexInformer.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/tools/cache.SharedIndexInformer" [])
 
 attribute [irreducible] SharedIndexInformer.ty
 
-noncomputable def TypedSharedIndexInformer.ty [FfiSyntax] [GoGlobalContext] (T : go.GoType) : go.GoType :=
+noncomputable def TypedSharedIndexInformer.ty [GooseExts] [GoGlobalContext] (T : go.GoType) : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/tools/cache.TypedSharedIndexInformer" [T])
 
 attribute [irreducible] TypedSharedIndexInformer.ty
 
-noncomputable def typedSharedIndexInformer.ty [FfiSyntax] [GoGlobalContext] (T : go.GoType) : go.GoType :=
+noncomputable def typedSharedIndexInformer.ty [GooseExts] [GoGlobalContext] (T : go.GoType) : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/tools/cache.typedSharedIndexInformer" [T])
 
 attribute [irreducible] typedSharedIndexInformer.ty
 
-noncomputable def typedResourceEventHandler.ty [FfiSyntax] [GoGlobalContext] (T : go.GoType) : go.GoType :=
+noncomputable def typedResourceEventHandler.ty [GooseExts] [GoGlobalContext] (T : go.GoType) : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/tools/cache.typedResourceEventHandler" [T])
 
 attribute [irreducible] typedResourceEventHandler.ty
 
-noncomputable def typedIndexer.ty [FfiSyntax] [GoGlobalContext] (T : go.GoType) : go.GoType :=
+noncomputable def typedIndexer.ty [GooseExts] [GoGlobalContext] (T : go.GoType) : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/tools/cache.typedIndexer" [T])
 
 attribute [irreducible] typedIndexer.ty
 
-noncomputable def SharedIndexInformerOptions.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def SharedIndexInformerOptions.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/tools/cache.SharedIndexInformerOptions" [])
 
 attribute [irreducible] SharedIndexInformerOptions.ty
 
-noncomputable def InformerSynced.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def InformerSynced.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/tools/cache.InformerSynced" [])
 
 attribute [irreducible] InformerSynced.ty
 
-noncomputable def DoneChecker.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def DoneChecker.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/tools/cache.DoneChecker" [])
 
 attribute [irreducible] DoneChecker.ty
 
-noncomputable def SyncResult.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def SyncResult.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/tools/cache.SyncResult" [])
 
 attribute [irreducible] SyncResult.ty
 
-noncomputable def sharedIndexInformer.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def sharedIndexInformer.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/tools/cache.sharedIndexInformer" [])
 
 attribute [irreducible] sharedIndexInformer.ty
 
-noncomputable def dummyController.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def dummyController.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/tools/cache.dummyController" [])
 
 attribute [irreducible] dummyController.ty
 
-noncomputable def updateNotification.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def updateNotification.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/tools/cache.updateNotification" [])
 
 attribute [irreducible] updateNotification.ty
 
-noncomputable def addNotification.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def addNotification.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/tools/cache.addNotification" [])
 
 attribute [irreducible] addNotification.ty
 
-noncomputable def deleteNotification.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def deleteNotification.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/tools/cache.deleteNotification" [])
 
 attribute [irreducible] deleteNotification.ty
 
-noncomputable def sharedIndexInformerDone.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def sharedIndexInformerDone.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/tools/cache.sharedIndexInformerDone" [])
 
 attribute [irreducible] sharedIndexInformerDone.ty
 
-noncomputable def sharedProcessor.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def sharedProcessor.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/tools/cache.sharedProcessor" [])
 
 attribute [irreducible] sharedProcessor.ty
 
-noncomputable def processorListener.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def processorListener.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/tools/cache.processorListener" [])
 
 attribute [irreducible] processorListener.ty
 
-noncomputable def Store.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def Store.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/tools/cache.Store" [])
 
 attribute [irreducible] Store.ty
 
-noncomputable def TransactionType.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def TransactionType.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/tools/cache.TransactionType" [])
 
 attribute [irreducible] TransactionType.ty
 
-noncomputable def Transaction.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def Transaction.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/tools/cache.Transaction" [])
 
 attribute [irreducible] Transaction.ty
 
-noncomputable def TransactionStore.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def TransactionStore.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/tools/cache.TransactionStore" [])
 
 attribute [irreducible] TransactionStore.ty
 
-noncomputable def TransactionError.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def TransactionError.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/tools/cache.TransactionError" [])
 
 attribute [irreducible] TransactionError.ty
 
-noncomputable def KeyFunc.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def KeyFunc.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/tools/cache.KeyFunc" [])
 
 attribute [irreducible] KeyFunc.ty
 
-noncomputable def KeyError.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def KeyError.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/tools/cache.KeyError" [])
 
 attribute [irreducible] KeyError.ty
 
-noncomputable def ExplicitKey.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def ExplicitKey.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/tools/cache.ExplicitKey" [])
 
 attribute [irreducible] ExplicitKey.ty
 
-noncomputable def cache.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def cache.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/tools/cache.cache" [])
 
 attribute [irreducible] cache.ty
 
-noncomputable def RealFIFOOptions.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def RealFIFOOptions.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/tools/cache.RealFIFOOptions" [])
 
 attribute [irreducible] RealFIFOOptions.ty
 
-noncomputable def RealFIFO.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def RealFIFO.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/tools/cache.RealFIFO" [])
 
 attribute [irreducible] RealFIFO.ty
 
-noncomputable def ReplacedAllInfo.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def ReplacedAllInfo.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/tools/cache.ReplacedAllInfo" [])
 
 attribute [irreducible] ReplacedAllInfo.ty
 
-noncomputable def BookmarkInfo.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def BookmarkInfo.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/tools/cache.BookmarkInfo" [])
 
 attribute [irreducible] BookmarkInfo.ty
 
-noncomputable def SyncAllInfo.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def SyncAllInfo.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/tools/cache.SyncAllInfo" [])
 
 attribute [irreducible] SyncAllInfo.ty
 
-noncomputable def ThreadSafeStore.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def ThreadSafeStore.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/tools/cache.ThreadSafeStore" [])
 
 attribute [irreducible] ThreadSafeStore.ty
 
-noncomputable def ThreadSafeStoreWithTransaction.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def ThreadSafeStoreWithTransaction.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/tools/cache.ThreadSafeStoreWithTransaction" [])
 
 attribute [irreducible] ThreadSafeStoreWithTransaction.ty
 
-noncomputable def ThreadSafeStoreTransaction.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def ThreadSafeStoreTransaction.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/tools/cache.ThreadSafeStoreTransaction" [])
 
 attribute [irreducible] ThreadSafeStoreTransaction.ty
 
-noncomputable def storeIndex.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def storeIndex.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/tools/cache.storeIndex" [])
 
 attribute [irreducible] storeIndex.ty
 
-noncomputable def threadSafeMap.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def threadSafeMap.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/tools/cache.threadSafeMap" [])
 
 attribute [irreducible] threadSafeMap.ty
 
-noncomputable def UndeltaStore.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def UndeltaStore.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/tools/cache.UndeltaStore" [])
 
 attribute [irreducible] UndeltaStore.ty
 
-axiom Config.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom Config.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom ShouldResyncFunc.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom ShouldResyncFunc.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom ProcessFunc.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom ProcessFunc.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom ProcessBatchFunc.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom ProcessBatchFunc.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom controller.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom controller.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom Controller.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom Controller.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom ResourceEventHandler.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom ResourceEventHandler.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom Object.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom Object.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom TypedResourceEventHandler.underlying [FfiSyntax] [GoGlobalContext] : ∀ (T : go.GoType), go.GoType
+axiom TypedResourceEventHandler.underlying [GooseExts] [GoGlobalContext] : ∀ (T : go.GoType), go.GoType
 
-axiom DeletedObject.underlying [FfiSyntax] [GoGlobalContext] : ∀ (T : go.GoType), go.GoType
+axiom DeletedObject.underlying [GooseExts] [GoGlobalContext] : ∀ (T : go.GoType), go.GoType
 
-axiom ResourceEventHandlerFuncs.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom ResourceEventHandlerFuncs.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom TypedResourceEventHandlerFuncs.underlying [FfiSyntax] [GoGlobalContext] : ∀ (T : go.GoType), go.GoType
+axiom TypedResourceEventHandlerFuncs.underlying [GooseExts] [GoGlobalContext] : ∀ (T : go.GoType), go.GoType
 
-axiom ResourceEventHandlerDetailedFuncs.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom ResourceEventHandlerDetailedFuncs.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom TypedResourceEventHandlerDetailedFuncs.underlying [FfiSyntax] [GoGlobalContext] : ∀ (T : go.GoType), go.GoType
+axiom TypedResourceEventHandlerDetailedFuncs.underlying [GooseExts] [GoGlobalContext] : ∀ (T : go.GoType), go.GoType
 
-axiom FilteringResourceEventHandler.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom FilteringResourceEventHandler.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom TypedFilteringResourceEventHandler.underlying [FfiSyntax] [GoGlobalContext] : ∀ (T : go.GoType), go.GoType
+axiom TypedFilteringResourceEventHandler.underlying [GooseExts] [GoGlobalContext] : ∀ (T : go.GoType), go.GoType
 
-axiom InformerOptions.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom InformerOptions.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom DeltaFIFOOptions.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom DeltaFIFOOptions.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom DeltaFIFO.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom DeltaFIFO.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom TransformFunc.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom TransformFunc.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom DeltaType.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom DeltaType.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom Delta.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom Delta.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom Deltas.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom Deltas.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom KeyListerGetter.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom KeyListerGetter.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom KeyLister.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom KeyLister.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom KeyGetter.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom KeyGetter.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom DeletedFinalStateUnknown.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom DeletedFinalStateUnknown.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom ExpirationCache.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom ExpirationCache.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom ExpirationPolicy.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom ExpirationPolicy.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom TTLPolicy.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom TTLPolicy.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom TimestampedEntry.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom TimestampedEntry.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom fakeThreadSafeMap.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom fakeThreadSafeMap.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom FakeExpirationPolicy.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom FakeExpirationPolicy.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom FakeCustomStore.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom FakeCustomStore.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom PopProcessFunc.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom PopProcessFunc.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom Queue.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom Queue.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom QueueWithBatch.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom QueueWithBatch.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom FIFO.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom FIFO.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom LessFunc.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom LessFunc.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom heapItem.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom heapItem.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom itemKeyValue.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom itemKeyValue.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom heapData.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom heapData.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom Heap.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom Heap.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom InformerName.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom InformerName.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom InformerNameAndResource.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom InformerNameAndResource.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom Indexer.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom Indexer.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom index.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom index.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom Indices.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom Indices.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom TypedIndexers.underlying [FfiSyntax] [GoGlobalContext] : ∀ (T : go.GoType), go.GoType
+axiom TypedIndexers.underlying [GooseExts] [GoGlobalContext] : ∀ (T : go.GoType), go.GoType
 
-axiom TypedIndexFunc.underlying [FfiSyntax] [GoGlobalContext] : ∀ (T : go.GoType), go.GoType
+axiom TypedIndexFunc.underlying [GooseExts] [GoGlobalContext] : ∀ (T : go.GoType), go.GoType
 
-axiom TypedIndexer.underlying [FfiSyntax] [GoGlobalContext] : ∀ (T : go.GoType), go.GoType
+axiom TypedIndexer.underlying [GooseExts] [GoGlobalContext] : ∀ (T : go.GoType), go.GoType
 
-axiom noopInformerMetricsProvider.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom noopInformerMetricsProvider.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom InformerMetricsProvider.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom InformerMetricsProvider.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom fifoMetrics.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom fifoMetrics.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom storeMetrics.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom storeMetrics.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom AppendFunc.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom AppendFunc.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom GenericLister.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom GenericLister.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom GenericNamespaceLister.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom GenericNamespaceLister.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom genericLister.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom genericLister.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom genericNamespaceLister.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom genericNamespaceLister.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom Lister.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom Lister.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom ListerWithContext.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom ListerWithContext.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom listerWrapper.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom listerWrapper.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom Watcher.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom Watcher.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom WatcherWithContext.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom WatcherWithContext.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom watcherWrapper.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom watcherWrapper.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom ListerWatcher.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom ListerWatcher.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom ListerWatcherWithContext.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom ListerWatcherWithContext.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom listerWatcherWrapper.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom listerWatcherWrapper.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom listWatcherWithWatchListSemanticsWrapper.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom listWatcherWithWatchListSemanticsWrapper.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom ListFunc.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom ListFunc.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom ListWithContextFunc.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom ListWithContextFunc.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom WatchFunc.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom WatchFunc.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom WatchFuncWithContext.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom WatchFuncWithContext.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom ListWatch.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom ListWatch.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom Getter.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom Getter.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom shardedListWatch.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom shardedListWatch.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom MutationCache.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom MutationCache.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom ResourceVersionComparator.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom ResourceVersionComparator.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom MutationCacheOptions.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom MutationCacheOptions.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom mutationCache.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom mutationCache.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom etcdObjectVersioner.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom etcdObjectVersioner.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom tombstone.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom tombstone.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom MutationDetector.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom MutationDetector.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom dummyMutationDetector.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom dummyMutationDetector.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom defaultCacheMutationDetector.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom defaultCacheMutationDetector.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom cacheObj.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom cacheObj.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom ObjectName.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom ObjectName.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom ReflectorStore.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom ReflectorStore.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom ReflectorBookmarkStore.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom ReflectorBookmarkStore.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom TransformingStore.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom TransformingStore.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom Reflector.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom Reflector.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom ResourceVersionUpdater.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom ResourceVersionUpdater.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom WatchErrorHandler.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom WatchErrorHandler.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom WatchErrorHandlerWithContext.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom WatchErrorHandlerWithContext.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom ReflectorOptions.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom ReflectorOptions.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom initialEventsEndBookmarkTicker.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom initialEventsEndBookmarkTicker.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom noopTicker.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom noopTicker.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom VeryShortWatchError.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom VeryShortWatchError.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom GaugeMetric.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom GaugeMetric.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom CounterMetric.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom CounterMetric.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom SummaryMetric.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom SummaryMetric.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom HistogramMetric.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom HistogramMetric.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom noopMetric.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom noopMetric.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom MetricsProvider.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom MetricsProvider.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom noopMetricsProvider.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom noopMetricsProvider.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom RetryWithDeadline.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom RetryWithDeadline.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom retryWithDeadlineImpl.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom retryWithDeadlineImpl.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom SharedInformer.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom SharedInformer.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom ResourceEventHandlerRegistration.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom ResourceEventHandlerRegistration.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom HandlerOptions.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom HandlerOptions.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom SharedIndexInformer.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom SharedIndexInformer.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom TypedSharedIndexInformer.underlying [FfiSyntax] [GoGlobalContext] : ∀ (T : go.GoType), go.GoType
+axiom TypedSharedIndexInformer.underlying [GooseExts] [GoGlobalContext] : ∀ (T : go.GoType), go.GoType
 
-axiom typedSharedIndexInformer.underlying [FfiSyntax] [GoGlobalContext] : ∀ (T : go.GoType), go.GoType
+axiom typedSharedIndexInformer.underlying [GooseExts] [GoGlobalContext] : ∀ (T : go.GoType), go.GoType
 
-axiom typedResourceEventHandler.underlying [FfiSyntax] [GoGlobalContext] : ∀ (T : go.GoType), go.GoType
+axiom typedResourceEventHandler.underlying [GooseExts] [GoGlobalContext] : ∀ (T : go.GoType), go.GoType
 
-axiom typedIndexer.underlying [FfiSyntax] [GoGlobalContext] : ∀ (T : go.GoType), go.GoType
+axiom typedIndexer.underlying [GooseExts] [GoGlobalContext] : ∀ (T : go.GoType), go.GoType
 
-axiom SharedIndexInformerOptions.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom SharedIndexInformerOptions.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom InformerSynced.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom InformerSynced.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom DoneChecker.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom DoneChecker.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom SyncResult.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom SyncResult.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom sharedIndexInformer.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom sharedIndexInformer.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom dummyController.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom dummyController.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom updateNotification.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom updateNotification.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom addNotification.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom addNotification.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom deleteNotification.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom deleteNotification.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom sharedIndexInformerDone.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom sharedIndexInformerDone.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom sharedProcessor.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom sharedProcessor.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom processorListener.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom processorListener.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom Store.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom Store.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom TransactionType.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom TransactionType.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom Transaction.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom Transaction.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom TransactionStore.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom TransactionStore.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom TransactionError.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom TransactionError.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom KeyFunc.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom KeyFunc.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom KeyError.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom KeyError.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom ExplicitKey.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom ExplicitKey.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom cache.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom cache.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom StoreOption [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom StoreOption [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom RealFIFOOptions.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom RealFIFOOptions.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom RealFIFO.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom RealFIFO.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom ReplacedAllInfo.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom ReplacedAllInfo.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom BookmarkInfo.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom BookmarkInfo.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom SyncAllInfo.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom SyncAllInfo.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom ThreadSafeStore.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom ThreadSafeStore.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom ThreadSafeStoreWithTransaction.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom ThreadSafeStoreWithTransaction.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom ThreadSafeStoreTransaction.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom ThreadSafeStoreTransaction.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom ThreadSafeStoreOption [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom ThreadSafeStoreOption [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom storeIndex.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom storeIndex.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom threadSafeMap.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom threadSafeMap.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom UndeltaStore.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom UndeltaStore.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom Added [FfiSyntax] [GoGlobalContext] : val
+axiom Added [GooseExts] [GoGlobalContext] : val
 
-axiom Updated [FfiSyntax] [GoGlobalContext] : val
+axiom Updated [GooseExts] [GoGlobalContext] : val
 
-axiom Deleted [FfiSyntax] [GoGlobalContext] : val
+axiom Deleted [GooseExts] [GoGlobalContext] : val
 
-axiom Replaced [FfiSyntax] [GoGlobalContext] : val
+axiom Replaced [GooseExts] [GoGlobalContext] : val
 
-axiom ReplacedAll [FfiSyntax] [GoGlobalContext] : val
+axiom ReplacedAll [GooseExts] [GoGlobalContext] : val
 
-axiom Sync [FfiSyntax] [GoGlobalContext] : val
+axiom Sync [GooseExts] [GoGlobalContext] : val
 
-axiom SyncAll [FfiSyntax] [GoGlobalContext] : val
+axiom SyncAll [GooseExts] [GoGlobalContext] : val
 
-axiom Bookmark [FfiSyntax] [GoGlobalContext] : val
+axiom Bookmark [GooseExts] [GoGlobalContext] : val
 
-axiom closedMsg [FfiSyntax] [GoGlobalContext] : val
+axiom closedMsg [GooseExts] [GoGlobalContext] : val
 
-axiom NamespaceIndex [FfiSyntax] [GoGlobalContext] : val
+axiom NamespaceIndex [GooseExts] [GoGlobalContext] : val
 
-axiom defaultExpectedTypeName [FfiSyntax] [GoGlobalContext] : val
+axiom defaultExpectedTypeName [GooseExts] [GoGlobalContext] : val
 
-axiom syncedPollPeriod [FfiSyntax] [GoGlobalContext] : val
+axiom syncedPollPeriod [GooseExts] [GoGlobalContext] : val
 
-axiom initialBufferSize [FfiSyntax] [GoGlobalContext] : val
+axiom initialBufferSize [GooseExts] [GoGlobalContext] : val
 
-axiom minimumResyncPeriod [FfiSyntax] [GoGlobalContext] : val
+axiom minimumResyncPeriod [GooseExts] [GoGlobalContext] : val
 
-axiom TransactionTypeAdd [FfiSyntax] [GoGlobalContext] : val
+axiom TransactionTypeAdd [GooseExts] [GoGlobalContext] : val
 
-axiom TransactionTypeUpdate [FfiSyntax] [GoGlobalContext] : val
+axiom TransactionTypeUpdate [GooseExts] [GoGlobalContext] : val
 
-axiom TransactionTypeDelete [FfiSyntax] [GoGlobalContext] : val
+axiom TransactionTypeDelete [GooseExts] [GoGlobalContext] : val
 
-axiom defaultBatchSize [FfiSyntax] [GoGlobalContext] : val
+axiom defaultBatchSize [GooseExts] [GoGlobalContext] : val
 
-noncomputable def ErrZeroLengthDeltasObject [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ErrZeroLengthDeltasObject [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/tools/cache.ErrZeroLengthDeltasObject"
 
-axiom ErrZeroLengthDeltasObject.init [FfiSyntax] [GoGlobalContext] : val
+axiom ErrZeroLengthDeltasObject.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def ErrFIFOClosed [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ErrFIFOClosed [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/tools/cache.ErrFIFOClosed"
 
-axiom ErrFIFOClosed.init [FfiSyntax] [GoGlobalContext] : val
+axiom ErrFIFOClosed.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def informerNameRegistry [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def informerNameRegistry [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/tools/cache.informerNameRegistry"
 
-axiom informerNameRegistry.init [FfiSyntax] [GoGlobalContext] : val
+axiom informerNameRegistry.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def globalInformerMetricsProvider [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def globalInformerMetricsProvider [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/tools/cache.globalInformerMetricsProvider"
 
-axiom globalInformerMetricsProvider.init [FfiSyntax] [GoGlobalContext] : val
+axiom globalInformerMetricsProvider.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def setInformerMetricsProviderOnce [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def setInformerMetricsProviderOnce [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/tools/cache.setInformerMetricsProviderOnce"
 
-noncomputable def mutationDetectionEnabled [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def mutationDetectionEnabled [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/tools/cache.mutationDetectionEnabled"
 
-axiom mutationDetectionEnabled.init [FfiSyntax] [GoGlobalContext] : val
+axiom mutationDetectionEnabled.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def defaultMinWatchTimeout [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def defaultMinWatchTimeout [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/tools/cache.defaultMinWatchTimeout"
 
-axiom defaultMinWatchTimeout.init [FfiSyntax] [GoGlobalContext] : val
+axiom defaultMinWatchTimeout.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def defaultMaxWatchTimeout [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def defaultMaxWatchTimeout [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/tools/cache.defaultMaxWatchTimeout"
 
-axiom defaultMaxWatchTimeout.init [FfiSyntax] [GoGlobalContext] : val
+axiom defaultMaxWatchTimeout.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def defaultBackoffInit [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def defaultBackoffInit [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/tools/cache.defaultBackoffInit"
 
-axiom defaultBackoffInit.init [FfiSyntax] [GoGlobalContext] : val
+axiom defaultBackoffInit.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def defaultBackoffMax [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def defaultBackoffMax [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/tools/cache.defaultBackoffMax"
 
-axiom defaultBackoffMax.init [FfiSyntax] [GoGlobalContext] : val
+axiom defaultBackoffMax.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def defaultBackoffReset [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def defaultBackoffReset [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/tools/cache.defaultBackoffReset"
 
-axiom defaultBackoffReset.init [FfiSyntax] [GoGlobalContext] : val
+axiom defaultBackoffReset.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def defaultBackoffFactor [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def defaultBackoffFactor [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/tools/cache.defaultBackoffFactor"
 
-axiom defaultBackoffFactor.init [FfiSyntax] [GoGlobalContext] : val
+axiom defaultBackoffFactor.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def defaultBackoffJitter [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def defaultBackoffJitter [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/tools/cache.defaultBackoffJitter"
 
-axiom defaultBackoffJitter.init [FfiSyntax] [GoGlobalContext] : val
+axiom defaultBackoffJitter.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def internalPackages [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def internalPackages [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/tools/cache.internalPackages"
 
-axiom internalPackages.init [FfiSyntax] [GoGlobalContext] : val
+axiom internalPackages.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def errorStopRequested [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def errorStopRequested [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/tools/cache.errorStopRequested"
 
-axiom errorStopRequested.init [FfiSyntax] [GoGlobalContext] : val
+axiom errorStopRequested.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def unsupportedTableGVK [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def unsupportedTableGVK [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/tools/cache.unsupportedTableGVK"
 
-axiom unsupportedTableGVK.init [FfiSyntax] [GoGlobalContext] : val
+axiom unsupportedTableGVK.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def metricsFactory [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def metricsFactory [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/tools/cache.metricsFactory"
 
-axiom metricsFactory.init [FfiSyntax] [GoGlobalContext] : val
+axiom metricsFactory.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def sharedProcessorRunHook [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def sharedProcessorRunHook [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/tools/cache.sharedProcessorRunHook"
 
-noncomputable def batchable [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def batchable [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/tools/cache.batchable"
 
-axiom batchable.init [FfiSyntax] [GoGlobalContext] : val
+axiom batchable.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def New [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def New [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/tools/cache.New"
 
-noncomputable def DeletionHandlingMetaNamespaceKeyFunc [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def DeletionHandlingMetaNamespaceKeyFunc [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/tools/cache.DeletionHandlingMetaNamespaceKeyFunc"
 
-noncomputable def DeletionHandlingObjectToName [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def DeletionHandlingObjectToName [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/tools/cache.DeletionHandlingObjectToName"
 
-noncomputable def NewInformerWithOptions [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def NewInformerWithOptions [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/tools/cache.NewInformerWithOptions"
 
-noncomputable def NewInformer [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def NewInformer [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/tools/cache.NewInformer"
 
-noncomputable def NewIndexerInformer [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def NewIndexerInformer [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/tools/cache.NewIndexerInformer"
 
-noncomputable def NewTransformingInformer [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def NewTransformingInformer [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/tools/cache.NewTransformingInformer"
 
-noncomputable def NewTransformingIndexerInformer [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def NewTransformingIndexerInformer [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/tools/cache.NewTransformingIndexerInformer"
 
-noncomputable def processDeltas [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def processDeltas [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/tools/cache.processDeltas"
 
-noncomputable def processDeltasInBatch [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def processDeltasInBatch [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/tools/cache.processDeltasInBatch"
 
-noncomputable def processReplacedAllInfo [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def processReplacedAllInfo [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/tools/cache.processReplacedAllInfo"
 
-noncomputable def newInformer [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def newInformer [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/tools/cache.newInformer"
 
-noncomputable def newQueueFIFO [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def newQueueFIFO [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/tools/cache.newQueueFIFO"
 
-noncomputable def NewDeltaFIFO [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def NewDeltaFIFO [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/tools/cache.NewDeltaFIFO"
 
-noncomputable def NewDeltaFIFOWithOptions [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def NewDeltaFIFOWithOptions [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/tools/cache.NewDeltaFIFOWithOptions"
 
-noncomputable def dedupDeltas [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def dedupDeltas [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/tools/cache.dedupDeltas"
 
-noncomputable def isDup [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def isDup [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/tools/cache.isDup"
 
-noncomputable def isDeletionDup [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def isDeletionDup [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/tools/cache.isDeletionDup"
 
-noncomputable def copyDeltas [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def copyDeltas [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/tools/cache.copyDeltas"
 
-noncomputable def nameForHandler [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def nameForHandler [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/tools/cache.nameForHandler"
 
-noncomputable def nameForHandlerFuncs [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def nameForHandlerFuncs [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/tools/cache.nameForHandlerFuncs"
 
-noncomputable def nameForFunctions [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def nameForFunctions [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/tools/cache.nameForFunctions"
 
-noncomputable def nameForFunction [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def nameForFunction [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/tools/cache.nameForFunction"
 
-noncomputable def NewTTLStore [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def NewTTLStore [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/tools/cache.NewTTLStore"
 
-noncomputable def NewExpirationStore [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def NewExpirationStore [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/tools/cache.NewExpirationStore"
 
-noncomputable def NewFakeExpirationStore [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def NewFakeExpirationStore [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/tools/cache.NewFakeExpirationStore"
 
-noncomputable def NewFIFO [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def NewFIFO [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/tools/cache.NewFIFO"
 
-noncomputable def NewHeap [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def NewHeap [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/tools/cache.NewHeap"
 
-noncomputable def NewInformerName [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def NewInformerName [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/tools/cache.NewInformerName"
 
-noncomputable def ResetInformerNamesForTesting [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ResetInformerNamesForTesting [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/tools/cache.ResetInformerNamesForTesting"
 
-noncomputable def IndexFuncToKeyFuncAdapter [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def IndexFuncToKeyFuncAdapter [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/tools/cache.IndexFuncToKeyFuncAdapter"
 
-noncomputable def MetaNamespaceIndexFunc [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def MetaNamespaceIndexFunc [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/tools/cache.MetaNamespaceIndexFunc"
 
-noncomputable def TypedIndexersToIndexers [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def TypedIndexersToIndexers [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/tools/cache.TypedIndexersToIndexers"
 
-noncomputable def TypedIndexerFuncToIndexerFunc [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def TypedIndexerFuncToIndexerFunc [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/tools/cache.TypedIndexerFuncToIndexerFunc"
 
-noncomputable def SetInformerMetricsProvider [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def SetInformerMetricsProvider [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/tools/cache.SetInformerMetricsProvider"
 
-noncomputable def newFIFOMetrics [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def newFIFOMetrics [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/tools/cache.newFIFOMetrics"
 
-noncomputable def newStoreMetrics [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def newStoreMetrics [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/tools/cache.newStoreMetrics"
 
-noncomputable def ListAll [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ListAll [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/tools/cache.ListAll"
 
-noncomputable def ListAllByNamespace [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ListAllByNamespace [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/tools/cache.ListAllByNamespace"
 
-noncomputable def NewGenericLister [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def NewGenericLister [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/tools/cache.NewGenericLister"
 
-noncomputable def ToListerWithContext [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ToListerWithContext [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/tools/cache.ToListerWithContext"
 
-noncomputable def ToWatcherWithContext [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ToWatcherWithContext [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/tools/cache.ToWatcherWithContext"
 
-noncomputable def ToListerWatcherWithContext [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ToListerWatcherWithContext [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/tools/cache.ToListerWatcherWithContext"
 
-noncomputable def ToListWatcherWithWatchListSemantics [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ToListWatcherWithWatchListSemantics [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/tools/cache.ToListWatcherWithWatchListSemantics"
 
-noncomputable def NewListWatchFromClient [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def NewListWatchFromClient [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/tools/cache.NewListWatchFromClient"
 
-noncomputable def NewFilteredListWatchFromClient [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def NewFilteredListWatchFromClient [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/tools/cache.NewFilteredListWatchFromClient"
 
-noncomputable def NewShardedListWatch [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def NewShardedListWatch [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/tools/cache.NewShardedListWatch"
 
-noncomputable def NewIntegerResourceVersionMutationCacheWithOptions [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def NewIntegerResourceVersionMutationCacheWithOptions [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/tools/cache.NewIntegerResourceVersionMutationCacheWithOptions"
 
-noncomputable def NewIntegerResourceVersionMutationCache [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def NewIntegerResourceVersionMutationCache [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/tools/cache.NewIntegerResourceVersionMutationCache"
 
-noncomputable def init.«0» [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def init.«0» [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/tools/cache.init.0"
 
-noncomputable def NewCacheMutationDetector [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def NewCacheMutationDetector [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/tools/cache.NewCacheMutationDetector"
 
-noncomputable def NewObjectName [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def NewObjectName [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/tools/cache.NewObjectName"
 
-noncomputable def ParseObjectName [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ParseObjectName [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/tools/cache.ParseObjectName"
 
-noncomputable def NamespacedNameAsObjectName [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def NamespacedNameAsObjectName [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/tools/cache.NamespacedNameAsObjectName"
 
-noncomputable def DefaultWatchErrorHandler [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def DefaultWatchErrorHandler [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/tools/cache.DefaultWatchErrorHandler"
 
-noncomputable def NewNamespaceKeyedIndexerAndReflector [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def NewNamespaceKeyedIndexerAndReflector [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/tools/cache.NewNamespaceKeyedIndexerAndReflector"
 
-noncomputable def NewReflector [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def NewReflector [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/tools/cache.NewReflector"
 
-noncomputable def NewNamedReflector [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def NewNamedReflector [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/tools/cache.NewNamedReflector"
 
-noncomputable def NewReflectorWithOptions [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def NewReflectorWithOptions [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/tools/cache.NewReflectorWithOptions"
 
-noncomputable def getTypeDescriptionFromObject [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def getTypeDescriptionFromObject [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/tools/cache.getTypeDescriptionFromObject"
 
-noncomputable def getExpectedGVKFromObject [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def getExpectedGVKFromObject [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/tools/cache.getExpectedGVKFromObject"
 
-noncomputable def handleListWatch [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def handleListWatch [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/tools/cache.handleListWatch"
 
-noncomputable def handleWatch [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def handleWatch [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/tools/cache.handleWatch"
 
-noncomputable def handleAnyWatch [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def handleAnyWatch [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/tools/cache.handleAnyWatch"
 
-noncomputable def isExpiredError [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def isExpiredError [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/tools/cache.isExpiredError"
 
-noncomputable def isTooLargeResourceVersionError [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def isTooLargeResourceVersionError [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/tools/cache.isTooLargeResourceVersionError"
 
-noncomputable def isWatchErrorRetriable [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def isWatchErrorRetriable [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/tools/cache.isWatchErrorRetriable"
 
-noncomputable def newInitialEventsEndBookmarkTicker [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def newInitialEventsEndBookmarkTicker [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/tools/cache.newInitialEventsEndBookmarkTicker"
 
-noncomputable def newInitialEventsEndBookmarkTickerInternal [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def newInitialEventsEndBookmarkTickerInternal [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/tools/cache.newInitialEventsEndBookmarkTickerInternal"
 
-noncomputable def isUnsupportedTableObject [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def isUnsupportedTableObject [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/tools/cache.isUnsupportedTableObject"
 
-noncomputable def isUnsupportedTableListObject [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def isUnsupportedTableListObject [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/tools/cache.isUnsupportedTableListObject"
 
-noncomputable def checkWatchListDataConsistencyIfRequested [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def checkWatchListDataConsistencyIfRequested [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/tools/cache.checkWatchListDataConsistencyIfRequested"
 
-noncomputable def SetReflectorMetricsProvider [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def SetReflectorMetricsProvider [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/tools/cache.SetReflectorMetricsProvider"
 
-noncomputable def NewRetryWithDeadline [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def NewRetryWithDeadline [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/tools/cache.NewRetryWithDeadline"
 
-noncomputable def NewTypedSharedIndexInformer [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def NewTypedSharedIndexInformer [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/tools/cache.NewTypedSharedIndexInformer"
 
-noncomputable def NewSharedInformer [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def NewSharedInformer [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/tools/cache.NewSharedInformer"
 
-noncomputable def NewSharedIndexInformer [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def NewSharedIndexInformer [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/tools/cache.NewSharedIndexInformer"
 
-noncomputable def NewSharedIndexInformerWithOptions [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def NewSharedIndexInformerWithOptions [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/tools/cache.NewSharedIndexInformerWithOptions"
 
-noncomputable def WaitForNamedCacheSync [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def WaitForNamedCacheSync [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/tools/cache.WaitForNamedCacheSync"
 
-noncomputable def WaitForNamedCacheSyncWithContext [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def WaitForNamedCacheSyncWithContext [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/tools/cache.WaitForNamedCacheSyncWithContext"
 
-noncomputable def WaitForCacheSync [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def WaitForCacheSync [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/tools/cache.WaitForCacheSync"
 
-noncomputable def WaitFor [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def WaitFor [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/tools/cache.WaitFor"
 
-noncomputable def IsDone [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def IsDone [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/tools/cache.IsDone"
 
-noncomputable def determineResyncPeriod [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def determineResyncPeriod [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/tools/cache.determineResyncPeriod"
 
-noncomputable def ShutDownEventHandler [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ShutDownEventHandler [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/tools/cache.ShutDownEventHandler"
 
-noncomputable def newProcessListener [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def newProcessListener [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/tools/cache.newProcessListener"
 
-noncomputable def MetaNamespaceKeyFunc [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def MetaNamespaceKeyFunc [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/tools/cache.MetaNamespaceKeyFunc"
 
-noncomputable def ObjectToName [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ObjectToName [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/tools/cache.ObjectToName"
 
-noncomputable def MetaObjectToName [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def MetaObjectToName [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/tools/cache.MetaObjectToName"
 
-noncomputable def SplitMetaNamespaceKey [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def SplitMetaNamespaceKey [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/tools/cache.SplitMetaNamespaceKey"
 
-noncomputable def WithTransformer [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def WithTransformer [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/tools/cache.WithTransformer"
 
-noncomputable def WithStoreMetrics [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def WithStoreMetrics [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/tools/cache.WithStoreMetrics"
 
-noncomputable def NewStore [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def NewStore [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/tools/cache.NewStore"
 
-noncomputable def NewIndexer [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def NewIndexer [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/tools/cache.NewIndexer"
 
-noncomputable def reconcileReplacement [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def reconcileReplacement [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/tools/cache.reconcileReplacement"
 
-noncomputable def NewRealFIFO [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def NewRealFIFO [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/tools/cache.NewRealFIFO"
 
-noncomputable def NewRealFIFOWithOptions [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def NewRealFIFOWithOptions [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/tools/cache.NewRealFIFOWithOptions"
 
-noncomputable def WithThreadSafeStoreMetrics [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def WithThreadSafeStoreMetrics [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/tools/cache.WithThreadSafeStoreMetrics"
 
-noncomputable def rvFromObject [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def rvFromObject [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/tools/cache.rvFromObject"
 
-noncomputable def NewThreadSafeStore [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def NewThreadSafeStore [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/tools/cache.NewThreadSafeStore"
 
-noncomputable def parseRVForMetricsWithTruncation [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def parseRVForMetricsWithTruncation [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/tools/cache.parseRVForMetricsWithTruncation"
 
-noncomputable def NewUndeltaStore [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def NewUndeltaStore [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/tools/cache.NewUndeltaStore"
 
 noncomputable instance info' : PkgInfo pkg_id.k8s_io.client_go.tools.cache where
   pkgImportedPkgs := []
 
-axiom «_».init [FfiSyntax] [GoGlobalContext] : val
+axiom «_».init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (App (Val (package.init pkg_id.k8s_io.client_go.tools.cache)) (Lam BAnon
   (App (Val exceptionDo)
@@ -1642,1947 +1642,2547 @@ axiom Config : Type
 axiom Config.zero_val : ZeroVal Config
 attribute [instance] Config.zero_val
 
-class Config.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class Config.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying Config.underlying Config
   underlying : go.UnderlyingDirectedEq Config.ty Config.underlying
   isUnderlying : go.IsUnderlying Config.underlying Config.underlying
+  method_set : go.MethodSetIs Config.ty [(go!"Add", (some (go.signature.Signature [(go.GoType.InterfaceType [])] false [go.error]))), (go!"Close", (some (go.signature.Signature [] false []))), (go!"Delete", (some (go.signature.Signature [(go.GoType.InterfaceType [])] false [go.error]))), (go!"HasSynced", (some (go.signature.Signature [] false [go.bool]))), (go!"HasSyncedChecker", (some (go.signature.Signature [] false [DoneChecker.ty]))), (go!"List", (some (go.signature.Signature [(go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ListOptions" [])] false [(go.GoType.Named go!"k8s.io/apimachinery/pkg/runtime.Object" []), go.error]))), (go!"Pop", (some (go.signature.Signature [PopProcessFunc.ty] false [(go.GoType.InterfaceType []), go.error]))), (go!"Replace", (some (go.signature.Signature [(go.GoType.SliceType (go.GoType.InterfaceType [])), go.string] false [go.error]))), (go!"Resync", (some (go.signature.Signature [] false [go.error]))), (go!"Update", (some (go.signature.Signature [(go.GoType.InterfaceType [])] false [go.error]))), (go!"Watch", (some (go.signature.Signature [(go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ListOptions" [])] false [(go.GoType.Named go!"k8s.io/apimachinery/pkg/watch.Interface" []), go.error])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType Config.ty) [(go!"Add", (some (go.signature.Signature [(go.GoType.InterfaceType [])] false [go.error]))), (go!"Close", (some (go.signature.Signature [] false []))), (go!"Delete", (some (go.signature.Signature [(go.GoType.InterfaceType [])] false [go.error]))), (go!"HasSynced", (some (go.signature.Signature [] false [go.bool]))), (go!"HasSyncedChecker", (some (go.signature.Signature [] false [DoneChecker.ty]))), (go!"List", (some (go.signature.Signature [(go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ListOptions" [])] false [(go.GoType.Named go!"k8s.io/apimachinery/pkg/runtime.Object" []), go.error]))), (go!"Pop", (some (go.signature.Signature [PopProcessFunc.ty] false [(go.GoType.InterfaceType []), go.error]))), (go!"Replace", (some (go.signature.Signature [(go.GoType.SliceType (go.GoType.InterfaceType [])), go.string] false [go.error]))), (go!"Resync", (some (go.signature.Signature [] false [go.error]))), (go!"Update", (some (go.signature.Signature [(go.GoType.InterfaceType [])] false [go.error]))), (go!"Watch", (some (go.signature.Signature [(go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ListOptions" [])] false [(go.GoType.Named go!"k8s.io/apimachinery/pkg/watch.Interface" []), go.error])))]
 
 attribute [instance] Config.TypeAssumptions.type_repr
   Config.TypeAssumptions.underlying
   Config.TypeAssumptions.isUnderlying
+  Config.TypeAssumptions.method_set
+  Config.TypeAssumptions.ptr_method_set
 
 axiom ShouldResyncFunc : Type
 axiom ShouldResyncFunc.zero_val : ZeroVal ShouldResyncFunc
 attribute [instance] ShouldResyncFunc.zero_val
 
-class ShouldResyncFunc.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class ShouldResyncFunc.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying ShouldResyncFunc.underlying ShouldResyncFunc
   underlying : go.UnderlyingDirectedEq ShouldResyncFunc.ty ShouldResyncFunc.underlying
   isUnderlying : go.IsUnderlying ShouldResyncFunc.underlying ShouldResyncFunc.underlying
+  method_set : go.MethodSetIs ShouldResyncFunc.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType ShouldResyncFunc.ty) []
 
 attribute [instance] ShouldResyncFunc.TypeAssumptions.type_repr
   ShouldResyncFunc.TypeAssumptions.underlying
   ShouldResyncFunc.TypeAssumptions.isUnderlying
+  ShouldResyncFunc.TypeAssumptions.method_set
+  ShouldResyncFunc.TypeAssumptions.ptr_method_set
 
 axiom ProcessFunc : Type
 axiom ProcessFunc.zero_val : ZeroVal ProcessFunc
 attribute [instance] ProcessFunc.zero_val
 
-class ProcessFunc.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class ProcessFunc.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying ProcessFunc.underlying ProcessFunc
   underlying : go.UnderlyingDirectedEq ProcessFunc.ty ProcessFunc.underlying
   isUnderlying : go.IsUnderlying ProcessFunc.underlying ProcessFunc.underlying
+  method_set : go.MethodSetIs ProcessFunc.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType ProcessFunc.ty) []
 
 attribute [instance] ProcessFunc.TypeAssumptions.type_repr
   ProcessFunc.TypeAssumptions.underlying
   ProcessFunc.TypeAssumptions.isUnderlying
+  ProcessFunc.TypeAssumptions.method_set
+  ProcessFunc.TypeAssumptions.ptr_method_set
 
 axiom ProcessBatchFunc : Type
 axiom ProcessBatchFunc.zero_val : ZeroVal ProcessBatchFunc
 attribute [instance] ProcessBatchFunc.zero_val
 
-class ProcessBatchFunc.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class ProcessBatchFunc.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying ProcessBatchFunc.underlying ProcessBatchFunc
   underlying : go.UnderlyingDirectedEq ProcessBatchFunc.ty ProcessBatchFunc.underlying
   isUnderlying : go.IsUnderlying ProcessBatchFunc.underlying ProcessBatchFunc.underlying
+  method_set : go.MethodSetIs ProcessBatchFunc.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType ProcessBatchFunc.ty) []
 
 attribute [instance] ProcessBatchFunc.TypeAssumptions.type_repr
   ProcessBatchFunc.TypeAssumptions.underlying
   ProcessBatchFunc.TypeAssumptions.isUnderlying
+  ProcessBatchFunc.TypeAssumptions.method_set
+  ProcessBatchFunc.TypeAssumptions.ptr_method_set
 
 axiom controller : Type
 axiom controller.zero_val : ZeroVal controller
 attribute [instance] controller.zero_val
 
-class controller.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class controller.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying controller.underlying controller
   underlying : go.UnderlyingDirectedEq controller.ty controller.underlying
   isUnderlying : go.IsUnderlying controller.underlying controller.underlying
+  method_set : go.MethodSetIs controller.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType controller.ty) [(go!"HasSynced", (some (go.signature.Signature [] false [go.bool]))), (go!"HasSyncedChecker", (some (go.signature.Signature [] false [DoneChecker.ty]))), (go!"LastSyncResourceVersion", (some (go.signature.Signature [] false [go.string]))), (go!"Run", (some (go.signature.Signature [(go.GoType.ChannelType go.ChanDir.recvonly (go.GoType.StructType []))] false []))), (go!"RunWithContext", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" [])] false []))), (go!"k8s.io/client-go/tools/cache.processLoop", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" [])] false [])))]
 
 attribute [instance] controller.TypeAssumptions.type_repr
   controller.TypeAssumptions.underlying
   controller.TypeAssumptions.isUnderlying
+  controller.TypeAssumptions.method_set
+  controller.TypeAssumptions.ptr_method_set
 
 axiom Controller : Type
 axiom Controller.zero_val : ZeroVal Controller
 attribute [instance] Controller.zero_val
 
-class Controller.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class Controller.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying Controller.underlying Controller
   underlying : go.UnderlyingDirectedEq Controller.ty Controller.underlying
   isUnderlying : go.IsUnderlying Controller.underlying Controller.underlying
+  method_set : go.MethodSetIs Controller.ty [(go!"HasSynced", (some (go.signature.Signature [] false [go.bool]))), (go!"HasSyncedChecker", (some (go.signature.Signature [] false [DoneChecker.ty]))), (go!"LastSyncResourceVersion", (some (go.signature.Signature [] false [go.string]))), (go!"Run", (some (go.signature.Signature [(go.GoType.ChannelType go.ChanDir.recvonly (go.GoType.StructType []))] false []))), (go!"RunWithContext", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" [])] false [])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType Controller.ty) []
 
 attribute [instance] Controller.TypeAssumptions.type_repr
   Controller.TypeAssumptions.underlying
   Controller.TypeAssumptions.isUnderlying
+  Controller.TypeAssumptions.method_set
+  Controller.TypeAssumptions.ptr_method_set
 
 axiom ResourceEventHandler : Type
 axiom ResourceEventHandler.zero_val : ZeroVal ResourceEventHandler
 attribute [instance] ResourceEventHandler.zero_val
 
-class ResourceEventHandler.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class ResourceEventHandler.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying ResourceEventHandler.underlying ResourceEventHandler
   underlying : go.UnderlyingDirectedEq ResourceEventHandler.ty ResourceEventHandler.underlying
   isUnderlying : go.IsUnderlying ResourceEventHandler.underlying ResourceEventHandler.underlying
+  method_set : go.MethodSetIs ResourceEventHandler.ty [(go!"OnAdd", (some (go.signature.Signature [(go.GoType.InterfaceType []), go.bool] false []))), (go!"OnDelete", (some (go.signature.Signature [(go.GoType.InterfaceType [])] false []))), (go!"OnUpdate", (some (go.signature.Signature [(go.GoType.InterfaceType []), (go.GoType.InterfaceType [])] false [])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType ResourceEventHandler.ty) []
 
 attribute [instance] ResourceEventHandler.TypeAssumptions.type_repr
   ResourceEventHandler.TypeAssumptions.underlying
   ResourceEventHandler.TypeAssumptions.isUnderlying
+  ResourceEventHandler.TypeAssumptions.method_set
+  ResourceEventHandler.TypeAssumptions.ptr_method_set
 
 axiom Object : Type
 axiom Object.zero_val : ZeroVal Object
 attribute [instance] Object.zero_val
 
-class Object.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class Object.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying Object.underlying Object
   underlying : go.UnderlyingDirectedEq Object.ty Object.underlying
   isUnderlying : go.IsUnderlying Object.underlying Object.underlying
+  method_set : go.MethodSetIs Object.ty [(go!"GetName", (some (go.signature.Signature [] false [go.string]))), (go!"GetNamespace", (some (go.signature.Signature [] false [go.string])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType Object.ty) []
 
 attribute [instance] Object.TypeAssumptions.type_repr
   Object.TypeAssumptions.underlying
   Object.TypeAssumptions.isUnderlying
+  Object.TypeAssumptions.method_set
+  Object.TypeAssumptions.ptr_method_set
 
 axiom TypedResourceEventHandler : ∀ (T : Type), Type
 axiom TypedResourceEventHandler.zero_val : ∀ {T : Type} [ZeroVal T], ZeroVal (TypedResourceEventHandler T)
 attribute [instance] TypedResourceEventHandler.zero_val
 
-class TypedResourceEventHandler.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class TypedResourceEventHandler.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : ∀ (T : go.GoType) (T' : Type) [ZeroVal T'] [TypeRepr T T'], go.TypeReprUnderlying (TypedResourceEventHandler.underlying T) (TypedResourceEventHandler T')
   underlying : ∀ (T : go.GoType), go.UnderlyingDirectedEq (TypedResourceEventHandler.ty T) (TypedResourceEventHandler.underlying T)
   isUnderlying : ∀ (T : go.GoType), go.IsUnderlying (TypedResourceEventHandler.underlying T) (TypedResourceEventHandler.underlying T)
+  method_set : ∀ (T : go.GoType), go.MethodSetIs (TypedResourceEventHandler.ty T) [(go!"OnAdd", (some (go.signature.Signature [T, go.bool] false []))), (go!"OnDelete", (some (go.signature.Signature [(DeletedObject.ty T)] false []))), (go!"OnUpdate", (some (go.signature.Signature [T, T] false [])))]
+  ptr_method_set : ∀ (T : go.GoType), go.MethodSetIs (go.GoType.PointerType (TypedResourceEventHandler.ty T)) []
 
 attribute [instance] TypedResourceEventHandler.TypeAssumptions.type_repr
   TypedResourceEventHandler.TypeAssumptions.underlying
   TypedResourceEventHandler.TypeAssumptions.isUnderlying
+  TypedResourceEventHandler.TypeAssumptions.method_set
+  TypedResourceEventHandler.TypeAssumptions.ptr_method_set
 
 axiom DeletedObject : ∀ (T : Type), Type
 axiom DeletedObject.zero_val : ∀ {T : Type} [ZeroVal T], ZeroVal (DeletedObject T)
 attribute [instance] DeletedObject.zero_val
 
-class DeletedObject.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class DeletedObject.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : ∀ (T : go.GoType) (T' : Type) [ZeroVal T'] [TypeRepr T T'], go.TypeReprUnderlying (DeletedObject.underlying T) (DeletedObject T')
   underlying : ∀ (T : go.GoType), go.UnderlyingDirectedEq (DeletedObject.ty T) (DeletedObject.underlying T)
   isUnderlying : ∀ (T : go.GoType), go.IsUnderlying (DeletedObject.underlying T) (DeletedObject.underlying T)
+  method_set : ∀ (T : go.GoType), go.MethodSetIs (DeletedObject.ty T) [(go!"GetKey", (some (go.signature.Signature [] false [go.string]))), (go!"GetName", (some (go.signature.Signature [] false [go.string]))), (go!"GetNamespace", (some (go.signature.Signature [] false [go.string]))), (go!"GetObjectName", (some (go.signature.Signature [] false [ObjectName.ty])))]
+  ptr_method_set : ∀ (T : go.GoType), go.MethodSetIs (go.GoType.PointerType (DeletedObject.ty T)) [(go!"GetKey", (some (go.signature.Signature [] false [go.string]))), (go!"GetName", (some (go.signature.Signature [] false [go.string]))), (go!"GetNamespace", (some (go.signature.Signature [] false [go.string]))), (go!"GetObjectName", (some (go.signature.Signature [] false [ObjectName.ty])))]
 
 attribute [instance] DeletedObject.TypeAssumptions.type_repr
   DeletedObject.TypeAssumptions.underlying
   DeletedObject.TypeAssumptions.isUnderlying
+  DeletedObject.TypeAssumptions.method_set
+  DeletedObject.TypeAssumptions.ptr_method_set
 
 axiom ResourceEventHandlerFuncs : Type
 axiom ResourceEventHandlerFuncs.zero_val : ZeroVal ResourceEventHandlerFuncs
 attribute [instance] ResourceEventHandlerFuncs.zero_val
 
-class ResourceEventHandlerFuncs.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class ResourceEventHandlerFuncs.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying ResourceEventHandlerFuncs.underlying ResourceEventHandlerFuncs
   underlying : go.UnderlyingDirectedEq ResourceEventHandlerFuncs.ty ResourceEventHandlerFuncs.underlying
   isUnderlying : go.IsUnderlying ResourceEventHandlerFuncs.underlying ResourceEventHandlerFuncs.underlying
+  method_set : go.MethodSetIs ResourceEventHandlerFuncs.ty [(go!"OnAdd", (some (go.signature.Signature [(go.GoType.InterfaceType []), go.bool] false []))), (go!"OnDelete", (some (go.signature.Signature [(go.GoType.InterfaceType [])] false []))), (go!"OnUpdate", (some (go.signature.Signature [(go.GoType.InterfaceType []), (go.GoType.InterfaceType [])] false [])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType ResourceEventHandlerFuncs.ty) [(go!"OnAdd", (some (go.signature.Signature [(go.GoType.InterfaceType []), go.bool] false []))), (go!"OnDelete", (some (go.signature.Signature [(go.GoType.InterfaceType [])] false []))), (go!"OnUpdate", (some (go.signature.Signature [(go.GoType.InterfaceType []), (go.GoType.InterfaceType [])] false [])))]
 
 attribute [instance] ResourceEventHandlerFuncs.TypeAssumptions.type_repr
   ResourceEventHandlerFuncs.TypeAssumptions.underlying
   ResourceEventHandlerFuncs.TypeAssumptions.isUnderlying
+  ResourceEventHandlerFuncs.TypeAssumptions.method_set
+  ResourceEventHandlerFuncs.TypeAssumptions.ptr_method_set
 
 axiom TypedResourceEventHandlerFuncs : ∀ (T : Type), Type
 axiom TypedResourceEventHandlerFuncs.zero_val : ∀ {T : Type} [ZeroVal T], ZeroVal (TypedResourceEventHandlerFuncs T)
 attribute [instance] TypedResourceEventHandlerFuncs.zero_val
 
-class TypedResourceEventHandlerFuncs.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class TypedResourceEventHandlerFuncs.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : ∀ (T : go.GoType) (T' : Type) [ZeroVal T'] [TypeRepr T T'], go.TypeReprUnderlying (TypedResourceEventHandlerFuncs.underlying T) (TypedResourceEventHandlerFuncs T')
   underlying : ∀ (T : go.GoType), go.UnderlyingDirectedEq (TypedResourceEventHandlerFuncs.ty T) (TypedResourceEventHandlerFuncs.underlying T)
   isUnderlying : ∀ (T : go.GoType), go.IsUnderlying (TypedResourceEventHandlerFuncs.underlying T) (TypedResourceEventHandlerFuncs.underlying T)
+  method_set : ∀ (T : go.GoType), go.MethodSetIs (TypedResourceEventHandlerFuncs.ty T) [(go!"OnAdd", (some (go.signature.Signature [T, go.bool] false []))), (go!"OnDelete", (some (go.signature.Signature [(DeletedObject.ty T)] false []))), (go!"OnUpdate", (some (go.signature.Signature [T, T] false [])))]
+  ptr_method_set : ∀ (T : go.GoType), go.MethodSetIs (go.GoType.PointerType (TypedResourceEventHandlerFuncs.ty T)) [(go!"OnAdd", (some (go.signature.Signature [T, go.bool] false []))), (go!"OnDelete", (some (go.signature.Signature [(DeletedObject.ty T)] false []))), (go!"OnUpdate", (some (go.signature.Signature [T, T] false [])))]
 
 attribute [instance] TypedResourceEventHandlerFuncs.TypeAssumptions.type_repr
   TypedResourceEventHandlerFuncs.TypeAssumptions.underlying
   TypedResourceEventHandlerFuncs.TypeAssumptions.isUnderlying
+  TypedResourceEventHandlerFuncs.TypeAssumptions.method_set
+  TypedResourceEventHandlerFuncs.TypeAssumptions.ptr_method_set
 
 axiom ResourceEventHandlerDetailedFuncs : Type
 axiom ResourceEventHandlerDetailedFuncs.zero_val : ZeroVal ResourceEventHandlerDetailedFuncs
 attribute [instance] ResourceEventHandlerDetailedFuncs.zero_val
 
-class ResourceEventHandlerDetailedFuncs.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class ResourceEventHandlerDetailedFuncs.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying ResourceEventHandlerDetailedFuncs.underlying ResourceEventHandlerDetailedFuncs
   underlying : go.UnderlyingDirectedEq ResourceEventHandlerDetailedFuncs.ty ResourceEventHandlerDetailedFuncs.underlying
   isUnderlying : go.IsUnderlying ResourceEventHandlerDetailedFuncs.underlying ResourceEventHandlerDetailedFuncs.underlying
+  method_set : go.MethodSetIs ResourceEventHandlerDetailedFuncs.ty [(go!"OnAdd", (some (go.signature.Signature [(go.GoType.InterfaceType []), go.bool] false []))), (go!"OnDelete", (some (go.signature.Signature [(go.GoType.InterfaceType [])] false []))), (go!"OnUpdate", (some (go.signature.Signature [(go.GoType.InterfaceType []), (go.GoType.InterfaceType [])] false [])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType ResourceEventHandlerDetailedFuncs.ty) [(go!"OnAdd", (some (go.signature.Signature [(go.GoType.InterfaceType []), go.bool] false []))), (go!"OnDelete", (some (go.signature.Signature [(go.GoType.InterfaceType [])] false []))), (go!"OnUpdate", (some (go.signature.Signature [(go.GoType.InterfaceType []), (go.GoType.InterfaceType [])] false [])))]
 
 attribute [instance] ResourceEventHandlerDetailedFuncs.TypeAssumptions.type_repr
   ResourceEventHandlerDetailedFuncs.TypeAssumptions.underlying
   ResourceEventHandlerDetailedFuncs.TypeAssumptions.isUnderlying
+  ResourceEventHandlerDetailedFuncs.TypeAssumptions.method_set
+  ResourceEventHandlerDetailedFuncs.TypeAssumptions.ptr_method_set
 
 axiom TypedResourceEventHandlerDetailedFuncs : ∀ (T : Type), Type
 axiom TypedResourceEventHandlerDetailedFuncs.zero_val : ∀ {T : Type} [ZeroVal T], ZeroVal (TypedResourceEventHandlerDetailedFuncs T)
 attribute [instance] TypedResourceEventHandlerDetailedFuncs.zero_val
 
-class TypedResourceEventHandlerDetailedFuncs.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class TypedResourceEventHandlerDetailedFuncs.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : ∀ (T : go.GoType) (T' : Type) [ZeroVal T'] [TypeRepr T T'], go.TypeReprUnderlying (TypedResourceEventHandlerDetailedFuncs.underlying T) (TypedResourceEventHandlerDetailedFuncs T')
   underlying : ∀ (T : go.GoType), go.UnderlyingDirectedEq (TypedResourceEventHandlerDetailedFuncs.ty T) (TypedResourceEventHandlerDetailedFuncs.underlying T)
   isUnderlying : ∀ (T : go.GoType), go.IsUnderlying (TypedResourceEventHandlerDetailedFuncs.underlying T) (TypedResourceEventHandlerDetailedFuncs.underlying T)
+  method_set : ∀ (T : go.GoType), go.MethodSetIs (TypedResourceEventHandlerDetailedFuncs.ty T) [(go!"OnAdd", (some (go.signature.Signature [T, go.bool] false []))), (go!"OnDelete", (some (go.signature.Signature [(DeletedObject.ty T)] false []))), (go!"OnUpdate", (some (go.signature.Signature [T, T] false [])))]
+  ptr_method_set : ∀ (T : go.GoType), go.MethodSetIs (go.GoType.PointerType (TypedResourceEventHandlerDetailedFuncs.ty T)) [(go!"OnAdd", (some (go.signature.Signature [T, go.bool] false []))), (go!"OnDelete", (some (go.signature.Signature [(DeletedObject.ty T)] false []))), (go!"OnUpdate", (some (go.signature.Signature [T, T] false [])))]
 
 attribute [instance] TypedResourceEventHandlerDetailedFuncs.TypeAssumptions.type_repr
   TypedResourceEventHandlerDetailedFuncs.TypeAssumptions.underlying
   TypedResourceEventHandlerDetailedFuncs.TypeAssumptions.isUnderlying
+  TypedResourceEventHandlerDetailedFuncs.TypeAssumptions.method_set
+  TypedResourceEventHandlerDetailedFuncs.TypeAssumptions.ptr_method_set
 
 axiom FilteringResourceEventHandler : Type
 axiom FilteringResourceEventHandler.zero_val : ZeroVal FilteringResourceEventHandler
 attribute [instance] FilteringResourceEventHandler.zero_val
 
-class FilteringResourceEventHandler.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class FilteringResourceEventHandler.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying FilteringResourceEventHandler.underlying FilteringResourceEventHandler
   underlying : go.UnderlyingDirectedEq FilteringResourceEventHandler.ty FilteringResourceEventHandler.underlying
   isUnderlying : go.IsUnderlying FilteringResourceEventHandler.underlying FilteringResourceEventHandler.underlying
+  method_set : go.MethodSetIs FilteringResourceEventHandler.ty [(go!"OnAdd", (some (go.signature.Signature [(go.GoType.InterfaceType []), go.bool] false []))), (go!"OnDelete", (some (go.signature.Signature [(go.GoType.InterfaceType [])] false []))), (go!"OnUpdate", (some (go.signature.Signature [(go.GoType.InterfaceType []), (go.GoType.InterfaceType [])] false [])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType FilteringResourceEventHandler.ty) [(go!"OnAdd", (some (go.signature.Signature [(go.GoType.InterfaceType []), go.bool] false []))), (go!"OnDelete", (some (go.signature.Signature [(go.GoType.InterfaceType [])] false []))), (go!"OnUpdate", (some (go.signature.Signature [(go.GoType.InterfaceType []), (go.GoType.InterfaceType [])] false [])))]
 
 attribute [instance] FilteringResourceEventHandler.TypeAssumptions.type_repr
   FilteringResourceEventHandler.TypeAssumptions.underlying
   FilteringResourceEventHandler.TypeAssumptions.isUnderlying
+  FilteringResourceEventHandler.TypeAssumptions.method_set
+  FilteringResourceEventHandler.TypeAssumptions.ptr_method_set
 
 axiom TypedFilteringResourceEventHandler : ∀ (T : Type), Type
 axiom TypedFilteringResourceEventHandler.zero_val : ∀ {T : Type} [ZeroVal T], ZeroVal (TypedFilteringResourceEventHandler T)
 attribute [instance] TypedFilteringResourceEventHandler.zero_val
 
-class TypedFilteringResourceEventHandler.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class TypedFilteringResourceEventHandler.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : ∀ (T : go.GoType) (T' : Type) [ZeroVal T'] [TypeRepr T T'], go.TypeReprUnderlying (TypedFilteringResourceEventHandler.underlying T) (TypedFilteringResourceEventHandler T')
   underlying : ∀ (T : go.GoType), go.UnderlyingDirectedEq (TypedFilteringResourceEventHandler.ty T) (TypedFilteringResourceEventHandler.underlying T)
   isUnderlying : ∀ (T : go.GoType), go.IsUnderlying (TypedFilteringResourceEventHandler.underlying T) (TypedFilteringResourceEventHandler.underlying T)
+  method_set : ∀ (T : go.GoType), go.MethodSetIs (TypedFilteringResourceEventHandler.ty T) [(go!"OnAdd", (some (go.signature.Signature [T, go.bool] false []))), (go!"OnDelete", (some (go.signature.Signature [(DeletedObject.ty T)] false []))), (go!"OnUpdate", (some (go.signature.Signature [T, T] false [])))]
+  ptr_method_set : ∀ (T : go.GoType), go.MethodSetIs (go.GoType.PointerType (TypedFilteringResourceEventHandler.ty T)) [(go!"OnAdd", (some (go.signature.Signature [T, go.bool] false []))), (go!"OnDelete", (some (go.signature.Signature [(DeletedObject.ty T)] false []))), (go!"OnUpdate", (some (go.signature.Signature [T, T] false [])))]
 
 attribute [instance] TypedFilteringResourceEventHandler.TypeAssumptions.type_repr
   TypedFilteringResourceEventHandler.TypeAssumptions.underlying
   TypedFilteringResourceEventHandler.TypeAssumptions.isUnderlying
+  TypedFilteringResourceEventHandler.TypeAssumptions.method_set
+  TypedFilteringResourceEventHandler.TypeAssumptions.ptr_method_set
 
 axiom InformerOptions : Type
 axiom InformerOptions.zero_val : ZeroVal InformerOptions
 attribute [instance] InformerOptions.zero_val
 
-class InformerOptions.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class InformerOptions.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying InformerOptions.underlying InformerOptions
   underlying : go.UnderlyingDirectedEq InformerOptions.ty InformerOptions.underlying
   isUnderlying : go.IsUnderlying InformerOptions.underlying InformerOptions.underlying
+  method_set : go.MethodSetIs InformerOptions.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType InformerOptions.ty) []
 
 attribute [instance] InformerOptions.TypeAssumptions.type_repr
   InformerOptions.TypeAssumptions.underlying
   InformerOptions.TypeAssumptions.isUnderlying
+  InformerOptions.TypeAssumptions.method_set
+  InformerOptions.TypeAssumptions.ptr_method_set
 
 axiom DeltaFIFOOptions : Type
 axiom DeltaFIFOOptions.zero_val : ZeroVal DeltaFIFOOptions
 attribute [instance] DeltaFIFOOptions.zero_val
 
-class DeltaFIFOOptions.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class DeltaFIFOOptions.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying DeltaFIFOOptions.underlying DeltaFIFOOptions
   underlying : go.UnderlyingDirectedEq DeltaFIFOOptions.ty DeltaFIFOOptions.underlying
   isUnderlying : go.IsUnderlying DeltaFIFOOptions.underlying DeltaFIFOOptions.underlying
+  method_set : go.MethodSetIs DeltaFIFOOptions.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType DeltaFIFOOptions.ty) []
 
 attribute [instance] DeltaFIFOOptions.TypeAssumptions.type_repr
   DeltaFIFOOptions.TypeAssumptions.underlying
   DeltaFIFOOptions.TypeAssumptions.isUnderlying
+  DeltaFIFOOptions.TypeAssumptions.method_set
+  DeltaFIFOOptions.TypeAssumptions.ptr_method_set
 
 axiom DeltaFIFO : Type
 axiom DeltaFIFO.zero_val : ZeroVal DeltaFIFO
 attribute [instance] DeltaFIFO.zero_val
 
-class DeltaFIFO.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class DeltaFIFO.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying DeltaFIFO.underlying DeltaFIFO
   underlying : go.UnderlyingDirectedEq DeltaFIFO.ty DeltaFIFO.underlying
   isUnderlying : go.IsUnderlying DeltaFIFO.underlying DeltaFIFO.underlying
+  method_set : go.MethodSetIs DeltaFIFO.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType DeltaFIFO.ty) [(go!"Add", (some (go.signature.Signature [(go.GoType.InterfaceType [])] false [go.error]))), (go!"Close", (some (go.signature.Signature [] false []))), (go!"Delete", (some (go.signature.Signature [(go.GoType.InterfaceType [])] false [go.error]))), (go!"Done", (some (go.signature.Signature [] false [(go.GoType.ChannelType go.ChanDir.recvonly (go.GoType.StructType []))]))), (go!"HasSynced", (some (go.signature.Signature [] false [go.bool]))), (go!"HasSyncedChecker", (some (go.signature.Signature [] false [DoneChecker.ty]))), (go!"IsClosed", (some (go.signature.Signature [] false [go.bool]))), (go!"KeyOf", (some (go.signature.Signature [(go.GoType.InterfaceType [])] false [go.string, go.error]))), (go!"Name", (some (go.signature.Signature [] false [go.string]))), (go!"Pop", (some (go.signature.Signature [PopProcessFunc.ty] false [(go.GoType.InterfaceType []), go.error]))), (go!"Replace", (some (go.signature.Signature [(go.GoType.SliceType (go.GoType.InterfaceType [])), go.string] false [go.error]))), (go!"Resync", (some (go.signature.Signature [] false [go.error]))), (go!"Transformer", (some (go.signature.Signature [] false [TransformFunc.ty]))), (go!"Update", (some (go.signature.Signature [(go.GoType.InterfaceType [])] false [go.error]))), (go!"k8s.io/client-go/tools/cache.checkSynced_locked", (some (go.signature.Signature [] false []))), (go!"k8s.io/client-go/tools/cache.hasSynced_locked", (some (go.signature.Signature [] false [go.bool]))), (go!"k8s.io/client-go/tools/cache.queueActionInternalLocked", (some (go.signature.Signature [DeltaType.ty, DeltaType.ty, (go.GoType.InterfaceType [])] false [go.error]))), (go!"k8s.io/client-go/tools/cache.queueActionLocked", (some (go.signature.Signature [DeltaType.ty, (go.GoType.InterfaceType [])] false [go.error]))), (go!"k8s.io/client-go/tools/cache.syncKeyLocked", (some (go.signature.Signature [go.string] false [go.error])))]
 
 attribute [instance] DeltaFIFO.TypeAssumptions.type_repr
   DeltaFIFO.TypeAssumptions.underlying
   DeltaFIFO.TypeAssumptions.isUnderlying
+  DeltaFIFO.TypeAssumptions.method_set
+  DeltaFIFO.TypeAssumptions.ptr_method_set
 
 axiom TransformFunc : Type
 axiom TransformFunc.zero_val : ZeroVal TransformFunc
 attribute [instance] TransformFunc.zero_val
 
-class TransformFunc.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class TransformFunc.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying TransformFunc.underlying TransformFunc
   underlying : go.UnderlyingDirectedEq TransformFunc.ty TransformFunc.underlying
   isUnderlying : go.IsUnderlying TransformFunc.underlying TransformFunc.underlying
+  method_set : go.MethodSetIs TransformFunc.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType TransformFunc.ty) []
 
 attribute [instance] TransformFunc.TypeAssumptions.type_repr
   TransformFunc.TypeAssumptions.underlying
   TransformFunc.TypeAssumptions.isUnderlying
+  TransformFunc.TypeAssumptions.method_set
+  TransformFunc.TypeAssumptions.ptr_method_set
 
 axiom DeltaType : Type
 axiom DeltaType.zero_val : ZeroVal DeltaType
 attribute [instance] DeltaType.zero_val
 
-class DeltaType.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class DeltaType.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying DeltaType.underlying DeltaType
   underlying : go.UnderlyingDirectedEq DeltaType.ty DeltaType.underlying
   isUnderlying : go.IsUnderlying DeltaType.underlying DeltaType.underlying
+  method_set : go.MethodSetIs DeltaType.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType DeltaType.ty) []
 
 attribute [instance] DeltaType.TypeAssumptions.type_repr
   DeltaType.TypeAssumptions.underlying
   DeltaType.TypeAssumptions.isUnderlying
+  DeltaType.TypeAssumptions.method_set
+  DeltaType.TypeAssumptions.ptr_method_set
 
 axiom Delta : Type
 axiom Delta.zero_val : ZeroVal Delta
 attribute [instance] Delta.zero_val
 
-class Delta.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class Delta.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying Delta.underlying Delta
   underlying : go.UnderlyingDirectedEq Delta.ty Delta.underlying
   isUnderlying : go.IsUnderlying Delta.underlying Delta.underlying
+  method_set : go.MethodSetIs Delta.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType Delta.ty) []
 
 attribute [instance] Delta.TypeAssumptions.type_repr
   Delta.TypeAssumptions.underlying
   Delta.TypeAssumptions.isUnderlying
+  Delta.TypeAssumptions.method_set
+  Delta.TypeAssumptions.ptr_method_set
 
 axiom Deltas : Type
 axiom Deltas.zero_val : ZeroVal Deltas
 attribute [instance] Deltas.zero_val
 
-class Deltas.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class Deltas.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying Deltas.underlying Deltas
   underlying : go.UnderlyingDirectedEq Deltas.ty Deltas.underlying
   isUnderlying : go.IsUnderlying Deltas.underlying Deltas.underlying
+  method_set : go.MethodSetIs Deltas.ty [(go!"Newest", (some (go.signature.Signature [] false [(go.GoType.PointerType Delta.ty)]))), (go!"Oldest", (some (go.signature.Signature [] false [(go.GoType.PointerType Delta.ty)])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType Deltas.ty) [(go!"Newest", (some (go.signature.Signature [] false [(go.GoType.PointerType Delta.ty)]))), (go!"Oldest", (some (go.signature.Signature [] false [(go.GoType.PointerType Delta.ty)])))]
 
 attribute [instance] Deltas.TypeAssumptions.type_repr
   Deltas.TypeAssumptions.underlying
   Deltas.TypeAssumptions.isUnderlying
+  Deltas.TypeAssumptions.method_set
+  Deltas.TypeAssumptions.ptr_method_set
 
 axiom KeyListerGetter : Type
 axiom KeyListerGetter.zero_val : ZeroVal KeyListerGetter
 attribute [instance] KeyListerGetter.zero_val
 
-class KeyListerGetter.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class KeyListerGetter.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying KeyListerGetter.underlying KeyListerGetter
   underlying : go.UnderlyingDirectedEq KeyListerGetter.ty KeyListerGetter.underlying
   isUnderlying : go.IsUnderlying KeyListerGetter.underlying KeyListerGetter.underlying
+  method_set : go.MethodSetIs KeyListerGetter.ty [(go!"GetByKey", (some (go.signature.Signature [go.string] false [(go.GoType.InterfaceType []), go.bool, go.error]))), (go!"ListKeys", (some (go.signature.Signature [] false [(go.GoType.SliceType go.string)])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType KeyListerGetter.ty) []
 
 attribute [instance] KeyListerGetter.TypeAssumptions.type_repr
   KeyListerGetter.TypeAssumptions.underlying
   KeyListerGetter.TypeAssumptions.isUnderlying
+  KeyListerGetter.TypeAssumptions.method_set
+  KeyListerGetter.TypeAssumptions.ptr_method_set
 
 axiom KeyLister : Type
 axiom KeyLister.zero_val : ZeroVal KeyLister
 attribute [instance] KeyLister.zero_val
 
-class KeyLister.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class KeyLister.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying KeyLister.underlying KeyLister
   underlying : go.UnderlyingDirectedEq KeyLister.ty KeyLister.underlying
   isUnderlying : go.IsUnderlying KeyLister.underlying KeyLister.underlying
+  method_set : go.MethodSetIs KeyLister.ty [(go!"ListKeys", (some (go.signature.Signature [] false [(go.GoType.SliceType go.string)])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType KeyLister.ty) []
 
 attribute [instance] KeyLister.TypeAssumptions.type_repr
   KeyLister.TypeAssumptions.underlying
   KeyLister.TypeAssumptions.isUnderlying
+  KeyLister.TypeAssumptions.method_set
+  KeyLister.TypeAssumptions.ptr_method_set
 
 axiom KeyGetter : Type
 axiom KeyGetter.zero_val : ZeroVal KeyGetter
 attribute [instance] KeyGetter.zero_val
 
-class KeyGetter.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class KeyGetter.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying KeyGetter.underlying KeyGetter
   underlying : go.UnderlyingDirectedEq KeyGetter.ty KeyGetter.underlying
   isUnderlying : go.IsUnderlying KeyGetter.underlying KeyGetter.underlying
+  method_set : go.MethodSetIs KeyGetter.ty [(go!"GetByKey", (some (go.signature.Signature [go.string] false [(go.GoType.InterfaceType []), go.bool, go.error])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType KeyGetter.ty) []
 
 attribute [instance] KeyGetter.TypeAssumptions.type_repr
   KeyGetter.TypeAssumptions.underlying
   KeyGetter.TypeAssumptions.isUnderlying
+  KeyGetter.TypeAssumptions.method_set
+  KeyGetter.TypeAssumptions.ptr_method_set
 
 axiom DeletedFinalStateUnknown : Type
 axiom DeletedFinalStateUnknown.zero_val : ZeroVal DeletedFinalStateUnknown
 attribute [instance] DeletedFinalStateUnknown.zero_val
 
-class DeletedFinalStateUnknown.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class DeletedFinalStateUnknown.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying DeletedFinalStateUnknown.underlying DeletedFinalStateUnknown
   underlying : go.UnderlyingDirectedEq DeletedFinalStateUnknown.ty DeletedFinalStateUnknown.underlying
   isUnderlying : go.IsUnderlying DeletedFinalStateUnknown.underlying DeletedFinalStateUnknown.underlying
+  method_set : go.MethodSetIs DeletedFinalStateUnknown.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType DeletedFinalStateUnknown.ty) []
 
 attribute [instance] DeletedFinalStateUnknown.TypeAssumptions.type_repr
   DeletedFinalStateUnknown.TypeAssumptions.underlying
   DeletedFinalStateUnknown.TypeAssumptions.isUnderlying
+  DeletedFinalStateUnknown.TypeAssumptions.method_set
+  DeletedFinalStateUnknown.TypeAssumptions.ptr_method_set
 
 axiom ExpirationCache : Type
 axiom ExpirationCache.zero_val : ZeroVal ExpirationCache
 attribute [instance] ExpirationCache.zero_val
 
-class ExpirationCache.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class ExpirationCache.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying ExpirationCache.underlying ExpirationCache
   underlying : go.UnderlyingDirectedEq ExpirationCache.ty ExpirationCache.underlying
   isUnderlying : go.IsUnderlying ExpirationCache.underlying ExpirationCache.underlying
+  method_set : go.MethodSetIs ExpirationCache.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType ExpirationCache.ty) [(go!"Add", (some (go.signature.Signature [(go.GoType.InterfaceType [])] false [go.error]))), (go!"Bookmark", (some (go.signature.Signature [go.string] false []))), (go!"Delete", (some (go.signature.Signature [(go.GoType.InterfaceType [])] false [go.error]))), (go!"Get", (some (go.signature.Signature [(go.GoType.InterfaceType [])] false [(go.GoType.InterfaceType []), go.bool, go.error]))), (go!"GetByKey", (some (go.signature.Signature [go.string] false [(go.GoType.InterfaceType []), go.bool, go.error]))), (go!"LastStoreSyncResourceVersion", (some (go.signature.Signature [] false [go.string]))), (go!"List", (some (go.signature.Signature [] false [(go.GoType.SliceType (go.GoType.InterfaceType []))]))), (go!"ListKeys", (some (go.signature.Signature [] false [(go.GoType.SliceType go.string)]))), (go!"Replace", (some (go.signature.Signature [(go.GoType.SliceType (go.GoType.InterfaceType [])), go.string] false [go.error]))), (go!"Resync", (some (go.signature.Signature [] false [go.error]))), (go!"Update", (some (go.signature.Signature [(go.GoType.InterfaceType [])] false [go.error]))), (go!"k8s.io/client-go/tools/cache.getOrExpire", (some (go.signature.Signature [go.string] false [(go.GoType.InterfaceType []), go.bool]))), (go!"k8s.io/client-go/tools/cache.getTimestampedEntry", (some (go.signature.Signature [go.string] false [(go.GoType.PointerType TimestampedEntry.ty), go.bool])))]
 
 attribute [instance] ExpirationCache.TypeAssumptions.type_repr
   ExpirationCache.TypeAssumptions.underlying
   ExpirationCache.TypeAssumptions.isUnderlying
+  ExpirationCache.TypeAssumptions.method_set
+  ExpirationCache.TypeAssumptions.ptr_method_set
 
 axiom ExpirationPolicy : Type
 axiom ExpirationPolicy.zero_val : ZeroVal ExpirationPolicy
 attribute [instance] ExpirationPolicy.zero_val
 
-class ExpirationPolicy.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class ExpirationPolicy.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying ExpirationPolicy.underlying ExpirationPolicy
   underlying : go.UnderlyingDirectedEq ExpirationPolicy.ty ExpirationPolicy.underlying
   isUnderlying : go.IsUnderlying ExpirationPolicy.underlying ExpirationPolicy.underlying
+  method_set : go.MethodSetIs ExpirationPolicy.ty [(go!"IsExpired", (some (go.signature.Signature [(go.GoType.PointerType TimestampedEntry.ty)] false [go.bool])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType ExpirationPolicy.ty) []
 
 attribute [instance] ExpirationPolicy.TypeAssumptions.type_repr
   ExpirationPolicy.TypeAssumptions.underlying
   ExpirationPolicy.TypeAssumptions.isUnderlying
+  ExpirationPolicy.TypeAssumptions.method_set
+  ExpirationPolicy.TypeAssumptions.ptr_method_set
 
 axiom TTLPolicy : Type
 axiom TTLPolicy.zero_val : ZeroVal TTLPolicy
 attribute [instance] TTLPolicy.zero_val
 
-class TTLPolicy.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class TTLPolicy.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying TTLPolicy.underlying TTLPolicy
   underlying : go.UnderlyingDirectedEq TTLPolicy.ty TTLPolicy.underlying
   isUnderlying : go.IsUnderlying TTLPolicy.underlying TTLPolicy.underlying
+  method_set : go.MethodSetIs TTLPolicy.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType TTLPolicy.ty) [(go!"IsExpired", (some (go.signature.Signature [(go.GoType.PointerType TimestampedEntry.ty)] false [go.bool])))]
 
 attribute [instance] TTLPolicy.TypeAssumptions.type_repr
   TTLPolicy.TypeAssumptions.underlying
   TTLPolicy.TypeAssumptions.isUnderlying
+  TTLPolicy.TypeAssumptions.method_set
+  TTLPolicy.TypeAssumptions.ptr_method_set
 
 axiom TimestampedEntry : Type
 axiom TimestampedEntry.zero_val : ZeroVal TimestampedEntry
 attribute [instance] TimestampedEntry.zero_val
 
-class TimestampedEntry.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class TimestampedEntry.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying TimestampedEntry.underlying TimestampedEntry
   underlying : go.UnderlyingDirectedEq TimestampedEntry.ty TimestampedEntry.underlying
   isUnderlying : go.IsUnderlying TimestampedEntry.underlying TimestampedEntry.underlying
+  method_set : go.MethodSetIs TimestampedEntry.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType TimestampedEntry.ty) []
 
 attribute [instance] TimestampedEntry.TypeAssumptions.type_repr
   TimestampedEntry.TypeAssumptions.underlying
   TimestampedEntry.TypeAssumptions.isUnderlying
+  TimestampedEntry.TypeAssumptions.method_set
+  TimestampedEntry.TypeAssumptions.ptr_method_set
 
 axiom fakeThreadSafeMap : Type
 axiom fakeThreadSafeMap.zero_val : ZeroVal fakeThreadSafeMap
 attribute [instance] fakeThreadSafeMap.zero_val
 
-class fakeThreadSafeMap.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class fakeThreadSafeMap.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying fakeThreadSafeMap.underlying fakeThreadSafeMap
   underlying : go.UnderlyingDirectedEq fakeThreadSafeMap.ty fakeThreadSafeMap.underlying
   isUnderlying : go.IsUnderlying fakeThreadSafeMap.underlying fakeThreadSafeMap.underlying
+  method_set : go.MethodSetIs fakeThreadSafeMap.ty [(go!"Add", (some (go.signature.Signature [go.string, (go.GoType.InterfaceType [])] false []))), (go!"AddIndexers", (some (go.signature.Signature [Indexers.ty] false [go.error]))), (go!"Bookmark", (some (go.signature.Signature [go.string] false []))), (go!"ByIndex", (some (go.signature.Signature [go.string, go.string] false [(go.GoType.SliceType (go.GoType.InterfaceType [])), go.error]))), (go!"DeleteWithObject", (some (go.signature.Signature [go.string, (go.GoType.InterfaceType [])] false []))), (go!"Get", (some (go.signature.Signature [go.string] false [(go.GoType.InterfaceType []), go.bool]))), (go!"GetIndexers", (some (go.signature.Signature [] false [Indexers.ty]))), (go!"Index", (some (go.signature.Signature [go.string, (go.GoType.InterfaceType [])] false [(go.GoType.SliceType (go.GoType.InterfaceType [])), go.error]))), (go!"IndexKeys", (some (go.signature.Signature [go.string, go.string] false [(go.GoType.SliceType go.string), go.error]))), (go!"LastStoreSyncResourceVersion", (some (go.signature.Signature [] false [go.string]))), (go!"List", (some (go.signature.Signature [] false [(go.GoType.SliceType (go.GoType.InterfaceType []))]))), (go!"ListIndexFuncValues", (some (go.signature.Signature [go.string] false [(go.GoType.SliceType go.string)]))), (go!"ListKeys", (some (go.signature.Signature [] false [(go.GoType.SliceType go.string)]))), (go!"Replace", (some (go.signature.Signature [(go.GoType.MapType go.string (go.GoType.InterfaceType [])), go.string] false []))), (go!"Resync", (some (go.signature.Signature [] false [go.error]))), (go!"Update", (some (go.signature.Signature [go.string, (go.GoType.InterfaceType [])] false [])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType fakeThreadSafeMap.ty) [(go!"Add", (some (go.signature.Signature [go.string, (go.GoType.InterfaceType [])] false []))), (go!"AddIndexers", (some (go.signature.Signature [Indexers.ty] false [go.error]))), (go!"Bookmark", (some (go.signature.Signature [go.string] false []))), (go!"ByIndex", (some (go.signature.Signature [go.string, go.string] false [(go.GoType.SliceType (go.GoType.InterfaceType [])), go.error]))), (go!"Delete", (some (go.signature.Signature [go.string] false []))), (go!"DeleteWithObject", (some (go.signature.Signature [go.string, (go.GoType.InterfaceType [])] false []))), (go!"Get", (some (go.signature.Signature [go.string] false [(go.GoType.InterfaceType []), go.bool]))), (go!"GetIndexers", (some (go.signature.Signature [] false [Indexers.ty]))), (go!"Index", (some (go.signature.Signature [go.string, (go.GoType.InterfaceType [])] false [(go.GoType.SliceType (go.GoType.InterfaceType [])), go.error]))), (go!"IndexKeys", (some (go.signature.Signature [go.string, go.string] false [(go.GoType.SliceType go.string), go.error]))), (go!"LastStoreSyncResourceVersion", (some (go.signature.Signature [] false [go.string]))), (go!"List", (some (go.signature.Signature [] false [(go.GoType.SliceType (go.GoType.InterfaceType []))]))), (go!"ListIndexFuncValues", (some (go.signature.Signature [go.string] false [(go.GoType.SliceType go.string)]))), (go!"ListKeys", (some (go.signature.Signature [] false [(go.GoType.SliceType go.string)]))), (go!"Replace", (some (go.signature.Signature [(go.GoType.MapType go.string (go.GoType.InterfaceType [])), go.string] false []))), (go!"Resync", (some (go.signature.Signature [] false [go.error]))), (go!"Update", (some (go.signature.Signature [go.string, (go.GoType.InterfaceType [])] false [])))]
 
 attribute [instance] fakeThreadSafeMap.TypeAssumptions.type_repr
   fakeThreadSafeMap.TypeAssumptions.underlying
   fakeThreadSafeMap.TypeAssumptions.isUnderlying
+  fakeThreadSafeMap.TypeAssumptions.method_set
+  fakeThreadSafeMap.TypeAssumptions.ptr_method_set
 
 axiom FakeExpirationPolicy : Type
 axiom FakeExpirationPolicy.zero_val : ZeroVal FakeExpirationPolicy
 attribute [instance] FakeExpirationPolicy.zero_val
 
-class FakeExpirationPolicy.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class FakeExpirationPolicy.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying FakeExpirationPolicy.underlying FakeExpirationPolicy
   underlying : go.UnderlyingDirectedEq FakeExpirationPolicy.ty FakeExpirationPolicy.underlying
   isUnderlying : go.IsUnderlying FakeExpirationPolicy.underlying FakeExpirationPolicy.underlying
+  method_set : go.MethodSetIs FakeExpirationPolicy.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType FakeExpirationPolicy.ty) [(go!"IsExpired", (some (go.signature.Signature [(go.GoType.PointerType TimestampedEntry.ty)] false [go.bool])))]
 
 attribute [instance] FakeExpirationPolicy.TypeAssumptions.type_repr
   FakeExpirationPolicy.TypeAssumptions.underlying
   FakeExpirationPolicy.TypeAssumptions.isUnderlying
+  FakeExpirationPolicy.TypeAssumptions.method_set
+  FakeExpirationPolicy.TypeAssumptions.ptr_method_set
 
 axiom FakeCustomStore : Type
 axiom FakeCustomStore.zero_val : ZeroVal FakeCustomStore
 attribute [instance] FakeCustomStore.zero_val
 
-class FakeCustomStore.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class FakeCustomStore.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying FakeCustomStore.underlying FakeCustomStore
   underlying : go.UnderlyingDirectedEq FakeCustomStore.ty FakeCustomStore.underlying
   isUnderlying : go.IsUnderlying FakeCustomStore.underlying FakeCustomStore.underlying
+  method_set : go.MethodSetIs FakeCustomStore.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType FakeCustomStore.ty) [(go!"Add", (some (go.signature.Signature [(go.GoType.InterfaceType [])] false [go.error]))), (go!"Bookmark", (some (go.signature.Signature [go.string] false []))), (go!"Delete", (some (go.signature.Signature [(go.GoType.InterfaceType [])] false [go.error]))), (go!"Get", (some (go.signature.Signature [(go.GoType.InterfaceType [])] false [(go.GoType.InterfaceType []), go.bool, go.error]))), (go!"GetByKey", (some (go.signature.Signature [go.string] false [(go.GoType.InterfaceType []), go.bool, go.error]))), (go!"LastStoreSyncResourceVersion", (some (go.signature.Signature [] false [go.string]))), (go!"List", (some (go.signature.Signature [] false [(go.GoType.SliceType (go.GoType.InterfaceType []))]))), (go!"ListKeys", (some (go.signature.Signature [] false [(go.GoType.SliceType go.string)]))), (go!"Replace", (some (go.signature.Signature [(go.GoType.SliceType (go.GoType.InterfaceType [])), go.string] false [go.error]))), (go!"Resync", (some (go.signature.Signature [] false [go.error]))), (go!"Update", (some (go.signature.Signature [(go.GoType.InterfaceType [])] false [go.error])))]
 
 attribute [instance] FakeCustomStore.TypeAssumptions.type_repr
   FakeCustomStore.TypeAssumptions.underlying
   FakeCustomStore.TypeAssumptions.isUnderlying
+  FakeCustomStore.TypeAssumptions.method_set
+  FakeCustomStore.TypeAssumptions.ptr_method_set
 
 axiom PopProcessFunc : Type
 axiom PopProcessFunc.zero_val : ZeroVal PopProcessFunc
 attribute [instance] PopProcessFunc.zero_val
 
-class PopProcessFunc.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class PopProcessFunc.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying PopProcessFunc.underlying PopProcessFunc
   underlying : go.UnderlyingDirectedEq PopProcessFunc.ty PopProcessFunc.underlying
   isUnderlying : go.IsUnderlying PopProcessFunc.underlying PopProcessFunc.underlying
+  method_set : go.MethodSetIs PopProcessFunc.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType PopProcessFunc.ty) []
 
 attribute [instance] PopProcessFunc.TypeAssumptions.type_repr
   PopProcessFunc.TypeAssumptions.underlying
   PopProcessFunc.TypeAssumptions.isUnderlying
+  PopProcessFunc.TypeAssumptions.method_set
+  PopProcessFunc.TypeAssumptions.ptr_method_set
 
 axiom Queue : Type
 axiom Queue.zero_val : ZeroVal Queue
 attribute [instance] Queue.zero_val
 
-class Queue.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class Queue.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying Queue.underlying Queue
   underlying : go.UnderlyingDirectedEq Queue.ty Queue.underlying
   isUnderlying : go.IsUnderlying Queue.underlying Queue.underlying
+  method_set : go.MethodSetIs Queue.ty [(go!"Add", (some (go.signature.Signature [(go.GoType.InterfaceType [])] false [go.error]))), (go!"Close", (some (go.signature.Signature [] false []))), (go!"Delete", (some (go.signature.Signature [(go.GoType.InterfaceType [])] false [go.error]))), (go!"HasSynced", (some (go.signature.Signature [] false [go.bool]))), (go!"HasSyncedChecker", (some (go.signature.Signature [] false [DoneChecker.ty]))), (go!"Pop", (some (go.signature.Signature [PopProcessFunc.ty] false [(go.GoType.InterfaceType []), go.error]))), (go!"Replace", (some (go.signature.Signature [(go.GoType.SliceType (go.GoType.InterfaceType [])), go.string] false [go.error]))), (go!"Resync", (some (go.signature.Signature [] false [go.error]))), (go!"Update", (some (go.signature.Signature [(go.GoType.InterfaceType [])] false [go.error])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType Queue.ty) []
 
 attribute [instance] Queue.TypeAssumptions.type_repr
   Queue.TypeAssumptions.underlying
   Queue.TypeAssumptions.isUnderlying
+  Queue.TypeAssumptions.method_set
+  Queue.TypeAssumptions.ptr_method_set
 
 axiom QueueWithBatch : Type
 axiom QueueWithBatch.zero_val : ZeroVal QueueWithBatch
 attribute [instance] QueueWithBatch.zero_val
 
-class QueueWithBatch.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class QueueWithBatch.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying QueueWithBatch.underlying QueueWithBatch
   underlying : go.UnderlyingDirectedEq QueueWithBatch.ty QueueWithBatch.underlying
   isUnderlying : go.IsUnderlying QueueWithBatch.underlying QueueWithBatch.underlying
+  method_set : go.MethodSetIs QueueWithBatch.ty [(go!"Add", (some (go.signature.Signature [(go.GoType.InterfaceType [])] false [go.error]))), (go!"Close", (some (go.signature.Signature [] false []))), (go!"Delete", (some (go.signature.Signature [(go.GoType.InterfaceType [])] false [go.error]))), (go!"HasSynced", (some (go.signature.Signature [] false [go.bool]))), (go!"HasSyncedChecker", (some (go.signature.Signature [] false [DoneChecker.ty]))), (go!"Pop", (some (go.signature.Signature [PopProcessFunc.ty] false [(go.GoType.InterfaceType []), go.error]))), (go!"PopBatch", (some (go.signature.Signature [ProcessBatchFunc.ty, PopProcessFunc.ty] false [go.error]))), (go!"Replace", (some (go.signature.Signature [(go.GoType.SliceType (go.GoType.InterfaceType [])), go.string] false [go.error]))), (go!"Resync", (some (go.signature.Signature [] false [go.error]))), (go!"Update", (some (go.signature.Signature [(go.GoType.InterfaceType [])] false [go.error])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType QueueWithBatch.ty) []
 
 attribute [instance] QueueWithBatch.TypeAssumptions.type_repr
   QueueWithBatch.TypeAssumptions.underlying
   QueueWithBatch.TypeAssumptions.isUnderlying
+  QueueWithBatch.TypeAssumptions.method_set
+  QueueWithBatch.TypeAssumptions.ptr_method_set
 
 axiom FIFO : Type
 axiom FIFO.zero_val : ZeroVal FIFO
 attribute [instance] FIFO.zero_val
 
-class FIFO.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class FIFO.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying FIFO.underlying FIFO
   underlying : go.UnderlyingDirectedEq FIFO.ty FIFO.underlying
   isUnderlying : go.IsUnderlying FIFO.underlying FIFO.underlying
+  method_set : go.MethodSetIs FIFO.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType FIFO.ty) [(go!"Add", (some (go.signature.Signature [(go.GoType.InterfaceType [])] false [go.error]))), (go!"Close", (some (go.signature.Signature [] false []))), (go!"Delete", (some (go.signature.Signature [(go.GoType.InterfaceType [])] false [go.error]))), (go!"Done", (some (go.signature.Signature [] false [(go.GoType.ChannelType go.ChanDir.recvonly (go.GoType.StructType []))]))), (go!"HasSynced", (some (go.signature.Signature [] false [go.bool]))), (go!"HasSyncedChecker", (some (go.signature.Signature [] false [DoneChecker.ty]))), (go!"IsClosed", (some (go.signature.Signature [] false [go.bool]))), (go!"Name", (some (go.signature.Signature [] false [go.string]))), (go!"Pop", (some (go.signature.Signature [PopProcessFunc.ty] false [(go.GoType.InterfaceType []), go.error]))), (go!"Replace", (some (go.signature.Signature [(go.GoType.SliceType (go.GoType.InterfaceType [])), go.string] false [go.error]))), (go!"Resync", (some (go.signature.Signature [] false [go.error]))), (go!"Update", (some (go.signature.Signature [(go.GoType.InterfaceType [])] false [go.error]))), (go!"k8s.io/client-go/tools/cache.checkSynced", (some (go.signature.Signature [] false []))), (go!"k8s.io/client-go/tools/cache.hasSynced_locked", (some (go.signature.Signature [] false [go.bool])))]
 
 attribute [instance] FIFO.TypeAssumptions.type_repr
   FIFO.TypeAssumptions.underlying
   FIFO.TypeAssumptions.isUnderlying
+  FIFO.TypeAssumptions.method_set
+  FIFO.TypeAssumptions.ptr_method_set
 
 axiom LessFunc : Type
 axiom LessFunc.zero_val : ZeroVal LessFunc
 attribute [instance] LessFunc.zero_val
 
-class LessFunc.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class LessFunc.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying LessFunc.underlying LessFunc
   underlying : go.UnderlyingDirectedEq LessFunc.ty LessFunc.underlying
   isUnderlying : go.IsUnderlying LessFunc.underlying LessFunc.underlying
+  method_set : go.MethodSetIs LessFunc.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType LessFunc.ty) []
 
 attribute [instance] LessFunc.TypeAssumptions.type_repr
   LessFunc.TypeAssumptions.underlying
   LessFunc.TypeAssumptions.isUnderlying
+  LessFunc.TypeAssumptions.method_set
+  LessFunc.TypeAssumptions.ptr_method_set
 
 axiom heapItem : Type
 axiom heapItem.zero_val : ZeroVal heapItem
 attribute [instance] heapItem.zero_val
 
-class heapItem.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class heapItem.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying heapItem.underlying heapItem
   underlying : go.UnderlyingDirectedEq heapItem.ty heapItem.underlying
   isUnderlying : go.IsUnderlying heapItem.underlying heapItem.underlying
+  method_set : go.MethodSetIs heapItem.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType heapItem.ty) []
 
 attribute [instance] heapItem.TypeAssumptions.type_repr
   heapItem.TypeAssumptions.underlying
   heapItem.TypeAssumptions.isUnderlying
+  heapItem.TypeAssumptions.method_set
+  heapItem.TypeAssumptions.ptr_method_set
 
 axiom itemKeyValue : Type
 axiom itemKeyValue.zero_val : ZeroVal itemKeyValue
 attribute [instance] itemKeyValue.zero_val
 
-class itemKeyValue.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class itemKeyValue.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying itemKeyValue.underlying itemKeyValue
   underlying : go.UnderlyingDirectedEq itemKeyValue.ty itemKeyValue.underlying
   isUnderlying : go.IsUnderlying itemKeyValue.underlying itemKeyValue.underlying
+  method_set : go.MethodSetIs itemKeyValue.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType itemKeyValue.ty) []
 
 attribute [instance] itemKeyValue.TypeAssumptions.type_repr
   itemKeyValue.TypeAssumptions.underlying
   itemKeyValue.TypeAssumptions.isUnderlying
+  itemKeyValue.TypeAssumptions.method_set
+  itemKeyValue.TypeAssumptions.ptr_method_set
 
 axiom heapData : Type
 axiom heapData.zero_val : ZeroVal heapData
 attribute [instance] heapData.zero_val
 
-class heapData.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class heapData.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying heapData.underlying heapData
   underlying : go.UnderlyingDirectedEq heapData.ty heapData.underlying
   isUnderlying : go.IsUnderlying heapData.underlying heapData.underlying
+  method_set : go.MethodSetIs heapData.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType heapData.ty) [(go!"Len", (some (go.signature.Signature [] false [go.int]))), (go!"Less", (some (go.signature.Signature [go.int, go.int] false [go.bool]))), (go!"Pop", (some (go.signature.Signature [] false [(go.GoType.InterfaceType [])]))), (go!"Push", (some (go.signature.Signature [(go.GoType.InterfaceType [])] false []))), (go!"Swap", (some (go.signature.Signature [go.int, go.int] false [])))]
 
 attribute [instance] heapData.TypeAssumptions.type_repr
   heapData.TypeAssumptions.underlying
   heapData.TypeAssumptions.isUnderlying
+  heapData.TypeAssumptions.method_set
+  heapData.TypeAssumptions.ptr_method_set
 
 axiom Heap : Type
 axiom Heap.zero_val : ZeroVal Heap
 attribute [instance] Heap.zero_val
 
-class Heap.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class Heap.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying Heap.underlying Heap
   underlying : go.UnderlyingDirectedEq Heap.ty Heap.underlying
   isUnderlying : go.IsUnderlying Heap.underlying Heap.underlying
+  method_set : go.MethodSetIs Heap.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType Heap.ty) [(go!"Add", (some (go.signature.Signature [(go.GoType.InterfaceType [])] false [go.error]))), (go!"AddIfNotPresent", (some (go.signature.Signature [(go.GoType.InterfaceType [])] false [go.error]))), (go!"BulkAdd", (some (go.signature.Signature [(go.GoType.SliceType (go.GoType.InterfaceType []))] false [go.error]))), (go!"Close", (some (go.signature.Signature [] false []))), (go!"Delete", (some (go.signature.Signature [(go.GoType.InterfaceType [])] false [go.error]))), (go!"Get", (some (go.signature.Signature [(go.GoType.InterfaceType [])] false [(go.GoType.InterfaceType []), go.bool, go.error]))), (go!"GetByKey", (some (go.signature.Signature [go.string] false [(go.GoType.InterfaceType []), go.bool, go.error]))), (go!"IsClosed", (some (go.signature.Signature [] false [go.bool]))), (go!"List", (some (go.signature.Signature [] false [(go.GoType.SliceType (go.GoType.InterfaceType []))]))), (go!"ListKeys", (some (go.signature.Signature [] false [(go.GoType.SliceType go.string)]))), (go!"Pop", (some (go.signature.Signature [] false [(go.GoType.InterfaceType []), go.error]))), (go!"Update", (some (go.signature.Signature [(go.GoType.InterfaceType [])] false [go.error]))), (go!"k8s.io/client-go/tools/cache.addIfNotPresentLocked", (some (go.signature.Signature [go.string, (go.GoType.InterfaceType [])] false [])))]
 
 attribute [instance] Heap.TypeAssumptions.type_repr
   Heap.TypeAssumptions.underlying
   Heap.TypeAssumptions.isUnderlying
+  Heap.TypeAssumptions.method_set
+  Heap.TypeAssumptions.ptr_method_set
 
 axiom InformerName : Type
 axiom InformerName.zero_val : ZeroVal InformerName
 attribute [instance] InformerName.zero_val
 
-class InformerName.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class InformerName.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying InformerName.underlying InformerName
   underlying : go.UnderlyingDirectedEq InformerName.ty InformerName.underlying
   isUnderlying : go.IsUnderlying InformerName.underlying InformerName.underlying
+  method_set : go.MethodSetIs InformerName.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType InformerName.ty) [(go!"Name", (some (go.signature.Signature [] false [go.string]))), (go!"Release", (some (go.signature.Signature [] false []))), (go!"WithResource", (some (go.signature.Signature [(go.GoType.Named go!"k8s.io/apimachinery/pkg/runtime/schema.GroupVersionResource" [])] false [InformerNameAndResource.ty])))]
 
 attribute [instance] InformerName.TypeAssumptions.type_repr
   InformerName.TypeAssumptions.underlying
   InformerName.TypeAssumptions.isUnderlying
+  InformerName.TypeAssumptions.method_set
+  InformerName.TypeAssumptions.ptr_method_set
 
 axiom InformerNameAndResource : Type
 axiom InformerNameAndResource.zero_val : ZeroVal InformerNameAndResource
 attribute [instance] InformerNameAndResource.zero_val
 
-class InformerNameAndResource.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class InformerNameAndResource.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying InformerNameAndResource.underlying InformerNameAndResource
   underlying : go.UnderlyingDirectedEq InformerNameAndResource.ty InformerNameAndResource.underlying
   isUnderlying : go.IsUnderlying InformerNameAndResource.underlying InformerNameAndResource.underlying
+  method_set : go.MethodSetIs InformerNameAndResource.ty [(go!"GroupVersionResource", (some (go.signature.Signature [] false [(go.GoType.Named go!"k8s.io/apimachinery/pkg/runtime/schema.GroupVersionResource" [])]))), (go!"Name", (some (go.signature.Signature [] false [go.string]))), (go!"Reserved", (some (go.signature.Signature [] false [go.bool])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType InformerNameAndResource.ty) [(go!"GroupVersionResource", (some (go.signature.Signature [] false [(go.GoType.Named go!"k8s.io/apimachinery/pkg/runtime/schema.GroupVersionResource" [])]))), (go!"Name", (some (go.signature.Signature [] false [go.string]))), (go!"Reserved", (some (go.signature.Signature [] false [go.bool])))]
 
 attribute [instance] InformerNameAndResource.TypeAssumptions.type_repr
   InformerNameAndResource.TypeAssumptions.underlying
   InformerNameAndResource.TypeAssumptions.isUnderlying
+  InformerNameAndResource.TypeAssumptions.method_set
+  InformerNameAndResource.TypeAssumptions.ptr_method_set
 
 axiom Indexer : Type
 axiom Indexer.zero_val : ZeroVal Indexer
 attribute [instance] Indexer.zero_val
 
-class Indexer.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class Indexer.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying Indexer.underlying Indexer
   underlying : go.UnderlyingDirectedEq Indexer.ty Indexer.underlying
   isUnderlying : go.IsUnderlying Indexer.underlying Indexer.underlying
+  method_set : go.MethodSetIs Indexer.ty [(go!"Add", (some (go.signature.Signature [(go.GoType.InterfaceType [])] false [go.error]))), (go!"AddIndexers", (some (go.signature.Signature [Indexers.ty] false [go.error]))), (go!"Bookmark", (some (go.signature.Signature [go.string] false []))), (go!"ByIndex", (some (go.signature.Signature [go.string, go.string] false [(go.GoType.SliceType (go.GoType.InterfaceType [])), go.error]))), (go!"Delete", (some (go.signature.Signature [(go.GoType.InterfaceType [])] false [go.error]))), (go!"Get", (some (go.signature.Signature [(go.GoType.InterfaceType [])] false [(go.GoType.InterfaceType []), go.bool, go.error]))), (go!"GetByKey", (some (go.signature.Signature [go.string] false [(go.GoType.InterfaceType []), go.bool, go.error]))), (go!"GetIndexers", (some (go.signature.Signature [] false [Indexers.ty]))), (go!"Index", (some (go.signature.Signature [go.string, (go.GoType.InterfaceType [])] false [(go.GoType.SliceType (go.GoType.InterfaceType [])), go.error]))), (go!"IndexKeys", (some (go.signature.Signature [go.string, go.string] false [(go.GoType.SliceType go.string), go.error]))), (go!"LastStoreSyncResourceVersion", (some (go.signature.Signature [] false [go.string]))), (go!"List", (some (go.signature.Signature [] false [(go.GoType.SliceType (go.GoType.InterfaceType []))]))), (go!"ListIndexFuncValues", (some (go.signature.Signature [go.string] false [(go.GoType.SliceType go.string)]))), (go!"ListKeys", (some (go.signature.Signature [] false [(go.GoType.SliceType go.string)]))), (go!"Replace", (some (go.signature.Signature [(go.GoType.SliceType (go.GoType.InterfaceType [])), go.string] false [go.error]))), (go!"Resync", (some (go.signature.Signature [] false [go.error]))), (go!"Update", (some (go.signature.Signature [(go.GoType.InterfaceType [])] false [go.error])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType Indexer.ty) []
 
 attribute [instance] Indexer.TypeAssumptions.type_repr
   Indexer.TypeAssumptions.underlying
   Indexer.TypeAssumptions.isUnderlying
+  Indexer.TypeAssumptions.method_set
+  Indexer.TypeAssumptions.ptr_method_set
 
-abbrev IndexFunc [FfiSyntax] : Type := GoFunc
+abbrev IndexFunc [GooseExts] : Type := GoFunc
 
-@[reducible] noncomputable def IndexFunc.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def IndexFunc.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.FunctionType (go.signature.Signature [(go.GoType.InterfaceType [])] false [(go.GoType.SliceType go.string), go.error]))
 
-class IndexFunc.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class IndexFunc.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq IndexFunc.ty IndexFunc.underlying
+  method_set : go.MethodSetIs IndexFunc.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType IndexFunc.ty) []
 
 attribute [instance] IndexFunc.TypeAssumptions.underlying
+  IndexFunc.TypeAssumptions.method_set
+  IndexFunc.TypeAssumptions.ptr_method_set
 
 axiom index : Type
 axiom index.zero_val : ZeroVal index
 attribute [instance] index.zero_val
 
-class index.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class index.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying index.underlying index
   underlying : go.UnderlyingDirectedEq index.ty index.underlying
   isUnderlying : go.IsUnderlying index.underlying index.underlying
+  method_set : go.MethodSetIs index.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType index.ty) []
 
 attribute [instance] index.TypeAssumptions.type_repr
   index.TypeAssumptions.underlying
   index.TypeAssumptions.isUnderlying
+  index.TypeAssumptions.method_set
+  index.TypeAssumptions.ptr_method_set
 
-abbrev Indexers [FfiSyntax] : Type := GoMap
+abbrev Indexers [GooseExts] : Type := GoMap
 
-@[reducible] noncomputable def Indexers.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def Indexers.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.MapType go.string IndexFunc.ty)
 
-class Indexers.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class Indexers.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq Indexers.ty Indexers.underlying
+  method_set : go.MethodSetIs Indexers.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType Indexers.ty) []
 
 attribute [instance] Indexers.TypeAssumptions.underlying
+  Indexers.TypeAssumptions.method_set
+  Indexers.TypeAssumptions.ptr_method_set
 
 axiom Indices : Type
 axiom Indices.zero_val : ZeroVal Indices
 attribute [instance] Indices.zero_val
 
-class Indices.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class Indices.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying Indices.underlying Indices
   underlying : go.UnderlyingDirectedEq Indices.ty Indices.underlying
   isUnderlying : go.IsUnderlying Indices.underlying Indices.underlying
+  method_set : go.MethodSetIs Indices.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType Indices.ty) []
 
 attribute [instance] Indices.TypeAssumptions.type_repr
   Indices.TypeAssumptions.underlying
   Indices.TypeAssumptions.isUnderlying
+  Indices.TypeAssumptions.method_set
+  Indices.TypeAssumptions.ptr_method_set
 
 axiom TypedIndexers : ∀ (T : Type), Type
 axiom TypedIndexers.zero_val : ∀ {T : Type} [ZeroVal T], ZeroVal (TypedIndexers T)
 attribute [instance] TypedIndexers.zero_val
 
-class TypedIndexers.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class TypedIndexers.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : ∀ (T : go.GoType) (T' : Type) [ZeroVal T'] [TypeRepr T T'], go.TypeReprUnderlying (TypedIndexers.underlying T) (TypedIndexers T')
   underlying : ∀ (T : go.GoType), go.UnderlyingDirectedEq (TypedIndexers.ty T) (TypedIndexers.underlying T)
   isUnderlying : ∀ (T : go.GoType), go.IsUnderlying (TypedIndexers.underlying T) (TypedIndexers.underlying T)
+  method_set : ∀ (T : go.GoType), go.MethodSetIs (TypedIndexers.ty T) []
+  ptr_method_set : ∀ (T : go.GoType), go.MethodSetIs (go.GoType.PointerType (TypedIndexers.ty T)) []
 
 attribute [instance] TypedIndexers.TypeAssumptions.type_repr
   TypedIndexers.TypeAssumptions.underlying
   TypedIndexers.TypeAssumptions.isUnderlying
+  TypedIndexers.TypeAssumptions.method_set
+  TypedIndexers.TypeAssumptions.ptr_method_set
 
 axiom TypedIndexFunc : ∀ (T : Type), Type
 axiom TypedIndexFunc.zero_val : ∀ {T : Type} [ZeroVal T], ZeroVal (TypedIndexFunc T)
 attribute [instance] TypedIndexFunc.zero_val
 
-class TypedIndexFunc.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class TypedIndexFunc.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : ∀ (T : go.GoType) (T' : Type) [ZeroVal T'] [TypeRepr T T'], go.TypeReprUnderlying (TypedIndexFunc.underlying T) (TypedIndexFunc T')
   underlying : ∀ (T : go.GoType), go.UnderlyingDirectedEq (TypedIndexFunc.ty T) (TypedIndexFunc.underlying T)
   isUnderlying : ∀ (T : go.GoType), go.IsUnderlying (TypedIndexFunc.underlying T) (TypedIndexFunc.underlying T)
+  method_set : ∀ (T : go.GoType), go.MethodSetIs (TypedIndexFunc.ty T) []
+  ptr_method_set : ∀ (T : go.GoType), go.MethodSetIs (go.GoType.PointerType (TypedIndexFunc.ty T)) []
 
 attribute [instance] TypedIndexFunc.TypeAssumptions.type_repr
   TypedIndexFunc.TypeAssumptions.underlying
   TypedIndexFunc.TypeAssumptions.isUnderlying
+  TypedIndexFunc.TypeAssumptions.method_set
+  TypedIndexFunc.TypeAssumptions.ptr_method_set
 
 axiom TypedIndexer : ∀ (T : Type), Type
 axiom TypedIndexer.zero_val : ∀ {T : Type} [ZeroVal T], ZeroVal (TypedIndexer T)
 attribute [instance] TypedIndexer.zero_val
 
-class TypedIndexer.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class TypedIndexer.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : ∀ (T : go.GoType) (T' : Type) [ZeroVal T'] [TypeRepr T T'], go.TypeReprUnderlying (TypedIndexer.underlying T) (TypedIndexer T')
   underlying : ∀ (T : go.GoType), go.UnderlyingDirectedEq (TypedIndexer.ty T) (TypedIndexer.underlying T)
   isUnderlying : ∀ (T : go.GoType), go.IsUnderlying (TypedIndexer.underlying T) (TypedIndexer.underlying T)
+  method_set : ∀ (T : go.GoType), go.MethodSetIs (TypedIndexer.ty T) [(go!"Add", (some (go.signature.Signature [(go.GoType.InterfaceType [])] false [go.error]))), (go!"AddIndexers", (some (go.signature.Signature [Indexers.ty] false [go.error]))), (go!"AddTypedIndexers", (some (go.signature.Signature [(TypedIndexers.ty T)] false [go.error]))), (go!"Bookmark", (some (go.signature.Signature [go.string] false []))), (go!"ByIndex", (some (go.signature.Signature [go.string, go.string] false [(go.GoType.SliceType (go.GoType.InterfaceType [])), go.error]))), (go!"ByTypedIndex", (some (go.signature.Signature [go.string, go.string] false [(go.GoType.SliceType T), go.error]))), (go!"Delete", (some (go.signature.Signature [(go.GoType.InterfaceType [])] false [go.error]))), (go!"Get", (some (go.signature.Signature [(go.GoType.InterfaceType [])] false [(go.GoType.InterfaceType []), go.bool, go.error]))), (go!"GetByKey", (some (go.signature.Signature [go.string] false [(go.GoType.InterfaceType []), go.bool, go.error]))), (go!"GetIndexers", (some (go.signature.Signature [] false [Indexers.ty]))), (go!"Index", (some (go.signature.Signature [go.string, (go.GoType.InterfaceType [])] false [(go.GoType.SliceType (go.GoType.InterfaceType [])), go.error]))), (go!"IndexKeys", (some (go.signature.Signature [go.string, go.string] false [(go.GoType.SliceType go.string), go.error]))), (go!"LastStoreSyncResourceVersion", (some (go.signature.Signature [] false [go.string]))), (go!"List", (some (go.signature.Signature [] false [(go.GoType.SliceType (go.GoType.InterfaceType []))]))), (go!"ListIndexFuncValues", (some (go.signature.Signature [go.string] false [(go.GoType.SliceType go.string)]))), (go!"ListKeys", (some (go.signature.Signature [] false [(go.GoType.SliceType go.string)]))), (go!"Replace", (some (go.signature.Signature [(go.GoType.SliceType (go.GoType.InterfaceType [])), go.string] false [go.error]))), (go!"Resync", (some (go.signature.Signature [] false [go.error]))), (go!"TypedIndex", (some (go.signature.Signature [go.string, T] false [(go.GoType.SliceType T), go.error]))), (go!"Update", (some (go.signature.Signature [(go.GoType.InterfaceType [])] false [go.error])))]
+  ptr_method_set : ∀ (T : go.GoType), go.MethodSetIs (go.GoType.PointerType (TypedIndexer.ty T)) []
 
 attribute [instance] TypedIndexer.TypeAssumptions.type_repr
   TypedIndexer.TypeAssumptions.underlying
   TypedIndexer.TypeAssumptions.isUnderlying
+  TypedIndexer.TypeAssumptions.method_set
+  TypedIndexer.TypeAssumptions.ptr_method_set
 
 axiom noopInformerMetricsProvider : Type
 axiom noopInformerMetricsProvider.zero_val : ZeroVal noopInformerMetricsProvider
 attribute [instance] noopInformerMetricsProvider.zero_val
 
-class noopInformerMetricsProvider.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class noopInformerMetricsProvider.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying noopInformerMetricsProvider.underlying noopInformerMetricsProvider
   underlying : go.UnderlyingDirectedEq noopInformerMetricsProvider.ty noopInformerMetricsProvider.underlying
   isUnderlying : go.IsUnderlying noopInformerMetricsProvider.underlying noopInformerMetricsProvider.underlying
+  method_set : go.MethodSetIs noopInformerMetricsProvider.ty [(go!"NewProcessingLatencyMetric", (some (go.signature.Signature [InformerNameAndResource.ty] false [HistogramMetric.ty]))), (go!"NewQueuedItemMetric", (some (go.signature.Signature [InformerNameAndResource.ty] false [GaugeMetric.ty]))), (go!"NewStoreResourceVersionMetric", (some (go.signature.Signature [InformerNameAndResource.ty] false [GaugeMetric.ty])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType noopInformerMetricsProvider.ty) [(go!"NewProcessingLatencyMetric", (some (go.signature.Signature [InformerNameAndResource.ty] false [HistogramMetric.ty]))), (go!"NewQueuedItemMetric", (some (go.signature.Signature [InformerNameAndResource.ty] false [GaugeMetric.ty]))), (go!"NewStoreResourceVersionMetric", (some (go.signature.Signature [InformerNameAndResource.ty] false [GaugeMetric.ty])))]
 
 attribute [instance] noopInformerMetricsProvider.TypeAssumptions.type_repr
   noopInformerMetricsProvider.TypeAssumptions.underlying
   noopInformerMetricsProvider.TypeAssumptions.isUnderlying
+  noopInformerMetricsProvider.TypeAssumptions.method_set
+  noopInformerMetricsProvider.TypeAssumptions.ptr_method_set
 
 axiom InformerMetricsProvider : Type
 axiom InformerMetricsProvider.zero_val : ZeroVal InformerMetricsProvider
 attribute [instance] InformerMetricsProvider.zero_val
 
-class InformerMetricsProvider.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class InformerMetricsProvider.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying InformerMetricsProvider.underlying InformerMetricsProvider
   underlying : go.UnderlyingDirectedEq InformerMetricsProvider.ty InformerMetricsProvider.underlying
   isUnderlying : go.IsUnderlying InformerMetricsProvider.underlying InformerMetricsProvider.underlying
+  method_set : go.MethodSetIs InformerMetricsProvider.ty [(go!"NewProcessingLatencyMetric", (some (go.signature.Signature [InformerNameAndResource.ty] false [HistogramMetric.ty]))), (go!"NewQueuedItemMetric", (some (go.signature.Signature [InformerNameAndResource.ty] false [GaugeMetric.ty]))), (go!"NewStoreResourceVersionMetric", (some (go.signature.Signature [InformerNameAndResource.ty] false [GaugeMetric.ty])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType InformerMetricsProvider.ty) []
 
 attribute [instance] InformerMetricsProvider.TypeAssumptions.type_repr
   InformerMetricsProvider.TypeAssumptions.underlying
   InformerMetricsProvider.TypeAssumptions.isUnderlying
+  InformerMetricsProvider.TypeAssumptions.method_set
+  InformerMetricsProvider.TypeAssumptions.ptr_method_set
 
 axiom fifoMetrics : Type
 axiom fifoMetrics.zero_val : ZeroVal fifoMetrics
 attribute [instance] fifoMetrics.zero_val
 
-class fifoMetrics.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class fifoMetrics.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying fifoMetrics.underlying fifoMetrics
   underlying : go.UnderlyingDirectedEq fifoMetrics.ty fifoMetrics.underlying
   isUnderlying : go.IsUnderlying fifoMetrics.underlying fifoMetrics.underlying
+  method_set : go.MethodSetIs fifoMetrics.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType fifoMetrics.ty) []
 
 attribute [instance] fifoMetrics.TypeAssumptions.type_repr
   fifoMetrics.TypeAssumptions.underlying
   fifoMetrics.TypeAssumptions.isUnderlying
+  fifoMetrics.TypeAssumptions.method_set
+  fifoMetrics.TypeAssumptions.ptr_method_set
 
 axiom storeMetrics : Type
 axiom storeMetrics.zero_val : ZeroVal storeMetrics
 attribute [instance] storeMetrics.zero_val
 
-class storeMetrics.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class storeMetrics.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying storeMetrics.underlying storeMetrics
   underlying : go.UnderlyingDirectedEq storeMetrics.ty storeMetrics.underlying
   isUnderlying : go.IsUnderlying storeMetrics.underlying storeMetrics.underlying
+  method_set : go.MethodSetIs storeMetrics.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType storeMetrics.ty) []
 
 attribute [instance] storeMetrics.TypeAssumptions.type_repr
   storeMetrics.TypeAssumptions.underlying
   storeMetrics.TypeAssumptions.isUnderlying
+  storeMetrics.TypeAssumptions.method_set
+  storeMetrics.TypeAssumptions.ptr_method_set
 
 axiom AppendFunc : Type
 axiom AppendFunc.zero_val : ZeroVal AppendFunc
 attribute [instance] AppendFunc.zero_val
 
-class AppendFunc.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class AppendFunc.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying AppendFunc.underlying AppendFunc
   underlying : go.UnderlyingDirectedEq AppendFunc.ty AppendFunc.underlying
   isUnderlying : go.IsUnderlying AppendFunc.underlying AppendFunc.underlying
+  method_set : go.MethodSetIs AppendFunc.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType AppendFunc.ty) []
 
 attribute [instance] AppendFunc.TypeAssumptions.type_repr
   AppendFunc.TypeAssumptions.underlying
   AppendFunc.TypeAssumptions.isUnderlying
+  AppendFunc.TypeAssumptions.method_set
+  AppendFunc.TypeAssumptions.ptr_method_set
 
 axiom GenericLister : Type
 axiom GenericLister.zero_val : ZeroVal GenericLister
 attribute [instance] GenericLister.zero_val
 
-class GenericLister.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class GenericLister.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying GenericLister.underlying GenericLister
   underlying : go.UnderlyingDirectedEq GenericLister.ty GenericLister.underlying
   isUnderlying : go.IsUnderlying GenericLister.underlying GenericLister.underlying
+  method_set : go.MethodSetIs GenericLister.ty [(go!"ByNamespace", (some (go.signature.Signature [go.string] false [GenericNamespaceLister.ty]))), (go!"Get", (some (go.signature.Signature [go.string] false [(go.GoType.Named go!"k8s.io/apimachinery/pkg/runtime.Object" []), go.error]))), (go!"List", (some (go.signature.Signature [(go.GoType.Named go!"k8s.io/apimachinery/pkg/labels.Selector" [])] false [(go.GoType.SliceType (go.GoType.Named go!"k8s.io/apimachinery/pkg/runtime.Object" [])), go.error])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType GenericLister.ty) []
 
 attribute [instance] GenericLister.TypeAssumptions.type_repr
   GenericLister.TypeAssumptions.underlying
   GenericLister.TypeAssumptions.isUnderlying
+  GenericLister.TypeAssumptions.method_set
+  GenericLister.TypeAssumptions.ptr_method_set
 
 axiom GenericNamespaceLister : Type
 axiom GenericNamespaceLister.zero_val : ZeroVal GenericNamespaceLister
 attribute [instance] GenericNamespaceLister.zero_val
 
-class GenericNamespaceLister.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class GenericNamespaceLister.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying GenericNamespaceLister.underlying GenericNamespaceLister
   underlying : go.UnderlyingDirectedEq GenericNamespaceLister.ty GenericNamespaceLister.underlying
   isUnderlying : go.IsUnderlying GenericNamespaceLister.underlying GenericNamespaceLister.underlying
+  method_set : go.MethodSetIs GenericNamespaceLister.ty [(go!"Get", (some (go.signature.Signature [go.string] false [(go.GoType.Named go!"k8s.io/apimachinery/pkg/runtime.Object" []), go.error]))), (go!"List", (some (go.signature.Signature [(go.GoType.Named go!"k8s.io/apimachinery/pkg/labels.Selector" [])] false [(go.GoType.SliceType (go.GoType.Named go!"k8s.io/apimachinery/pkg/runtime.Object" [])), go.error])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType GenericNamespaceLister.ty) []
 
 attribute [instance] GenericNamespaceLister.TypeAssumptions.type_repr
   GenericNamespaceLister.TypeAssumptions.underlying
   GenericNamespaceLister.TypeAssumptions.isUnderlying
+  GenericNamespaceLister.TypeAssumptions.method_set
+  GenericNamespaceLister.TypeAssumptions.ptr_method_set
 
 axiom genericLister : Type
 axiom genericLister.zero_val : ZeroVal genericLister
 attribute [instance] genericLister.zero_val
 
-class genericLister.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class genericLister.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying genericLister.underlying genericLister
   underlying : go.UnderlyingDirectedEq genericLister.ty genericLister.underlying
   isUnderlying : go.IsUnderlying genericLister.underlying genericLister.underlying
+  method_set : go.MethodSetIs genericLister.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType genericLister.ty) [(go!"ByNamespace", (some (go.signature.Signature [go.string] false [GenericNamespaceLister.ty]))), (go!"Get", (some (go.signature.Signature [go.string] false [(go.GoType.Named go!"k8s.io/apimachinery/pkg/runtime.Object" []), go.error]))), (go!"List", (some (go.signature.Signature [(go.GoType.Named go!"k8s.io/apimachinery/pkg/labels.Selector" [])] false [(go.GoType.SliceType (go.GoType.Named go!"k8s.io/apimachinery/pkg/runtime.Object" [])), go.error])))]
 
 attribute [instance] genericLister.TypeAssumptions.type_repr
   genericLister.TypeAssumptions.underlying
   genericLister.TypeAssumptions.isUnderlying
+  genericLister.TypeAssumptions.method_set
+  genericLister.TypeAssumptions.ptr_method_set
 
 axiom genericNamespaceLister : Type
 axiom genericNamespaceLister.zero_val : ZeroVal genericNamespaceLister
 attribute [instance] genericNamespaceLister.zero_val
 
-class genericNamespaceLister.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class genericNamespaceLister.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying genericNamespaceLister.underlying genericNamespaceLister
   underlying : go.UnderlyingDirectedEq genericNamespaceLister.ty genericNamespaceLister.underlying
   isUnderlying : go.IsUnderlying genericNamespaceLister.underlying genericNamespaceLister.underlying
+  method_set : go.MethodSetIs genericNamespaceLister.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType genericNamespaceLister.ty) [(go!"Get", (some (go.signature.Signature [go.string] false [(go.GoType.Named go!"k8s.io/apimachinery/pkg/runtime.Object" []), go.error]))), (go!"List", (some (go.signature.Signature [(go.GoType.Named go!"k8s.io/apimachinery/pkg/labels.Selector" [])] false [(go.GoType.SliceType (go.GoType.Named go!"k8s.io/apimachinery/pkg/runtime.Object" [])), go.error])))]
 
 attribute [instance] genericNamespaceLister.TypeAssumptions.type_repr
   genericNamespaceLister.TypeAssumptions.underlying
   genericNamespaceLister.TypeAssumptions.isUnderlying
+  genericNamespaceLister.TypeAssumptions.method_set
+  genericNamespaceLister.TypeAssumptions.ptr_method_set
 
 axiom Lister : Type
 axiom Lister.zero_val : ZeroVal Lister
 attribute [instance] Lister.zero_val
 
-class Lister.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class Lister.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying Lister.underlying Lister
   underlying : go.UnderlyingDirectedEq Lister.ty Lister.underlying
   isUnderlying : go.IsUnderlying Lister.underlying Lister.underlying
+  method_set : go.MethodSetIs Lister.ty [(go!"List", (some (go.signature.Signature [(go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ListOptions" [])] false [(go.GoType.Named go!"k8s.io/apimachinery/pkg/runtime.Object" []), go.error])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType Lister.ty) []
 
 attribute [instance] Lister.TypeAssumptions.type_repr
   Lister.TypeAssumptions.underlying
   Lister.TypeAssumptions.isUnderlying
+  Lister.TypeAssumptions.method_set
+  Lister.TypeAssumptions.ptr_method_set
 
 axiom ListerWithContext : Type
 axiom ListerWithContext.zero_val : ZeroVal ListerWithContext
 attribute [instance] ListerWithContext.zero_val
 
-class ListerWithContext.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class ListerWithContext.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying ListerWithContext.underlying ListerWithContext
   underlying : go.UnderlyingDirectedEq ListerWithContext.ty ListerWithContext.underlying
   isUnderlying : go.IsUnderlying ListerWithContext.underlying ListerWithContext.underlying
+  method_set : go.MethodSetIs ListerWithContext.ty [(go!"ListWithContext", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ListOptions" [])] false [(go.GoType.Named go!"k8s.io/apimachinery/pkg/runtime.Object" []), go.error])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType ListerWithContext.ty) []
 
 attribute [instance] ListerWithContext.TypeAssumptions.type_repr
   ListerWithContext.TypeAssumptions.underlying
   ListerWithContext.TypeAssumptions.isUnderlying
+  ListerWithContext.TypeAssumptions.method_set
+  ListerWithContext.TypeAssumptions.ptr_method_set
 
 axiom listerWrapper : Type
 axiom listerWrapper.zero_val : ZeroVal listerWrapper
 attribute [instance] listerWrapper.zero_val
 
-class listerWrapper.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class listerWrapper.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying listerWrapper.underlying listerWrapper
   underlying : go.UnderlyingDirectedEq listerWrapper.ty listerWrapper.underlying
   isUnderlying : go.IsUnderlying listerWrapper.underlying listerWrapper.underlying
+  method_set : go.MethodSetIs listerWrapper.ty [(go!"ListWithContext", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ListOptions" [])] false [(go.GoType.Named go!"k8s.io/apimachinery/pkg/runtime.Object" []), go.error])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType listerWrapper.ty) [(go!"ListWithContext", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ListOptions" [])] false [(go.GoType.Named go!"k8s.io/apimachinery/pkg/runtime.Object" []), go.error])))]
 
 attribute [instance] listerWrapper.TypeAssumptions.type_repr
   listerWrapper.TypeAssumptions.underlying
   listerWrapper.TypeAssumptions.isUnderlying
+  listerWrapper.TypeAssumptions.method_set
+  listerWrapper.TypeAssumptions.ptr_method_set
 
 axiom Watcher : Type
 axiom Watcher.zero_val : ZeroVal Watcher
 attribute [instance] Watcher.zero_val
 
-class Watcher.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class Watcher.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying Watcher.underlying Watcher
   underlying : go.UnderlyingDirectedEq Watcher.ty Watcher.underlying
   isUnderlying : go.IsUnderlying Watcher.underlying Watcher.underlying
+  method_set : go.MethodSetIs Watcher.ty [(go!"Watch", (some (go.signature.Signature [(go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ListOptions" [])] false [(go.GoType.Named go!"k8s.io/apimachinery/pkg/watch.Interface" []), go.error])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType Watcher.ty) []
 
 attribute [instance] Watcher.TypeAssumptions.type_repr
   Watcher.TypeAssumptions.underlying
   Watcher.TypeAssumptions.isUnderlying
+  Watcher.TypeAssumptions.method_set
+  Watcher.TypeAssumptions.ptr_method_set
 
 axiom WatcherWithContext : Type
 axiom WatcherWithContext.zero_val : ZeroVal WatcherWithContext
 attribute [instance] WatcherWithContext.zero_val
 
-class WatcherWithContext.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class WatcherWithContext.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying WatcherWithContext.underlying WatcherWithContext
   underlying : go.UnderlyingDirectedEq WatcherWithContext.ty WatcherWithContext.underlying
   isUnderlying : go.IsUnderlying WatcherWithContext.underlying WatcherWithContext.underlying
+  method_set : go.MethodSetIs WatcherWithContext.ty [(go!"WatchWithContext", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ListOptions" [])] false [(go.GoType.Named go!"k8s.io/apimachinery/pkg/watch.Interface" []), go.error])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType WatcherWithContext.ty) []
 
 attribute [instance] WatcherWithContext.TypeAssumptions.type_repr
   WatcherWithContext.TypeAssumptions.underlying
   WatcherWithContext.TypeAssumptions.isUnderlying
+  WatcherWithContext.TypeAssumptions.method_set
+  WatcherWithContext.TypeAssumptions.ptr_method_set
 
 axiom watcherWrapper : Type
 axiom watcherWrapper.zero_val : ZeroVal watcherWrapper
 attribute [instance] watcherWrapper.zero_val
 
-class watcherWrapper.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class watcherWrapper.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying watcherWrapper.underlying watcherWrapper
   underlying : go.UnderlyingDirectedEq watcherWrapper.ty watcherWrapper.underlying
   isUnderlying : go.IsUnderlying watcherWrapper.underlying watcherWrapper.underlying
+  method_set : go.MethodSetIs watcherWrapper.ty [(go!"WatchWithContext", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ListOptions" [])] false [(go.GoType.Named go!"k8s.io/apimachinery/pkg/watch.Interface" []), go.error])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType watcherWrapper.ty) [(go!"WatchWithContext", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ListOptions" [])] false [(go.GoType.Named go!"k8s.io/apimachinery/pkg/watch.Interface" []), go.error])))]
 
 attribute [instance] watcherWrapper.TypeAssumptions.type_repr
   watcherWrapper.TypeAssumptions.underlying
   watcherWrapper.TypeAssumptions.isUnderlying
+  watcherWrapper.TypeAssumptions.method_set
+  watcherWrapper.TypeAssumptions.ptr_method_set
 
 axiom ListerWatcher : Type
 axiom ListerWatcher.zero_val : ZeroVal ListerWatcher
 attribute [instance] ListerWatcher.zero_val
 
-class ListerWatcher.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class ListerWatcher.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying ListerWatcher.underlying ListerWatcher
   underlying : go.UnderlyingDirectedEq ListerWatcher.ty ListerWatcher.underlying
   isUnderlying : go.IsUnderlying ListerWatcher.underlying ListerWatcher.underlying
+  method_set : go.MethodSetIs ListerWatcher.ty [(go!"List", (some (go.signature.Signature [(go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ListOptions" [])] false [(go.GoType.Named go!"k8s.io/apimachinery/pkg/runtime.Object" []), go.error]))), (go!"Watch", (some (go.signature.Signature [(go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ListOptions" [])] false [(go.GoType.Named go!"k8s.io/apimachinery/pkg/watch.Interface" []), go.error])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType ListerWatcher.ty) []
 
 attribute [instance] ListerWatcher.TypeAssumptions.type_repr
   ListerWatcher.TypeAssumptions.underlying
   ListerWatcher.TypeAssumptions.isUnderlying
+  ListerWatcher.TypeAssumptions.method_set
+  ListerWatcher.TypeAssumptions.ptr_method_set
 
 axiom ListerWatcherWithContext : Type
 axiom ListerWatcherWithContext.zero_val : ZeroVal ListerWatcherWithContext
 attribute [instance] ListerWatcherWithContext.zero_val
 
-class ListerWatcherWithContext.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class ListerWatcherWithContext.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying ListerWatcherWithContext.underlying ListerWatcherWithContext
   underlying : go.UnderlyingDirectedEq ListerWatcherWithContext.ty ListerWatcherWithContext.underlying
   isUnderlying : go.IsUnderlying ListerWatcherWithContext.underlying ListerWatcherWithContext.underlying
+  method_set : go.MethodSetIs ListerWatcherWithContext.ty [(go!"ListWithContext", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ListOptions" [])] false [(go.GoType.Named go!"k8s.io/apimachinery/pkg/runtime.Object" []), go.error]))), (go!"WatchWithContext", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ListOptions" [])] false [(go.GoType.Named go!"k8s.io/apimachinery/pkg/watch.Interface" []), go.error])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType ListerWatcherWithContext.ty) []
 
 attribute [instance] ListerWatcherWithContext.TypeAssumptions.type_repr
   ListerWatcherWithContext.TypeAssumptions.underlying
   ListerWatcherWithContext.TypeAssumptions.isUnderlying
+  ListerWatcherWithContext.TypeAssumptions.method_set
+  ListerWatcherWithContext.TypeAssumptions.ptr_method_set
 
 axiom listerWatcherWrapper : Type
 axiom listerWatcherWrapper.zero_val : ZeroVal listerWatcherWrapper
 attribute [instance] listerWatcherWrapper.zero_val
 
-class listerWatcherWrapper.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class listerWatcherWrapper.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying listerWatcherWrapper.underlying listerWatcherWrapper
   underlying : go.UnderlyingDirectedEq listerWatcherWrapper.ty listerWatcherWrapper.underlying
   isUnderlying : go.IsUnderlying listerWatcherWrapper.underlying listerWatcherWrapper.underlying
+  method_set : go.MethodSetIs listerWatcherWrapper.ty [(go!"ListWithContext", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ListOptions" [])] false [(go.GoType.Named go!"k8s.io/apimachinery/pkg/runtime.Object" []), go.error]))), (go!"WatchWithContext", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ListOptions" [])] false [(go.GoType.Named go!"k8s.io/apimachinery/pkg/watch.Interface" []), go.error])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType listerWatcherWrapper.ty) [(go!"ListWithContext", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ListOptions" [])] false [(go.GoType.Named go!"k8s.io/apimachinery/pkg/runtime.Object" []), go.error]))), (go!"WatchWithContext", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ListOptions" [])] false [(go.GoType.Named go!"k8s.io/apimachinery/pkg/watch.Interface" []), go.error])))]
 
 attribute [instance] listerWatcherWrapper.TypeAssumptions.type_repr
   listerWatcherWrapper.TypeAssumptions.underlying
   listerWatcherWrapper.TypeAssumptions.isUnderlying
+  listerWatcherWrapper.TypeAssumptions.method_set
+  listerWatcherWrapper.TypeAssumptions.ptr_method_set
 
 axiom listWatcherWithWatchListSemanticsWrapper : Type
 axiom listWatcherWithWatchListSemanticsWrapper.zero_val : ZeroVal listWatcherWithWatchListSemanticsWrapper
 attribute [instance] listWatcherWithWatchListSemanticsWrapper.zero_val
 
-class listWatcherWithWatchListSemanticsWrapper.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class listWatcherWithWatchListSemanticsWrapper.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying listWatcherWithWatchListSemanticsWrapper.underlying listWatcherWithWatchListSemanticsWrapper
   underlying : go.UnderlyingDirectedEq listWatcherWithWatchListSemanticsWrapper.ty listWatcherWithWatchListSemanticsWrapper.underlying
   isUnderlying : go.IsUnderlying listWatcherWithWatchListSemanticsWrapper.underlying listWatcherWithWatchListSemanticsWrapper.underlying
+  method_set : go.MethodSetIs listWatcherWithWatchListSemanticsWrapper.ty [(go!"List", (some (go.signature.Signature [(go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ListOptions" [])] false [(go.GoType.Named go!"k8s.io/apimachinery/pkg/runtime.Object" []), go.error]))), (go!"ListWithContext", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ListOptions" [])] false [(go.GoType.Named go!"k8s.io/apimachinery/pkg/runtime.Object" []), go.error]))), (go!"Watch", (some (go.signature.Signature [(go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ListOptions" [])] false [(go.GoType.Named go!"k8s.io/apimachinery/pkg/watch.Interface" []), go.error]))), (go!"WatchWithContext", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ListOptions" [])] false [(go.GoType.Named go!"k8s.io/apimachinery/pkg/watch.Interface" []), go.error])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType listWatcherWithWatchListSemanticsWrapper.ty) [(go!"IsWatchListSemanticsUnSupported", (some (go.signature.Signature [] false [go.bool]))), (go!"List", (some (go.signature.Signature [(go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ListOptions" [])] false [(go.GoType.Named go!"k8s.io/apimachinery/pkg/runtime.Object" []), go.error]))), (go!"ListWithContext", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ListOptions" [])] false [(go.GoType.Named go!"k8s.io/apimachinery/pkg/runtime.Object" []), go.error]))), (go!"Watch", (some (go.signature.Signature [(go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ListOptions" [])] false [(go.GoType.Named go!"k8s.io/apimachinery/pkg/watch.Interface" []), go.error]))), (go!"WatchWithContext", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ListOptions" [])] false [(go.GoType.Named go!"k8s.io/apimachinery/pkg/watch.Interface" []), go.error])))]
 
 attribute [instance] listWatcherWithWatchListSemanticsWrapper.TypeAssumptions.type_repr
   listWatcherWithWatchListSemanticsWrapper.TypeAssumptions.underlying
   listWatcherWithWatchListSemanticsWrapper.TypeAssumptions.isUnderlying
+  listWatcherWithWatchListSemanticsWrapper.TypeAssumptions.method_set
+  listWatcherWithWatchListSemanticsWrapper.TypeAssumptions.ptr_method_set
 
 axiom ListFunc : Type
 axiom ListFunc.zero_val : ZeroVal ListFunc
 attribute [instance] ListFunc.zero_val
 
-class ListFunc.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class ListFunc.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying ListFunc.underlying ListFunc
   underlying : go.UnderlyingDirectedEq ListFunc.ty ListFunc.underlying
   isUnderlying : go.IsUnderlying ListFunc.underlying ListFunc.underlying
+  method_set : go.MethodSetIs ListFunc.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType ListFunc.ty) []
 
 attribute [instance] ListFunc.TypeAssumptions.type_repr
   ListFunc.TypeAssumptions.underlying
   ListFunc.TypeAssumptions.isUnderlying
+  ListFunc.TypeAssumptions.method_set
+  ListFunc.TypeAssumptions.ptr_method_set
 
 axiom ListWithContextFunc : Type
 axiom ListWithContextFunc.zero_val : ZeroVal ListWithContextFunc
 attribute [instance] ListWithContextFunc.zero_val
 
-class ListWithContextFunc.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class ListWithContextFunc.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying ListWithContextFunc.underlying ListWithContextFunc
   underlying : go.UnderlyingDirectedEq ListWithContextFunc.ty ListWithContextFunc.underlying
   isUnderlying : go.IsUnderlying ListWithContextFunc.underlying ListWithContextFunc.underlying
+  method_set : go.MethodSetIs ListWithContextFunc.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType ListWithContextFunc.ty) []
 
 attribute [instance] ListWithContextFunc.TypeAssumptions.type_repr
   ListWithContextFunc.TypeAssumptions.underlying
   ListWithContextFunc.TypeAssumptions.isUnderlying
+  ListWithContextFunc.TypeAssumptions.method_set
+  ListWithContextFunc.TypeAssumptions.ptr_method_set
 
 axiom WatchFunc : Type
 axiom WatchFunc.zero_val : ZeroVal WatchFunc
 attribute [instance] WatchFunc.zero_val
 
-class WatchFunc.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class WatchFunc.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying WatchFunc.underlying WatchFunc
   underlying : go.UnderlyingDirectedEq WatchFunc.ty WatchFunc.underlying
   isUnderlying : go.IsUnderlying WatchFunc.underlying WatchFunc.underlying
+  method_set : go.MethodSetIs WatchFunc.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType WatchFunc.ty) []
 
 attribute [instance] WatchFunc.TypeAssumptions.type_repr
   WatchFunc.TypeAssumptions.underlying
   WatchFunc.TypeAssumptions.isUnderlying
+  WatchFunc.TypeAssumptions.method_set
+  WatchFunc.TypeAssumptions.ptr_method_set
 
 axiom WatchFuncWithContext : Type
 axiom WatchFuncWithContext.zero_val : ZeroVal WatchFuncWithContext
 attribute [instance] WatchFuncWithContext.zero_val
 
-class WatchFuncWithContext.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class WatchFuncWithContext.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying WatchFuncWithContext.underlying WatchFuncWithContext
   underlying : go.UnderlyingDirectedEq WatchFuncWithContext.ty WatchFuncWithContext.underlying
   isUnderlying : go.IsUnderlying WatchFuncWithContext.underlying WatchFuncWithContext.underlying
+  method_set : go.MethodSetIs WatchFuncWithContext.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType WatchFuncWithContext.ty) []
 
 attribute [instance] WatchFuncWithContext.TypeAssumptions.type_repr
   WatchFuncWithContext.TypeAssumptions.underlying
   WatchFuncWithContext.TypeAssumptions.isUnderlying
+  WatchFuncWithContext.TypeAssumptions.method_set
+  WatchFuncWithContext.TypeAssumptions.ptr_method_set
 
 axiom ListWatch : Type
 axiom ListWatch.zero_val : ZeroVal ListWatch
 attribute [instance] ListWatch.zero_val
 
-class ListWatch.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class ListWatch.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying ListWatch.underlying ListWatch
   underlying : go.UnderlyingDirectedEq ListWatch.ty ListWatch.underlying
   isUnderlying : go.IsUnderlying ListWatch.underlying ListWatch.underlying
+  method_set : go.MethodSetIs ListWatch.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType ListWatch.ty) [(go!"List", (some (go.signature.Signature [(go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ListOptions" [])] false [(go.GoType.Named go!"k8s.io/apimachinery/pkg/runtime.Object" []), go.error]))), (go!"ListWithContext", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ListOptions" [])] false [(go.GoType.Named go!"k8s.io/apimachinery/pkg/runtime.Object" []), go.error]))), (go!"Watch", (some (go.signature.Signature [(go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ListOptions" [])] false [(go.GoType.Named go!"k8s.io/apimachinery/pkg/watch.Interface" []), go.error]))), (go!"WatchWithContext", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ListOptions" [])] false [(go.GoType.Named go!"k8s.io/apimachinery/pkg/watch.Interface" []), go.error])))]
 
 attribute [instance] ListWatch.TypeAssumptions.type_repr
   ListWatch.TypeAssumptions.underlying
   ListWatch.TypeAssumptions.isUnderlying
+  ListWatch.TypeAssumptions.method_set
+  ListWatch.TypeAssumptions.ptr_method_set
 
 axiom Getter : Type
 axiom Getter.zero_val : ZeroVal Getter
 attribute [instance] Getter.zero_val
 
-class Getter.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class Getter.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying Getter.underlying Getter
   underlying : go.UnderlyingDirectedEq Getter.ty Getter.underlying
   isUnderlying : go.IsUnderlying Getter.underlying Getter.underlying
+  method_set : go.MethodSetIs Getter.ty [(go!"Get", (some (go.signature.Signature [] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/client-go/rest.Request" []))])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType Getter.ty) []
 
 attribute [instance] Getter.TypeAssumptions.type_repr
   Getter.TypeAssumptions.underlying
   Getter.TypeAssumptions.isUnderlying
+  Getter.TypeAssumptions.method_set
+  Getter.TypeAssumptions.ptr_method_set
 
 axiom shardedListWatch : Type
 axiom shardedListWatch.zero_val : ZeroVal shardedListWatch
 attribute [instance] shardedListWatch.zero_val
 
-class shardedListWatch.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class shardedListWatch.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying shardedListWatch.underlying shardedListWatch
   underlying : go.UnderlyingDirectedEq shardedListWatch.ty shardedListWatch.underlying
   isUnderlying : go.IsUnderlying shardedListWatch.underlying shardedListWatch.underlying
+  method_set : go.MethodSetIs shardedListWatch.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType shardedListWatch.ty) [(go!"IsWatchListSemanticsUnSupported", (some (go.signature.Signature [] false [go.bool]))), (go!"List", (some (go.signature.Signature [(go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ListOptions" [])] false [(go.GoType.Named go!"k8s.io/apimachinery/pkg/runtime.Object" []), go.error]))), (go!"ListWithContext", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ListOptions" [])] false [(go.GoType.Named go!"k8s.io/apimachinery/pkg/runtime.Object" []), go.error]))), (go!"Watch", (some (go.signature.Signature [(go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ListOptions" [])] false [(go.GoType.Named go!"k8s.io/apimachinery/pkg/watch.Interface" []), go.error]))), (go!"WatchWithContext", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ListOptions" [])] false [(go.GoType.Named go!"k8s.io/apimachinery/pkg/watch.Interface" []), go.error]))), (go!"k8s.io/client-go/tools/cache.logClientFallback", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" [])] false [])))]
 
 attribute [instance] shardedListWatch.TypeAssumptions.type_repr
   shardedListWatch.TypeAssumptions.underlying
   shardedListWatch.TypeAssumptions.isUnderlying
+  shardedListWatch.TypeAssumptions.method_set
+  shardedListWatch.TypeAssumptions.ptr_method_set
 
 axiom MutationCache : Type
 axiom MutationCache.zero_val : ZeroVal MutationCache
 attribute [instance] MutationCache.zero_val
 
-class MutationCache.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class MutationCache.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying MutationCache.underlying MutationCache
   underlying : go.UnderlyingDirectedEq MutationCache.ty MutationCache.underlying
   isUnderlying : go.IsUnderlying MutationCache.underlying MutationCache.underlying
+  method_set : go.MethodSetIs MutationCache.ty [(go!"ByIndex", (some (go.signature.Signature [go.string, go.string] false [(go.GoType.SliceType (go.GoType.InterfaceType [])), go.error]))), (go!"GetByKey", (some (go.signature.Signature [go.string] false [(go.GoType.InterfaceType []), go.bool, go.error]))), (go!"Mutation", (some (go.signature.Signature [(go.GoType.InterfaceType [])] false []))), (go!"OnAddOrUpdate", (some (go.signature.Signature [(go.GoType.Named go!"k8s.io/apimachinery/pkg/runtime.Object" [])] false []))), (go!"OnDelete", (some (go.signature.Signature [(go.GoType.Named go!"k8s.io/apimachinery/pkg/runtime.Object" [])] false []))), (go!"k8s.io/client-go/tools/cache.internal", (some (go.signature.Signature [] false [])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType MutationCache.ty) []
 
 attribute [instance] MutationCache.TypeAssumptions.type_repr
   MutationCache.TypeAssumptions.underlying
   MutationCache.TypeAssumptions.isUnderlying
+  MutationCache.TypeAssumptions.method_set
+  MutationCache.TypeAssumptions.ptr_method_set
 
 axiom ResourceVersionComparator : Type
 axiom ResourceVersionComparator.zero_val : ZeroVal ResourceVersionComparator
 attribute [instance] ResourceVersionComparator.zero_val
 
-class ResourceVersionComparator.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class ResourceVersionComparator.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying ResourceVersionComparator.underlying ResourceVersionComparator
   underlying : go.UnderlyingDirectedEq ResourceVersionComparator.ty ResourceVersionComparator.underlying
   isUnderlying : go.IsUnderlying ResourceVersionComparator.underlying ResourceVersionComparator.underlying
+  method_set : go.MethodSetIs ResourceVersionComparator.ty [(go!"CompareResourceVersion", (some (go.signature.Signature [(go.GoType.Named go!"k8s.io/apimachinery/pkg/runtime.Object" []), (go.GoType.Named go!"k8s.io/apimachinery/pkg/runtime.Object" [])] false [go.int])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType ResourceVersionComparator.ty) []
 
 attribute [instance] ResourceVersionComparator.TypeAssumptions.type_repr
   ResourceVersionComparator.TypeAssumptions.underlying
   ResourceVersionComparator.TypeAssumptions.isUnderlying
+  ResourceVersionComparator.TypeAssumptions.method_set
+  ResourceVersionComparator.TypeAssumptions.ptr_method_set
 
 axiom MutationCacheOptions : Type
 axiom MutationCacheOptions.zero_val : ZeroVal MutationCacheOptions
 attribute [instance] MutationCacheOptions.zero_val
 
-class MutationCacheOptions.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class MutationCacheOptions.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying MutationCacheOptions.underlying MutationCacheOptions
   underlying : go.UnderlyingDirectedEq MutationCacheOptions.ty MutationCacheOptions.underlying
   isUnderlying : go.IsUnderlying MutationCacheOptions.underlying MutationCacheOptions.underlying
+  method_set : go.MethodSetIs MutationCacheOptions.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType MutationCacheOptions.ty) []
 
 attribute [instance] MutationCacheOptions.TypeAssumptions.type_repr
   MutationCacheOptions.TypeAssumptions.underlying
   MutationCacheOptions.TypeAssumptions.isUnderlying
+  MutationCacheOptions.TypeAssumptions.method_set
+  MutationCacheOptions.TypeAssumptions.ptr_method_set
 
 axiom mutationCache : Type
 axiom mutationCache.zero_val : ZeroVal mutationCache
 attribute [instance] mutationCache.zero_val
 
-class mutationCache.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class mutationCache.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying mutationCache.underlying mutationCache
   underlying : go.UnderlyingDirectedEq mutationCache.ty mutationCache.underlying
   isUnderlying : go.IsUnderlying mutationCache.underlying mutationCache.underlying
+  method_set : go.MethodSetIs mutationCache.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType mutationCache.ty) [(go!"ByIndex", (some (go.signature.Signature [go.string, go.string] false [(go.GoType.SliceType (go.GoType.InterfaceType [])), go.error]))), (go!"GetByKey", (some (go.signature.Signature [go.string] false [(go.GoType.InterfaceType []), go.bool, go.error]))), (go!"Mutation", (some (go.signature.Signature [(go.GoType.InterfaceType [])] false []))), (go!"OnAddOrUpdate", (some (go.signature.Signature [(go.GoType.Named go!"k8s.io/apimachinery/pkg/runtime.Object" [])] false []))), (go!"OnDelete", (some (go.signature.Signature [(go.GoType.Named go!"k8s.io/apimachinery/pkg/runtime.Object" [])] false []))), (go!"k8s.io/client-go/tools/cache.internal", (some (go.signature.Signature [] false []))), (go!"k8s.io/client-go/tools/cache.newerObject", (some (go.signature.Signature [go.string, (go.GoType.Named go!"k8s.io/apimachinery/pkg/runtime.Object" [])] false [(go.GoType.Named go!"k8s.io/apimachinery/pkg/runtime.Object" [])])))]
 
 attribute [instance] mutationCache.TypeAssumptions.type_repr
   mutationCache.TypeAssumptions.underlying
   mutationCache.TypeAssumptions.isUnderlying
+  mutationCache.TypeAssumptions.method_set
+  mutationCache.TypeAssumptions.ptr_method_set
 
 axiom etcdObjectVersioner : Type
 axiom etcdObjectVersioner.zero_val : ZeroVal etcdObjectVersioner
 attribute [instance] etcdObjectVersioner.zero_val
 
-class etcdObjectVersioner.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class etcdObjectVersioner.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying etcdObjectVersioner.underlying etcdObjectVersioner
   underlying : go.UnderlyingDirectedEq etcdObjectVersioner.ty etcdObjectVersioner.underlying
   isUnderlying : go.IsUnderlying etcdObjectVersioner.underlying etcdObjectVersioner.underlying
+  method_set : go.MethodSetIs etcdObjectVersioner.ty [(go!"CompareResourceVersion", (some (go.signature.Signature [(go.GoType.Named go!"k8s.io/apimachinery/pkg/runtime.Object" []), (go.GoType.Named go!"k8s.io/apimachinery/pkg/runtime.Object" [])] false [go.int]))), (go!"ObjectResourceVersion", (some (go.signature.Signature [(go.GoType.Named go!"k8s.io/apimachinery/pkg/runtime.Object" [])] false [go.uint64, go.error])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType etcdObjectVersioner.ty) [(go!"CompareResourceVersion", (some (go.signature.Signature [(go.GoType.Named go!"k8s.io/apimachinery/pkg/runtime.Object" []), (go.GoType.Named go!"k8s.io/apimachinery/pkg/runtime.Object" [])] false [go.int]))), (go!"ObjectResourceVersion", (some (go.signature.Signature [(go.GoType.Named go!"k8s.io/apimachinery/pkg/runtime.Object" [])] false [go.uint64, go.error])))]
 
 attribute [instance] etcdObjectVersioner.TypeAssumptions.type_repr
   etcdObjectVersioner.TypeAssumptions.underlying
   etcdObjectVersioner.TypeAssumptions.isUnderlying
+  etcdObjectVersioner.TypeAssumptions.method_set
+  etcdObjectVersioner.TypeAssumptions.ptr_method_set
 
 axiom tombstone : Type
 axiom tombstone.zero_val : ZeroVal tombstone
 attribute [instance] tombstone.zero_val
 
-class tombstone.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class tombstone.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying tombstone.underlying tombstone
   underlying : go.UnderlyingDirectedEq tombstone.ty tombstone.underlying
   isUnderlying : go.IsUnderlying tombstone.underlying tombstone.underlying
+  method_set : go.MethodSetIs tombstone.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType tombstone.ty) [(go!"DeepCopyObject", (some (go.signature.Signature [] false [(go.GoType.Named go!"k8s.io/apimachinery/pkg/runtime.Object" [])]))), (go!"GetAnnotations", (some (go.signature.Signature [] false [(go.GoType.MapType go.string go.string)]))), (go!"GetCreationTimestamp", (some (go.signature.Signature [] false [(go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.Time" [])]))), (go!"GetDeletionGracePeriodSeconds", (some (go.signature.Signature [] false [(go.GoType.PointerType go.int64)]))), (go!"GetDeletionTimestamp", (some (go.signature.Signature [] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.Time" []))]))), (go!"GetFinalizers", (some (go.signature.Signature [] false [(go.GoType.SliceType go.string)]))), (go!"GetGenerateName", (some (go.signature.Signature [] false [go.string]))), (go!"GetGeneration", (some (go.signature.Signature [] false [go.int64]))), (go!"GetLabels", (some (go.signature.Signature [] false [(go.GoType.MapType go.string go.string)]))), (go!"GetManagedFields", (some (go.signature.Signature [] false [(go.GoType.SliceType (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ManagedFieldsEntry" []))]))), (go!"GetName", (some (go.signature.Signature [] false [go.string]))), (go!"GetNamespace", (some (go.signature.Signature [] false [go.string]))), (go!"GetObjectKind", (some (go.signature.Signature [] false [(go.GoType.Named go!"k8s.io/apimachinery/pkg/runtime/schema.ObjectKind" [])]))), (go!"GetOwnerReferences", (some (go.signature.Signature [] false [(go.GoType.SliceType (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.OwnerReference" []))]))), (go!"GetResourceVersion", (some (go.signature.Signature [] false [go.string]))), (go!"GetSelfLink", (some (go.signature.Signature [] false [go.string]))), (go!"GetUID", (some (go.signature.Signature [] false [(go.GoType.Named go!"k8s.io/apimachinery/pkg/types.UID" [])]))), (go!"SetAnnotations", (some (go.signature.Signature [(go.GoType.MapType go.string go.string)] false []))), (go!"SetCreationTimestamp", (some (go.signature.Signature [(go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.Time" [])] false []))), (go!"SetDeletionGracePeriodSeconds", (some (go.signature.Signature [(go.GoType.PointerType go.int64)] false []))), (go!"SetDeletionTimestamp", (some (go.signature.Signature [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.Time" []))] false []))), (go!"SetFinalizers", (some (go.signature.Signature [(go.GoType.SliceType go.string)] false []))), (go!"SetGenerateName", (some (go.signature.Signature [go.string] false []))), (go!"SetGeneration", (some (go.signature.Signature [go.int64] false []))), (go!"SetLabels", (some (go.signature.Signature [(go.GoType.MapType go.string go.string)] false []))), (go!"SetManagedFields", (some (go.signature.Signature [(go.GoType.SliceType (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.ManagedFieldsEntry" []))] false []))), (go!"SetName", (some (go.signature.Signature [go.string] false []))), (go!"SetNamespace", (some (go.signature.Signature [go.string] false []))), (go!"SetOwnerReferences", (some (go.signature.Signature [(go.GoType.SliceType (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.OwnerReference" []))] false []))), (go!"SetResourceVersion", (some (go.signature.Signature [go.string] false []))), (go!"SetSelfLink", (some (go.signature.Signature [go.string] false []))), (go!"SetUID", (some (go.signature.Signature [(go.GoType.Named go!"k8s.io/apimachinery/pkg/types.UID" [])] false [])))]
 
 attribute [instance] tombstone.TypeAssumptions.type_repr
   tombstone.TypeAssumptions.underlying
   tombstone.TypeAssumptions.isUnderlying
+  tombstone.TypeAssumptions.method_set
+  tombstone.TypeAssumptions.ptr_method_set
 
 axiom MutationDetector : Type
 axiom MutationDetector.zero_val : ZeroVal MutationDetector
 attribute [instance] MutationDetector.zero_val
 
-class MutationDetector.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class MutationDetector.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying MutationDetector.underlying MutationDetector
   underlying : go.UnderlyingDirectedEq MutationDetector.ty MutationDetector.underlying
   isUnderlying : go.IsUnderlying MutationDetector.underlying MutationDetector.underlying
+  method_set : go.MethodSetIs MutationDetector.ty [(go!"AddObject", (some (go.signature.Signature [(go.GoType.InterfaceType [])] false []))), (go!"Run", (some (go.signature.Signature [(go.GoType.ChannelType go.ChanDir.recvonly (go.GoType.StructType []))] false [])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType MutationDetector.ty) []
 
 attribute [instance] MutationDetector.TypeAssumptions.type_repr
   MutationDetector.TypeAssumptions.underlying
   MutationDetector.TypeAssumptions.isUnderlying
+  MutationDetector.TypeAssumptions.method_set
+  MutationDetector.TypeAssumptions.ptr_method_set
 
 axiom dummyMutationDetector : Type
 axiom dummyMutationDetector.zero_val : ZeroVal dummyMutationDetector
 attribute [instance] dummyMutationDetector.zero_val
 
-class dummyMutationDetector.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class dummyMutationDetector.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying dummyMutationDetector.underlying dummyMutationDetector
   underlying : go.UnderlyingDirectedEq dummyMutationDetector.ty dummyMutationDetector.underlying
   isUnderlying : go.IsUnderlying dummyMutationDetector.underlying dummyMutationDetector.underlying
+  method_set : go.MethodSetIs dummyMutationDetector.ty [(go!"AddObject", (some (go.signature.Signature [(go.GoType.InterfaceType [])] false []))), (go!"Run", (some (go.signature.Signature [(go.GoType.ChannelType go.ChanDir.recvonly (go.GoType.StructType []))] false [])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType dummyMutationDetector.ty) [(go!"AddObject", (some (go.signature.Signature [(go.GoType.InterfaceType [])] false []))), (go!"Run", (some (go.signature.Signature [(go.GoType.ChannelType go.ChanDir.recvonly (go.GoType.StructType []))] false [])))]
 
 attribute [instance] dummyMutationDetector.TypeAssumptions.type_repr
   dummyMutationDetector.TypeAssumptions.underlying
   dummyMutationDetector.TypeAssumptions.isUnderlying
+  dummyMutationDetector.TypeAssumptions.method_set
+  dummyMutationDetector.TypeAssumptions.ptr_method_set
 
 axiom defaultCacheMutationDetector : Type
 axiom defaultCacheMutationDetector.zero_val : ZeroVal defaultCacheMutationDetector
 attribute [instance] defaultCacheMutationDetector.zero_val
 
-class defaultCacheMutationDetector.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class defaultCacheMutationDetector.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying defaultCacheMutationDetector.underlying defaultCacheMutationDetector
   underlying : go.UnderlyingDirectedEq defaultCacheMutationDetector.ty defaultCacheMutationDetector.underlying
   isUnderlying : go.IsUnderlying defaultCacheMutationDetector.underlying defaultCacheMutationDetector.underlying
+  method_set : go.MethodSetIs defaultCacheMutationDetector.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType defaultCacheMutationDetector.ty) [(go!"AddObject", (some (go.signature.Signature [(go.GoType.InterfaceType [])] false []))), (go!"CompareObjects", (some (go.signature.Signature [] false []))), (go!"Run", (some (go.signature.Signature [(go.GoType.ChannelType go.ChanDir.recvonly (go.GoType.StructType []))] false [])))]
 
 attribute [instance] defaultCacheMutationDetector.TypeAssumptions.type_repr
   defaultCacheMutationDetector.TypeAssumptions.underlying
   defaultCacheMutationDetector.TypeAssumptions.isUnderlying
+  defaultCacheMutationDetector.TypeAssumptions.method_set
+  defaultCacheMutationDetector.TypeAssumptions.ptr_method_set
 
 axiom cacheObj : Type
 axiom cacheObj.zero_val : ZeroVal cacheObj
 attribute [instance] cacheObj.zero_val
 
-class cacheObj.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class cacheObj.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying cacheObj.underlying cacheObj
   underlying : go.UnderlyingDirectedEq cacheObj.ty cacheObj.underlying
   isUnderlying : go.IsUnderlying cacheObj.underlying cacheObj.underlying
+  method_set : go.MethodSetIs cacheObj.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType cacheObj.ty) []
 
 attribute [instance] cacheObj.TypeAssumptions.type_repr
   cacheObj.TypeAssumptions.underlying
   cacheObj.TypeAssumptions.isUnderlying
+  cacheObj.TypeAssumptions.method_set
+  cacheObj.TypeAssumptions.ptr_method_set
 
 axiom ObjectName : Type
 axiom ObjectName.zero_val : ZeroVal ObjectName
 attribute [instance] ObjectName.zero_val
 
-class ObjectName.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class ObjectName.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying ObjectName.underlying ObjectName
   underlying : go.UnderlyingDirectedEq ObjectName.ty ObjectName.underlying
   isUnderlying : go.IsUnderlying ObjectName.underlying ObjectName.underlying
+  method_set : go.MethodSetIs ObjectName.ty [(go!"AsNamespacedName", (some (go.signature.Signature [] false [(go.GoType.Named go!"k8s.io/apimachinery/pkg/types.NamespacedName" [])]))), (go!"Parts", (some (go.signature.Signature [] false [go.string, go.string]))), (go!"String", (some (go.signature.Signature [] false [go.string])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType ObjectName.ty) [(go!"AsNamespacedName", (some (go.signature.Signature [] false [(go.GoType.Named go!"k8s.io/apimachinery/pkg/types.NamespacedName" [])]))), (go!"Parts", (some (go.signature.Signature [] false [go.string, go.string]))), (go!"String", (some (go.signature.Signature [] false [go.string])))]
 
 attribute [instance] ObjectName.TypeAssumptions.type_repr
   ObjectName.TypeAssumptions.underlying
   ObjectName.TypeAssumptions.isUnderlying
+  ObjectName.TypeAssumptions.method_set
+  ObjectName.TypeAssumptions.ptr_method_set
 
 axiom ReflectorStore : Type
 axiom ReflectorStore.zero_val : ZeroVal ReflectorStore
 attribute [instance] ReflectorStore.zero_val
 
-class ReflectorStore.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class ReflectorStore.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying ReflectorStore.underlying ReflectorStore
   underlying : go.UnderlyingDirectedEq ReflectorStore.ty ReflectorStore.underlying
   isUnderlying : go.IsUnderlying ReflectorStore.underlying ReflectorStore.underlying
+  method_set : go.MethodSetIs ReflectorStore.ty [(go!"Add", (some (go.signature.Signature [(go.GoType.InterfaceType [])] false [go.error]))), (go!"Delete", (some (go.signature.Signature [(go.GoType.InterfaceType [])] false [go.error]))), (go!"Replace", (some (go.signature.Signature [(go.GoType.SliceType (go.GoType.InterfaceType [])), go.string] false [go.error]))), (go!"Resync", (some (go.signature.Signature [] false [go.error]))), (go!"Update", (some (go.signature.Signature [(go.GoType.InterfaceType [])] false [go.error])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType ReflectorStore.ty) []
 
 attribute [instance] ReflectorStore.TypeAssumptions.type_repr
   ReflectorStore.TypeAssumptions.underlying
   ReflectorStore.TypeAssumptions.isUnderlying
+  ReflectorStore.TypeAssumptions.method_set
+  ReflectorStore.TypeAssumptions.ptr_method_set
 
 axiom ReflectorBookmarkStore : Type
 axiom ReflectorBookmarkStore.zero_val : ZeroVal ReflectorBookmarkStore
 attribute [instance] ReflectorBookmarkStore.zero_val
 
-class ReflectorBookmarkStore.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class ReflectorBookmarkStore.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying ReflectorBookmarkStore.underlying ReflectorBookmarkStore
   underlying : go.UnderlyingDirectedEq ReflectorBookmarkStore.ty ReflectorBookmarkStore.underlying
   isUnderlying : go.IsUnderlying ReflectorBookmarkStore.underlying ReflectorBookmarkStore.underlying
+  method_set : go.MethodSetIs ReflectorBookmarkStore.ty [(go!"Bookmark", (some (go.signature.Signature [go.string] false [go.error])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType ReflectorBookmarkStore.ty) []
 
 attribute [instance] ReflectorBookmarkStore.TypeAssumptions.type_repr
   ReflectorBookmarkStore.TypeAssumptions.underlying
   ReflectorBookmarkStore.TypeAssumptions.isUnderlying
+  ReflectorBookmarkStore.TypeAssumptions.method_set
+  ReflectorBookmarkStore.TypeAssumptions.ptr_method_set
 
 axiom TransformingStore : Type
 axiom TransformingStore.zero_val : ZeroVal TransformingStore
 attribute [instance] TransformingStore.zero_val
 
-class TransformingStore.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class TransformingStore.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying TransformingStore.underlying TransformingStore
   underlying : go.UnderlyingDirectedEq TransformingStore.ty TransformingStore.underlying
   isUnderlying : go.IsUnderlying TransformingStore.underlying TransformingStore.underlying
+  method_set : go.MethodSetIs TransformingStore.ty [(go!"Add", (some (go.signature.Signature [(go.GoType.InterfaceType [])] false [go.error]))), (go!"Delete", (some (go.signature.Signature [(go.GoType.InterfaceType [])] false [go.error]))), (go!"Replace", (some (go.signature.Signature [(go.GoType.SliceType (go.GoType.InterfaceType [])), go.string] false [go.error]))), (go!"Resync", (some (go.signature.Signature [] false [go.error]))), (go!"Transformer", (some (go.signature.Signature [] false [TransformFunc.ty]))), (go!"Update", (some (go.signature.Signature [(go.GoType.InterfaceType [])] false [go.error])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType TransformingStore.ty) []
 
 attribute [instance] TransformingStore.TypeAssumptions.type_repr
   TransformingStore.TypeAssumptions.underlying
   TransformingStore.TypeAssumptions.isUnderlying
+  TransformingStore.TypeAssumptions.method_set
+  TransformingStore.TypeAssumptions.ptr_method_set
 
 axiom Reflector : Type
 axiom Reflector.zero_val : ZeroVal Reflector
 attribute [instance] Reflector.zero_val
 
-class Reflector.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class Reflector.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying Reflector.underlying Reflector
   underlying : go.UnderlyingDirectedEq Reflector.ty Reflector.underlying
   isUnderlying : go.IsUnderlying Reflector.underlying Reflector.underlying
+  method_set : go.MethodSetIs Reflector.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType Reflector.ty) [(go!"LastSyncResourceVersion", (some (go.signature.Signature [] false [go.string]))), (go!"ListAndWatch", (some (go.signature.Signature [(go.GoType.ChannelType go.ChanDir.recvonly (go.GoType.StructType []))] false [go.error]))), (go!"ListAndWatchWithContext", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" [])] false [go.error]))), (go!"Name", (some (go.signature.Signature [] false [go.string]))), (go!"Run", (some (go.signature.Signature [(go.GoType.ChannelType go.ChanDir.recvonly (go.GoType.StructType []))] false []))), (go!"RunWithContext", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" [])] false []))), (go!"TypeDescription", (some (go.signature.Signature [] false [go.string]))), (go!"k8s.io/client-go/tools/cache.list", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" [])] false [go.error]))), (go!"k8s.io/client-go/tools/cache.relistResourceVersion", (some (go.signature.Signature [] false [go.string]))), (go!"k8s.io/client-go/tools/cache.resyncChan", (some (go.signature.Signature [] false [(go.GoType.ChannelType go.ChanDir.recvonly (go.GoType.Named go!"time.Time" [])), (go.GoType.FunctionType (go.signature.Signature [] false [go.bool]))]))), (go!"k8s.io/client-go/tools/cache.rewatchResourceVersion", (some (go.signature.Signature [] false [go.string]))), (go!"k8s.io/client-go/tools/cache.setIsLastSyncResourceVersionUnavailable", (some (go.signature.Signature [go.bool] false []))), (go!"k8s.io/client-go/tools/cache.setLastSyncResourceVersion", (some (go.signature.Signature [go.string] false []))), (go!"k8s.io/client-go/tools/cache.startResync", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.ChannelType go.ChanDir.sendrecv go.error)] false []))), (go!"k8s.io/client-go/tools/cache.syncWith", (some (go.signature.Signature [(go.GoType.SliceType (go.GoType.Named go!"k8s.io/apimachinery/pkg/runtime.Object" [])), go.string] false [go.error]))), (go!"k8s.io/client-go/tools/cache.watch", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.Named go!"k8s.io/apimachinery/pkg/watch.Interface" []), (go.GoType.ChannelType go.ChanDir.sendrecv go.error)] false [go.error]))), (go!"k8s.io/client-go/tools/cache.watchList", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" [])] false [(go.GoType.Named go!"k8s.io/apimachinery/pkg/watch.Interface" []), go.error]))), (go!"k8s.io/client-go/tools/cache.watchWithResync", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.Named go!"k8s.io/apimachinery/pkg/watch.Interface" [])] false [go.error])))]
 
 attribute [instance] Reflector.TypeAssumptions.type_repr
   Reflector.TypeAssumptions.underlying
   Reflector.TypeAssumptions.isUnderlying
+  Reflector.TypeAssumptions.method_set
+  Reflector.TypeAssumptions.ptr_method_set
 
 axiom ResourceVersionUpdater : Type
 axiom ResourceVersionUpdater.zero_val : ZeroVal ResourceVersionUpdater
 attribute [instance] ResourceVersionUpdater.zero_val
 
-class ResourceVersionUpdater.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class ResourceVersionUpdater.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying ResourceVersionUpdater.underlying ResourceVersionUpdater
   underlying : go.UnderlyingDirectedEq ResourceVersionUpdater.ty ResourceVersionUpdater.underlying
   isUnderlying : go.IsUnderlying ResourceVersionUpdater.underlying ResourceVersionUpdater.underlying
+  method_set : go.MethodSetIs ResourceVersionUpdater.ty [(go!"UpdateResourceVersion", (some (go.signature.Signature [go.string] false [])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType ResourceVersionUpdater.ty) []
 
 attribute [instance] ResourceVersionUpdater.TypeAssumptions.type_repr
   ResourceVersionUpdater.TypeAssumptions.underlying
   ResourceVersionUpdater.TypeAssumptions.isUnderlying
+  ResourceVersionUpdater.TypeAssumptions.method_set
+  ResourceVersionUpdater.TypeAssumptions.ptr_method_set
 
 axiom WatchErrorHandler : Type
 axiom WatchErrorHandler.zero_val : ZeroVal WatchErrorHandler
 attribute [instance] WatchErrorHandler.zero_val
 
-class WatchErrorHandler.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class WatchErrorHandler.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying WatchErrorHandler.underlying WatchErrorHandler
   underlying : go.UnderlyingDirectedEq WatchErrorHandler.ty WatchErrorHandler.underlying
   isUnderlying : go.IsUnderlying WatchErrorHandler.underlying WatchErrorHandler.underlying
+  method_set : go.MethodSetIs WatchErrorHandler.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType WatchErrorHandler.ty) []
 
 attribute [instance] WatchErrorHandler.TypeAssumptions.type_repr
   WatchErrorHandler.TypeAssumptions.underlying
   WatchErrorHandler.TypeAssumptions.isUnderlying
+  WatchErrorHandler.TypeAssumptions.method_set
+  WatchErrorHandler.TypeAssumptions.ptr_method_set
 
 axiom WatchErrorHandlerWithContext : Type
 axiom WatchErrorHandlerWithContext.zero_val : ZeroVal WatchErrorHandlerWithContext
 attribute [instance] WatchErrorHandlerWithContext.zero_val
 
-class WatchErrorHandlerWithContext.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class WatchErrorHandlerWithContext.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying WatchErrorHandlerWithContext.underlying WatchErrorHandlerWithContext
   underlying : go.UnderlyingDirectedEq WatchErrorHandlerWithContext.ty WatchErrorHandlerWithContext.underlying
   isUnderlying : go.IsUnderlying WatchErrorHandlerWithContext.underlying WatchErrorHandlerWithContext.underlying
+  method_set : go.MethodSetIs WatchErrorHandlerWithContext.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType WatchErrorHandlerWithContext.ty) []
 
 attribute [instance] WatchErrorHandlerWithContext.TypeAssumptions.type_repr
   WatchErrorHandlerWithContext.TypeAssumptions.underlying
   WatchErrorHandlerWithContext.TypeAssumptions.isUnderlying
+  WatchErrorHandlerWithContext.TypeAssumptions.method_set
+  WatchErrorHandlerWithContext.TypeAssumptions.ptr_method_set
 
 axiom ReflectorOptions : Type
 axiom ReflectorOptions.zero_val : ZeroVal ReflectorOptions
 attribute [instance] ReflectorOptions.zero_val
 
-class ReflectorOptions.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class ReflectorOptions.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying ReflectorOptions.underlying ReflectorOptions
   underlying : go.UnderlyingDirectedEq ReflectorOptions.ty ReflectorOptions.underlying
   isUnderlying : go.IsUnderlying ReflectorOptions.underlying ReflectorOptions.underlying
+  method_set : go.MethodSetIs ReflectorOptions.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType ReflectorOptions.ty) []
 
 attribute [instance] ReflectorOptions.TypeAssumptions.type_repr
   ReflectorOptions.TypeAssumptions.underlying
   ReflectorOptions.TypeAssumptions.isUnderlying
+  ReflectorOptions.TypeAssumptions.method_set
+  ReflectorOptions.TypeAssumptions.ptr_method_set
 
 axiom initialEventsEndBookmarkTicker : Type
 axiom initialEventsEndBookmarkTicker.zero_val : ZeroVal initialEventsEndBookmarkTicker
 attribute [instance] initialEventsEndBookmarkTicker.zero_val
 
-class initialEventsEndBookmarkTicker.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class initialEventsEndBookmarkTicker.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying initialEventsEndBookmarkTicker.underlying initialEventsEndBookmarkTicker
   underlying : go.UnderlyingDirectedEq initialEventsEndBookmarkTicker.ty initialEventsEndBookmarkTicker.underlying
   isUnderlying : go.IsUnderlying initialEventsEndBookmarkTicker.underlying initialEventsEndBookmarkTicker.underlying
+  method_set : go.MethodSetIs initialEventsEndBookmarkTicker.ty [(go!"C", (some (go.signature.Signature [] false [(go.GoType.ChannelType go.ChanDir.recvonly (go.GoType.Named go!"time.Time" []))]))), (go!"Stop", (some (go.signature.Signature [] false [])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType initialEventsEndBookmarkTicker.ty) [(go!"C", (some (go.signature.Signature [] false [(go.GoType.ChannelType go.ChanDir.recvonly (go.GoType.Named go!"time.Time" []))]))), (go!"Stop", (some (go.signature.Signature [] false []))), (go!"k8s.io/client-go/tools/cache.observeLastEventTimeStamp", (some (go.signature.Signature [(go.GoType.Named go!"time.Time" [])] false []))), (go!"k8s.io/client-go/tools/cache.produceWarningIfExpired", (some (go.signature.Signature [] false [go.error]))), (go!"k8s.io/client-go/tools/cache.warnIfExpired", (some (go.signature.Signature [] false [])))]
 
 attribute [instance] initialEventsEndBookmarkTicker.TypeAssumptions.type_repr
   initialEventsEndBookmarkTicker.TypeAssumptions.underlying
   initialEventsEndBookmarkTicker.TypeAssumptions.isUnderlying
+  initialEventsEndBookmarkTicker.TypeAssumptions.method_set
+  initialEventsEndBookmarkTicker.TypeAssumptions.ptr_method_set
 
 axiom noopTicker : Type
 axiom noopTicker.zero_val : ZeroVal noopTicker
 attribute [instance] noopTicker.zero_val
 
-class noopTicker.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class noopTicker.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying noopTicker.underlying noopTicker
   underlying : go.UnderlyingDirectedEq noopTicker.ty noopTicker.underlying
   isUnderlying : go.IsUnderlying noopTicker.underlying noopTicker.underlying
+  method_set : go.MethodSetIs noopTicker.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType noopTicker.ty) [(go!"C", (some (go.signature.Signature [] false [(go.GoType.ChannelType go.ChanDir.recvonly (go.GoType.Named go!"time.Time" []))]))), (go!"Stop", (some (go.signature.Signature [] false [])))]
 
 attribute [instance] noopTicker.TypeAssumptions.type_repr
   noopTicker.TypeAssumptions.underlying
   noopTicker.TypeAssumptions.isUnderlying
+  noopTicker.TypeAssumptions.method_set
+  noopTicker.TypeAssumptions.ptr_method_set
 
 axiom VeryShortWatchError : Type
 axiom VeryShortWatchError.zero_val : ZeroVal VeryShortWatchError
 attribute [instance] VeryShortWatchError.zero_val
 
-class VeryShortWatchError.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class VeryShortWatchError.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying VeryShortWatchError.underlying VeryShortWatchError
   underlying : go.UnderlyingDirectedEq VeryShortWatchError.ty VeryShortWatchError.underlying
   isUnderlying : go.IsUnderlying VeryShortWatchError.underlying VeryShortWatchError.underlying
+  method_set : go.MethodSetIs VeryShortWatchError.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType VeryShortWatchError.ty) [(go!"Error", (some (go.signature.Signature [] false [go.string])))]
 
 attribute [instance] VeryShortWatchError.TypeAssumptions.type_repr
   VeryShortWatchError.TypeAssumptions.underlying
   VeryShortWatchError.TypeAssumptions.isUnderlying
+  VeryShortWatchError.TypeAssumptions.method_set
+  VeryShortWatchError.TypeAssumptions.ptr_method_set
 
 axiom GaugeMetric : Type
 axiom GaugeMetric.zero_val : ZeroVal GaugeMetric
 attribute [instance] GaugeMetric.zero_val
 
-class GaugeMetric.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class GaugeMetric.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying GaugeMetric.underlying GaugeMetric
   underlying : go.UnderlyingDirectedEq GaugeMetric.ty GaugeMetric.underlying
   isUnderlying : go.IsUnderlying GaugeMetric.underlying GaugeMetric.underlying
+  method_set : go.MethodSetIs GaugeMetric.ty [(go!"Set", (some (go.signature.Signature [go.float64] false [])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType GaugeMetric.ty) []
 
 attribute [instance] GaugeMetric.TypeAssumptions.type_repr
   GaugeMetric.TypeAssumptions.underlying
   GaugeMetric.TypeAssumptions.isUnderlying
+  GaugeMetric.TypeAssumptions.method_set
+  GaugeMetric.TypeAssumptions.ptr_method_set
 
 axiom CounterMetric : Type
 axiom CounterMetric.zero_val : ZeroVal CounterMetric
 attribute [instance] CounterMetric.zero_val
 
-class CounterMetric.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class CounterMetric.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying CounterMetric.underlying CounterMetric
   underlying : go.UnderlyingDirectedEq CounterMetric.ty CounterMetric.underlying
   isUnderlying : go.IsUnderlying CounterMetric.underlying CounterMetric.underlying
+  method_set : go.MethodSetIs CounterMetric.ty [(go!"Inc", (some (go.signature.Signature [] false [])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType CounterMetric.ty) []
 
 attribute [instance] CounterMetric.TypeAssumptions.type_repr
   CounterMetric.TypeAssumptions.underlying
   CounterMetric.TypeAssumptions.isUnderlying
+  CounterMetric.TypeAssumptions.method_set
+  CounterMetric.TypeAssumptions.ptr_method_set
 
 axiom SummaryMetric : Type
 axiom SummaryMetric.zero_val : ZeroVal SummaryMetric
 attribute [instance] SummaryMetric.zero_val
 
-class SummaryMetric.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class SummaryMetric.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying SummaryMetric.underlying SummaryMetric
   underlying : go.UnderlyingDirectedEq SummaryMetric.ty SummaryMetric.underlying
   isUnderlying : go.IsUnderlying SummaryMetric.underlying SummaryMetric.underlying
+  method_set : go.MethodSetIs SummaryMetric.ty [(go!"Observe", (some (go.signature.Signature [go.float64] false [])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType SummaryMetric.ty) []
 
 attribute [instance] SummaryMetric.TypeAssumptions.type_repr
   SummaryMetric.TypeAssumptions.underlying
   SummaryMetric.TypeAssumptions.isUnderlying
+  SummaryMetric.TypeAssumptions.method_set
+  SummaryMetric.TypeAssumptions.ptr_method_set
 
 axiom HistogramMetric : Type
 axiom HistogramMetric.zero_val : ZeroVal HistogramMetric
 attribute [instance] HistogramMetric.zero_val
 
-class HistogramMetric.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class HistogramMetric.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying HistogramMetric.underlying HistogramMetric
   underlying : go.UnderlyingDirectedEq HistogramMetric.ty HistogramMetric.underlying
   isUnderlying : go.IsUnderlying HistogramMetric.underlying HistogramMetric.underlying
+  method_set : go.MethodSetIs HistogramMetric.ty [(go!"Observe", (some (go.signature.Signature [go.float64] false [])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType HistogramMetric.ty) []
 
 attribute [instance] HistogramMetric.TypeAssumptions.type_repr
   HistogramMetric.TypeAssumptions.underlying
   HistogramMetric.TypeAssumptions.isUnderlying
+  HistogramMetric.TypeAssumptions.method_set
+  HistogramMetric.TypeAssumptions.ptr_method_set
 
 axiom noopMetric : Type
 axiom noopMetric.zero_val : ZeroVal noopMetric
 attribute [instance] noopMetric.zero_val
 
-class noopMetric.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class noopMetric.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying noopMetric.underlying noopMetric
   underlying : go.UnderlyingDirectedEq noopMetric.ty noopMetric.underlying
   isUnderlying : go.IsUnderlying noopMetric.underlying noopMetric.underlying
+  method_set : go.MethodSetIs noopMetric.ty [(go!"Dec", (some (go.signature.Signature [] false []))), (go!"Inc", (some (go.signature.Signature [] false []))), (go!"Observe", (some (go.signature.Signature [go.float64] false []))), (go!"Set", (some (go.signature.Signature [go.float64] false [])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType noopMetric.ty) [(go!"Dec", (some (go.signature.Signature [] false []))), (go!"Inc", (some (go.signature.Signature [] false []))), (go!"Observe", (some (go.signature.Signature [go.float64] false []))), (go!"Set", (some (go.signature.Signature [go.float64] false [])))]
 
 attribute [instance] noopMetric.TypeAssumptions.type_repr
   noopMetric.TypeAssumptions.underlying
   noopMetric.TypeAssumptions.isUnderlying
+  noopMetric.TypeAssumptions.method_set
+  noopMetric.TypeAssumptions.ptr_method_set
 
 axiom MetricsProvider : Type
 axiom MetricsProvider.zero_val : ZeroVal MetricsProvider
 attribute [instance] MetricsProvider.zero_val
 
-class MetricsProvider.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class MetricsProvider.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying MetricsProvider.underlying MetricsProvider
   underlying : go.UnderlyingDirectedEq MetricsProvider.ty MetricsProvider.underlying
   isUnderlying : go.IsUnderlying MetricsProvider.underlying MetricsProvider.underlying
+  method_set : go.MethodSetIs MetricsProvider.ty [(go!"NewItemsInListMetric", (some (go.signature.Signature [go.string] false [SummaryMetric.ty]))), (go!"NewItemsInWatchMetric", (some (go.signature.Signature [go.string] false [SummaryMetric.ty]))), (go!"NewLastResourceVersionMetric", (some (go.signature.Signature [go.string] false [GaugeMetric.ty]))), (go!"NewListDurationMetric", (some (go.signature.Signature [go.string] false [SummaryMetric.ty]))), (go!"NewListsMetric", (some (go.signature.Signature [go.string] false [CounterMetric.ty]))), (go!"NewShortWatchesMetric", (some (go.signature.Signature [go.string] false [CounterMetric.ty]))), (go!"NewWatchDurationMetric", (some (go.signature.Signature [go.string] false [SummaryMetric.ty]))), (go!"NewWatchesMetric", (some (go.signature.Signature [go.string] false [CounterMetric.ty])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType MetricsProvider.ty) []
 
 attribute [instance] MetricsProvider.TypeAssumptions.type_repr
   MetricsProvider.TypeAssumptions.underlying
   MetricsProvider.TypeAssumptions.isUnderlying
+  MetricsProvider.TypeAssumptions.method_set
+  MetricsProvider.TypeAssumptions.ptr_method_set
 
 axiom noopMetricsProvider : Type
 axiom noopMetricsProvider.zero_val : ZeroVal noopMetricsProvider
 attribute [instance] noopMetricsProvider.zero_val
 
-class noopMetricsProvider.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class noopMetricsProvider.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying noopMetricsProvider.underlying noopMetricsProvider
   underlying : go.UnderlyingDirectedEq noopMetricsProvider.ty noopMetricsProvider.underlying
   isUnderlying : go.IsUnderlying noopMetricsProvider.underlying noopMetricsProvider.underlying
+  method_set : go.MethodSetIs noopMetricsProvider.ty [(go!"NewItemsInListMetric", (some (go.signature.Signature [go.string] false [SummaryMetric.ty]))), (go!"NewItemsInWatchMetric", (some (go.signature.Signature [go.string] false [SummaryMetric.ty]))), (go!"NewLastResourceVersionMetric", (some (go.signature.Signature [go.string] false [GaugeMetric.ty]))), (go!"NewListDurationMetric", (some (go.signature.Signature [go.string] false [SummaryMetric.ty]))), (go!"NewListsMetric", (some (go.signature.Signature [go.string] false [CounterMetric.ty]))), (go!"NewShortWatchesMetric", (some (go.signature.Signature [go.string] false [CounterMetric.ty]))), (go!"NewWatchDurationMetric", (some (go.signature.Signature [go.string] false [SummaryMetric.ty]))), (go!"NewWatchesMetric", (some (go.signature.Signature [go.string] false [CounterMetric.ty])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType noopMetricsProvider.ty) [(go!"NewItemsInListMetric", (some (go.signature.Signature [go.string] false [SummaryMetric.ty]))), (go!"NewItemsInWatchMetric", (some (go.signature.Signature [go.string] false [SummaryMetric.ty]))), (go!"NewLastResourceVersionMetric", (some (go.signature.Signature [go.string] false [GaugeMetric.ty]))), (go!"NewListDurationMetric", (some (go.signature.Signature [go.string] false [SummaryMetric.ty]))), (go!"NewListsMetric", (some (go.signature.Signature [go.string] false [CounterMetric.ty]))), (go!"NewShortWatchesMetric", (some (go.signature.Signature [go.string] false [CounterMetric.ty]))), (go!"NewWatchDurationMetric", (some (go.signature.Signature [go.string] false [SummaryMetric.ty]))), (go!"NewWatchesMetric", (some (go.signature.Signature [go.string] false [CounterMetric.ty])))]
 
 attribute [instance] noopMetricsProvider.TypeAssumptions.type_repr
   noopMetricsProvider.TypeAssumptions.underlying
   noopMetricsProvider.TypeAssumptions.isUnderlying
+  noopMetricsProvider.TypeAssumptions.method_set
+  noopMetricsProvider.TypeAssumptions.ptr_method_set
 
 axiom RetryWithDeadline : Type
 axiom RetryWithDeadline.zero_val : ZeroVal RetryWithDeadline
 attribute [instance] RetryWithDeadline.zero_val
 
-class RetryWithDeadline.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class RetryWithDeadline.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying RetryWithDeadline.underlying RetryWithDeadline
   underlying : go.UnderlyingDirectedEq RetryWithDeadline.ty RetryWithDeadline.underlying
   isUnderlying : go.IsUnderlying RetryWithDeadline.underlying RetryWithDeadline.underlying
+  method_set : go.MethodSetIs RetryWithDeadline.ty [(go!"After", (some (go.signature.Signature [go.error] false []))), (go!"ShouldRetry", (some (go.signature.Signature [] false [go.bool])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType RetryWithDeadline.ty) []
 
 attribute [instance] RetryWithDeadline.TypeAssumptions.type_repr
   RetryWithDeadline.TypeAssumptions.underlying
   RetryWithDeadline.TypeAssumptions.isUnderlying
+  RetryWithDeadline.TypeAssumptions.method_set
+  RetryWithDeadline.TypeAssumptions.ptr_method_set
 
 axiom retryWithDeadlineImpl : Type
 axiom retryWithDeadlineImpl.zero_val : ZeroVal retryWithDeadlineImpl
 attribute [instance] retryWithDeadlineImpl.zero_val
 
-class retryWithDeadlineImpl.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class retryWithDeadlineImpl.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying retryWithDeadlineImpl.underlying retryWithDeadlineImpl
   underlying : go.UnderlyingDirectedEq retryWithDeadlineImpl.ty retryWithDeadlineImpl.underlying
   isUnderlying : go.IsUnderlying retryWithDeadlineImpl.underlying retryWithDeadlineImpl.underlying
+  method_set : go.MethodSetIs retryWithDeadlineImpl.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType retryWithDeadlineImpl.ty) [(go!"After", (some (go.signature.Signature [go.error] false []))), (go!"ShouldRetry", (some (go.signature.Signature [] false [go.bool]))), (go!"k8s.io/client-go/tools/cache.reset", (some (go.signature.Signature [] false [])))]
 
 attribute [instance] retryWithDeadlineImpl.TypeAssumptions.type_repr
   retryWithDeadlineImpl.TypeAssumptions.underlying
   retryWithDeadlineImpl.TypeAssumptions.isUnderlying
+  retryWithDeadlineImpl.TypeAssumptions.method_set
+  retryWithDeadlineImpl.TypeAssumptions.ptr_method_set
 
 axiom SharedInformer : Type
 axiom SharedInformer.zero_val : ZeroVal SharedInformer
 attribute [instance] SharedInformer.zero_val
 
-class SharedInformer.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class SharedInformer.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying SharedInformer.underlying SharedInformer
   underlying : go.UnderlyingDirectedEq SharedInformer.ty SharedInformer.underlying
   isUnderlying : go.IsUnderlying SharedInformer.underlying SharedInformer.underlying
+  method_set : go.MethodSetIs SharedInformer.ty [(go!"AddEventHandler", (some (go.signature.Signature [ResourceEventHandler.ty] false [ResourceEventHandlerRegistration.ty, go.error]))), (go!"AddEventHandlerWithOptions", (some (go.signature.Signature [ResourceEventHandler.ty, HandlerOptions.ty] false [ResourceEventHandlerRegistration.ty, go.error]))), (go!"AddEventHandlerWithResyncPeriod", (some (go.signature.Signature [ResourceEventHandler.ty, (go.GoType.Named go!"time.Duration" [])] false [ResourceEventHandlerRegistration.ty, go.error]))), (go!"GetController", (some (go.signature.Signature [] false [Controller.ty]))), (go!"GetStore", (some (go.signature.Signature [] false [Store.ty]))), (go!"HasSynced", (some (go.signature.Signature [] false [go.bool]))), (go!"HasSyncedChecker", (some (go.signature.Signature [] false [DoneChecker.ty]))), (go!"IsStopped", (some (go.signature.Signature [] false [go.bool]))), (go!"LastSyncResourceVersion", (some (go.signature.Signature [] false [go.string]))), (go!"RemoveEventHandler", (some (go.signature.Signature [ResourceEventHandlerRegistration.ty] false [go.error]))), (go!"Run", (some (go.signature.Signature [(go.GoType.ChannelType go.ChanDir.recvonly (go.GoType.StructType []))] false []))), (go!"RunWithContext", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" [])] false []))), (go!"SetShardSelector", (some (go.signature.Signature [(go.GoType.Named go!"k8s.io/apimachinery/pkg/sharding.Selector" [])] false [go.error]))), (go!"SetTransform", (some (go.signature.Signature [TransformFunc.ty] false [go.error]))), (go!"SetWatchErrorHandler", (some (go.signature.Signature [WatchErrorHandler.ty] false [go.error]))), (go!"SetWatchErrorHandlerWithContext", (some (go.signature.Signature [WatchErrorHandlerWithContext.ty] false [go.error])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType SharedInformer.ty) []
 
 attribute [instance] SharedInformer.TypeAssumptions.type_repr
   SharedInformer.TypeAssumptions.underlying
   SharedInformer.TypeAssumptions.isUnderlying
+  SharedInformer.TypeAssumptions.method_set
+  SharedInformer.TypeAssumptions.ptr_method_set
 
 axiom ResourceEventHandlerRegistration : Type
 axiom ResourceEventHandlerRegistration.zero_val : ZeroVal ResourceEventHandlerRegistration
 attribute [instance] ResourceEventHandlerRegistration.zero_val
 
-class ResourceEventHandlerRegistration.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class ResourceEventHandlerRegistration.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying ResourceEventHandlerRegistration.underlying ResourceEventHandlerRegistration
   underlying : go.UnderlyingDirectedEq ResourceEventHandlerRegistration.ty ResourceEventHandlerRegistration.underlying
   isUnderlying : go.IsUnderlying ResourceEventHandlerRegistration.underlying ResourceEventHandlerRegistration.underlying
+  method_set : go.MethodSetIs ResourceEventHandlerRegistration.ty [(go!"HasSynced", (some (go.signature.Signature [] false [go.bool]))), (go!"HasSyncedChecker", (some (go.signature.Signature [] false [DoneChecker.ty])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType ResourceEventHandlerRegistration.ty) []
 
 attribute [instance] ResourceEventHandlerRegistration.TypeAssumptions.type_repr
   ResourceEventHandlerRegistration.TypeAssumptions.underlying
   ResourceEventHandlerRegistration.TypeAssumptions.isUnderlying
+  ResourceEventHandlerRegistration.TypeAssumptions.method_set
+  ResourceEventHandlerRegistration.TypeAssumptions.ptr_method_set
 
 axiom HandlerOptions : Type
 axiom HandlerOptions.zero_val : ZeroVal HandlerOptions
 attribute [instance] HandlerOptions.zero_val
 
-class HandlerOptions.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class HandlerOptions.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying HandlerOptions.underlying HandlerOptions
   underlying : go.UnderlyingDirectedEq HandlerOptions.ty HandlerOptions.underlying
   isUnderlying : go.IsUnderlying HandlerOptions.underlying HandlerOptions.underlying
+  method_set : go.MethodSetIs HandlerOptions.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType HandlerOptions.ty) []
 
 attribute [instance] HandlerOptions.TypeAssumptions.type_repr
   HandlerOptions.TypeAssumptions.underlying
   HandlerOptions.TypeAssumptions.isUnderlying
+  HandlerOptions.TypeAssumptions.method_set
+  HandlerOptions.TypeAssumptions.ptr_method_set
 
 axiom SharedIndexInformer : Type
 axiom SharedIndexInformer.zero_val : ZeroVal SharedIndexInformer
 attribute [instance] SharedIndexInformer.zero_val
 
-class SharedIndexInformer.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class SharedIndexInformer.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying SharedIndexInformer.underlying SharedIndexInformer
   underlying : go.UnderlyingDirectedEq SharedIndexInformer.ty SharedIndexInformer.underlying
   isUnderlying : go.IsUnderlying SharedIndexInformer.underlying SharedIndexInformer.underlying
+  method_set : go.MethodSetIs SharedIndexInformer.ty [(go!"AddEventHandler", (some (go.signature.Signature [ResourceEventHandler.ty] false [ResourceEventHandlerRegistration.ty, go.error]))), (go!"AddEventHandlerWithOptions", (some (go.signature.Signature [ResourceEventHandler.ty, HandlerOptions.ty] false [ResourceEventHandlerRegistration.ty, go.error]))), (go!"AddEventHandlerWithResyncPeriod", (some (go.signature.Signature [ResourceEventHandler.ty, (go.GoType.Named go!"time.Duration" [])] false [ResourceEventHandlerRegistration.ty, go.error]))), (go!"AddIndexers", (some (go.signature.Signature [Indexers.ty] false [go.error]))), (go!"GetController", (some (go.signature.Signature [] false [Controller.ty]))), (go!"GetIndexer", (some (go.signature.Signature [] false [Indexer.ty]))), (go!"GetStore", (some (go.signature.Signature [] false [Store.ty]))), (go!"HasSynced", (some (go.signature.Signature [] false [go.bool]))), (go!"HasSyncedChecker", (some (go.signature.Signature [] false [DoneChecker.ty]))), (go!"IsStopped", (some (go.signature.Signature [] false [go.bool]))), (go!"LastSyncResourceVersion", (some (go.signature.Signature [] false [go.string]))), (go!"RemoveEventHandler", (some (go.signature.Signature [ResourceEventHandlerRegistration.ty] false [go.error]))), (go!"Run", (some (go.signature.Signature [(go.GoType.ChannelType go.ChanDir.recvonly (go.GoType.StructType []))] false []))), (go!"RunWithContext", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" [])] false []))), (go!"SetShardSelector", (some (go.signature.Signature [(go.GoType.Named go!"k8s.io/apimachinery/pkg/sharding.Selector" [])] false [go.error]))), (go!"SetTransform", (some (go.signature.Signature [TransformFunc.ty] false [go.error]))), (go!"SetWatchErrorHandler", (some (go.signature.Signature [WatchErrorHandler.ty] false [go.error]))), (go!"SetWatchErrorHandlerWithContext", (some (go.signature.Signature [WatchErrorHandlerWithContext.ty] false [go.error])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType SharedIndexInformer.ty) []
 
 attribute [instance] SharedIndexInformer.TypeAssumptions.type_repr
   SharedIndexInformer.TypeAssumptions.underlying
   SharedIndexInformer.TypeAssumptions.isUnderlying
+  SharedIndexInformer.TypeAssumptions.method_set
+  SharedIndexInformer.TypeAssumptions.ptr_method_set
 
 axiom TypedSharedIndexInformer : ∀ (T : Type), Type
 axiom TypedSharedIndexInformer.zero_val : ∀ {T : Type} [ZeroVal T], ZeroVal (TypedSharedIndexInformer T)
 attribute [instance] TypedSharedIndexInformer.zero_val
 
-class TypedSharedIndexInformer.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class TypedSharedIndexInformer.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : ∀ (T : go.GoType) (T' : Type) [ZeroVal T'] [TypeRepr T T'], go.TypeReprUnderlying (TypedSharedIndexInformer.underlying T) (TypedSharedIndexInformer T')
   underlying : ∀ (T : go.GoType), go.UnderlyingDirectedEq (TypedSharedIndexInformer.ty T) (TypedSharedIndexInformer.underlying T)
   isUnderlying : ∀ (T : go.GoType), go.IsUnderlying (TypedSharedIndexInformer.underlying T) (TypedSharedIndexInformer.underlying T)
+  method_set : ∀ (T : go.GoType), go.MethodSetIs (TypedSharedIndexInformer.ty T) [(go!"AddEventHandler", (some (go.signature.Signature [ResourceEventHandler.ty] false [ResourceEventHandlerRegistration.ty, go.error]))), (go!"AddEventHandlerWithOptions", (some (go.signature.Signature [ResourceEventHandler.ty, HandlerOptions.ty] false [ResourceEventHandlerRegistration.ty, go.error]))), (go!"AddEventHandlerWithResyncPeriod", (some (go.signature.Signature [ResourceEventHandler.ty, (go.GoType.Named go!"time.Duration" [])] false [ResourceEventHandlerRegistration.ty, go.error]))), (go!"AddIndexers", (some (go.signature.Signature [Indexers.ty] false [go.error]))), (go!"AddTypedEventHandler", (some (go.signature.Signature [(TypedResourceEventHandler.ty T), (go.GoType.SliceType HandlerOptions.ty)] true [ResourceEventHandlerRegistration.ty, go.error]))), (go!"AddTypedIndexers", (some (go.signature.Signature [(TypedIndexers.ty T)] false [go.error]))), (go!"GetController", (some (go.signature.Signature [] false [Controller.ty]))), (go!"GetIndexer", (some (go.signature.Signature [] false [Indexer.ty]))), (go!"GetStore", (some (go.signature.Signature [] false [Store.ty]))), (go!"GetTypedIndexer", (some (go.signature.Signature [] false [(TypedIndexer.ty T)]))), (go!"HasSynced", (some (go.signature.Signature [] false [go.bool]))), (go!"HasSyncedChecker", (some (go.signature.Signature [] false [DoneChecker.ty]))), (go!"IsStopped", (some (go.signature.Signature [] false [go.bool]))), (go!"LastSyncResourceVersion", (some (go.signature.Signature [] false [go.string]))), (go!"RemoveEventHandler", (some (go.signature.Signature [ResourceEventHandlerRegistration.ty] false [go.error]))), (go!"Run", (some (go.signature.Signature [(go.GoType.ChannelType go.ChanDir.recvonly (go.GoType.StructType []))] false []))), (go!"RunWithContext", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" [])] false []))), (go!"SetShardSelector", (some (go.signature.Signature [(go.GoType.Named go!"k8s.io/apimachinery/pkg/sharding.Selector" [])] false [go.error]))), (go!"SetTransform", (some (go.signature.Signature [TransformFunc.ty] false [go.error]))), (go!"SetWatchErrorHandler", (some (go.signature.Signature [WatchErrorHandler.ty] false [go.error]))), (go!"SetWatchErrorHandlerWithContext", (some (go.signature.Signature [WatchErrorHandlerWithContext.ty] false [go.error])))]
+  ptr_method_set : ∀ (T : go.GoType), go.MethodSetIs (go.GoType.PointerType (TypedSharedIndexInformer.ty T)) []
 
 attribute [instance] TypedSharedIndexInformer.TypeAssumptions.type_repr
   TypedSharedIndexInformer.TypeAssumptions.underlying
   TypedSharedIndexInformer.TypeAssumptions.isUnderlying
+  TypedSharedIndexInformer.TypeAssumptions.method_set
+  TypedSharedIndexInformer.TypeAssumptions.ptr_method_set
 
 axiom typedSharedIndexInformer : ∀ (T : Type), Type
 axiom typedSharedIndexInformer.zero_val : ∀ {T : Type} [ZeroVal T], ZeroVal (typedSharedIndexInformer T)
 attribute [instance] typedSharedIndexInformer.zero_val
 
-class typedSharedIndexInformer.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class typedSharedIndexInformer.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : ∀ (T : go.GoType) (T' : Type) [ZeroVal T'] [TypeRepr T T'], go.TypeReprUnderlying (typedSharedIndexInformer.underlying T) (typedSharedIndexInformer T')
   underlying : ∀ (T : go.GoType), go.UnderlyingDirectedEq (typedSharedIndexInformer.ty T) (typedSharedIndexInformer.underlying T)
   isUnderlying : ∀ (T : go.GoType), go.IsUnderlying (typedSharedIndexInformer.underlying T) (typedSharedIndexInformer.underlying T)
+  method_set : ∀ (T : go.GoType), go.MethodSetIs (typedSharedIndexInformer.ty T) [(go!"AddEventHandler", (some (go.signature.Signature [ResourceEventHandler.ty] false [ResourceEventHandlerRegistration.ty, go.error]))), (go!"AddEventHandlerWithOptions", (some (go.signature.Signature [ResourceEventHandler.ty, HandlerOptions.ty] false [ResourceEventHandlerRegistration.ty, go.error]))), (go!"AddEventHandlerWithResyncPeriod", (some (go.signature.Signature [ResourceEventHandler.ty, (go.GoType.Named go!"time.Duration" [])] false [ResourceEventHandlerRegistration.ty, go.error]))), (go!"AddIndexers", (some (go.signature.Signature [Indexers.ty] false [go.error]))), (go!"AddTypedEventHandler", (some (go.signature.Signature [(TypedResourceEventHandler.ty T), (go.GoType.SliceType HandlerOptions.ty)] true [ResourceEventHandlerRegistration.ty, go.error]))), (go!"AddTypedIndexers", (some (go.signature.Signature [(TypedIndexers.ty T)] false [go.error]))), (go!"GetController", (some (go.signature.Signature [] false [Controller.ty]))), (go!"GetIndexer", (some (go.signature.Signature [] false [Indexer.ty]))), (go!"GetStore", (some (go.signature.Signature [] false [Store.ty]))), (go!"GetTypedIndexer", (some (go.signature.Signature [] false [(TypedIndexer.ty T)]))), (go!"HasSynced", (some (go.signature.Signature [] false [go.bool]))), (go!"HasSyncedChecker", (some (go.signature.Signature [] false [DoneChecker.ty]))), (go!"IsStopped", (some (go.signature.Signature [] false [go.bool]))), (go!"LastSyncResourceVersion", (some (go.signature.Signature [] false [go.string]))), (go!"RemoveEventHandler", (some (go.signature.Signature [ResourceEventHandlerRegistration.ty] false [go.error]))), (go!"Run", (some (go.signature.Signature [(go.GoType.ChannelType go.ChanDir.recvonly (go.GoType.StructType []))] false []))), (go!"RunWithContext", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" [])] false []))), (go!"SetShardSelector", (some (go.signature.Signature [(go.GoType.Named go!"k8s.io/apimachinery/pkg/sharding.Selector" [])] false [go.error]))), (go!"SetTransform", (some (go.signature.Signature [TransformFunc.ty] false [go.error]))), (go!"SetWatchErrorHandler", (some (go.signature.Signature [WatchErrorHandler.ty] false [go.error]))), (go!"SetWatchErrorHandlerWithContext", (some (go.signature.Signature [WatchErrorHandlerWithContext.ty] false [go.error])))]
+  ptr_method_set : ∀ (T : go.GoType), go.MethodSetIs (go.GoType.PointerType (typedSharedIndexInformer.ty T)) [(go!"AddEventHandler", (some (go.signature.Signature [ResourceEventHandler.ty] false [ResourceEventHandlerRegistration.ty, go.error]))), (go!"AddEventHandlerWithOptions", (some (go.signature.Signature [ResourceEventHandler.ty, HandlerOptions.ty] false [ResourceEventHandlerRegistration.ty, go.error]))), (go!"AddEventHandlerWithResyncPeriod", (some (go.signature.Signature [ResourceEventHandler.ty, (go.GoType.Named go!"time.Duration" [])] false [ResourceEventHandlerRegistration.ty, go.error]))), (go!"AddIndexers", (some (go.signature.Signature [Indexers.ty] false [go.error]))), (go!"AddTypedEventHandler", (some (go.signature.Signature [(TypedResourceEventHandler.ty T), (go.GoType.SliceType HandlerOptions.ty)] true [ResourceEventHandlerRegistration.ty, go.error]))), (go!"AddTypedIndexers", (some (go.signature.Signature [(TypedIndexers.ty T)] false [go.error]))), (go!"GetController", (some (go.signature.Signature [] false [Controller.ty]))), (go!"GetIndexer", (some (go.signature.Signature [] false [Indexer.ty]))), (go!"GetStore", (some (go.signature.Signature [] false [Store.ty]))), (go!"GetTypedIndexer", (some (go.signature.Signature [] false [(TypedIndexer.ty T)]))), (go!"HasSynced", (some (go.signature.Signature [] false [go.bool]))), (go!"HasSyncedChecker", (some (go.signature.Signature [] false [DoneChecker.ty]))), (go!"IsStopped", (some (go.signature.Signature [] false [go.bool]))), (go!"LastSyncResourceVersion", (some (go.signature.Signature [] false [go.string]))), (go!"RemoveEventHandler", (some (go.signature.Signature [ResourceEventHandlerRegistration.ty] false [go.error]))), (go!"Run", (some (go.signature.Signature [(go.GoType.ChannelType go.ChanDir.recvonly (go.GoType.StructType []))] false []))), (go!"RunWithContext", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" [])] false []))), (go!"SetShardSelector", (some (go.signature.Signature [(go.GoType.Named go!"k8s.io/apimachinery/pkg/sharding.Selector" [])] false [go.error]))), (go!"SetTransform", (some (go.signature.Signature [TransformFunc.ty] false [go.error]))), (go!"SetWatchErrorHandler", (some (go.signature.Signature [WatchErrorHandler.ty] false [go.error]))), (go!"SetWatchErrorHandlerWithContext", (some (go.signature.Signature [WatchErrorHandlerWithContext.ty] false [go.error])))]
 
 attribute [instance] typedSharedIndexInformer.TypeAssumptions.type_repr
   typedSharedIndexInformer.TypeAssumptions.underlying
   typedSharedIndexInformer.TypeAssumptions.isUnderlying
+  typedSharedIndexInformer.TypeAssumptions.method_set
+  typedSharedIndexInformer.TypeAssumptions.ptr_method_set
 
 axiom typedResourceEventHandler : ∀ (T : Type), Type
 axiom typedResourceEventHandler.zero_val : ∀ {T : Type} [ZeroVal T], ZeroVal (typedResourceEventHandler T)
 attribute [instance] typedResourceEventHandler.zero_val
 
-class typedResourceEventHandler.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class typedResourceEventHandler.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : ∀ (T : go.GoType) (T' : Type) [ZeroVal T'] [TypeRepr T T'], go.TypeReprUnderlying (typedResourceEventHandler.underlying T) (typedResourceEventHandler T')
   underlying : ∀ (T : go.GoType), go.UnderlyingDirectedEq (typedResourceEventHandler.ty T) (typedResourceEventHandler.underlying T)
   isUnderlying : ∀ (T : go.GoType), go.IsUnderlying (typedResourceEventHandler.underlying T) (typedResourceEventHandler.underlying T)
+  method_set : ∀ (T : go.GoType), go.MethodSetIs (typedResourceEventHandler.ty T) []
+  ptr_method_set : ∀ (T : go.GoType), go.MethodSetIs (go.GoType.PointerType (typedResourceEventHandler.ty T)) [(go!"OnAdd", (some (go.signature.Signature [go.any, go.bool] false []))), (go!"OnDelete", (some (go.signature.Signature [go.any] false []))), (go!"OnUpdate", (some (go.signature.Signature [go.any, go.any] false [])))]
 
 attribute [instance] typedResourceEventHandler.TypeAssumptions.type_repr
   typedResourceEventHandler.TypeAssumptions.underlying
   typedResourceEventHandler.TypeAssumptions.isUnderlying
+  typedResourceEventHandler.TypeAssumptions.method_set
+  typedResourceEventHandler.TypeAssumptions.ptr_method_set
 
 axiom typedIndexer : ∀ (T : Type), Type
 axiom typedIndexer.zero_val : ∀ {T : Type} [ZeroVal T], ZeroVal (typedIndexer T)
 attribute [instance] typedIndexer.zero_val
 
-class typedIndexer.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class typedIndexer.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : ∀ (T : go.GoType) (T' : Type) [ZeroVal T'] [TypeRepr T T'], go.TypeReprUnderlying (typedIndexer.underlying T) (typedIndexer T')
   underlying : ∀ (T : go.GoType), go.UnderlyingDirectedEq (typedIndexer.ty T) (typedIndexer.underlying T)
   isUnderlying : ∀ (T : go.GoType), go.IsUnderlying (typedIndexer.underlying T) (typedIndexer.underlying T)
+  method_set : ∀ (T : go.GoType), go.MethodSetIs (typedIndexer.ty T) [(go!"Add", (some (go.signature.Signature [(go.GoType.InterfaceType [])] false [go.error]))), (go!"AddIndexers", (some (go.signature.Signature [Indexers.ty] false [go.error]))), (go!"AddTypedIndexers", (some (go.signature.Signature [(TypedIndexers.ty T)] false [go.error]))), (go!"Bookmark", (some (go.signature.Signature [go.string] false []))), (go!"ByIndex", (some (go.signature.Signature [go.string, go.string] false [(go.GoType.SliceType (go.GoType.InterfaceType [])), go.error]))), (go!"ByTypedIndex", (some (go.signature.Signature [go.string, go.string] false [(go.GoType.SliceType T), go.error]))), (go!"Delete", (some (go.signature.Signature [(go.GoType.InterfaceType [])] false [go.error]))), (go!"Get", (some (go.signature.Signature [(go.GoType.InterfaceType [])] false [(go.GoType.InterfaceType []), go.bool, go.error]))), (go!"GetByKey", (some (go.signature.Signature [go.string] false [(go.GoType.InterfaceType []), go.bool, go.error]))), (go!"GetIndexers", (some (go.signature.Signature [] false [Indexers.ty]))), (go!"Index", (some (go.signature.Signature [go.string, (go.GoType.InterfaceType [])] false [(go.GoType.SliceType (go.GoType.InterfaceType [])), go.error]))), (go!"IndexKeys", (some (go.signature.Signature [go.string, go.string] false [(go.GoType.SliceType go.string), go.error]))), (go!"LastStoreSyncResourceVersion", (some (go.signature.Signature [] false [go.string]))), (go!"List", (some (go.signature.Signature [] false [(go.GoType.SliceType (go.GoType.InterfaceType []))]))), (go!"ListIndexFuncValues", (some (go.signature.Signature [go.string] false [(go.GoType.SliceType go.string)]))), (go!"ListKeys", (some (go.signature.Signature [] false [(go.GoType.SliceType go.string)]))), (go!"Replace", (some (go.signature.Signature [(go.GoType.SliceType (go.GoType.InterfaceType [])), go.string] false [go.error]))), (go!"Resync", (some (go.signature.Signature [] false [go.error]))), (go!"TypedIndex", (some (go.signature.Signature [go.string, T] false [(go.GoType.SliceType T), go.error]))), (go!"Update", (some (go.signature.Signature [(go.GoType.InterfaceType [])] false [go.error])))]
+  ptr_method_set : ∀ (T : go.GoType), go.MethodSetIs (go.GoType.PointerType (typedIndexer.ty T)) [(go!"Add", (some (go.signature.Signature [(go.GoType.InterfaceType [])] false [go.error]))), (go!"AddIndexers", (some (go.signature.Signature [Indexers.ty] false [go.error]))), (go!"AddTypedIndexers", (some (go.signature.Signature [(TypedIndexers.ty T)] false [go.error]))), (go!"Bookmark", (some (go.signature.Signature [go.string] false []))), (go!"ByIndex", (some (go.signature.Signature [go.string, go.string] false [(go.GoType.SliceType (go.GoType.InterfaceType [])), go.error]))), (go!"ByTypedIndex", (some (go.signature.Signature [go.string, go.string] false [(go.GoType.SliceType T), go.error]))), (go!"Delete", (some (go.signature.Signature [(go.GoType.InterfaceType [])] false [go.error]))), (go!"Get", (some (go.signature.Signature [(go.GoType.InterfaceType [])] false [(go.GoType.InterfaceType []), go.bool, go.error]))), (go!"GetByKey", (some (go.signature.Signature [go.string] false [(go.GoType.InterfaceType []), go.bool, go.error]))), (go!"GetIndexers", (some (go.signature.Signature [] false [Indexers.ty]))), (go!"Index", (some (go.signature.Signature [go.string, (go.GoType.InterfaceType [])] false [(go.GoType.SliceType (go.GoType.InterfaceType [])), go.error]))), (go!"IndexKeys", (some (go.signature.Signature [go.string, go.string] false [(go.GoType.SliceType go.string), go.error]))), (go!"LastStoreSyncResourceVersion", (some (go.signature.Signature [] false [go.string]))), (go!"List", (some (go.signature.Signature [] false [(go.GoType.SliceType (go.GoType.InterfaceType []))]))), (go!"ListIndexFuncValues", (some (go.signature.Signature [go.string] false [(go.GoType.SliceType go.string)]))), (go!"ListKeys", (some (go.signature.Signature [] false [(go.GoType.SliceType go.string)]))), (go!"Replace", (some (go.signature.Signature [(go.GoType.SliceType (go.GoType.InterfaceType [])), go.string] false [go.error]))), (go!"Resync", (some (go.signature.Signature [] false [go.error]))), (go!"TypedIndex", (some (go.signature.Signature [go.string, T] false [(go.GoType.SliceType T), go.error]))), (go!"Update", (some (go.signature.Signature [(go.GoType.InterfaceType [])] false [go.error])))]
 
 attribute [instance] typedIndexer.TypeAssumptions.type_repr
   typedIndexer.TypeAssumptions.underlying
   typedIndexer.TypeAssumptions.isUnderlying
+  typedIndexer.TypeAssumptions.method_set
+  typedIndexer.TypeAssumptions.ptr_method_set
 
 axiom SharedIndexInformerOptions : Type
 axiom SharedIndexInformerOptions.zero_val : ZeroVal SharedIndexInformerOptions
 attribute [instance] SharedIndexInformerOptions.zero_val
 
-class SharedIndexInformerOptions.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class SharedIndexInformerOptions.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying SharedIndexInformerOptions.underlying SharedIndexInformerOptions
   underlying : go.UnderlyingDirectedEq SharedIndexInformerOptions.ty SharedIndexInformerOptions.underlying
   isUnderlying : go.IsUnderlying SharedIndexInformerOptions.underlying SharedIndexInformerOptions.underlying
+  method_set : go.MethodSetIs SharedIndexInformerOptions.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType SharedIndexInformerOptions.ty) []
 
 attribute [instance] SharedIndexInformerOptions.TypeAssumptions.type_repr
   SharedIndexInformerOptions.TypeAssumptions.underlying
   SharedIndexInformerOptions.TypeAssumptions.isUnderlying
+  SharedIndexInformerOptions.TypeAssumptions.method_set
+  SharedIndexInformerOptions.TypeAssumptions.ptr_method_set
 
 axiom InformerSynced : Type
 axiom InformerSynced.zero_val : ZeroVal InformerSynced
 attribute [instance] InformerSynced.zero_val
 
-class InformerSynced.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class InformerSynced.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying InformerSynced.underlying InformerSynced
   underlying : go.UnderlyingDirectedEq InformerSynced.ty InformerSynced.underlying
   isUnderlying : go.IsUnderlying InformerSynced.underlying InformerSynced.underlying
+  method_set : go.MethodSetIs InformerSynced.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType InformerSynced.ty) []
 
 attribute [instance] InformerSynced.TypeAssumptions.type_repr
   InformerSynced.TypeAssumptions.underlying
   InformerSynced.TypeAssumptions.isUnderlying
+  InformerSynced.TypeAssumptions.method_set
+  InformerSynced.TypeAssumptions.ptr_method_set
 
 axiom DoneChecker : Type
 axiom DoneChecker.zero_val : ZeroVal DoneChecker
 attribute [instance] DoneChecker.zero_val
 
-class DoneChecker.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class DoneChecker.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying DoneChecker.underlying DoneChecker
   underlying : go.UnderlyingDirectedEq DoneChecker.ty DoneChecker.underlying
   isUnderlying : go.IsUnderlying DoneChecker.underlying DoneChecker.underlying
+  method_set : go.MethodSetIs DoneChecker.ty [(go!"Done", (some (go.signature.Signature [] false [(go.GoType.ChannelType go.ChanDir.recvonly (go.GoType.StructType []))]))), (go!"Name", (some (go.signature.Signature [] false [go.string])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType DoneChecker.ty) []
 
 attribute [instance] DoneChecker.TypeAssumptions.type_repr
   DoneChecker.TypeAssumptions.underlying
   DoneChecker.TypeAssumptions.isUnderlying
+  DoneChecker.TypeAssumptions.method_set
+  DoneChecker.TypeAssumptions.ptr_method_set
 
 axiom SyncResult : Type
 axiom SyncResult.zero_val : ZeroVal SyncResult
 attribute [instance] SyncResult.zero_val
 
-class SyncResult.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class SyncResult.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying SyncResult.underlying SyncResult
   underlying : go.UnderlyingDirectedEq SyncResult.ty SyncResult.underlying
   isUnderlying : go.IsUnderlying SyncResult.underlying SyncResult.underlying
+  method_set : go.MethodSetIs SyncResult.ty [(go!"AsError", (some (go.signature.Signature [] false [go.error])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType SyncResult.ty) [(go!"AsError", (some (go.signature.Signature [] false [go.error])))]
 
 attribute [instance] SyncResult.TypeAssumptions.type_repr
   SyncResult.TypeAssumptions.underlying
   SyncResult.TypeAssumptions.isUnderlying
+  SyncResult.TypeAssumptions.method_set
+  SyncResult.TypeAssumptions.ptr_method_set
 
 axiom sharedIndexInformer : Type
 axiom sharedIndexInformer.zero_val : ZeroVal sharedIndexInformer
 attribute [instance] sharedIndexInformer.zero_val
 
-class sharedIndexInformer.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class sharedIndexInformer.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying sharedIndexInformer.underlying sharedIndexInformer
   underlying : go.UnderlyingDirectedEq sharedIndexInformer.ty sharedIndexInformer.underlying
   isUnderlying : go.IsUnderlying sharedIndexInformer.underlying sharedIndexInformer.underlying
+  method_set : go.MethodSetIs sharedIndexInformer.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType sharedIndexInformer.ty) [(go!"AddEventHandler", (some (go.signature.Signature [ResourceEventHandler.ty] false [ResourceEventHandlerRegistration.ty, go.error]))), (go!"AddEventHandlerWithOptions", (some (go.signature.Signature [ResourceEventHandler.ty, HandlerOptions.ty] false [ResourceEventHandlerRegistration.ty, go.error]))), (go!"AddEventHandlerWithResyncPeriod", (some (go.signature.Signature [ResourceEventHandler.ty, (go.GoType.Named go!"time.Duration" [])] false [ResourceEventHandlerRegistration.ty, go.error]))), (go!"AddIndexers", (some (go.signature.Signature [Indexers.ty] false [go.error]))), (go!"GetController", (some (go.signature.Signature [] false [Controller.ty]))), (go!"GetIndexer", (some (go.signature.Signature [] false [Indexer.ty]))), (go!"GetStore", (some (go.signature.Signature [] false [Store.ty]))), (go!"HasStarted", (some (go.signature.Signature [] false [go.bool]))), (go!"HasSynced", (some (go.signature.Signature [] false [go.bool]))), (go!"HasSyncedChecker", (some (go.signature.Signature [] false [DoneChecker.ty]))), (go!"IsStopped", (some (go.signature.Signature [] false [go.bool]))), (go!"LastSyncResourceVersion", (some (go.signature.Signature [] false [go.string]))), (go!"OnAdd", (some (go.signature.Signature [(go.GoType.InterfaceType []), go.bool] false []))), (go!"OnDelete", (some (go.signature.Signature [(go.GoType.InterfaceType [])] false []))), (go!"OnUpdate", (some (go.signature.Signature [(go.GoType.InterfaceType []), (go.GoType.InterfaceType [])] false []))), (go!"RemoveEventHandler", (some (go.signature.Signature [ResourceEventHandlerRegistration.ty] false [go.error]))), (go!"Run", (some (go.signature.Signature [(go.GoType.ChannelType go.ChanDir.recvonly (go.GoType.StructType []))] false []))), (go!"RunWithContext", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" [])] false []))), (go!"SetShardSelector", (some (go.signature.Signature [(go.GoType.Named go!"k8s.io/apimachinery/pkg/sharding.Selector" [])] false [go.error]))), (go!"SetTransform", (some (go.signature.Signature [TransformFunc.ty] false [go.error]))), (go!"SetWatchErrorHandler", (some (go.signature.Signature [WatchErrorHandler.ty] false [go.error]))), (go!"SetWatchErrorHandlerWithContext", (some (go.signature.Signature [WatchErrorHandlerWithContext.ty] false [go.error]))), (go!"k8s.io/client-go/tools/cache.handleBatchDeltas", (some (go.signature.Signature [(go.GoType.Named go!"github.com/go-logr/logr.Logger" []), (go.GoType.SliceType Delta.ty), go.bool] false [go.error]))), (go!"k8s.io/client-go/tools/cache.handleDeltas", (some (go.signature.Signature [(go.GoType.Named go!"github.com/go-logr/logr.Logger" []), (go.GoType.InterfaceType []), go.bool] false [go.error])))]
 
 attribute [instance] sharedIndexInformer.TypeAssumptions.type_repr
   sharedIndexInformer.TypeAssumptions.underlying
   sharedIndexInformer.TypeAssumptions.isUnderlying
+  sharedIndexInformer.TypeAssumptions.method_set
+  sharedIndexInformer.TypeAssumptions.ptr_method_set
 
 axiom dummyController : Type
 axiom dummyController.zero_val : ZeroVal dummyController
 attribute [instance] dummyController.zero_val
 
-class dummyController.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class dummyController.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying dummyController.underlying dummyController
   underlying : go.UnderlyingDirectedEq dummyController.ty dummyController.underlying
   isUnderlying : go.IsUnderlying dummyController.underlying dummyController.underlying
+  method_set : go.MethodSetIs dummyController.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType dummyController.ty) [(go!"HasSynced", (some (go.signature.Signature [] false [go.bool]))), (go!"HasSyncedChecker", (some (go.signature.Signature [] false [DoneChecker.ty]))), (go!"LastSyncResourceVersion", (some (go.signature.Signature [] false [go.string]))), (go!"Run", (some (go.signature.Signature [(go.GoType.ChannelType go.ChanDir.recvonly (go.GoType.StructType []))] false []))), (go!"RunWithContext", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" [])] false [])))]
 
 attribute [instance] dummyController.TypeAssumptions.type_repr
   dummyController.TypeAssumptions.underlying
   dummyController.TypeAssumptions.isUnderlying
+  dummyController.TypeAssumptions.method_set
+  dummyController.TypeAssumptions.ptr_method_set
 
 axiom updateNotification : Type
 axiom updateNotification.zero_val : ZeroVal updateNotification
 attribute [instance] updateNotification.zero_val
 
-class updateNotification.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class updateNotification.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying updateNotification.underlying updateNotification
   underlying : go.UnderlyingDirectedEq updateNotification.ty updateNotification.underlying
   isUnderlying : go.IsUnderlying updateNotification.underlying updateNotification.underlying
+  method_set : go.MethodSetIs updateNotification.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType updateNotification.ty) []
 
 attribute [instance] updateNotification.TypeAssumptions.type_repr
   updateNotification.TypeAssumptions.underlying
   updateNotification.TypeAssumptions.isUnderlying
+  updateNotification.TypeAssumptions.method_set
+  updateNotification.TypeAssumptions.ptr_method_set
 
 axiom addNotification : Type
 axiom addNotification.zero_val : ZeroVal addNotification
 attribute [instance] addNotification.zero_val
 
-class addNotification.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class addNotification.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying addNotification.underlying addNotification
   underlying : go.UnderlyingDirectedEq addNotification.ty addNotification.underlying
   isUnderlying : go.IsUnderlying addNotification.underlying addNotification.underlying
+  method_set : go.MethodSetIs addNotification.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType addNotification.ty) []
 
 attribute [instance] addNotification.TypeAssumptions.type_repr
   addNotification.TypeAssumptions.underlying
   addNotification.TypeAssumptions.isUnderlying
+  addNotification.TypeAssumptions.method_set
+  addNotification.TypeAssumptions.ptr_method_set
 
 axiom deleteNotification : Type
 axiom deleteNotification.zero_val : ZeroVal deleteNotification
 attribute [instance] deleteNotification.zero_val
 
-class deleteNotification.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class deleteNotification.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying deleteNotification.underlying deleteNotification
   underlying : go.UnderlyingDirectedEq deleteNotification.ty deleteNotification.underlying
   isUnderlying : go.IsUnderlying deleteNotification.underlying deleteNotification.underlying
+  method_set : go.MethodSetIs deleteNotification.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType deleteNotification.ty) []
 
 attribute [instance] deleteNotification.TypeAssumptions.type_repr
   deleteNotification.TypeAssumptions.underlying
   deleteNotification.TypeAssumptions.isUnderlying
+  deleteNotification.TypeAssumptions.method_set
+  deleteNotification.TypeAssumptions.ptr_method_set
 
 axiom sharedIndexInformerDone : Type
 axiom sharedIndexInformerDone.zero_val : ZeroVal sharedIndexInformerDone
 attribute [instance] sharedIndexInformerDone.zero_val
 
-class sharedIndexInformerDone.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class sharedIndexInformerDone.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying sharedIndexInformerDone.underlying sharedIndexInformerDone
   underlying : go.UnderlyingDirectedEq sharedIndexInformerDone.ty sharedIndexInformerDone.underlying
   isUnderlying : go.IsUnderlying sharedIndexInformerDone.underlying sharedIndexInformerDone.underlying
+  method_set : go.MethodSetIs sharedIndexInformerDone.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType sharedIndexInformerDone.ty) [(go!"Done", (some (go.signature.Signature [] false [(go.GoType.ChannelType go.ChanDir.recvonly (go.GoType.StructType []))]))), (go!"Name", (some (go.signature.Signature [] false [go.string])))]
 
 attribute [instance] sharedIndexInformerDone.TypeAssumptions.type_repr
   sharedIndexInformerDone.TypeAssumptions.underlying
   sharedIndexInformerDone.TypeAssumptions.isUnderlying
+  sharedIndexInformerDone.TypeAssumptions.method_set
+  sharedIndexInformerDone.TypeAssumptions.ptr_method_set
 
 axiom sharedProcessor : Type
 axiom sharedProcessor.zero_val : ZeroVal sharedProcessor
 attribute [instance] sharedProcessor.zero_val
 
-class sharedProcessor.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class sharedProcessor.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying sharedProcessor.underlying sharedProcessor
   underlying : go.UnderlyingDirectedEq sharedProcessor.ty sharedProcessor.underlying
   isUnderlying : go.IsUnderlying sharedProcessor.underlying sharedProcessor.underlying
+  method_set : go.MethodSetIs sharedProcessor.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType sharedProcessor.ty) [(go!"k8s.io/client-go/tools/cache.addListener", (some (go.signature.Signature [(go.GoType.PointerType processorListener.ty)] false [ResourceEventHandlerRegistration.ty, go.bool]))), (go!"k8s.io/client-go/tools/cache.distribute", (some (go.signature.Signature [(go.GoType.InterfaceType []), go.bool] false []))), (go!"k8s.io/client-go/tools/cache.getListener", (some (go.signature.Signature [ResourceEventHandlerRegistration.ty] false [(go.GoType.PointerType processorListener.ty)]))), (go!"k8s.io/client-go/tools/cache.removeListener", (some (go.signature.Signature [ResourceEventHandlerRegistration.ty] false [go.error]))), (go!"k8s.io/client-go/tools/cache.resyncCheckPeriodChanged", (some (go.signature.Signature [(go.GoType.Named go!"github.com/go-logr/logr.Logger" []), (go.GoType.Named go!"time.Duration" [])] false []))), (go!"k8s.io/client-go/tools/cache.run", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" [])] false []))), (go!"k8s.io/client-go/tools/cache.shouldResync", (some (go.signature.Signature [] false [go.bool])))]
 
 attribute [instance] sharedProcessor.TypeAssumptions.type_repr
   sharedProcessor.TypeAssumptions.underlying
   sharedProcessor.TypeAssumptions.isUnderlying
+  sharedProcessor.TypeAssumptions.method_set
+  sharedProcessor.TypeAssumptions.ptr_method_set
 
 axiom processorListener : Type
 axiom processorListener.zero_val : ZeroVal processorListener
 attribute [instance] processorListener.zero_val
 
-class processorListener.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class processorListener.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying processorListener.underlying processorListener
   underlying : go.UnderlyingDirectedEq processorListener.ty processorListener.underlying
   isUnderlying : go.IsUnderlying processorListener.underlying processorListener.underlying
+  method_set : go.MethodSetIs processorListener.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType processorListener.ty) [(go!"HasSynced", (some (go.signature.Signature [] false [go.bool]))), (go!"HasSyncedChecker", (some (go.signature.Signature [] false [DoneChecker.ty]))), (go!"ShutdownChan", (some (go.signature.Signature [] false [(go.GoType.ChannelType go.ChanDir.recvonly (go.GoType.StructType []))]))), (go!"k8s.io/client-go/tools/cache.add", (some (go.signature.Signature [(go.GoType.InterfaceType [])] false []))), (go!"k8s.io/client-go/tools/cache.determineNextResync", (some (go.signature.Signature [(go.GoType.Named go!"time.Time" [])] false []))), (go!"k8s.io/client-go/tools/cache.pop", (some (go.signature.Signature [] false []))), (go!"k8s.io/client-go/tools/cache.run", (some (go.signature.Signature [] false []))), (go!"k8s.io/client-go/tools/cache.setResyncPeriod", (some (go.signature.Signature [(go.GoType.Named go!"time.Duration" [])] false []))), (go!"k8s.io/client-go/tools/cache.shouldResync", (some (go.signature.Signature [(go.GoType.Named go!"time.Time" [])] false [go.bool]))), (go!"k8s.io/client-go/tools/cache.watchSynced", (some (go.signature.Signature [] false [])))]
 
 attribute [instance] processorListener.TypeAssumptions.type_repr
   processorListener.TypeAssumptions.underlying
   processorListener.TypeAssumptions.isUnderlying
+  processorListener.TypeAssumptions.method_set
+  processorListener.TypeAssumptions.ptr_method_set
 
 axiom Store : Type
 axiom Store.zero_val : ZeroVal Store
 attribute [instance] Store.zero_val
 
-class Store.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class Store.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying Store.underlying Store
   underlying : go.UnderlyingDirectedEq Store.ty Store.underlying
   isUnderlying : go.IsUnderlying Store.underlying Store.underlying
+  method_set : go.MethodSetIs Store.ty [(go!"Add", (some (go.signature.Signature [(go.GoType.InterfaceType [])] false [go.error]))), (go!"Bookmark", (some (go.signature.Signature [go.string] false []))), (go!"Delete", (some (go.signature.Signature [(go.GoType.InterfaceType [])] false [go.error]))), (go!"Get", (some (go.signature.Signature [(go.GoType.InterfaceType [])] false [(go.GoType.InterfaceType []), go.bool, go.error]))), (go!"GetByKey", (some (go.signature.Signature [go.string] false [(go.GoType.InterfaceType []), go.bool, go.error]))), (go!"LastStoreSyncResourceVersion", (some (go.signature.Signature [] false [go.string]))), (go!"List", (some (go.signature.Signature [] false [(go.GoType.SliceType (go.GoType.InterfaceType []))]))), (go!"ListKeys", (some (go.signature.Signature [] false [(go.GoType.SliceType go.string)]))), (go!"Replace", (some (go.signature.Signature [(go.GoType.SliceType (go.GoType.InterfaceType [])), go.string] false [go.error]))), (go!"Resync", (some (go.signature.Signature [] false [go.error]))), (go!"Update", (some (go.signature.Signature [(go.GoType.InterfaceType [])] false [go.error])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType Store.ty) []
 
 attribute [instance] Store.TypeAssumptions.type_repr
   Store.TypeAssumptions.underlying
   Store.TypeAssumptions.isUnderlying
+  Store.TypeAssumptions.method_set
+  Store.TypeAssumptions.ptr_method_set
 
 axiom TransactionType : Type
 axiom TransactionType.zero_val : ZeroVal TransactionType
 attribute [instance] TransactionType.zero_val
 
-class TransactionType.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class TransactionType.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying TransactionType.underlying TransactionType
   underlying : go.UnderlyingDirectedEq TransactionType.ty TransactionType.underlying
   isUnderlying : go.IsUnderlying TransactionType.underlying TransactionType.underlying
+  method_set : go.MethodSetIs TransactionType.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType TransactionType.ty) []
 
 attribute [instance] TransactionType.TypeAssumptions.type_repr
   TransactionType.TypeAssumptions.underlying
   TransactionType.TypeAssumptions.isUnderlying
+  TransactionType.TypeAssumptions.method_set
+  TransactionType.TypeAssumptions.ptr_method_set
 
 axiom Transaction : Type
 axiom Transaction.zero_val : ZeroVal Transaction
 attribute [instance] Transaction.zero_val
 
-class Transaction.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class Transaction.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying Transaction.underlying Transaction
   underlying : go.UnderlyingDirectedEq Transaction.ty Transaction.underlying
   isUnderlying : go.IsUnderlying Transaction.underlying Transaction.underlying
+  method_set : go.MethodSetIs Transaction.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType Transaction.ty) []
 
 attribute [instance] Transaction.TypeAssumptions.type_repr
   Transaction.TypeAssumptions.underlying
   Transaction.TypeAssumptions.isUnderlying
+  Transaction.TypeAssumptions.method_set
+  Transaction.TypeAssumptions.ptr_method_set
 
 axiom TransactionStore : Type
 axiom TransactionStore.zero_val : ZeroVal TransactionStore
 attribute [instance] TransactionStore.zero_val
 
-class TransactionStore.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class TransactionStore.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying TransactionStore.underlying TransactionStore
   underlying : go.UnderlyingDirectedEq TransactionStore.ty TransactionStore.underlying
   isUnderlying : go.IsUnderlying TransactionStore.underlying TransactionStore.underlying
+  method_set : go.MethodSetIs TransactionStore.ty [(go!"Transaction", (some (go.signature.Signature [(go.GoType.SliceType Transaction.ty)] true [(go.GoType.PointerType TransactionError.ty)])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType TransactionStore.ty) []
 
 attribute [instance] TransactionStore.TypeAssumptions.type_repr
   TransactionStore.TypeAssumptions.underlying
   TransactionStore.TypeAssumptions.isUnderlying
+  TransactionStore.TypeAssumptions.method_set
+  TransactionStore.TypeAssumptions.ptr_method_set
 
 axiom TransactionError : Type
 axiom TransactionError.zero_val : ZeroVal TransactionError
 attribute [instance] TransactionError.zero_val
 
-class TransactionError.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class TransactionError.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying TransactionError.underlying TransactionError
   underlying : go.UnderlyingDirectedEq TransactionError.ty TransactionError.underlying
   isUnderlying : go.IsUnderlying TransactionError.underlying TransactionError.underlying
+  method_set : go.MethodSetIs TransactionError.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType TransactionError.ty) [(go!"Error", (some (go.signature.Signature [] false [go.string])))]
 
 attribute [instance] TransactionError.TypeAssumptions.type_repr
   TransactionError.TypeAssumptions.underlying
   TransactionError.TypeAssumptions.isUnderlying
+  TransactionError.TypeAssumptions.method_set
+  TransactionError.TypeAssumptions.ptr_method_set
 
 axiom KeyFunc : Type
 axiom KeyFunc.zero_val : ZeroVal KeyFunc
 attribute [instance] KeyFunc.zero_val
 
-class KeyFunc.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class KeyFunc.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying KeyFunc.underlying KeyFunc
   underlying : go.UnderlyingDirectedEq KeyFunc.ty KeyFunc.underlying
   isUnderlying : go.IsUnderlying KeyFunc.underlying KeyFunc.underlying
+  method_set : go.MethodSetIs KeyFunc.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType KeyFunc.ty) []
 
 attribute [instance] KeyFunc.TypeAssumptions.type_repr
   KeyFunc.TypeAssumptions.underlying
   KeyFunc.TypeAssumptions.isUnderlying
+  KeyFunc.TypeAssumptions.method_set
+  KeyFunc.TypeAssumptions.ptr_method_set
 
 axiom KeyError : Type
 axiom KeyError.zero_val : ZeroVal KeyError
 attribute [instance] KeyError.zero_val
 
-class KeyError.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class KeyError.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying KeyError.underlying KeyError
   underlying : go.UnderlyingDirectedEq KeyError.ty KeyError.underlying
   isUnderlying : go.IsUnderlying KeyError.underlying KeyError.underlying
+  method_set : go.MethodSetIs KeyError.ty [(go!"Error", (some (go.signature.Signature [] false [go.string]))), (go!"Unwrap", (some (go.signature.Signature [] false [go.error])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType KeyError.ty) [(go!"Error", (some (go.signature.Signature [] false [go.string]))), (go!"Unwrap", (some (go.signature.Signature [] false [go.error])))]
 
 attribute [instance] KeyError.TypeAssumptions.type_repr
   KeyError.TypeAssumptions.underlying
   KeyError.TypeAssumptions.isUnderlying
+  KeyError.TypeAssumptions.method_set
+  KeyError.TypeAssumptions.ptr_method_set
 
 axiom ExplicitKey : Type
 axiom ExplicitKey.zero_val : ZeroVal ExplicitKey
 attribute [instance] ExplicitKey.zero_val
 
-class ExplicitKey.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class ExplicitKey.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying ExplicitKey.underlying ExplicitKey
   underlying : go.UnderlyingDirectedEq ExplicitKey.ty ExplicitKey.underlying
   isUnderlying : go.IsUnderlying ExplicitKey.underlying ExplicitKey.underlying
+  method_set : go.MethodSetIs ExplicitKey.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType ExplicitKey.ty) []
 
 attribute [instance] ExplicitKey.TypeAssumptions.type_repr
   ExplicitKey.TypeAssumptions.underlying
   ExplicitKey.TypeAssumptions.isUnderlying
+  ExplicitKey.TypeAssumptions.method_set
+  ExplicitKey.TypeAssumptions.ptr_method_set
 
 axiom cache : Type
 axiom cache.zero_val : ZeroVal cache
 attribute [instance] cache.zero_val
 
-class cache.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class cache.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying cache.underlying cache
   underlying : go.UnderlyingDirectedEq cache.ty cache.underlying
   isUnderlying : go.IsUnderlying cache.underlying cache.underlying
+  method_set : go.MethodSetIs cache.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType cache.ty) [(go!"Add", (some (go.signature.Signature [(go.GoType.InterfaceType [])] false [go.error]))), (go!"AddIndexers", (some (go.signature.Signature [Indexers.ty] false [go.error]))), (go!"Bookmark", (some (go.signature.Signature [go.string] false []))), (go!"ByIndex", (some (go.signature.Signature [go.string, go.string] false [(go.GoType.SliceType (go.GoType.InterfaceType [])), go.error]))), (go!"Delete", (some (go.signature.Signature [(go.GoType.InterfaceType [])] false [go.error]))), (go!"Get", (some (go.signature.Signature [(go.GoType.InterfaceType [])] false [(go.GoType.InterfaceType []), go.bool, go.error]))), (go!"GetByKey", (some (go.signature.Signature [go.string] false [(go.GoType.InterfaceType []), go.bool, go.error]))), (go!"GetIndexers", (some (go.signature.Signature [] false [Indexers.ty]))), (go!"Index", (some (go.signature.Signature [go.string, (go.GoType.InterfaceType [])] false [(go.GoType.SliceType (go.GoType.InterfaceType [])), go.error]))), (go!"IndexKeys", (some (go.signature.Signature [go.string, go.string] false [(go.GoType.SliceType go.string), go.error]))), (go!"LastStoreSyncResourceVersion", (some (go.signature.Signature [] false [go.string]))), (go!"List", (some (go.signature.Signature [] false [(go.GoType.SliceType (go.GoType.InterfaceType []))]))), (go!"ListIndexFuncValues", (some (go.signature.Signature [go.string] false [(go.GoType.SliceType go.string)]))), (go!"ListKeys", (some (go.signature.Signature [] false [(go.GoType.SliceType go.string)]))), (go!"Replace", (some (go.signature.Signature [(go.GoType.SliceType (go.GoType.InterfaceType [])), go.string] false [go.error]))), (go!"Resync", (some (go.signature.Signature [] false [go.error]))), (go!"Transaction", (some (go.signature.Signature [(go.GoType.SliceType Transaction.ty)] true [(go.GoType.PointerType TransactionError.ty)]))), (go!"Update", (some (go.signature.Signature [(go.GoType.InterfaceType [])] false [go.error])))]
 
 attribute [instance] cache.TypeAssumptions.type_repr
   cache.TypeAssumptions.underlying
   cache.TypeAssumptions.isUnderlying
+  cache.TypeAssumptions.method_set
+  cache.TypeAssumptions.ptr_method_set
 
 axiom RealFIFOOptions : Type
 axiom RealFIFOOptions.zero_val : ZeroVal RealFIFOOptions
 attribute [instance] RealFIFOOptions.zero_val
 
-class RealFIFOOptions.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class RealFIFOOptions.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying RealFIFOOptions.underlying RealFIFOOptions
   underlying : go.UnderlyingDirectedEq RealFIFOOptions.ty RealFIFOOptions.underlying
   isUnderlying : go.IsUnderlying RealFIFOOptions.underlying RealFIFOOptions.underlying
+  method_set : go.MethodSetIs RealFIFOOptions.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType RealFIFOOptions.ty) []
 
 attribute [instance] RealFIFOOptions.TypeAssumptions.type_repr
   RealFIFOOptions.TypeAssumptions.underlying
   RealFIFOOptions.TypeAssumptions.isUnderlying
+  RealFIFOOptions.TypeAssumptions.method_set
+  RealFIFOOptions.TypeAssumptions.ptr_method_set
 
 axiom RealFIFO : Type
 axiom RealFIFO.zero_val : ZeroVal RealFIFO
 attribute [instance] RealFIFO.zero_val
 
-class RealFIFO.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class RealFIFO.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying RealFIFO.underlying RealFIFO
   underlying : go.UnderlyingDirectedEq RealFIFO.ty RealFIFO.underlying
   isUnderlying : go.IsUnderlying RealFIFO.underlying RealFIFO.underlying
+  method_set : go.MethodSetIs RealFIFO.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType RealFIFO.ty) [(go!"Add", (some (go.signature.Signature [(go.GoType.InterfaceType [])] false [go.error]))), (go!"Bookmark", (some (go.signature.Signature [go.string] false [go.error]))), (go!"Close", (some (go.signature.Signature [] false []))), (go!"Delete", (some (go.signature.Signature [(go.GoType.InterfaceType [])] false [go.error]))), (go!"Done", (some (go.signature.Signature [] false [(go.GoType.ChannelType go.ChanDir.recvonly (go.GoType.StructType []))]))), (go!"HasSynced", (some (go.signature.Signature [] false [go.bool]))), (go!"HasSyncedChecker", (some (go.signature.Signature [] false [DoneChecker.ty]))), (go!"IsClosed", (some (go.signature.Signature [] false [go.bool]))), (go!"Name", (some (go.signature.Signature [] false [go.string]))), (go!"Pop", (some (go.signature.Signature [PopProcessFunc.ty] false [(go.GoType.InterfaceType []), go.error]))), (go!"PopBatch", (some (go.signature.Signature [ProcessBatchFunc.ty, PopProcessFunc.ty] false [go.error]))), (go!"Replace", (some (go.signature.Signature [(go.GoType.SliceType (go.GoType.InterfaceType [])), go.string] false [go.error]))), (go!"Resync", (some (go.signature.Signature [] false [go.error]))), (go!"Transformer", (some (go.signature.Signature [] false [TransformFunc.ty]))), (go!"Update", (some (go.signature.Signature [(go.GoType.InterfaceType [])] false [go.error]))), (go!"k8s.io/client-go/tools/cache.addReplaceToItemsLocked", (some (go.signature.Signature [(go.GoType.SliceType (go.GoType.InterfaceType [])), go.string] false [go.error]))), (go!"k8s.io/client-go/tools/cache.addResyncToItemsLocked", (some (go.signature.Signature [] false [go.error]))), (go!"k8s.io/client-go/tools/cache.addToItems_locked", (some (go.signature.Signature [DeltaType.ty, go.bool, (go.GoType.InterfaceType [])] false [go.error]))), (go!"k8s.io/client-go/tools/cache.checkSynced_locked", (some (go.signature.Signature [] false []))), (go!"k8s.io/client-go/tools/cache.hasSynced_locked", (some (go.signature.Signature [] false [go.bool]))), (go!"k8s.io/client-go/tools/cache.keyOf", (some (go.signature.Signature [(go.GoType.InterfaceType [])] false [go.string, go.error]))), (go!"k8s.io/client-go/tools/cache.whileProcessing_locked", (some (go.signature.Signature [(go.GoType.FunctionType (go.signature.Signature [] false [go.error]))] false [go.error])))]
 
 attribute [instance] RealFIFO.TypeAssumptions.type_repr
   RealFIFO.TypeAssumptions.underlying
   RealFIFO.TypeAssumptions.isUnderlying
+  RealFIFO.TypeAssumptions.method_set
+  RealFIFO.TypeAssumptions.ptr_method_set
 
 axiom ReplacedAllInfo : Type
 axiom ReplacedAllInfo.zero_val : ZeroVal ReplacedAllInfo
 attribute [instance] ReplacedAllInfo.zero_val
 
-class ReplacedAllInfo.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class ReplacedAllInfo.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying ReplacedAllInfo.underlying ReplacedAllInfo
   underlying : go.UnderlyingDirectedEq ReplacedAllInfo.ty ReplacedAllInfo.underlying
   isUnderlying : go.IsUnderlying ReplacedAllInfo.underlying ReplacedAllInfo.underlying
+  method_set : go.MethodSetIs ReplacedAllInfo.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType ReplacedAllInfo.ty) []
 
 attribute [instance] ReplacedAllInfo.TypeAssumptions.type_repr
   ReplacedAllInfo.TypeAssumptions.underlying
   ReplacedAllInfo.TypeAssumptions.isUnderlying
+  ReplacedAllInfo.TypeAssumptions.method_set
+  ReplacedAllInfo.TypeAssumptions.ptr_method_set
 
 axiom BookmarkInfo : Type
 axiom BookmarkInfo.zero_val : ZeroVal BookmarkInfo
 attribute [instance] BookmarkInfo.zero_val
 
-class BookmarkInfo.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class BookmarkInfo.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying BookmarkInfo.underlying BookmarkInfo
   underlying : go.UnderlyingDirectedEq BookmarkInfo.ty BookmarkInfo.underlying
   isUnderlying : go.IsUnderlying BookmarkInfo.underlying BookmarkInfo.underlying
+  method_set : go.MethodSetIs BookmarkInfo.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType BookmarkInfo.ty) []
 
 attribute [instance] BookmarkInfo.TypeAssumptions.type_repr
   BookmarkInfo.TypeAssumptions.underlying
   BookmarkInfo.TypeAssumptions.isUnderlying
+  BookmarkInfo.TypeAssumptions.method_set
+  BookmarkInfo.TypeAssumptions.ptr_method_set
 
 axiom SyncAllInfo : Type
 axiom SyncAllInfo.zero_val : ZeroVal SyncAllInfo
 attribute [instance] SyncAllInfo.zero_val
 
-class SyncAllInfo.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class SyncAllInfo.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying SyncAllInfo.underlying SyncAllInfo
   underlying : go.UnderlyingDirectedEq SyncAllInfo.ty SyncAllInfo.underlying
   isUnderlying : go.IsUnderlying SyncAllInfo.underlying SyncAllInfo.underlying
+  method_set : go.MethodSetIs SyncAllInfo.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType SyncAllInfo.ty) []
 
 attribute [instance] SyncAllInfo.TypeAssumptions.type_repr
   SyncAllInfo.TypeAssumptions.underlying
   SyncAllInfo.TypeAssumptions.isUnderlying
+  SyncAllInfo.TypeAssumptions.method_set
+  SyncAllInfo.TypeAssumptions.ptr_method_set
 
 axiom ThreadSafeStore : Type
 axiom ThreadSafeStore.zero_val : ZeroVal ThreadSafeStore
 attribute [instance] ThreadSafeStore.zero_val
 
-class ThreadSafeStore.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class ThreadSafeStore.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying ThreadSafeStore.underlying ThreadSafeStore
   underlying : go.UnderlyingDirectedEq ThreadSafeStore.ty ThreadSafeStore.underlying
   isUnderlying : go.IsUnderlying ThreadSafeStore.underlying ThreadSafeStore.underlying
+  method_set : go.MethodSetIs ThreadSafeStore.ty [(go!"Add", (some (go.signature.Signature [go.string, (go.GoType.InterfaceType [])] false []))), (go!"AddIndexers", (some (go.signature.Signature [Indexers.ty] false [go.error]))), (go!"Bookmark", (some (go.signature.Signature [go.string] false []))), (go!"ByIndex", (some (go.signature.Signature [go.string, go.string] false [(go.GoType.SliceType (go.GoType.InterfaceType [])), go.error]))), (go!"Delete", (some (go.signature.Signature [go.string] false []))), (go!"DeleteWithObject", (some (go.signature.Signature [go.string, (go.GoType.InterfaceType [])] false []))), (go!"Get", (some (go.signature.Signature [go.string] false [(go.GoType.InterfaceType []), go.bool]))), (go!"GetIndexers", (some (go.signature.Signature [] false [Indexers.ty]))), (go!"Index", (some (go.signature.Signature [go.string, (go.GoType.InterfaceType [])] false [(go.GoType.SliceType (go.GoType.InterfaceType [])), go.error]))), (go!"IndexKeys", (some (go.signature.Signature [go.string, go.string] false [(go.GoType.SliceType go.string), go.error]))), (go!"LastStoreSyncResourceVersion", (some (go.signature.Signature [] false [go.string]))), (go!"List", (some (go.signature.Signature [] false [(go.GoType.SliceType (go.GoType.InterfaceType []))]))), (go!"ListIndexFuncValues", (some (go.signature.Signature [go.string] false [(go.GoType.SliceType go.string)]))), (go!"ListKeys", (some (go.signature.Signature [] false [(go.GoType.SliceType go.string)]))), (go!"Replace", (some (go.signature.Signature [(go.GoType.MapType go.string (go.GoType.InterfaceType [])), go.string] false []))), (go!"Resync", (some (go.signature.Signature [] false [go.error]))), (go!"Update", (some (go.signature.Signature [go.string, (go.GoType.InterfaceType [])] false [])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType ThreadSafeStore.ty) []
 
 attribute [instance] ThreadSafeStore.TypeAssumptions.type_repr
   ThreadSafeStore.TypeAssumptions.underlying
   ThreadSafeStore.TypeAssumptions.isUnderlying
+  ThreadSafeStore.TypeAssumptions.method_set
+  ThreadSafeStore.TypeAssumptions.ptr_method_set
 
 axiom ThreadSafeStoreWithTransaction : Type
 axiom ThreadSafeStoreWithTransaction.zero_val : ZeroVal ThreadSafeStoreWithTransaction
 attribute [instance] ThreadSafeStoreWithTransaction.zero_val
 
-class ThreadSafeStoreWithTransaction.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class ThreadSafeStoreWithTransaction.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying ThreadSafeStoreWithTransaction.underlying ThreadSafeStoreWithTransaction
   underlying : go.UnderlyingDirectedEq ThreadSafeStoreWithTransaction.ty ThreadSafeStoreWithTransaction.underlying
   isUnderlying : go.IsUnderlying ThreadSafeStoreWithTransaction.underlying ThreadSafeStoreWithTransaction.underlying
+  method_set : go.MethodSetIs ThreadSafeStoreWithTransaction.ty [(go!"Add", (some (go.signature.Signature [go.string, (go.GoType.InterfaceType [])] false []))), (go!"AddIndexers", (some (go.signature.Signature [Indexers.ty] false [go.error]))), (go!"Bookmark", (some (go.signature.Signature [go.string] false []))), (go!"ByIndex", (some (go.signature.Signature [go.string, go.string] false [(go.GoType.SliceType (go.GoType.InterfaceType [])), go.error]))), (go!"Delete", (some (go.signature.Signature [go.string] false []))), (go!"DeleteWithObject", (some (go.signature.Signature [go.string, (go.GoType.InterfaceType [])] false []))), (go!"Get", (some (go.signature.Signature [go.string] false [(go.GoType.InterfaceType []), go.bool]))), (go!"GetIndexers", (some (go.signature.Signature [] false [Indexers.ty]))), (go!"Index", (some (go.signature.Signature [go.string, (go.GoType.InterfaceType [])] false [(go.GoType.SliceType (go.GoType.InterfaceType [])), go.error]))), (go!"IndexKeys", (some (go.signature.Signature [go.string, go.string] false [(go.GoType.SliceType go.string), go.error]))), (go!"LastStoreSyncResourceVersion", (some (go.signature.Signature [] false [go.string]))), (go!"List", (some (go.signature.Signature [] false [(go.GoType.SliceType (go.GoType.InterfaceType []))]))), (go!"ListIndexFuncValues", (some (go.signature.Signature [go.string] false [(go.GoType.SliceType go.string)]))), (go!"ListKeys", (some (go.signature.Signature [] false [(go.GoType.SliceType go.string)]))), (go!"Replace", (some (go.signature.Signature [(go.GoType.MapType go.string (go.GoType.InterfaceType [])), go.string] false []))), (go!"Resync", (some (go.signature.Signature [] false [go.error]))), (go!"Transaction", (some (go.signature.Signature [(go.GoType.SliceType ThreadSafeStoreTransaction.ty)] true []))), (go!"Update", (some (go.signature.Signature [go.string, (go.GoType.InterfaceType [])] false [])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType ThreadSafeStoreWithTransaction.ty) []
 
 attribute [instance] ThreadSafeStoreWithTransaction.TypeAssumptions.type_repr
   ThreadSafeStoreWithTransaction.TypeAssumptions.underlying
   ThreadSafeStoreWithTransaction.TypeAssumptions.isUnderlying
+  ThreadSafeStoreWithTransaction.TypeAssumptions.method_set
+  ThreadSafeStoreWithTransaction.TypeAssumptions.ptr_method_set
 
 axiom ThreadSafeStoreTransaction : Type
 axiom ThreadSafeStoreTransaction.zero_val : ZeroVal ThreadSafeStoreTransaction
 attribute [instance] ThreadSafeStoreTransaction.zero_val
 
-class ThreadSafeStoreTransaction.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class ThreadSafeStoreTransaction.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying ThreadSafeStoreTransaction.underlying ThreadSafeStoreTransaction
   underlying : go.UnderlyingDirectedEq ThreadSafeStoreTransaction.ty ThreadSafeStoreTransaction.underlying
   isUnderlying : go.IsUnderlying ThreadSafeStoreTransaction.underlying ThreadSafeStoreTransaction.underlying
+  method_set : go.MethodSetIs ThreadSafeStoreTransaction.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType ThreadSafeStoreTransaction.ty) []
 
 attribute [instance] ThreadSafeStoreTransaction.TypeAssumptions.type_repr
   ThreadSafeStoreTransaction.TypeAssumptions.underlying
   ThreadSafeStoreTransaction.TypeAssumptions.isUnderlying
+  ThreadSafeStoreTransaction.TypeAssumptions.method_set
+  ThreadSafeStoreTransaction.TypeAssumptions.ptr_method_set
 
 axiom storeIndex : Type
 axiom storeIndex.zero_val : ZeroVal storeIndex
 attribute [instance] storeIndex.zero_val
 
-class storeIndex.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class storeIndex.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying storeIndex.underlying storeIndex
   underlying : go.UnderlyingDirectedEq storeIndex.ty storeIndex.underlying
   isUnderlying : go.IsUnderlying storeIndex.underlying storeIndex.underlying
+  method_set : go.MethodSetIs storeIndex.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType storeIndex.ty) [(go!"k8s.io/client-go/tools/cache.addIndexers", (some (go.signature.Signature [Indexers.ty] false [go.error]))), (go!"k8s.io/client-go/tools/cache.addKeyToIndex", (some (go.signature.Signature [go.string, go.string, index.ty] false []))), (go!"k8s.io/client-go/tools/cache.deleteKeyFromIndex", (some (go.signature.Signature [go.string, go.string, index.ty] false []))), (go!"k8s.io/client-go/tools/cache.getIndexValues", (some (go.signature.Signature [go.string] false [(go.GoType.SliceType go.string)]))), (go!"k8s.io/client-go/tools/cache.getKeysByIndex", (some (go.signature.Signature [go.string, go.string] false [(go.GoType.Named go!"k8s.io/apimachinery/pkg/util/sets.Set" [go.string]), go.error]))), (go!"k8s.io/client-go/tools/cache.getKeysFromIndex", (some (go.signature.Signature [go.string, (go.GoType.InterfaceType [])] false [(go.GoType.Named go!"k8s.io/apimachinery/pkg/util/sets.Set" [go.string]), go.error]))), (go!"k8s.io/client-go/tools/cache.reset", (some (go.signature.Signature [] false []))), (go!"k8s.io/client-go/tools/cache.updateIndices", (some (go.signature.Signature [(go.GoType.InterfaceType []), (go.GoType.InterfaceType []), go.string] false []))), (go!"k8s.io/client-go/tools/cache.updateSingleIndex", (some (go.signature.Signature [go.string, (go.GoType.InterfaceType []), (go.GoType.InterfaceType []), go.string] false [])))]
 
 attribute [instance] storeIndex.TypeAssumptions.type_repr
   storeIndex.TypeAssumptions.underlying
   storeIndex.TypeAssumptions.isUnderlying
+  storeIndex.TypeAssumptions.method_set
+  storeIndex.TypeAssumptions.ptr_method_set
 
 axiom threadSafeMap : Type
 axiom threadSafeMap.zero_val : ZeroVal threadSafeMap
 attribute [instance] threadSafeMap.zero_val
 
-class threadSafeMap.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class threadSafeMap.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying threadSafeMap.underlying threadSafeMap
   underlying : go.UnderlyingDirectedEq threadSafeMap.ty threadSafeMap.underlying
   isUnderlying : go.IsUnderlying threadSafeMap.underlying threadSafeMap.underlying
+  method_set : go.MethodSetIs threadSafeMap.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType threadSafeMap.ty) [(go!"Add", (some (go.signature.Signature [go.string, (go.GoType.InterfaceType [])] false []))), (go!"AddIndexers", (some (go.signature.Signature [Indexers.ty] false [go.error]))), (go!"Bookmark", (some (go.signature.Signature [go.string] false []))), (go!"ByIndex", (some (go.signature.Signature [go.string, go.string] false [(go.GoType.SliceType (go.GoType.InterfaceType [])), go.error]))), (go!"Delete", (some (go.signature.Signature [go.string] false []))), (go!"DeleteWithObject", (some (go.signature.Signature [go.string, (go.GoType.InterfaceType [])] false []))), (go!"Get", (some (go.signature.Signature [go.string] false [(go.GoType.InterfaceType []), go.bool]))), (go!"GetIndexers", (some (go.signature.Signature [] false [Indexers.ty]))), (go!"Index", (some (go.signature.Signature [go.string, (go.GoType.InterfaceType [])] false [(go.GoType.SliceType (go.GoType.InterfaceType [])), go.error]))), (go!"IndexKeys", (some (go.signature.Signature [go.string, go.string] false [(go.GoType.SliceType go.string), go.error]))), (go!"LastStoreSyncResourceVersion", (some (go.signature.Signature [] false [go.string]))), (go!"List", (some (go.signature.Signature [] false [(go.GoType.SliceType (go.GoType.InterfaceType []))]))), (go!"ListIndexFuncValues", (some (go.signature.Signature [go.string] false [(go.GoType.SliceType go.string)]))), (go!"ListKeys", (some (go.signature.Signature [] false [(go.GoType.SliceType go.string)]))), (go!"Replace", (some (go.signature.Signature [(go.GoType.MapType go.string (go.GoType.InterfaceType [])), go.string] false []))), (go!"Resync", (some (go.signature.Signature [] false [go.error]))), (go!"Transaction", (some (go.signature.Signature [(go.GoType.SliceType ThreadSafeStoreTransaction.ty)] true []))), (go!"Update", (some (go.signature.Signature [go.string, (go.GoType.InterfaceType [])] false []))), (go!"k8s.io/client-go/tools/cache.deleteLocked", (some (go.signature.Signature [go.string] false []))), (go!"k8s.io/client-go/tools/cache.updateLocked", (some (go.signature.Signature [go.string, (go.GoType.InterfaceType [])] false [])))]
 
 attribute [instance] threadSafeMap.TypeAssumptions.type_repr
   threadSafeMap.TypeAssumptions.underlying
   threadSafeMap.TypeAssumptions.isUnderlying
+  threadSafeMap.TypeAssumptions.method_set
+  threadSafeMap.TypeAssumptions.ptr_method_set
 
 axiom UndeltaStore : Type
 axiom UndeltaStore.zero_val : ZeroVal UndeltaStore
 attribute [instance] UndeltaStore.zero_val
 
-class UndeltaStore.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class UndeltaStore.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying UndeltaStore.underlying UndeltaStore
   underlying : go.UnderlyingDirectedEq UndeltaStore.ty UndeltaStore.underlying
   isUnderlying : go.IsUnderlying UndeltaStore.underlying UndeltaStore.underlying
+  method_set : go.MethodSetIs UndeltaStore.ty [(go!"Bookmark", (some (go.signature.Signature [go.string] false []))), (go!"Get", (some (go.signature.Signature [(go.GoType.InterfaceType [])] false [(go.GoType.InterfaceType []), go.bool, go.error]))), (go!"GetByKey", (some (go.signature.Signature [go.string] false [(go.GoType.InterfaceType []), go.bool, go.error]))), (go!"LastStoreSyncResourceVersion", (some (go.signature.Signature [] false [go.string]))), (go!"List", (some (go.signature.Signature [] false [(go.GoType.SliceType (go.GoType.InterfaceType []))]))), (go!"ListKeys", (some (go.signature.Signature [] false [(go.GoType.SliceType go.string)]))), (go!"Resync", (some (go.signature.Signature [] false [go.error])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType UndeltaStore.ty) [(go!"Add", (some (go.signature.Signature [(go.GoType.InterfaceType [])] false [go.error]))), (go!"Bookmark", (some (go.signature.Signature [go.string] false []))), (go!"Delete", (some (go.signature.Signature [(go.GoType.InterfaceType [])] false [go.error]))), (go!"Get", (some (go.signature.Signature [(go.GoType.InterfaceType [])] false [(go.GoType.InterfaceType []), go.bool, go.error]))), (go!"GetByKey", (some (go.signature.Signature [go.string] false [(go.GoType.InterfaceType []), go.bool, go.error]))), (go!"LastStoreSyncResourceVersion", (some (go.signature.Signature [] false [go.string]))), (go!"List", (some (go.signature.Signature [] false [(go.GoType.SliceType (go.GoType.InterfaceType []))]))), (go!"ListKeys", (some (go.signature.Signature [] false [(go.GoType.SliceType go.string)]))), (go!"Replace", (some (go.signature.Signature [(go.GoType.SliceType (go.GoType.InterfaceType [])), go.string] false [go.error]))), (go!"Resync", (some (go.signature.Signature [] false [go.error]))), (go!"Update", (some (go.signature.Signature [(go.GoType.InterfaceType [])] false [go.error])))]
 
 attribute [instance] UndeltaStore.TypeAssumptions.type_repr
   UndeltaStore.TypeAssumptions.underlying
   UndeltaStore.TypeAssumptions.isUnderlying
+  UndeltaStore.TypeAssumptions.method_set
+  UndeltaStore.TypeAssumptions.ptr_method_set
 
-class Assumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   Config_instance : Config.TypeAssumptions
   ShouldResyncFunc_instance : ShouldResyncFunc.TypeAssumptions
   ProcessFunc_instance : ProcessFunc.TypeAssumptions

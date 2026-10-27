@@ -20,294 +20,294 @@ end pkg_id
 
 namespace go_etcd_io.etcd.server.v3.storage.wal
 
-noncomputable def Decoder.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def Decoder.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/etcd/server/v3/storage/wal.Decoder" [])
 
 attribute [irreducible] Decoder.ty
 
-noncomputable def decoder.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def decoder.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/etcd/server/v3/storage/wal.decoder" [])
 
 attribute [irreducible] decoder.ty
 
-noncomputable def encoder.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def encoder.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/etcd/server/v3/storage/wal.encoder" [])
 
 attribute [irreducible] encoder.ty
 
-noncomputable def filePipeline.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def filePipeline.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/etcd/server/v3/storage/wal.filePipeline" [])
 
 attribute [irreducible] filePipeline.ty
 
-noncomputable def Version.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def Version.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/etcd/server/v3/storage/wal.Version" [])
 
 attribute [irreducible] Version.ty
 
-noncomputable def walVersion.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def walVersion.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/etcd/server/v3/storage/wal.walVersion" [])
 
 attribute [irreducible] walVersion.ty
 
-noncomputable def Visitor.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def Visitor.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/etcd/server/v3/storage/wal.Visitor" [])
 
 attribute [irreducible] Visitor.ty
 
-noncomputable def WAL.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def WAL.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/etcd/server/v3/storage/wal.WAL" [])
 
 attribute [irreducible] WAL.ty
 
-axiom Decoder.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom Decoder.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom decoder.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom decoder.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom encoder.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom encoder.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom filePipeline.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom filePipeline.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom Version.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom Version.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom walVersion.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom walVersion.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom Visitor.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom Visitor.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom WAL.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom WAL.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom minSectorSize [FfiSyntax] [GoGlobalContext] : val
+axiom minSectorSize [GooseExts] [GoGlobalContext] : val
 
-axiom frameSizeBytes [FfiSyntax] [GoGlobalContext] : val
+axiom frameSizeBytes [GooseExts] [GoGlobalContext] : val
 
-axiom walPageBytes [FfiSyntax] [GoGlobalContext] : val
+axiom walPageBytes [GooseExts] [GoGlobalContext] : val
 
-axiom MetadataType [FfiSyntax] [GoGlobalContext] : val
+axiom MetadataType [GooseExts] [GoGlobalContext] : val
 
-axiom EntryType [FfiSyntax] [GoGlobalContext] : val
+axiom EntryType [GooseExts] [GoGlobalContext] : val
 
-axiom StateType [FfiSyntax] [GoGlobalContext] : val
+axiom StateType [GooseExts] [GoGlobalContext] : val
 
-axiom CrcType [FfiSyntax] [GoGlobalContext] : val
+axiom CrcType [GooseExts] [GoGlobalContext] : val
 
-axiom SnapshotType [FfiSyntax] [GoGlobalContext] : val
+axiom SnapshotType [GooseExts] [GoGlobalContext] : val
 
-axiom warnSyncDuration [FfiSyntax] [GoGlobalContext] : val
+axiom warnSyncDuration [GooseExts] [GoGlobalContext] : val
 
-noncomputable def walFsyncSec [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def walFsyncSec [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/storage/wal.walFsyncSec"
 
-axiom walFsyncSec.init [FfiSyntax] [GoGlobalContext] : val
+axiom walFsyncSec.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def walWriteSec [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def walWriteSec [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/storage/wal.walWriteSec"
 
-axiom walWriteSec.init [FfiSyntax] [GoGlobalContext] : val
+axiom walWriteSec.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def walWriteBytes [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def walWriteBytes [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/storage/wal.walWriteBytes"
 
-axiom walWriteBytes.init [FfiSyntax] [GoGlobalContext] : val
+axiom walWriteBytes.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def errBadWALName [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def errBadWALName [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/storage/wal.errBadWALName"
 
-axiom errBadWALName.init [FfiSyntax] [GoGlobalContext] : val
+axiom errBadWALName.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def SegmentSizeBytes [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def SegmentSizeBytes [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/storage/wal.SegmentSizeBytes"
 
-axiom SegmentSizeBytes.init [FfiSyntax] [GoGlobalContext] : val
+axiom SegmentSizeBytes.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def openWALFilesFn [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def openWALFilesFn [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/storage/wal.openWALFilesFn"
 
-axiom openWALFilesFn.init [FfiSyntax] [GoGlobalContext] : val
+axiom openWALFilesFn.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def ErrMetadataConflict [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ErrMetadataConflict [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/storage/wal.ErrMetadataConflict"
 
-axiom ErrMetadataConflict.init [FfiSyntax] [GoGlobalContext] : val
+axiom ErrMetadataConflict.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def ErrFileNotFound [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ErrFileNotFound [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/storage/wal.ErrFileNotFound"
 
-axiom ErrFileNotFound.init [FfiSyntax] [GoGlobalContext] : val
+axiom ErrFileNotFound.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def ErrCRCMismatch [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ErrCRCMismatch [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/storage/wal.ErrCRCMismatch"
 
-axiom ErrCRCMismatch.init [FfiSyntax] [GoGlobalContext] : val
+axiom ErrCRCMismatch.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def ErrSnapshotMismatch [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ErrSnapshotMismatch [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/storage/wal.ErrSnapshotMismatch"
 
-axiom ErrSnapshotMismatch.init [FfiSyntax] [GoGlobalContext] : val
+axiom ErrSnapshotMismatch.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def ErrSnapshotNotFound [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ErrSnapshotNotFound [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/storage/wal.ErrSnapshotNotFound"
 
-axiom ErrSnapshotNotFound.init [FfiSyntax] [GoGlobalContext] : val
+axiom ErrSnapshotNotFound.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def ErrSliceOutOfRange [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ErrSliceOutOfRange [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/storage/wal.ErrSliceOutOfRange"
 
-axiom ErrSliceOutOfRange.init [FfiSyntax] [GoGlobalContext] : val
+axiom ErrSliceOutOfRange.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def ErrDecoderNotFound [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ErrDecoderNotFound [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/storage/wal.ErrDecoderNotFound"
 
-axiom ErrDecoderNotFound.init [FfiSyntax] [GoGlobalContext] : val
+axiom ErrDecoderNotFound.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def crcTable [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def crcTable [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/storage/wal.crcTable"
 
-axiom crcTable.init [FfiSyntax] [GoGlobalContext] : val
+axiom crcTable.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def NewDecoderAdvanced [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def NewDecoderAdvanced [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/storage/wal.NewDecoderAdvanced"
 
-noncomputable def NewDecoder [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def NewDecoder [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/storage/wal.NewDecoder"
 
-noncomputable def decodeFrameSize [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def decodeFrameSize [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/storage/wal.decodeFrameSize"
 
-noncomputable def MustUnmarshalEntry [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def MustUnmarshalEntry [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/storage/wal.MustUnmarshalEntry"
 
-noncomputable def MustUnmarshalState [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def MustUnmarshalState [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/storage/wal.MustUnmarshalState"
 
-noncomputable def readInt64 [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def readInt64 [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/storage/wal.readInt64"
 
-noncomputable def newEncoder [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def newEncoder [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/storage/wal.newEncoder"
 
-noncomputable def newFileEncoder [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def newFileEncoder [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/storage/wal.newFileEncoder"
 
-noncomputable def encodeFrameSize [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def encodeFrameSize [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/storage/wal.encodeFrameSize"
 
-noncomputable def prepareDataWithPadding [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def prepareDataWithPadding [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/storage/wal.prepareDataWithPadding"
 
-noncomputable def write [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def write [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/storage/wal.write"
 
-noncomputable def newFilePipeline [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def newFilePipeline [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/storage/wal.newFilePipeline"
 
-noncomputable def init.«0» [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def init.«0» [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/storage/wal.init.0"
 
-noncomputable def Repair [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def Repair [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/storage/wal.Repair"
 
-noncomputable def openLast [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def openLast [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/storage/wal.openLast"
 
-noncomputable def Exist [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def Exist [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/storage/wal.Exist"
 
-noncomputable def searchIndex [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def searchIndex [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/storage/wal.searchIndex"
 
-noncomputable def isValidSeq [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def isValidSeq [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/storage/wal.isValidSeq"
 
-noncomputable def readWALNames [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def readWALNames [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/storage/wal.readWALNames"
 
-noncomputable def checkWALNames [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def checkWALNames [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/storage/wal.checkWALNames"
 
-noncomputable def parseWALName [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def parseWALName [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/storage/wal.parseWALName"
 
-noncomputable def walName [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def walName [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/storage/wal.walName"
 
-noncomputable def ReadWALVersion [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ReadWALVersion [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/storage/wal.ReadWALVersion"
 
-noncomputable def MinimalEtcdVersion [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def MinimalEtcdVersion [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/storage/wal.MinimalEtcdVersion"
 
-noncomputable def VisitFileDescriptor [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def VisitFileDescriptor [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/storage/wal.VisitFileDescriptor"
 
-noncomputable def visitEntry [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def visitEntry [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/storage/wal.visitEntry"
 
-noncomputable def visitEntryData [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def visitEntryData [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/storage/wal.visitEntryData"
 
-noncomputable def visitMessageDescriptor [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def visitMessageDescriptor [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/storage/wal.visitMessageDescriptor"
 
-noncomputable def visitMessage [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def visitMessage [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/storage/wal.visitMessage"
 
-noncomputable def visitEnumDescriptor [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def visitEnumDescriptor [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/storage/wal.visitEnumDescriptor"
 
-noncomputable def visitEnumNumber [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def visitEnumNumber [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/storage/wal.visitEnumNumber"
 
-noncomputable def visitEnumValue [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def visitEnumValue [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/storage/wal.visitEnumValue"
 
-noncomputable def visitDescriptor [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def visitDescriptor [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/storage/wal.visitDescriptor"
 
-noncomputable def maxVersion [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def maxVersion [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/storage/wal.maxVersion"
 
-noncomputable def etcdVersionFromOptionsString [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def etcdVersionFromOptionsString [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/storage/wal.etcdVersionFromOptionsString"
 
-noncomputable def Create [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def Create [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/storage/wal.Create"
 
-noncomputable def createNewWALFile [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def createNewWALFile [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/storage/wal.createNewWALFile"
 
-noncomputable def Open [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def Open [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/storage/wal.Open"
 
-noncomputable def OpenForRead [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def OpenForRead [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/storage/wal.OpenForRead"
 
-noncomputable def openAtIndex [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def openAtIndex [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/storage/wal.openAtIndex"
 
-noncomputable def selectWALFiles [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def selectWALFiles [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/storage/wal.selectWALFiles"
 
-noncomputable def openWALFiles [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def openWALFiles [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/storage/wal.openWALFiles"
 
-noncomputable def ValidSnapshotEntries [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ValidSnapshotEntries [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/storage/wal.ValidSnapshotEntries"
 
-noncomputable def validSnapshotEntries [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def validSnapshotEntries [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/storage/wal.validSnapshotEntries"
 
-noncomputable def Verify [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def Verify [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/storage/wal.Verify"
 
-noncomputable def closeAll [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def closeAll [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/storage/wal.closeAll"
 
 noncomputable instance info' : PkgInfo pkg_id.go_etcd_io.etcd.server.v3.storage.wal where
   pkgImportedPkgs := []
 
-axiom «_».init [FfiSyntax] [GoGlobalContext] : val
+axiom «_».init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (App (Val (package.init pkg_id.go_etcd_io.etcd.server.v3.storage.wal)) (Lam BAnon
   (App (Val exceptionDo)
@@ -360,107 +360,139 @@ axiom Decoder : Type
 axiom Decoder.zero_val : ZeroVal Decoder
 attribute [instance] Decoder.zero_val
 
-class Decoder.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class Decoder.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying Decoder.underlying Decoder
   underlying : go.UnderlyingDirectedEq Decoder.ty Decoder.underlying
   isUnderlying : go.IsUnderlying Decoder.underlying Decoder.underlying
+  method_set : go.MethodSetIs Decoder.ty [(go!"Decode", (some (go.signature.Signature [(go.GoType.PointerType (go.GoType.Named go!"go.etcd.io/etcd/server/v3/storage/wal/walpb.Record" []))] false [go.error]))), (go!"LastCRC", (some (go.signature.Signature [] false [go.uint32]))), (go!"LastOffset", (some (go.signature.Signature [] false [go.int64]))), (go!"UpdateCRC", (some (go.signature.Signature [go.uint32] false [])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType Decoder.ty) []
 
 attribute [instance] Decoder.TypeAssumptions.type_repr
   Decoder.TypeAssumptions.underlying
   Decoder.TypeAssumptions.isUnderlying
+  Decoder.TypeAssumptions.method_set
+  Decoder.TypeAssumptions.ptr_method_set
 
 axiom decoder : Type
 axiom decoder.zero_val : ZeroVal decoder
 attribute [instance] decoder.zero_val
 
-class decoder.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class decoder.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying decoder.underlying decoder
   underlying : go.UnderlyingDirectedEq decoder.ty decoder.underlying
   isUnderlying : go.IsUnderlying decoder.underlying decoder.underlying
+  method_set : go.MethodSetIs decoder.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType decoder.ty) [(go!"Decode", (some (go.signature.Signature [(go.GoType.PointerType (go.GoType.Named go!"go.etcd.io/etcd/server/v3/storage/wal/walpb.Record" []))] false [go.error]))), (go!"LastCRC", (some (go.signature.Signature [] false [go.uint32]))), (go!"LastOffset", (some (go.signature.Signature [] false [go.int64]))), (go!"UpdateCRC", (some (go.signature.Signature [go.uint32] false []))), (go!"go.etcd.io/etcd/server/v3/storage/wal.decodeRecord", (some (go.signature.Signature [(go.GoType.PointerType (go.GoType.Named go!"go.etcd.io/etcd/server/v3/storage/wal/walpb.Record" []))] false [go.error]))), (go!"go.etcd.io/etcd/server/v3/storage/wal.isTornEntry", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.bool])))]
 
 attribute [instance] decoder.TypeAssumptions.type_repr
   decoder.TypeAssumptions.underlying
   decoder.TypeAssumptions.isUnderlying
+  decoder.TypeAssumptions.method_set
+  decoder.TypeAssumptions.ptr_method_set
 
 axiom encoder : Type
 axiom encoder.zero_val : ZeroVal encoder
 attribute [instance] encoder.zero_val
 
-class encoder.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class encoder.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying encoder.underlying encoder
   underlying : go.UnderlyingDirectedEq encoder.ty encoder.underlying
   isUnderlying : go.IsUnderlying encoder.underlying encoder.underlying
+  method_set : go.MethodSetIs encoder.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType encoder.ty) [(go!"go.etcd.io/etcd/server/v3/storage/wal.encode", (some (go.signature.Signature [(go.GoType.PointerType (go.GoType.Named go!"go.etcd.io/etcd/server/v3/storage/wal/walpb.Record" []))] false [go.error]))), (go!"go.etcd.io/etcd/server/v3/storage/wal.flush", (some (go.signature.Signature [] false [go.error])))]
 
 attribute [instance] encoder.TypeAssumptions.type_repr
   encoder.TypeAssumptions.underlying
   encoder.TypeAssumptions.isUnderlying
+  encoder.TypeAssumptions.method_set
+  encoder.TypeAssumptions.ptr_method_set
 
 axiom filePipeline : Type
 axiom filePipeline.zero_val : ZeroVal filePipeline
 attribute [instance] filePipeline.zero_val
 
-class filePipeline.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class filePipeline.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying filePipeline.underlying filePipeline
   underlying : go.UnderlyingDirectedEq filePipeline.ty filePipeline.underlying
   isUnderlying : go.IsUnderlying filePipeline.underlying filePipeline.underlying
+  method_set : go.MethodSetIs filePipeline.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType filePipeline.ty) [(go!"Close", (some (go.signature.Signature [] false [go.error]))), (go!"Open", (some (go.signature.Signature [] false [(go.GoType.PointerType (go.GoType.Named go!"go.etcd.io/etcd/client/pkg/v3/fileutil.LockedFile" [])), go.error]))), (go!"go.etcd.io/etcd/server/v3/storage/wal.alloc", (some (go.signature.Signature [] false [(go.GoType.PointerType (go.GoType.Named go!"go.etcd.io/etcd/client/pkg/v3/fileutil.LockedFile" [])), go.error]))), (go!"go.etcd.io/etcd/server/v3/storage/wal.run", (some (go.signature.Signature [] false [])))]
 
 attribute [instance] filePipeline.TypeAssumptions.type_repr
   filePipeline.TypeAssumptions.underlying
   filePipeline.TypeAssumptions.isUnderlying
+  filePipeline.TypeAssumptions.method_set
+  filePipeline.TypeAssumptions.ptr_method_set
 
 axiom Version : Type
 axiom Version.zero_val : ZeroVal Version
 attribute [instance] Version.zero_val
 
-class Version.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class Version.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying Version.underlying Version
   underlying : go.UnderlyingDirectedEq Version.ty Version.underlying
   isUnderlying : go.IsUnderlying Version.underlying Version.underlying
+  method_set : go.MethodSetIs Version.ty [(go!"MinimalEtcdVersion", (some (go.signature.Signature [] false [(go.GoType.PointerType (go.GoType.Named go!"github.com/Masterminds/semver/v3.Version" []))])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType Version.ty) []
 
 attribute [instance] Version.TypeAssumptions.type_repr
   Version.TypeAssumptions.underlying
   Version.TypeAssumptions.isUnderlying
+  Version.TypeAssumptions.method_set
+  Version.TypeAssumptions.ptr_method_set
 
 axiom walVersion : Type
 axiom walVersion.zero_val : ZeroVal walVersion
 attribute [instance] walVersion.zero_val
 
-class walVersion.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class walVersion.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying walVersion.underlying walVersion
   underlying : go.UnderlyingDirectedEq walVersion.ty walVersion.underlying
   isUnderlying : go.IsUnderlying walVersion.underlying walVersion.underlying
+  method_set : go.MethodSetIs walVersion.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType walVersion.ty) [(go!"MinimalEtcdVersion", (some (go.signature.Signature [] false [(go.GoType.PointerType (go.GoType.Named go!"github.com/Masterminds/semver/v3.Version" []))])))]
 
 attribute [instance] walVersion.TypeAssumptions.type_repr
   walVersion.TypeAssumptions.underlying
   walVersion.TypeAssumptions.isUnderlying
+  walVersion.TypeAssumptions.method_set
+  walVersion.TypeAssumptions.ptr_method_set
 
 axiom Visitor : Type
 axiom Visitor.zero_val : ZeroVal Visitor
 attribute [instance] Visitor.zero_val
 
-class Visitor.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class Visitor.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying Visitor.underlying Visitor
   underlying : go.UnderlyingDirectedEq Visitor.ty Visitor.underlying
   isUnderlying : go.IsUnderlying Visitor.underlying Visitor.underlying
+  method_set : go.MethodSetIs Visitor.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType Visitor.ty) []
 
 attribute [instance] Visitor.TypeAssumptions.type_repr
   Visitor.TypeAssumptions.underlying
   Visitor.TypeAssumptions.isUnderlying
+  Visitor.TypeAssumptions.method_set
+  Visitor.TypeAssumptions.ptr_method_set
 
 axiom WAL : Type
 axiom WAL.zero_val : ZeroVal WAL
 attribute [instance] WAL.zero_val
 
-class WAL.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class WAL.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying WAL.underlying WAL
   underlying : go.UnderlyingDirectedEq WAL.ty WAL.underlying
   isUnderlying : go.IsUnderlying WAL.underlying WAL.underlying
+  method_set : go.MethodSetIs WAL.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType WAL.ty) [(go!"Close", (some (go.signature.Signature [] false [go.error]))), (go!"LatestSnapshotEntry", (some (go.signature.Signature [] false [(go.GoType.PointerType (go.GoType.Named go!"go.etcd.io/etcd/server/v3/storage/wal/walpb.Snapshot" [])), go.error]))), (go!"ReadAll", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), (go.GoType.PointerType (go.GoType.Named go!"go.etcd.io/raft/v3/raftpb.HardState" [])), (go.GoType.SliceType (go.GoType.PointerType (go.GoType.Named go!"go.etcd.io/raft/v3/raftpb.Entry" []))), go.error]))), (go!"ReleaseLockTo", (some (go.signature.Signature [go.uint64] false [go.error]))), (go!"Reopen", (some (go.signature.Signature [(go.GoType.PointerType (go.GoType.Named go!"go.uber.org/zap.Logger" [])), (go.GoType.PointerType (go.GoType.Named go!"go.etcd.io/etcd/server/v3/storage/wal/walpb.Snapshot" []))] false [(go.GoType.PointerType WAL.ty), go.error]))), (go!"Save", (some (go.signature.Signature [(go.GoType.PointerType (go.GoType.Named go!"go.etcd.io/raft/v3/raftpb.HardState" [])), (go.GoType.SliceType (go.GoType.PointerType (go.GoType.Named go!"go.etcd.io/raft/v3/raftpb.Entry" [])))] false [go.error]))), (go!"SaveSnapshot", (some (go.signature.Signature [(go.GoType.PointerType (go.GoType.Named go!"go.etcd.io/etcd/server/v3/storage/wal/walpb.Snapshot" []))] false [go.error]))), (go!"SetUnsafeNoFsync", (some (go.signature.Signature [] false []))), (go!"Sync", (some (go.signature.Signature [] false [go.error]))), (go!"go.etcd.io/etcd/server/v3/storage/wal.cleanupWAL", (some (go.signature.Signature [(go.GoType.PointerType (go.GoType.Named go!"go.uber.org/zap.Logger" []))] false []))), (go!"go.etcd.io/etcd/server/v3/storage/wal.cut", (some (go.signature.Signature [] false [go.error]))), (go!"go.etcd.io/etcd/server/v3/storage/wal.renameWAL", (some (go.signature.Signature [go.string] false [(go.GoType.PointerType WAL.ty), go.error]))), (go!"go.etcd.io/etcd/server/v3/storage/wal.renameWALUnlock", (some (go.signature.Signature [go.string] false [(go.GoType.PointerType WAL.ty), go.error]))), (go!"go.etcd.io/etcd/server/v3/storage/wal.saveCrc", (some (go.signature.Signature [go.uint32] false [go.error]))), (go!"go.etcd.io/etcd/server/v3/storage/wal.saveEntry", (some (go.signature.Signature [(go.GoType.PointerType (go.GoType.Named go!"go.etcd.io/raft/v3/raftpb.Entry" []))] false [go.error]))), (go!"go.etcd.io/etcd/server/v3/storage/wal.saveState", (some (go.signature.Signature [(go.GoType.PointerType (go.GoType.Named go!"go.etcd.io/raft/v3/raftpb.HardState" []))] false [go.error]))), (go!"go.etcd.io/etcd/server/v3/storage/wal.seq", (some (go.signature.Signature [] false [go.uint64]))), (go!"go.etcd.io/etcd/server/v3/storage/wal.sync", (some (go.signature.Signature [] false [go.error]))), (go!"go.etcd.io/etcd/server/v3/storage/wal.tail", (some (go.signature.Signature [] false [(go.GoType.PointerType (go.GoType.Named go!"go.etcd.io/etcd/client/pkg/v3/fileutil.LockedFile" []))])))]
 
 attribute [instance] WAL.TypeAssumptions.type_repr
   WAL.TypeAssumptions.underlying
   WAL.TypeAssumptions.isUnderlying
+  WAL.TypeAssumptions.method_set
+  WAL.TypeAssumptions.ptr_method_set
 
-class Assumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   Decoder_instance : Decoder.TypeAssumptions
   decoder_instance : decoder.TypeAssumptions
   encoder_instance : encoder.TypeAssumptions

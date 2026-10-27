@@ -18,7 +18,7 @@ namespace EtcdGrove
 open Iris Iris.BI go_etcd_io.raft.v3
 
 section pure
-variable [FfiSyntax] [GoGlobalContext] [GoSemanticsFunctions]
+variable [GooseExts] [GoGlobalContext] [GoSemanticsFunctions]
 
 /-- What `applyConfChange` did at a node moved to the configuration `c'` (2026-10-13,
 reconfiguration stage A2): installed new `Progress` objects (`prs`, tracking `c'`'s ids, records
@@ -138,7 +138,7 @@ theorem applyCCOkC_step {B : Int} (c' : CfgM) (id : w64) (s s' : NState) (H : Ap
 end pure
 
 section spec
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF] [StorageModel GF]
 variable [sem : go.Semantics]
@@ -181,12 +181,12 @@ The order in which an application must call this relative to `Advance`
 (`issues/raft-advance-before-applyconfchange.md`) is `RawNode.ApplyConfChange`'s
 concern; for an unchanged configuration it does not matter.
 
-raft v3.7 (2026-10-15, stage R4): `cc` is a `*pb.ConfChangeV2` (`ownCCV2 cc dq ccm`, R1's, read
+raft v3.7 (2026-10-15, stage R4): `cc` is a `*pb.ConfChangeV2` (`ownConfChangeV2 cc dq ccm`, R1's, read
 through `LeaveJoint`/`EnterJoint` and its `Changes` slice; given back), its content `ccm` (until
 the retarget the Goose value's `Transition'` and the list behind its `Changes'`); the result is
 `switchToConfig`'s fresh `*pb.ConfState` (`csPts cs 1 ... true`). -/
 abbrev raft.applyConfChange.spec : Prop :=
-  ∀ (c : CfgM) (r : Loc) (id : w64) (s : NState) (cc : Loc) (ccm : CCV2M) (dq : DFrac)
+  ∀ (c : CfgM) (r : Loc) (id : w64) (s : NState) (cc : Loc) (ccm : ConfChangeV2M) (dq : DFrac)
     (c' : CCState),
   -- the model's answer: `confchange`'s errors (which `applyConfChange` turns into a panic)
   -- and an undefined `Transition` with joint consensus (`ConfChangeV2.EnterJoint`'s panic,
@@ -204,11 +204,11 @@ abbrev raft.applyConfChange.spec : Prop :=
     2 ≤ plogLastIndexZ s.logst.prev (s.logst.sents ++ s.logst.uents)) →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
       "Hphys" ∷ ownRaftPhysCV c c.voters r id s ∗
-      "Hcc" ∷ ownCCV2 cc dq ccm }}
+      "Hcc" ∷ ownConfChangeV2 cc dq ccm }}
     (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"applyConfChange")) (Val #cc))
   {{ (cs : Loc) (xs os ls lns : List w64) (s' : NState), RET #cs;
       ownRaftPhysCV c'.cfg c'.cfg.voters r id s' ∗
-      ownCCV2 cc dq ccm ∗
+      ownConfChangeV2 cc dq ccm ∗
       csPts cs (DFrac.own 1) (ConfStateM.mk xs ls os lns c'.cfg.autoLeave) true ∗
       ⌜xs ≡ₚ elements c'.cfg.incoming ∧ os ≡ₚ elements c'.cfg.outgoing ∧
         ls ≡ₚ elements c'.cfg.learners ∧ lns ≡ₚ elements c'.cfg.learnersNext⌝ ∗
@@ -217,7 +217,7 @@ abbrev raft.applyConfChange.spec : Prop :=
 /-- The statement on `ownRaftPhys` until 2026-10-13 (a change that keeps the voters `cfg`),
 derived by `spec_simple`. -/
 abbrev raft.applyConfChange.specS : Prop :=
-  ∀ (cfg : GSet w64) (r : Loc) (id : w64) (s : NState) (cc : Loc) (ccm : CCV2M) (dq : DFrac)
+  ∀ (cfg : GSet w64) (r : Loc) (id : w64) (s : NState) (cc : Loc) (ccm : ConfChangeV2M) (dq : DFrac)
     (lrn' : GSet w64),
   (∀ k, k ∈ lrn' → k ∉ cfg) →
   (GMap.size (cfg ∪ lrn') : Int) ≤ 2 ^ 62 →
@@ -230,11 +230,11 @@ abbrev raft.applyConfChange.specS : Prop :=
   id ∈ cfg →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
       "Hphys" ∷ ownRaftPhys cfg r id s ∗
-      "Hcc" ∷ ownCCV2 cc dq ccm }}
+      "Hcc" ∷ ownConfChangeV2 cc dq ccm }}
     (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"applyConfChange")) (Val #cc))
   {{ (cs : Loc) (xs ls : List w64) (s' : NState), RET #cs;
       ownRaftPhys cfg r id s' ∗
-      ownCCV2 cc dq ccm ∗
+      ownConfChangeV2 cc dq ccm ∗
       csPts cs (DFrac.own 1) (ConfStateM.mk xs ls [] [] false) true ∗
       ⌜xs ≡ₚ elements cfg ∧ ls ≡ₚ elements lrn'⌝ ∗
       ⌜ApplyCCOkC (CfgM.simple cfg lrn') id s s'⌝ ∗

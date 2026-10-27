@@ -17,7 +17,7 @@ open Iris Iris.BI go_etcd_io.etcd.server.v3.etcdserver.cindex go_etcd_io.etcd.se
   go_etcd_io.raft.v3
 
 section spec
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
@@ -56,7 +56,7 @@ with them (`ccMembRes`).
 raft (D43 M5d: `ccRaftEff`, the change if it validates, else with `NodeId` `0`; until then both
 had to) meets raft's premise (`DynCCPreOp`, the view `(ca, cfg)` to `(k + 1, cs')`). -/
 abbrev EtcdServer.applyConfChange.spec : Prop :=
-  ∀ (s cc ep : Loc) (m : CCV1M) (cs : Loc) (v3 : Bool) (ci : Loc) (ua : GoInterface)
+  ∀ (s cc ep : Loc) (m : ConfChangeM) (cs : Loc) (v3 : Bool) (ci : Loc) (ua : GoInterface)
     (E : apply.AEnv GF) (γs : ServerRaftNames) (Pre Q Post Adv : IProp GF) (i t : w64)
     (γB : backend.BNames) (cl : Loc) (rs : apply.RestM) (d : mvcc.KBReal) (al st lp : Loc)
     (dv : Option NodeNames) (ds : List EntryM) (ca k : Nat) (cfg cs' : CCState) (e : EntryM)
@@ -78,7 +78,7 @@ abbrev EtcdServer.applyConfChange.spec : Prop :=
       srvRaftNode s γs ∗ srvClusterAddr s ↦□ cl ∗ E.RO rs ∗
       membership.rcLgAddr cl ↦□ lgc ∗ ⌜lgc ≠ null⌝ ∗ membership.rcCidAddr cl ↦□ cid ∗
       dvCCPre s dv ca cfg ds ∗
-      ownCCV1 cc (DFrac.own 1) m ∗ epConfState ep cs ∗
+      ownConfChange cc (DFrac.own 1) m ∗ epConfState ep cs ∗
       srvBeHooksAddr s ↦□ bh ∗ storage.isBackendHooks bh ix lgh ∗
       srvTransportAddr s ↦□ srvTrIface tl ∗
       srvMemberIDAddr s ↦□ lid ∗ ccMembRes γs cl tl lid prs ∗ mvcc.storeRT E.γ ∗
@@ -93,7 +93,7 @@ abbrev EtcdServer.applyConfChange.spec : Prop :=
       (Val #cc)) (Val #ep)) (Val #v3))
   {{ (removed : Bool) (err : GoInterface), RET (PairV #removed #err);
       ⌜removed = false⌝ ∗ srvLgReader s ∗ srvUberApplyAddr s ↦ ua ∗
-      (∃ (m' : CCV1M) (csl : Loc), ownCCV1 cc DFrac.discard m' ∗ ⌜m'.id = m.id⌝ ∗
+      (∃ (m' : ConfChangeM) (csl : Loc), ownConfChange cc DFrac.discard m' ∗ ⌜m'.id = m.id⌝ ∗
         epConfState ep csl) ∗
       E.RO (ccRest v3 m rs) ∗ (if v3 then iprop(Post ∨ Adv) else Pre) ∗
       dvCCPost dv k cs' ∗ ccMembRes γs cl tl lid (ccPeersAfter v3 m rs.bk prs) ∗

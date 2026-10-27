@@ -128,7 +128,7 @@ theorem watch_permitted_covers (st : auth.AuthState) (ai : auth.AuthInfoM) (c : 
 /-! ## The authorization of a created response, in the mode `on γa` -/
 
 section iris
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]

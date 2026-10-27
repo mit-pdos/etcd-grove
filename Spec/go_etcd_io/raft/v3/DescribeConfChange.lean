@@ -14,7 +14,7 @@ namespace EtcdGrove
 open Iris Iris.BI go_etcd_io.raft.v3
 
 section spec
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF] [StorageModel GF]
 variable [sem : go.Semantics]
@@ -26,16 +26,16 @@ nothing is said (raft only logs it); the conf change, a `*pb.ConfChange` or a
 `*pb.ConfChangeV2` behind the `ConfChangeI` interface (what `stepLeader` decodes with
 `proto.Unmarshal`), is read and given back. -/
 abbrev DescribeConfChange.spec : Prop :=
-  (∀ (p : Loc) (dq : DFrac) (m : CCV1M),
-    {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ ownCCV1 p dq m }}
+  (∀ (p : Loc) (dq : DFrac) (m : ConfChangeM),
+    {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ ownConfChange p dq m }}
       (App (Val #(functions DescribeConfChange []))
         (Val #(interface.mkOk (go.GoType.PointerType raftpb.ConfChange.ty) #p)))
-    {{ (str : GoString), RET #str; ownCCV1 p dq m }}) ∧
-  (∀ (p : Loc) (dq : DFrac) (m : CCV2M),
-    {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ ownCCV2 p dq m }}
+    {{ (str : GoString), RET #str; ownConfChange p dq m }}) ∧
+  (∀ (p : Loc) (dq : DFrac) (m : ConfChangeV2M),
+    {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ ownConfChangeV2 p dq m }}
       (App (Val #(functions DescribeConfChange []))
         (Val #(interface.mkOk (go.GoType.PointerType raftpb.ConfChangeV2.ty) #p)))
-    {{ (str : GoString), RET #str; ownCCV2 p dq m }})
+    {{ (str : GoString), RET #str; ownConfChangeV2 p dq m }})
 
 end spec
 

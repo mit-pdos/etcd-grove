@@ -16,7 +16,7 @@ namespace EtcdGrove
 open Iris Iris.BI
 
 section spec
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
@@ -31,7 +31,8 @@ stores `Canceled`, `DeadlineExceeded` or its parent's `Err()`). In the shape of 
 which error it is: `nil`, or the value of `context.Canceled` or of `context.DeadlineExceeded`;
 and (2026-10-23, D37) what those two values are (Go's `context.go`: `var Canceled =
 errors.New("context canceled")`, an `*errorString` whose `s` field nothing writes again;
-`DeadlineExceeded error = deadlineExceededError{}`, a struct).
+`DeadlineExceeded error = deadlineExceededError{}`, a struct: its dynamic type is
+`deadlineExceededError`, not `*errorString`).
 Perennial's `isContext` says only that a done context's error is typed (`isTypedErr`).
 `context.ErrDone` (a done context's error is one of the two) follows (`ErrDone.lean`). -/
 abbrev context.ErrAny.spec : Prop :=
@@ -48,13 +49,14 @@ abbrev context.ErrAny.spec : Prop :=
               else context.ContextClosed cd.Done_gn) ∗
       (⌜err = interface.nil⌝ ∨ ⌜context.isTypedErr err⌝ ∗
         -- (2026-10-23, D37) `Canceled` is `errors.New("context canceled")`, its cell holding the
-        -- message for good; `DeadlineExceeded` is a `deadlineExceededError{}`, no `*errorString`
+        -- message for good; `DeadlineExceeded` is a `deadlineExceededError{}`, of no
+        -- `*errorString` type
         ((globalAddr context.Canceled ↦□ err ∗ ∃ x : Loc,
             ⌜err = interface.mkOk
               (go.GoType.PointerType _root_.Perennial.errors.errorString.ty) #x⌝ ∗
             x.[_root_.Perennial.errors.errorString, go!"s"] ↦□ go!"context canceled") ∨
-          (globalAddr context.DeadlineExceeded ↦□ err ∗ ⌜∀ x : Loc, err ≠ interface.mkOk
-              (go.GoType.PointerType _root_.Perennial.errors.errorString.ty) #x⌝))) }}
+          (globalAddr context.DeadlineExceeded ↦□ err ∗ ⌜∀ ii : GoInterfaceOk, err = .ok ii →
+              ii.ty ≠ go.GoType.PointerType _root_.Perennial.errors.errorString.ty⌝))) }}
 
 end spec
 

@@ -29,7 +29,7 @@ namespace watchkv
 open Iris Iris.BI Iris.ProofMode go_etcd_io.etcd.server.v3.etcdserver
 
 section served
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
@@ -53,7 +53,7 @@ theorem cert0_of_server (p : Loc) (R : v3rpc.WSrv GF) :
   iexact Hc0
 
 /-- **etcd's server, started for watchkv** (see the file header). -/
-theorem wk_served [v3rpc.ServerMethodSets] (V : client.WEnv GF) (addr : GoString)
+theorem wk_served (V : client.WEnv GF) (addr : GoString)
     (gs q p pw s : Loc) (lis : GoInterface) (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames)
     (cid mid n : w64) (il im iu ims is : GoFunc) (svcs : List GoString)
     (regs sregs : List (GoString × val × GoInterface)) (N nw : Nat)

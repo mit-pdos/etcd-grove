@@ -37,6 +37,7 @@ slots `quotaRd` carries.
 -/
 module
 
+public import Perennial.Golang.Theory.TypeSet
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.InvKV
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvProposer
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvApplier
@@ -57,13 +58,17 @@ open Iris Iris.BI go_etcd_io.etcd.server.v3.etcdserver.api go_etcd_io.etcd.serve
   go_etcd_io.etcd.api.v3
 
 /-- **`*quotaKVServer` implements `pb.KVServer`** (a method-set fact; see the file header). -/
-class v3rpc.QuotaKVServerIsKVServer [FfiSyntax] [GoGlobalContext] [GoLocalContext]
+class v3rpc.QuotaKVServerIsKVServer [GooseExts] [GoGlobalContext] [GoLocalContext]
     [GoSemanticsFunctions] : Prop where
   is_kv : go.typeSetContains (go.GoType.PointerType v3rpc.quotaKVServer.ty)
     etcdserverpb.KVServer.ty = true
 
+/-- `QuotaKVServerIsKVServer` holds, from the method sets goose emits. -/
+instance v3rpc.quotaKVServerIsKVServer_inst [GooseExts] [GoGlobalContext] [GoLocalContext]
+    [sem : go.Semantics] [go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions] : v3rpc.QuotaKVServerIsKVServer := ⟨by go_type_set⟩
+
 section defs
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]

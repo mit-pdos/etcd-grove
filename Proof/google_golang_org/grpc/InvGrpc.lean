@@ -58,7 +58,7 @@ namespace EtcdGrove
 open Iris Iris.BI
 
 section defs
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
@@ -383,16 +383,16 @@ order), `regs` the `(full method name, MethodDesc.Handler, service value)` of ev
 of the `ServiceDesc`s registered with `RegisterService`. Established by the server's unverified
 construction (etcd's `v3rpc.Server`, `grpc.NewServer`, the `Register*Server` calls, `Serve`): a
 premise of the server's results. -/
-axiom grpcServerAt {GF : BundledGFunctors} [FfiSyntax] (addr : GoString) (ics : List GoFunc)
+axiom grpcServerAt {GF : BundledGFunctors} [GooseExts] (addr : GoString) (ics : List GoFunc)
   (regs : List (GoString × val × GoInterface)) : IProp GF
 
 /-- **The server at `addr` runs the method handler `mh` with the service `srv` and the chain
 `ics` for the method `name`, with the per-run resource `S`** (persistent; an axiomatized
 predicate, introduced only by `grpc.serve`). -/
-axiom grpcServes {GF : BundledGFunctors} [FfiSyntax] (addr name : GoString) (mh : val)
+axiom grpcServes {GF : BundledGFunctors} [GooseExts] (addr name : GoString) (mh : val)
   (srv : GoInterface) (ics : List GoFunc) (S : IProp GF) : IProp GF
 
-axiom grpcServes_persistent {GF : BundledGFunctors} [FfiSyntax] (addr name : GoString) (mh : val)
+axiom grpcServes_persistent {GF : BundledGFunctors} [GooseExts] (addr name : GoString) (mh : val)
   (srv : GoInterface) (ics : List GoFunc) (S : IProp GF) :
   Persistent (grpcServes addr name mh srv ics S)
 
@@ -405,10 +405,10 @@ grpc's `*ClientConn` dialed to a resolver of the addresses `addrs`; unit P3a, it
 `notes/decisions.md` D27: each attempt goes to one of them, grpc's balancer's choice). `ics` is the chain `grpc.NewClient`/`Dial` compose
 (`chainUnaryClientInterceptors`: `WithUnaryInterceptor`'s, then `WithChainUnaryInterceptor`'s, in
 order), `dopts` the `WithDefaultCallOptions`. -/
-axiom grpcConn {GF : BundledGFunctors} [FfiSyntax] (conn : Loc) (addrs : List GoString)
+axiom grpcConn {GF : BundledGFunctors} [GooseExts] (conn : Loc) (addrs : List GoString)
   (ics : List GoFunc) (dopts : List GoInterface) : IProp GF
 
-axiom grpcConn_persistent {GF : BundledGFunctors} [FfiSyntax] (conn : Loc) (addrs : List GoString)
+axiom grpcConn_persistent {GF : BundledGFunctors} [GooseExts] (conn : Loc) (addrs : List GoString)
     (ics : List GoFunc) (dopts : List GoInterface) :
   Persistent (grpcConn (GF := GF) conn addrs ics dopts)
 
@@ -417,14 +417,14 @@ attribute [instance] grpcConn_persistent
 /-- **`v` is grpc's call option `grpc.Peer(p)`** (an axiomatized property, introduced only by
 `grpc.Peer`'s spec, `Spec/google_golang_org/grpc/Peer.lean`): after the call, the attempt's peer
 is written to `*p`. -/
-axiom grpcPeerOpt [FfiSyntax] (v : GoInterface) (p : Loc) : Prop
+axiom grpcPeerOpt [GooseExts] (v : GoInterface) (p : Loc) : Prop
 
 /-- **`pv` is a peer grpc's transport writes** for a call (an axiomatized property: its addresses
 are `net`'s, its auth info grpc's credentials', so its `String()` returns). -/
-axiom grpcWrotePeer [FfiSyntax] (pv : google_golang_org.grpc.peer.Peer) : Prop
+axiom grpcWrotePeer [GooseExts] (pv : google_golang_org.grpc.peer.Peer) : Prop
 
 section reg
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]

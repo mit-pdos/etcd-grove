@@ -103,7 +103,7 @@ theorem hookStep_save_put {P : BParams} (hPw : P.Wf) (hP : hooksParams P) {st st
     rw [hpz']; omega
 
 section fields
-variable [FfiSyntax] [GoGlobalContext] [GoSemanticsFunctions]
+variable [GooseExts] [GoGlobalContext] [GoSemanticsFunctions]
 
 /-- `&bh.<f>` -/
 abbrev hF (f : GoString) (bh : Loc) : Loc :=
@@ -112,7 +112,7 @@ abbrev hF (f : GoString) (bh : Loc) : Loc :=
 end fields
 
 section defs
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]

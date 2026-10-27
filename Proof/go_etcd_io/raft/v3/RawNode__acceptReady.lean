@@ -57,7 +57,7 @@ open Iris Iris.BI Iris.ProofMode go_etcd_io.raft.v3
 open RawNodeOwnAccess
 
 section helpers
-variable [FfiSyntax]
+variable [GooseExts]
 
 /-- (D22 S-d3a) The log a `Ready` accepts: with a snapshot, the storage lent (`ownRaftLog_lend`). -/
 def rdyLs (L : Option SnapLoan) (ls : LogState) : LogState :=
@@ -177,7 +177,7 @@ theorem accept_fields (ls : LogState) (ce : List EntryM) (sz : w64) :
 end helpers
 
 section proof
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [StorageModel GF]
 variable [sem : go.Semantics]

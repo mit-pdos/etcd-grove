@@ -52,39 +52,19 @@ namespace EtcdGrove
 open Iris Iris.BI Iris.ProofMode go_etcd_io.raft.v3
 
 section proof
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
-/-- Two `ownMap`s at the same location describe the same map.
-
-Not in `Perennial/Golang/Theory/Map.lean`, and provable there: `ownMap` is
-`heapPointsto mref dq mv` plus `is_map_pure mv mp` plus a pointwise agreement between
-`mp` and the `GMap`, and `go.mapLookup_pure` says `mapLookup mv k = mp k` -- so `mp` is
-a function of `mv`, and the points-to pins `mv`. Stated here at `w64 ↦ Loc` because
-that is where it is needed; lift it into the framework when a second caller appears. -/
+/-- Two `ownMap`s at the same location describe the same map: Perennial's `ownMap_agree` at
+`w64 ↦ Loc`. -/
 theorem progress_map_agree (mref : Loc) (dq1 dq2 : DFrac) (m1 m2 : GMap w64 Loc) :
     ⊢ (mref ↦${dq1} m1 : IProp GF) -∗ mref ↦${dq2} m2 -∗ ⌜m1 = m2⌝ := by
-  rw [ownMap_unseal]
-  unfold ownMapDef
-  iintro ⟨%mv1, %mp1, Hown1, %Hmap1, %Hag1, -⟩ ⟨%mv2, %mp2, Hown2, %Hmap2, %Hag2, -⟩
-  ihave %Hmv := heapPointsto_agree _ _ _ _ _ $$ [Hown1 Hown2]
-  · iframe Hown1 Hown2
-  subst Hmv
-  ipureintro
-  apply GMap.map_eq; intro k
-  have He1 := go.mapLookup_pure #k _ _ Hmap1
-  have He2 := go.mapLookup_pure #k _ _ Hmap2
-  have Heq : mp1 #k = mp2 #k := He1.symm.trans He2
-  rw [Hag1 k, Hag2 k] at Heq
-  cases h1 : m1 !! k <;> cases h2 : m2 !! k <;> simp only [h1, h2] at Heq
-  · rfl
-  · cases Heq
-  · cases Heq
-  · simp only [Prod.mk.injEq, true_and] at Heq
-    rw [go.intoVal_inj Heq]
+  iintro H1 H2
+  iapply (ownMap_agree (GF := GF) mref dq1 dq2 m1 m2)
+  iframe
 
 -- The (fixed) set of voters.
 variable (cfg : GSet w64)
@@ -546,7 +526,7 @@ theorem nsat_missing (votes : GMap w64 Bool) (keys : List w64)
 end pure
 
 section proof2
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
@@ -593,7 +573,7 @@ at `prsm` with its `Progress` objects. It is the part of the tracker that
 `switchToConfig` replaces (`ownConfigV_toC`, `ownTrackerC_reconfig`); the vote tally and the
 tracker's other fields stay. -/
 section config
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
@@ -746,7 +726,7 @@ def IsQuorumIndex (s : GSet w64) (f : w64 → w64) (N : w64) : Prop :=
     ¬ IsQuorum s (GMap.filter (fun v _ => decide (uint.Z N' ≤ uint.Z (f v))) s))
 
 section replication
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
@@ -838,7 +818,7 @@ lemmas (`bigSepM2_insert`, `bigSepM2_delete`) state their maps with the former. 
     Iris.Std.PartialMap.delete m k = GMap.delete k m := rfl
 
 section idset_range
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
@@ -924,7 +904,7 @@ end idset_range
 /-! ### Tracker accessors: helpers (2026-10-12, for `IsSingleton`, `LearnerNodes`) -/
 
 section tracker_accessors
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]

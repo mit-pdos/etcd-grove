@@ -27,7 +27,7 @@ public import Proof.github_com.mit_pdos.etcd_grove.examples.linkvtxn.Link
 public import Proof.github_com.mit_pdos.etcd_grove.examples.linkvtxn.PkgTable
 public import Proof.runtime.Start
 public import Proof.runtime.Threads
-public import Perennial.GooseLang.Ffi.DiskFfi.Adequacy
+public import Proof.github_com.mit_pdos.etcd_grove.examples.common.TrivialExt
 
 @[expose] public section
 
@@ -42,12 +42,12 @@ namespace EtcdGrove
 
 open Iris Iris.BI Iris.ProgramLogic Iris.Std Iris.ProofMode go_etcd_io.raft.v3
 
-attribute [local instance] disk_op disk_model disk_semantics disk_interp
+attribute [local instance] trivialExts trivialExtsSemantics trivialExtsInterp
 
 /-! ## The ghost-state bundle -/
 
 /-- The functors: putget's (`putgetGF`: the universal camera `AllG` at slot 0, then invariants,
-later credits, GooseLang's heap, prophecies and package state, and the disk FFI's heap), and
+later credits, GooseLang's heap, prophecies and package state), and
 iris-lean's non-atomic invariants at slot 11 (as the counter's `counterGF`). Every other slot is
 the unit functor. -/
 def linkvtxnGF : BundledGFunctors := fun i =>
@@ -61,20 +61,17 @@ def linkvtxnGF : BundledGFunctors := fun i =>
   | 6 => ⟨constOF (HeapView proph_id (Agree (DiscreteO (List val))) (GMap proph_id)),
           inferInstance⟩
   | 7 => ⟨GhostVarF (GMap GoString Bool), inferInstance⟩
-  | 8 => ⟨constOF (HeapView Int (Agree (DiscreteO Block)) (GMap Int)), inferInstance⟩
-  | 9 => ⟨constOF (HeapView Int (Agree (DiscreteO GName)) (GMap Int)), inferInstance⟩
-  | 10 => ⟨constOF MetaUR, inferInstance⟩
   | 11 => ⟨NaInvF, inferInstance⟩
   | _ => ⟨constOF Unit, inferInstance⟩
 
 /-- The universal camera at slot 0. -/
 def linkvtxnGF_allG : AllG linkvtxnGF := ⟨⟨0, rfl⟩⟩
 
-instance linkvtxnGF_gooseGpreS : GooseGpreS disk_model linkvtxnGF where
+instance linkvtxnGF_gooseGpreS : GooseGpreS linkvtxnGF where
   goose_preG_iris := ⟨⟨⟨1, rfl⟩, ⟨2, rfl⟩, ⟨3, rfl⟩⟩, ⟨⟨4, rfl⟩⟩⟩
   goose_preG_heap := ⟨⟨5, rfl⟩⟩
   goose_preG_proph := ⟨⟨⟨6, rfl⟩⟩⟩
-  goosePreGFfi := (⟨⟨⟨⟨8, rfl⟩⟩, ⟨⟨9, rfl⟩⟩, ⟨10, rfl⟩⟩⟩ : DiskPreG linkvtxnGF)
+  goosePreGExts := ((), PUnit.unit)
   goose_preG_go_state := ⟨@GhostVarG.mk _ _ ⟨7, rfl⟩⟩
   goosePreGAllG := linkvtxnGF_allG
 
@@ -84,8 +81,7 @@ instance linkvtxnGF_naInvG : NaInvG linkvtxnGF := ⟨⟨11, rfl⟩⟩
 
 /-- **A ghost-state instance at the local context `lctx`** (as putget's `heapAt`). -/
 abbrev linkvtxnHeapAt (hG : HeapGS .hasLC linkvtxnGF) (lctx : GoLocalContext) : HeapGS .hasLC linkvtxnGF :=
-  ⟨hG.goose_globalGS, ⟨hG.goose_localGS.gooseFfiLocalGS, lctx,
-    hG.goose_localGS.goose_na_heapGS, hG.goose_localGS.goose_go_stateGS⟩⟩
+  ⟨hG.goose_globalGS, { hG.goose_localGS with goose_go_local_context := lctx }⟩
 
 /-! ## The closed theorem -/
 
@@ -109,12 +105,9 @@ theorem linkvtxn_adequate [lctx : GoLocalContext] [sem : go.Semantics]
     [package_sem : github_com.mit_pdos.etcd_grove.examples.linkvtxn.Assumptions]
     [cache_sem : go_etcd_io.etcd.cache.v3.Assumptions]
     [Float64ToInt64Semantics] [go_etcd_io.etcd.client.v3.DialWithBalancerBody]
-    [ErrorStringLeaf] [RpctypesEtcdErrorMethods] [context.ErrorStringIsError]
-    [context.DeadlineExceededIsError] [log.NewModel]
+    [log.NewModel]
     (Hctx : ∀ hG : HeapGS .hasLC linkvtxnGF, ContextReadErrs (GF := linkvtxnGF) (hG := linkvtxnHeapAt hG lctx))
     (Hcec : ∀ hG : HeapGS .hasLC linkvtxnGF, ContextErrsClient (GF := linkvtxnGF) (hG := linkvtxnHeapAt hG lctx))
-    (Hms : v3rpc.ServerMethodSets)
-    (hAs : errors.AsTarget go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty)
     (id : w64) (bootLog : List EntryM) (Hbf : putget.BootFacts id bootLog)
     (Hck : ckptEffectsOk) (Haf : authRecordsFit)
     (Hbuq : apply.backendUnderQuota) (Hdbo : storage.dbOpensOk)
@@ -127,7 +120,7 @@ theorem linkvtxn_adequate [lctx : GoLocalContext] [sem : go.Semantics]
     (Hprem : ∀ hG : HeapGS .hasLC linkvtxnGF,
       ⊢ linkvtxn.premises (GF := linkvtxnGF) (hG := linkvtxnHeapAt hG lctx) n id bootLog)
     (σ : state) (g : GlobalState) (Hlctx : σ.goState.goLctx = lctx) (Hinit : IsInit σ)
-    (Hthreads : g.threads = 1)
+    (Hthreads : σ.threads = 1)
     (κs : List Observation) (t2 : List Expr) (σ2 : CfgState)
     (Hsteps : RealNsteps n ([linkvtxnProgram clients ops], ((σ, g) : CfgState)) κs (t2, σ2))
     (Hn : n + 2 ≤ 2 ^ 31) (Hwb : n + 7 ≤ backend.wbInit) :
@@ -137,7 +130,7 @@ theorem linkvtxn_adequate [lctx : GoLocalContext] [sem : go.Semantics]
   refine etcd_adequate (GF := linkvtxnGF) github_com.mit_pdos.etcd_grove.examples.linkvtxn.initialize'
     ((@! github_com.mit_pdos.etcd_grove.examples.linkvtxn.Main) #clients #ops)
     (fun v => v = #(go!"Ok") ∨ v = #(go!"Unknown")) (fun p h => h.elim (fun h => intoVal_ne_PanicV _ p h.symm)
-      (fun h => intoVal_ne_PanicV _ p h.symm)) [go!"127.0.0.1:23796"] (by decide) σ g trivial trivial Hlctx Hinit Hthreads HNs HAs
+      (fun h => intoVal_ne_PanicV _ p h.symm)) [go!"127.0.0.1:23796"] (by decide) σ g ⟨trivial, trivial⟩ ⟨trivial, trivial⟩ Hlctx Hinit Hthreads HNs HAs
     n κs t2 σ2 Hsteps fun hG HN HT => ?_
   letI : HeapGS .hasLC linkvtxnGF := linkvtxnHeapAt hG lctx
   haveI := Hctx hG
@@ -148,7 +141,7 @@ theorem linkvtxn_adequate [lctx : GoLocalContext] [sem : go.Semantics]
   iintro #Hinit Htok ⟨Has, -⟩
   icases BigSepL.bigSepL_cons.1 $$ Has with ⟨Haddr, -⟩
   have hM := linkvtxn.wp_Main (GF := linkvtxnGF) n id bootLog clients ops Hbf
-    (by rw [HT]; omega) (by rw [HN]; omega) (by rw [HN]; omega) Hck Haf Hbuq Hdbo Hms hAs
+    (by rw [HT]; omega) (by rw [HN]; omega) (by rw [HN]; omega) Hck Haf Hbuq Hdbo inferInstance EtcdGrove.rpctypesEtcdError_asTarget
     Hc0 Hc31 Hops Hmul
   wp_apply hM $$ [Haddr Htok]
   · iframe; iframe #

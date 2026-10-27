@@ -2,86 +2,81 @@
 -- Every declaration also takes the ambient section variables (left out below): the Go semantics
 -- (`ext`, `ffi`, `go_gctx`, `sem`, the package's `Assumptions`), `GF`, `hG`, `StorageModel GF`, `AllG GF`.
 
-def CCData : Option CCMsg → List w8 → Prop :=
-  match x✝¹, x✝ with
-  | none, bs => bs = []
-  | some (CCMsg.v1 m), bs => ccDecodeV1 bs = some m
-  | some (CCMsg.v2 m), bs => ccDecodeV2 bs = some m
-
 def instDecidableIsConfEnt (e : EntryM) : Decidable (IsConfEnt e) :=
   id inferInstance
 
 theorem propConfStep_length {joint : Bool} (applied li : w64) (acc : List EntryM × w64) (x : EntryM
-    × Option CCMsg) : (propConfStep joint applied li acc x).fst.length = acc.fst.length + 1
+    × Option ConfChangeIM) : (propConfStep joint applied li acc x).fst.length = acc.fst.length + 1
 
-structure CCV2M : Type where
+def confChangeEntryType : Option ConfChangeIM → raftpb.EntryType :=
+  match x✝ with
+  | some (ConfChangeIM.v1 a) => W32 1
+  | x => W32 2
+
+theorem cctypes_mem {ents : List EntryM} {cs : List (Option ConfChangeIM)} (H : CCTypesOk ents cs)
+    (x : EntryM × Option ConfChangeIM) : x ∈ ents.zip cs → x.snd.isSome = true → IsConfEnt x.fst
+
+def ccWantsLeave : ConfChangeIM → Bool :=
+  match x✝ with
+  | ConfChangeIM.v1 a => false
+  | ConfChangeIM.v2 m => m.changes.isEmpty
+
+theorem propConf_foldl_repl {joint : Bool} (applied li : w64) (xs : List (EntryM × Option
+    ConfChangeIM)) (Hxs : ∀ (x : EntryM × Option ConfChangeIM), x ∈ xs → x.snd.isSome = true →
+    IsConfEnt x.fst) (pre : List EntryM) (acc : List EntryM × w64) : PropRepl pre acc.fst → PropRepl
+    (pre ++ List.map Prod.fst xs) (List.foldl (propConfStep joint applied li) acc xs).fst
+
+def propConf (applied li pci : w64) (ents : List EntryM) (cs : List (Option ConfChangeIM)) (joint :
+    Bool := false) : List EntryM × w64 :=
+  List.foldl (propConfStep joint applied li) ([], pci) (ents.zip cs)
+
+structure ConfChangeV2M : Type where
   transition : raftpb.ConfChangeTransition
   changes : List ConfChangeSingleM
   context : List w8
 
-theorem cctypes_mem {ents : List EntryM} {cs : List (Option CCMsg)} (H : CCTypesOk ents cs) (x :
-    EntryM × Option CCMsg) : x ∈ ents.zip cs → x.snd.isSome = true → IsConfEnt x.fst
-
-def ccWantsLeave : CCMsg → Bool :=
-  match x✝ with
-  | CCMsg.v1 a => false
-  | CCMsg.v2 m => m.changes.isEmpty
-
-theorem propConf_foldl_repl {joint : Bool} (applied li : w64) (xs : List (EntryM × Option CCMsg))
-    (Hxs : ∀ (x : EntryM × Option CCMsg), x ∈ xs → x.snd.isSome = true → IsConfEnt x.fst) (pre :
-    List EntryM) (acc : List EntryM × w64) : PropRepl pre acc.fst → PropRepl (pre ++ List.map
-    Prod.fst xs) (List.foldl (propConfStep joint applied li) acc xs).fst
-
-def ccEntryType : Option CCMsg → raftpb.EntryType :=
-  match x✝ with
-  | some (CCMsg.v1 a) => W32 1
-  | x => W32 2
-
-def propConf (applied li pci : w64) (ents : List EntryM) (cs : List (Option CCMsg)) (joint : Bool :=
-    false) : List EntryM × w64 :=
-  List.foldl (propConfStep joint applied li) ([], pci) (ents.zip cs)
-
 theorem foldl_propConfStep_length {joint : Bool} (applied li : w64) (xs : List (EntryM × Option
-    CCMsg)) (acc : List EntryM × w64) : (List.foldl (propConfStep joint applied li) acc
+    ConfChangeIM)) (acc : List EntryM × w64) : (List.foldl (propConfStep joint applied li) acc
     xs).fst.length = acc.fst.length + xs.length
 
 theorem propConf_take_succ (joint : Bool) (applied li pci : w64) (es : List EntryM) (cs : List
-    (Option CCMsg)) (k : Nat) (e : EntryM) (o : Option CCMsg) (He : es[k]? = some e) (Ho : cs[k]? =
-    some o) : propConf applied li pci (List.take (k + 1) es) (List.take (k + 1) cs) joint =
-    propConfStep joint applied li (propConf applied li pci (List.take k es) (List.take k cs) joint)
-    (e, o)
+    (Option ConfChangeIM)) (k : Nat) (e : EntryM) (o : Option ConfChangeIM) (He : es[k]? = some e)
+    (Ho : cs[k]? = some o) : propConf applied li pci (List.take (k + 1) es) (List.take (k + 1) cs)
+    joint = propConfStep joint applied li (propConf applied li pci (List.take k es) (List.take k cs)
+    joint) (e, o)
 
 def IsConfEnt (e : EntryM) : Prop :=
   e.Type' = W32 1 ∨ e.Type' = W32 2
 
 theorem propConf_take_zero {joint : Bool} (applied li pci : w64) (es : List EntryM) (cs : List
-    (Option CCMsg)) : propConf applied li pci (List.take 0 es) (List.take 0 cs) joint = ([], pci)
-
-inductive CCMsg : Type
-  | CCMsg.v1 : CCV1M → CCMsg
-  | CCMsg.v2 : CCV2M → CCMsg
-
-structure CCV1M : Type where
-  type : raftpb.ConfChangeType
-  nodeId : w64
-  context : List w8
-  id : w64
+    (Option ConfChangeIM)) : propConf applied li pci (List.take 0 es) (List.take 0 cs) joint = ([],
+    pci)
 
 theorem PropRepl.refl (es : List EntryM) : PropRepl es es
 
 def PropRepl (es es' : List EntryM) : Prop :=
   List.Forall₂ (fun e e' => e' = e ∨ IsConfEnt e ∧ e' = zero_val EntryM) es es'
 
+def MarshalsConfChange : Option ConfChangeIM → List w8 → Prop :=
+  match x✝¹, x✝ with
+  | none, bs => bs = []
+  | some (ConfChangeIM.v1 m), bs => ccDecodeV1 bs = some m
+  | some (ConfChangeIM.v2 m), bs => ccDecodeV2 bs = some m
+
 theorem PropRepl.length {es es' : List EntryM} (H : PropRepl es es') : es'.length = es.length
 
-def CCTypesOk (ents : List EntryM) (cs : List (Option CCMsg)) : Prop :=
+def CCTypesOk (ents : List EntryM) (cs : List (Option ConfChangeIM)) : Prop :=
   List.Forall₂ (fun e o => o.isSome = decide (IsConfEnt e)) ents cs
 
 theorem propConf_length {joint : Bool} (applied li pci : w64) (es : List EntryM) (cs : List (Option
-    CCMsg)) : (propConf applied li pci es cs joint).fst.length = min es.length cs.length
+    ConfChangeIM)) : (propConf applied li pci es cs joint).fst.length = min es.length cs.length
+
+inductive ConfChangeIM : Type
+  | ConfChangeIM.v1 : ConfChangeM → ConfChangeIM
+  | ConfChangeIM.v2 : ConfChangeV2M → ConfChangeIM
 
 def propConfStep (joint : Bool) (applied li : w64) (acc : List EntryM × w64) (x : EntryM × Option
-    CCMsg) : List EntryM × w64 :=
+    ConfChangeIM) : List EntryM × w64 :=
   match x.snd with
   | none => (acc.fst ++ [x.fst], acc.snd)
   | some c =>
@@ -91,12 +86,19 @@ def propConfStep (joint : Bool) (applied li : w64) (acc : List EntryM × w64) (x
 def CCDecodes (ty : w32) (bs : List w8) : Prop :=
   (ty = W32 1 → ∃ m, ccDecodeV1 bs = some m) ∧ (ty = W32 2 → ∃ m, ccDecodeV2 bs = some m)
 
-def (sealed) ccDecodeV2 : List w8 → Option CCV2M
+def (sealed) ccDecodeV2 : List w8 → Option ConfChangeV2M
 
-def (sealed) ccDecodeV1 : List w8 → Option CCV1M
+structure ConfChangeM : Type where
+  type : raftpb.ConfChangeType
+  nodeId : w64
+  context : List w8
+  id : w64
+
+def (sealed) ccDecodeV1 : List w8 → Option ConfChangeM
 
 theorem propConf_repl {joint : Bool} (applied li pci : w64) (ents : List EntryM) (cs : List (Option
-    CCMsg)) (H : CCTypesOk ents cs) : PropRepl ents (propConf applied li pci ents cs joint).fst
+    ConfChangeIM)) (H : CCTypesOk ents cs) : PropRepl ents (propConf applied li pci ents cs
+    joint).fst
 
 theorem forall₂_app.{u_1, u_2} {α : Type u_1} {β : Type u_2} {R : α → β → Prop} {a1 a2 : List α} {b1
     b2 : List β} (H1 : List.Forall₂ R a1 b1) (H2 : List.Forall₂ R a2 b2) : List.Forall₂ R (a1 ++ a2)

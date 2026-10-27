@@ -31,52 +31,52 @@ end pkg_id
 
 namespace go_etcd_io.etcd.server.v3.etcdserver.read
 
-noncomputable def Read.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def Read.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/etcd/server/v3/etcdserver/read.Read" [])
 
 attribute [irreducible] Read.ty
 
-noncomputable def server.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def server.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/etcd/server/v3/etcdserver/read.server" [])
 
 attribute [irreducible] server.ty
 
-noncomputable def raftInterface.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def raftInterface.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/etcd/server/v3/etcdserver/read.raftInterface" [])
 
 attribute [irreducible] raftInterface.ty
 
-noncomputable def notifier.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def notifier.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/etcd/server/v3/etcdserver/read.notifier" [])
 
 attribute [irreducible] notifier.ty
 
-noncomputable def slowReadIndex [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def slowReadIndex [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver/read.slowReadIndex"
 
-noncomputable def readIndexFailed [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def readIndexFailed [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver/read.readIndexFailed"
 
-noncomputable def readIndexRetryTime [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def readIndexRetryTime [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver/read.readIndexRetryTime"
 
-noncomputable def init.«0» [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def init.«0» [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver/read.init.0"
 
-noncomputable def NewRead [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def NewRead [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver/read.NewRead"
 
-noncomputable def uint64ToBigEndianBytes [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def uint64ToBigEndianBytes [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver/read.uint64ToBigEndianBytes"
 
-noncomputable def isStopped [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def isStopped [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver/read.isStopped"
 
-noncomputable def newNotifier [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def newNotifier [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver/read.newNotifier"
 
 /-- go: metrics.go:36:6 -/
-noncomputable def init.«0».impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def init.«0».impl [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (App (Val exceptionDo)
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -93,7 +93,7 @@ noncomputable def init.«0».impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.github_com.prometheus.client_golang.prometheus.MustRegister []))) (Val #())) (Var "$a0"))))))))
 
 /-- go: read.go:36:6 -/
-noncomputable def NewRead.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def NewRead.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "server"
   (Lam "raft"
   (App (Val exceptionDo)
@@ -107,7 +107,7 @@ noncomputable def NewRead.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (CompositeLiteral Read.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"server")) (ElementExpression server.ty (Var "$v0"))), (KeyedElement (some (KeyField go!"raft")) (ElementExpression raftInterface.ty (Var "$v1"))), (KeyedElement (some (KeyField go!"waitC")) (ElementExpression (go.GoType.ChannelType go.ChanDir.sendrecv (go.GoType.StructType [])) (Var "$v2"))), (KeyedElement (some (KeyField go!"notifier")) (ElementExpression (go.GoType.PointerType notifier.ty) (Var "$v3")))])))))))))))))
 
 /-- go: read.go:74:16 -/
-noncomputable def Read.LinearizableReadNotify.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def Read.LinearizableReadNotify.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "r"
   (Lam "ctx"
   (App (Val exceptionDo)
@@ -144,7 +144,7 @@ noncomputable def Read.LinearizableReadNotify.impl [FfiSyntax] [GoGlobalContext]
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.RWMutex.ty) go!"RLock"))) (App (Val (GoInstruction (StructFieldRef Read.ty go!"mux"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Read.ty)))) (Var "r")))) (Val #())))))))))
 
 /-- go: read.go:96:16 -/
-noncomputable def Read.LinearizableReadLoop.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def Read.LinearizableReadLoop.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "r"
   (Lam BAnon
   (App (Val exceptionDo)
@@ -292,7 +292,7 @@ noncomputable def Read.LinearizableReadLoop.impl [FfiSyntax] [GoGlobalContext] :
   (Val #()))))))))
 
 /-- go: read.go:148:16 -/
-noncomputable def Read.requestCurrentIndex.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def Read.requestCurrentIndex.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "r"
   (Lam "leaderChangedNotifier"
   (App (Val wrapDefer)
@@ -527,7 +527,7 @@ noncomputable def Read.requestCurrentIndex.impl [FfiSyntax] [GoGlobalContext] : 
   (App (Val (GoInstruction (GoStore (go.GoType.MapType go.uint64 (go.GoType.StructType []))))) (Pair (Var "requestIDs") (Var "$r0")))))))))))))
 
 /-- go: read.go:232:16 -/
-noncomputable def Read.sendReadIndex.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def Read.sendReadIndex.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "r"
   (Lam "requestIndex"
   (App (Val exceptionDo)
@@ -597,7 +597,7 @@ noncomputable def Read.sendReadIndex.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore (go.GoType.SliceType go.byte)))) (Pair (Var "ctxToSend") (Var "$r0"))))))))))))
 
 /-- go: read.go:250:6 -/
-noncomputable def uint64ToBigEndianBytes.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def uint64ToBigEndianBytes.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "number"
   (App (Val exceptionDo)
   (Let "number" (App (Val (GoInstruction (GoAlloc go.uint64))) (Var "number"))
@@ -615,7 +615,7 @@ noncomputable def uint64ToBigEndianBytes.impl [FfiSyntax] [GoGlobalContext] : va
   (App (Val (GoInstruction (GoStore (go.GoType.SliceType go.byte)))) (Pair (Var "byteResult") (Var "$r0"))))))))))
 
 /-- go: read.go:256:6 -/
-noncomputable def isStopped.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def isStopped.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "err"
   (App (Val exceptionDo)
   (Let "err" (App (Val (GoInstruction (GoAlloc go.error))) (Var "err"))
@@ -627,7 +627,7 @@ noncomputable def isStopped.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.errors.Is []))) (Val #())) (Var "$a0")) (Var "$a1")))))))))
 
 /-- go: util.go:22:6 -/
-noncomputable def newNotifier.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def newNotifier.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (App (Val exceptionDo)
   (App (Val doReturn)
@@ -635,7 +635,7 @@ noncomputable def newNotifier.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (CompositeLiteral notifier.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"c")) (ElementExpression (go.GoType.ChannelType go.ChanDir.sendrecv (go.GoType.StructType [])) (Var "$v0")))])))))))
 
 /-- go: util.go:28:21 -/
-noncomputable def notifier.notify.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def notifier.notify.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "nc"
   (Lam "err"
   (App (Val exceptionDo)
@@ -655,7 +655,7 @@ noncomputable def notifier.notify.impl [FfiSyntax] [GoGlobalContext] : val :=
 noncomputable instance info' : PkgInfo pkg_id.go_etcd_io.etcd.server.v3.etcdserver.read where
   pkgImportedPkgs := [pkg_id.github_com.prometheus.client_golang.prometheus, pkg_id.context, pkg_id.encoding.binary, pkg_id.errors, pkg_id.strconv, pkg_id.sync, pkg_id.time, pkg_id.go_uber_org.zap, pkg_id.go_etcd_io.etcd.pkg.v3.traceutil, pkg_id.go_etcd_io.etcd.server.v3.etcdserver.errors, pkg_id.go_etcd_io.raft.v3]
 
-noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (App (Val (package.init pkg_id.go_etcd_io.etcd.server.v3.etcdserver.read)) (Lam BAnon
   (App (Val exceptionDo)
@@ -726,27 +726,35 @@ noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val (go.GlobalAlloc readIndexRetryTime _root_.Perennial.time.Duration.ty)) (Val #()))))))))
 
-abbrev server [FfiSyntax] : Type := GoInterface
+abbrev server [GooseExts] : Type := GoInterface
 
-@[reducible] noncomputable def server.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def server.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"AppliedIndex" (go.signature.Signature [] false [go.uint64])), (go.InterfaceElem.MethodElem go!"ApplyWait" (go.signature.Signature [go.uint64] false [(go.GoType.ChannelType go.ChanDir.recvonly (go.GoType.StructType []))])), (go.InterfaceElem.MethodElem go!"Done" (go.signature.Signature [] false [(go.GoType.ChannelType go.ChanDir.recvonly (go.GoType.StructType []))])), (go.InterfaceElem.MethodElem go!"FirstCommitInTermNotify" (go.signature.Signature [] false [(go.GoType.ChannelType go.ChanDir.recvonly (go.GoType.StructType []))])), (go.InterfaceElem.MethodElem go!"LeaderChanged" (go.signature.Signature [] false [(go.GoType.ChannelType go.ChanDir.recvonly (go.GoType.StructType []))])), (go.InterfaceElem.MethodElem go!"Logger" (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)])), (go.InterfaceElem.MethodElem go!"NextRequestID" (go.signature.Signature [] false [go.uint64])), (go.InterfaceElem.MethodElem go!"RequestTimeout" (go.signature.Signature [] false [_root_.Perennial.time.Duration.ty])), (go.InterfaceElem.MethodElem go!"Stopping" (go.signature.Signature [] false [(go.GoType.ChannelType go.ChanDir.recvonly (go.GoType.StructType []))]))])
 
-class server.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class server.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq server.ty server.underlying
+  method_set : go.MethodSetIs server.ty [(go!"AppliedIndex", (some (go.signature.Signature [] false [go.uint64]))), (go!"ApplyWait", (some (go.signature.Signature [go.uint64] false [(go.GoType.ChannelType go.ChanDir.recvonly (go.GoType.StructType []))]))), (go!"Done", (some (go.signature.Signature [] false [(go.GoType.ChannelType go.ChanDir.recvonly (go.GoType.StructType []))]))), (go!"FirstCommitInTermNotify", (some (go.signature.Signature [] false [(go.GoType.ChannelType go.ChanDir.recvonly (go.GoType.StructType []))]))), (go!"LeaderChanged", (some (go.signature.Signature [] false [(go.GoType.ChannelType go.ChanDir.recvonly (go.GoType.StructType []))]))), (go!"Logger", (some (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)]))), (go!"NextRequestID", (some (go.signature.Signature [] false [go.uint64]))), (go!"RequestTimeout", (some (go.signature.Signature [] false [_root_.Perennial.time.Duration.ty]))), (go!"Stopping", (some (go.signature.Signature [] false [(go.GoType.ChannelType go.ChanDir.recvonly (go.GoType.StructType []))])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType server.ty) []
 
 attribute [instance] server.TypeAssumptions.underlying
+  server.TypeAssumptions.method_set
+  server.TypeAssumptions.ptr_method_set
 
-abbrev raftInterface [FfiSyntax] : Type := GoInterface
+abbrev raftInterface [GooseExts] : Type := GoInterface
 
-@[reducible] noncomputable def raftInterface.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def raftInterface.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"ReadIndex" (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.SliceType go.byte)] false [go.error])), (go.InterfaceElem.MethodElem go!"ReadState" (go.signature.Signature [] false [(go.GoType.ChannelType go.ChanDir.recvonly _root_.Perennial.go_etcd_io.raft.v3.ReadState.ty)]))])
 
-class raftInterface.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class raftInterface.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq raftInterface.ty raftInterface.underlying
+  method_set : go.MethodSetIs raftInterface.ty [(go!"ReadIndex", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.SliceType go.byte)] false [go.error]))), (go!"ReadState", (some (go.signature.Signature [] false [(go.GoType.ChannelType go.ChanDir.recvonly _root_.Perennial.go_etcd_io.raft.v3.ReadState.ty)])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType raftInterface.ty) []
 
 attribute [instance] raftInterface.TypeAssumptions.underlying
+  raftInterface.TypeAssumptions.method_set
+  raftInterface.TypeAssumptions.ptr_method_set
 
-structure Read [FfiSyntax] where
+structure Read [GooseExts] where
   mk ::
   server' : server
   raft' : raftInterface
@@ -754,27 +762,27 @@ structure Read [FfiSyntax] where
   waitC' : GoChan
   notifier' : Loc
 
-noncomputable instance Read.zero_val [FfiSyntax] : ZeroVal Read :=
+noncomputable instance Read.zero_val [GooseExts] : ZeroVal Read :=
   ⟨Read.mk zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def Read.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def Read.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"server" server.ty),
 (go.field_decl.FieldDecl go!"raft" raftInterface.ty),
 (go.field_decl.FieldDecl go!"mux" _root_.Perennial.sync.RWMutex.ty),
 (go.field_decl.FieldDecl go!"waitC" (go.GoType.ChannelType go.ChanDir.sendrecv (go.GoType.StructType []))),
 (go.field_decl.FieldDecl go!"notifier" (go.GoType.PointerType notifier.ty))]
 
-@[irreducible] noncomputable def Read.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def Read.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   Read.fieldsUnsealed
 
-noncomputable instance equals_unfold_Read [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_Read [GooseExts] [GoGlobalContext] :
     EqualsUnfold Read.fields Read.fieldsUnsealed :=
   ⟨by unfold Read.fields; rfl⟩
 
-@[reducible] noncomputable def Read.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def Read.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType Read.fields)
 
-class Read.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class Read.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying Read.underlying Read
   underlying : go.UnderlyingDirectedEq Read.ty Read.underlying
   get_server : ∀ (x : Read), go.IsGoStepPureDetTagged under (StructFieldGet Read.underlying go!"server") #x (Val #(x.server'))
@@ -787,6 +795,8 @@ class Read.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSem
   set_waitC : ∀ (x : Read) (y : GoChan), go.IsGoStepPureDetTagged under (StructFieldSet Read.underlying go!"waitC") (PairV #x #y) (Val #(({ x with waitC' := y } : Read)))
   get_notifier : ∀ (x : Read), go.IsGoStepPureDetTagged under (StructFieldGet Read.underlying go!"notifier") #x (Val #(x.notifier'))
   set_notifier : ∀ (x : Read) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet Read.underlying go!"notifier") (PairV #x #y) (Val #(({ x with notifier' := y } : Read)))
+  method_set : go.MethodSetIs Read.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType Read.ty) [(go!"LinearizableReadLoop", (some (go.signature.Signature [] false []))), (go!"LinearizableReadNotify", (some (go.signature.Signature [_root_.Perennial.context.Context.ty] false [go.error]))), (go!"go.etcd.io/etcd/server/v3/etcdserver/read.requestCurrentIndex", (some (go.signature.Signature [(go.GoType.ChannelType go.ChanDir.recvonly (go.GoType.StructType []))] false [go.uint64, go.error]))), (go!"go.etcd.io/etcd/server/v3/etcdserver/read.sendReadIndex", (some (go.signature.Signature [go.uint64] false [go.error])))]
   ptr_LinearizableReadLoop_unfold : MethodUnfold (go.GoType.PointerType Read.ty) go!"LinearizableReadLoop" Read.LinearizableReadLoop.impl
   ptr_LinearizableReadNotify_unfold : MethodUnfold (go.GoType.PointerType Read.ty) go!"LinearizableReadNotify" Read.LinearizableReadNotify.impl
   ptr_requestCurrentIndex_unfold : MethodUnfold (go.GoType.PointerType Read.ty) go!"requestCurrentIndex" Read.requestCurrentIndex.impl
@@ -804,40 +814,44 @@ attribute [instance] Read.TypeAssumptions.type_repr
   Read.TypeAssumptions.set_waitC
   Read.TypeAssumptions.get_notifier
   Read.TypeAssumptions.set_notifier
+  Read.TypeAssumptions.method_set
+  Read.TypeAssumptions.ptr_method_set
   Read.TypeAssumptions.ptr_LinearizableReadLoop_unfold
   Read.TypeAssumptions.ptr_LinearizableReadNotify_unfold
   Read.TypeAssumptions.ptr_requestCurrentIndex_unfold
   Read.TypeAssumptions.ptr_sendReadIndex_unfold
 
-structure notifier [FfiSyntax] where
+structure notifier [GooseExts] where
   mk ::
   c' : GoChan
   err' : GoError
 
-noncomputable instance notifier.zero_val [FfiSyntax] : ZeroVal notifier :=
+noncomputable instance notifier.zero_val [GooseExts] : ZeroVal notifier :=
   ⟨notifier.mk zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def notifier.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def notifier.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"c" (go.GoType.ChannelType go.ChanDir.sendrecv (go.GoType.StructType []))),
 (go.field_decl.FieldDecl go!"err" go.error)]
 
-@[irreducible] noncomputable def notifier.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def notifier.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   notifier.fieldsUnsealed
 
-noncomputable instance equals_unfold_notifier [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_notifier [GooseExts] [GoGlobalContext] :
     EqualsUnfold notifier.fields notifier.fieldsUnsealed :=
   ⟨by unfold notifier.fields; rfl⟩
 
-@[reducible] noncomputable def notifier.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def notifier.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType notifier.fields)
 
-class notifier.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class notifier.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying notifier.underlying notifier
   underlying : go.UnderlyingDirectedEq notifier.ty notifier.underlying
   get_c : ∀ (x : notifier), go.IsGoStepPureDetTagged under (StructFieldGet notifier.underlying go!"c") #x (Val #(x.c'))
   set_c : ∀ (x : notifier) (y : GoChan), go.IsGoStepPureDetTagged under (StructFieldSet notifier.underlying go!"c") (PairV #x #y) (Val #(({ x with c' := y } : notifier)))
   get_err : ∀ (x : notifier), go.IsGoStepPureDetTagged under (StructFieldGet notifier.underlying go!"err") #x (Val #(x.err'))
   set_err : ∀ (x : notifier) (y : GoError), go.IsGoStepPureDetTagged under (StructFieldSet notifier.underlying go!"err") (PairV #x #y) (Val #(({ x with err' := y } : notifier)))
+  method_set : go.MethodSetIs notifier.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType notifier.ty) [(go!"go.etcd.io/etcd/server/v3/etcdserver/read.notify", (some (go.signature.Signature [go.error] false [])))]
   ptr_notify_unfold : MethodUnfold (go.GoType.PointerType notifier.ty) go!"notify" notifier.notify.impl
 
 attribute [instance] notifier.TypeAssumptions.type_repr
@@ -846,9 +860,11 @@ attribute [instance] notifier.TypeAssumptions.type_repr
   notifier.TypeAssumptions.set_c
   notifier.TypeAssumptions.get_err
   notifier.TypeAssumptions.set_err
+  notifier.TypeAssumptions.method_set
+  notifier.TypeAssumptions.ptr_method_set
   notifier.TypeAssumptions.ptr_notify_unfold
 
-class Assumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   Read_instance : Read.TypeAssumptions
   server_instance : server.TypeAssumptions
   raftInterface_instance : raftInterface.TypeAssumptions

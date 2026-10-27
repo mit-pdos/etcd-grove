@@ -53,7 +53,7 @@ namespace EtcdGrove
 open Iris Iris.BI go_etcd_io.raft.v3
 
 section results
-variable [FfiSyntax]
+variable [GooseExts]
 
 /-- The `MsgAppResp` `handleAppendEntries` queues, as the model sees it:
 `Msg.mk ty src dst term reject index logterm commit rejecthint entries`. -/
@@ -110,7 +110,7 @@ def HandleAppResult (id : w64) (s : NState) (m : MessageM)
 end results
 
 section spec
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF] [StorageModel GF]
 variable [sem : go.Semantics]

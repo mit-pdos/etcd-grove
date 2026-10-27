@@ -48,7 +48,7 @@ open go_etcd_io.etcd.cache.v3 (statusErrOk)
 /-! ## Messages -/
 
 section model
-variable [ext : FfiSyntax]
+variable [GooseExts]
 
 /-- A `*pb.LeaseGrantResponse` as the wire carries it: its header, `ID`, `TTL`, `Error`. -/
 structure LeaseGrantRespM where
@@ -64,7 +64,7 @@ structure LeaseRevokeRespM where
 end model
 
 section defs
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
@@ -187,7 +187,7 @@ end defs
 /-! ## etcd's specs of the `Lease` service's unary methods -/
 
 section specs
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]

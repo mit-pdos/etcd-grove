@@ -30,7 +30,7 @@ theorem ite_neg' {α : Sort _} {c : Prop} [Decidable c] (h : ¬c) {a b : α} :
     (if c then a else b) = b := ite_eq_right_of_eq_false _ _ (eq_false h)
 
 section helpers
-variable [FfiSyntax]
+variable [GooseExts]
 
 /-- The committed entries handed out sit in the global log right after its first
 `applying` entries: `fp` is the log below the boundary `prev` (`FullOk`), `es` the log
@@ -112,7 +112,7 @@ theorem readyDq_resp (st : MsgSt) (h : RespType st.msg.Type') :
 end helpers
 
 section sep
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [StorageModel GF]
 variable [sem : go.Semantics]

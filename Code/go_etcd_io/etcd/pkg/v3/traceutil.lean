@@ -23,58 +23,58 @@ end pkg_id
 
 namespace go_etcd_io.etcd.pkg.v3.traceutil
 
-noncomputable def TraceKey.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def TraceKey.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/etcd/pkg/v3/traceutil.TraceKey" [])
 
 attribute [irreducible] TraceKey.ty
 
-noncomputable def StartTimeKey.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def StartTimeKey.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/etcd/pkg/v3/traceutil.StartTimeKey" [])
 
 attribute [irreducible] StartTimeKey.ty
 
-noncomputable def Field.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def Field.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/etcd/pkg/v3/traceutil.Field" [])
 
 attribute [irreducible] Field.ty
 
-noncomputable def Trace.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def Trace.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/etcd/pkg/v3/traceutil.Trace" [])
 
 attribute [irreducible] Trace.ty
 
-noncomputable def step.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def step.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/etcd/pkg/v3/traceutil.step" [])
 
 attribute [irreducible] step.ty
 
-axiom instrumentationScope [FfiSyntax] [GoGlobalContext] : val
+axiom instrumentationScope [GooseExts] [GoGlobalContext] : val
 
-noncomputable def Tracer [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def Tracer [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/pkg/v3/traceutil.Tracer"
 
-axiom Tracer.init [FfiSyntax] [GoGlobalContext] : val
+axiom Tracer.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def Init [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def Init [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/pkg/v3/traceutil.Init"
 
-noncomputable def writeFields [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def writeFields [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/pkg/v3/traceutil.writeFields"
 
-noncomputable def newTrace [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def newTrace [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/pkg/v3/traceutil.newTrace"
 
-noncomputable def TODO [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def TODO [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/pkg/v3/traceutil.TODO"
 
-noncomputable def Get [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def Get [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/pkg/v3/traceutil.Get"
 
-noncomputable def EnsureTrace [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def EnsureTrace [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/pkg/v3/traceutil.EnsureTrace"
 
 /-- go: trace.go:85:6 -/
-noncomputable def newTrace.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def newTrace.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "op"
   (Lam "lg"
   (Lam "fields"
@@ -92,7 +92,7 @@ noncomputable def newTrace.impl [FfiSyntax] [GoGlobalContext] : val :=
 /-- TODO returns a non-nil, empty Trace
 
     go: trace.go:90:6 -/
-noncomputable def TODO.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def TODO.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (App (Val exceptionDo)
   (App (Val doReturn)
@@ -100,7 +100,7 @@ noncomputable def TODO.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (CompositeLiteral Trace.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"isEmpty")) (ElementExpression go.bool (Var "$v0")))])))))))
 
 /-- go: trace.go:94:6 -/
-noncomputable def Get.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def Get.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "ctx"
   (App (Val exceptionDo)
   (Let "ctx" (App (Val (GoInstruction (GoAlloc _root_.Perennial.context.Context.ty))) (Var "ctx"))
@@ -130,7 +130,7 @@ noncomputable def Get.impl [FfiSyntax] [GoGlobalContext] : val :=
 /-- EnsureTrace creates a new trace if needed and adds it to the context.
 
     go: trace.go:102:6 -/
-noncomputable def EnsureTrace.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def EnsureTrace.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "ctx"
   (Lam "lg"
   (Lam "operation"
@@ -167,7 +167,7 @@ noncomputable def EnsureTrace.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore (go.GoType.PointerType Trace.ty)))) (Pair (Var "trace") (Var "$r0"))))))))))))))))
 
 /-- go: trace.go:114:17 -/
-noncomputable def Trace.GetStartTime.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def Trace.GetStartTime.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "t"
   (Lam BAnon
   (App (Val exceptionDo)
@@ -176,7 +176,7 @@ noncomputable def Trace.GetStartTime.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoLoad _root_.Perennial.time.Time.ty))) (App (Val (GoInstruction (StructFieldRef Trace.ty go!"startTime"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Trace.ty)))) (Var "t")))))))))
 
 /-- go: trace.go:118:17 -/
-noncomputable def Trace.SetStartTime.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def Trace.SetStartTime.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "t"
   (Lam "time"
   (App (Val exceptionDo)
@@ -190,7 +190,7 @@ noncomputable def Trace.SetStartTime.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore _root_.Perennial.time.Time.ty))) (Pair (App (Val (GoInstruction (StructFieldRef Trace.ty go!"startTime"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Trace.ty)))) (Var "t"))) (Var "$r0")))))))))))
 
 /-- go: trace.go:122:17 -/
-noncomputable def Trace.InsertStep.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def Trace.InsertStep.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "t"
   (Lam "at"
   (Lam "time"
@@ -237,7 +237,7 @@ noncomputable def Trace.InsertStep.impl [FfiSyntax] [GoGlobalContext] : val :=
     All steps in the subtrace will log out the input fields of this function
 
     go: trace.go:134:17 -/
-noncomputable def Trace.StartSubTrace.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def Trace.StartSubTrace.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "t"
   (Lam "fields"
   (App (Val exceptionDo)
@@ -259,7 +259,7 @@ noncomputable def Trace.StartSubTrace.impl [FfiSyntax] [GoGlobalContext] : val :
     All steps in the subtrace will log out the input fields of this function
 
     go: trace.go:140:17 -/
-noncomputable def Trace.StopSubTrace.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def Trace.StopSubTrace.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "t"
   (Lam "fields"
   (App (Val exceptionDo)
@@ -280,7 +280,7 @@ noncomputable def Trace.StopSubTrace.impl [FfiSyntax] [GoGlobalContext] : val :=
 /-- Step adds step to trace
 
     go: trace.go:145:17 -/
-noncomputable def Trace.Step.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def Trace.Step.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "t"
   (Lam "msg"
   (Lam "fields"
@@ -307,7 +307,7 @@ noncomputable def Trace.Step.impl [FfiSyntax] [GoGlobalContext] : val :=
 /-- StepWithFunction will measure the input function as a single step
 
     go: trace.go:152:17 -/
-noncomputable def Trace.StepWithFunction.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def Trace.StepWithFunction.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "t"
   (Lam "f"
   (Lam "msg"
@@ -335,7 +335,7 @@ noncomputable def Trace.StepWithFunction.impl [FfiSyntax] [GoGlobalContext] : va
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType Trace.ty) go!"disableStep"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Trace.ty)))) (Var "t"))) (Val #()))))))))))))))
 
 /-- go: trace.go:159:17 -/
-noncomputable def Trace.AddField.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def Trace.AddField.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "t"
   (Lam "fields"
   (App (Val exceptionDo)
@@ -367,7 +367,7 @@ noncomputable def Trace.AddField.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore Field.ty))) (Pair (Var "f") (Var "$value"))))))))))))))))
 
 /-- go: trace.go:167:17 -/
-noncomputable def Trace.IsEmpty.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def Trace.IsEmpty.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "t"
   (Lam BAnon
   (App (Val exceptionDo)
@@ -378,7 +378,7 @@ noncomputable def Trace.IsEmpty.impl [FfiSyntax] [GoGlobalContext] : val :=
 /-- LogIfLong dumps logs if the duration is longer than threshold
 
     go: trace.go:177:17 -/
-noncomputable def Trace.LogIfLong.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def Trace.LogIfLong.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "t"
   (Lam "threshold"
   (App (Val exceptionDo)
@@ -404,7 +404,7 @@ noncomputable def Trace.LogIfLong.impl [FfiSyntax] [GoGlobalContext] : val :=
 /-- LogAllStepsIfLong dumps all logs if the duration is longer than threshold
 
     go: trace.go:185:17 -/
-noncomputable def Trace.LogAllStepsIfLong.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def Trace.LogAllStepsIfLong.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "t"
   (Lam "threshold"
   (App (Val exceptionDo)
@@ -422,7 +422,7 @@ noncomputable def Trace.LogAllStepsIfLong.impl [FfiSyntax] [GoGlobalContext] : v
   (Val #())))))))))
 
 /-- go: trace.go:249:17 -/
-noncomputable def Trace.updateFieldIfExist.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def Trace.updateFieldIfExist.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "t"
   (Lam "f"
   (App (Val exceptionDo)
@@ -456,7 +456,7 @@ noncomputable def Trace.updateFieldIfExist.impl [FfiSyntax] [GoGlobalContext] : 
 /-- disableStep sets the flag to prevent the trace from adding steps
 
     go: trace.go:260:17 -/
-noncomputable def Trace.disableStep.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def Trace.disableStep.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "t"
   (Lam BAnon
   (App (Val exceptionDo)
@@ -471,7 +471,7 @@ noncomputable def Trace.disableStep.impl [FfiSyntax] [GoGlobalContext] : val :=
 /-- enableStep re-enable the trace to add steps
 
     go: trace.go:265:17 -/
-noncomputable def Trace.enableStep.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def Trace.enableStep.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "t"
   (Lam BAnon
   (App (Val exceptionDo)
@@ -486,9 +486,9 @@ noncomputable def Trace.enableStep.impl [FfiSyntax] [GoGlobalContext] : val :=
 noncomputable instance info' : PkgInfo pkg_id.go_etcd_io.etcd.pkg.v3.traceutil where
   pkgImportedPkgs := [pkg_id.context, pkg_id.time, pkg_id.go_uber_org.zap]
 
-axiom «_».init [FfiSyntax] [GoGlobalContext] : val
+axiom «_».init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (App (Val (package.init pkg_id.go_etcd_io.etcd.pkg.v3.traceutil)) (Lam BAnon
   (App (Val exceptionDo)
@@ -504,87 +504,97 @@ noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val _root_.Perennial.go_uber_org.zap.initialize') (Val #()))))))))
 
-structure TraceKey [FfiSyntax] where
+structure TraceKey [GooseExts] where
   mk ::
 
-noncomputable instance TraceKey.zero_val [FfiSyntax] : ZeroVal TraceKey :=
+noncomputable instance TraceKey.zero_val [GooseExts] : ZeroVal TraceKey :=
   ⟨TraceKey.mk⟩
 
-@[reducible] noncomputable def TraceKey.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def TraceKey.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   []
 
-@[irreducible] noncomputable def TraceKey.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def TraceKey.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   TraceKey.fieldsUnsealed
 
-noncomputable instance equals_unfold_TraceKey [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_TraceKey [GooseExts] [GoGlobalContext] :
     EqualsUnfold TraceKey.fields TraceKey.fieldsUnsealed :=
   ⟨by unfold TraceKey.fields; rfl⟩
 
-@[reducible] noncomputable def TraceKey.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def TraceKey.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType TraceKey.fields)
 
-class TraceKey.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class TraceKey.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying TraceKey.underlying TraceKey
   underlying : go.UnderlyingDirectedEq TraceKey.ty TraceKey.underlying
+  method_set : go.MethodSetIs TraceKey.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType TraceKey.ty) []
 
 attribute [instance] TraceKey.TypeAssumptions.type_repr
   TraceKey.TypeAssumptions.underlying
+  TraceKey.TypeAssumptions.method_set
+  TraceKey.TypeAssumptions.ptr_method_set
 
-structure StartTimeKey [FfiSyntax] where
+structure StartTimeKey [GooseExts] where
   mk ::
 
-noncomputable instance StartTimeKey.zero_val [FfiSyntax] : ZeroVal StartTimeKey :=
+noncomputable instance StartTimeKey.zero_val [GooseExts] : ZeroVal StartTimeKey :=
   ⟨StartTimeKey.mk⟩
 
-@[reducible] noncomputable def StartTimeKey.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def StartTimeKey.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   []
 
-@[irreducible] noncomputable def StartTimeKey.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def StartTimeKey.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   StartTimeKey.fieldsUnsealed
 
-noncomputable instance equals_unfold_StartTimeKey [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_StartTimeKey [GooseExts] [GoGlobalContext] :
     EqualsUnfold StartTimeKey.fields StartTimeKey.fieldsUnsealed :=
   ⟨by unfold StartTimeKey.fields; rfl⟩
 
-@[reducible] noncomputable def StartTimeKey.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def StartTimeKey.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType StartTimeKey.fields)
 
-class StartTimeKey.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class StartTimeKey.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying StartTimeKey.underlying StartTimeKey
   underlying : go.UnderlyingDirectedEq StartTimeKey.ty StartTimeKey.underlying
+  method_set : go.MethodSetIs StartTimeKey.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType StartTimeKey.ty) []
 
 attribute [instance] StartTimeKey.TypeAssumptions.type_repr
   StartTimeKey.TypeAssumptions.underlying
+  StartTimeKey.TypeAssumptions.method_set
+  StartTimeKey.TypeAssumptions.ptr_method_set
 
-structure Field [FfiSyntax] where
+structure Field [GooseExts] where
   mk ::
   Key' : GoString
   Value' : GoInterface
 
-noncomputable instance Field.zero_val [FfiSyntax] : ZeroVal Field :=
+noncomputable instance Field.zero_val [GooseExts] : ZeroVal Field :=
   ⟨Field.mk zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def Field.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def Field.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"Key" go.string),
 (go.field_decl.FieldDecl go!"Value" go.any)]
 
-@[irreducible] noncomputable def Field.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def Field.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   Field.fieldsUnsealed
 
-noncomputable instance equals_unfold_Field [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_Field [GooseExts] [GoGlobalContext] :
     EqualsUnfold Field.fields Field.fieldsUnsealed :=
   ⟨by unfold Field.fields; rfl⟩
 
-@[reducible] noncomputable def Field.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def Field.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType Field.fields)
 
-class Field.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class Field.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying Field.underlying Field
   underlying : go.UnderlyingDirectedEq Field.ty Field.underlying
   get_Key : ∀ (x : Field), go.IsGoStepPureDetTagged under (StructFieldGet Field.underlying go!"Key") #x (Val #(x.Key'))
   set_Key : ∀ (x : Field) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet Field.underlying go!"Key") (PairV #x #y) (Val #(({ x with Key' := y } : Field)))
   get_Value : ∀ (x : Field), go.IsGoStepPureDetTagged under (StructFieldGet Field.underlying go!"Value") #x (Val #(x.Value'))
   set_Value : ∀ (x : Field) (y : GoInterface), go.IsGoStepPureDetTagged under (StructFieldSet Field.underlying go!"Value") (PairV #x #y) (Val #(({ x with Value' := y } : Field)))
+  method_set : go.MethodSetIs Field.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType Field.ty) [(go!"go.etcd.io/etcd/pkg/v3/traceutil.format", (some (go.signature.Signature [] false [go.string])))]
 
 attribute [instance] Field.TypeAssumptions.type_repr
   Field.TypeAssumptions.underlying
@@ -592,8 +602,10 @@ attribute [instance] Field.TypeAssumptions.type_repr
   Field.TypeAssumptions.set_Key
   Field.TypeAssumptions.get_Value
   Field.TypeAssumptions.set_Value
+  Field.TypeAssumptions.method_set
+  Field.TypeAssumptions.ptr_method_set
 
-structure Trace [FfiSyntax] where
+structure Trace [GooseExts] where
   mk ::
   operation' : GoString
   lg' : Loc
@@ -603,10 +615,10 @@ structure Trace [FfiSyntax] where
   stepDisabled' : Bool
   isEmpty' : Bool
 
-noncomputable instance Trace.zero_val [FfiSyntax] : ZeroVal Trace :=
+noncomputable instance Trace.zero_val [GooseExts] : ZeroVal Trace :=
   ⟨Trace.mk zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def Trace.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def Trace.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"operation" go.string),
 (go.field_decl.FieldDecl go!"lg" (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)),
 (go.field_decl.FieldDecl go!"fields" (go.GoType.SliceType Field.ty)),
@@ -615,17 +627,17 @@ noncomputable instance Trace.zero_val [FfiSyntax] : ZeroVal Trace :=
 (go.field_decl.FieldDecl go!"stepDisabled" go.bool),
 (go.field_decl.FieldDecl go!"isEmpty" go.bool)]
 
-@[irreducible] noncomputable def Trace.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def Trace.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   Trace.fieldsUnsealed
 
-noncomputable instance equals_unfold_Trace [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_Trace [GooseExts] [GoGlobalContext] :
     EqualsUnfold Trace.fields Trace.fieldsUnsealed :=
   ⟨by unfold Trace.fields; rfl⟩
 
-@[reducible] noncomputable def Trace.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def Trace.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType Trace.fields)
 
-class Trace.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class Trace.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying Trace.underlying Trace
   underlying : go.UnderlyingDirectedEq Trace.ty Trace.underlying
   get_operation : ∀ (x : Trace), go.IsGoStepPureDetTagged under (StructFieldGet Trace.underlying go!"operation") #x (Val #(x.operation'))
@@ -642,6 +654,8 @@ class Trace.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSe
   set_stepDisabled : ∀ (x : Trace) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet Trace.underlying go!"stepDisabled") (PairV #x #y) (Val #(({ x with stepDisabled' := y } : Trace)))
   get_isEmpty : ∀ (x : Trace), go.IsGoStepPureDetTagged under (StructFieldGet Trace.underlying go!"isEmpty") #x (Val #(x.isEmpty'))
   set_isEmpty : ∀ (x : Trace) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet Trace.underlying go!"isEmpty") (PairV #x #y) (Val #(({ x with isEmpty' := y } : Trace)))
+  method_set : go.MethodSetIs Trace.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType Trace.ty) [(go!"AddField", (some (go.signature.Signature [(go.GoType.SliceType Field.ty)] true []))), (go!"GetStartTime", (some (go.signature.Signature [] false [_root_.Perennial.time.Time.ty]))), (go!"InsertStep", (some (go.signature.Signature [go.int, _root_.Perennial.time.Time.ty, go.string, (go.GoType.SliceType Field.ty)] true []))), (go!"IsEmpty", (some (go.signature.Signature [] false [go.bool]))), (go!"Log", (some (go.signature.Signature [] false []))), (go!"LogAllStepsIfLong", (some (go.signature.Signature [_root_.Perennial.time.Duration.ty] false []))), (go!"LogIfLong", (some (go.signature.Signature [_root_.Perennial.time.Duration.ty] false []))), (go!"LogWithStepThreshold", (some (go.signature.Signature [_root_.Perennial.time.Duration.ty] false []))), (go!"SetStartTime", (some (go.signature.Signature [_root_.Perennial.time.Time.ty] false []))), (go!"StartSubTrace", (some (go.signature.Signature [(go.GoType.SliceType Field.ty)] true []))), (go!"Step", (some (go.signature.Signature [go.string, (go.GoType.SliceType Field.ty)] true []))), (go!"StepWithFunction", (some (go.signature.Signature [(go.GoType.FunctionType (go.signature.Signature [] false [])), go.string, (go.GoType.SliceType Field.ty)] true []))), (go!"StopSubTrace", (some (go.signature.Signature [(go.GoType.SliceType Field.ty)] true []))), (go!"go.etcd.io/etcd/pkg/v3/traceutil.disableStep", (some (go.signature.Signature [] false []))), (go!"go.etcd.io/etcd/pkg/v3/traceutil.enableStep", (some (go.signature.Signature [] false []))), (go!"go.etcd.io/etcd/pkg/v3/traceutil.logInfo", (some (go.signature.Signature [_root_.Perennial.time.Duration.ty] false [go.string, (go.GoType.SliceType (go.GoType.Named go!"go.uber.org/zap/zapcore.Field" []))]))), (go!"go.etcd.io/etcd/pkg/v3/traceutil.updateFieldIfExist", (some (go.signature.Signature [Field.ty] false [go.bool])))]
   ptr_AddField_unfold : MethodUnfold (go.GoType.PointerType Trace.ty) go!"AddField" Trace.AddField.impl
   ptr_GetStartTime_unfold : MethodUnfold (go.GoType.PointerType Trace.ty) go!"GetStartTime" Trace.GetStartTime.impl
   ptr_InsertStep_unfold : MethodUnfold (go.GoType.PointerType Trace.ty) go!"InsertStep" Trace.InsertStep.impl
@@ -673,6 +687,8 @@ attribute [instance] Trace.TypeAssumptions.type_repr
   Trace.TypeAssumptions.set_stepDisabled
   Trace.TypeAssumptions.get_isEmpty
   Trace.TypeAssumptions.set_isEmpty
+  Trace.TypeAssumptions.method_set
+  Trace.TypeAssumptions.ptr_method_set
   Trace.TypeAssumptions.ptr_AddField_unfold
   Trace.TypeAssumptions.ptr_GetStartTime_unfold
   Trace.TypeAssumptions.ptr_InsertStep_unfold
@@ -688,7 +704,7 @@ attribute [instance] Trace.TypeAssumptions.type_repr
   Trace.TypeAssumptions.ptr_enableStep_unfold
   Trace.TypeAssumptions.ptr_updateFieldIfExist_unfold
 
-structure step [FfiSyntax] where
+structure step [GooseExts] where
   mk ::
   time' : _root_.Perennial.time.Time
   msg' : GoString
@@ -696,27 +712,27 @@ structure step [FfiSyntax] where
   isSubTraceStart' : Bool
   isSubTraceEnd' : Bool
 
-noncomputable instance step.zero_val [FfiSyntax] : ZeroVal step :=
+noncomputable instance step.zero_val [GooseExts] : ZeroVal step :=
   ⟨step.mk zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def step.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def step.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"time" _root_.Perennial.time.Time.ty),
 (go.field_decl.FieldDecl go!"msg" go.string),
 (go.field_decl.FieldDecl go!"fields" (go.GoType.SliceType Field.ty)),
 (go.field_decl.FieldDecl go!"isSubTraceStart" go.bool),
 (go.field_decl.FieldDecl go!"isSubTraceEnd" go.bool)]
 
-@[irreducible] noncomputable def step.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def step.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   step.fieldsUnsealed
 
-noncomputable instance equals_unfold_step [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_step [GooseExts] [GoGlobalContext] :
     EqualsUnfold step.fields step.fieldsUnsealed :=
   ⟨by unfold step.fields; rfl⟩
 
-@[reducible] noncomputable def step.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def step.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType step.fields)
 
-class step.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class step.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying step.underlying step
   underlying : go.UnderlyingDirectedEq step.ty step.underlying
   get_time : ∀ (x : step), go.IsGoStepPureDetTagged under (StructFieldGet step.underlying go!"time") #x (Val #(x.time'))
@@ -729,6 +745,8 @@ class step.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSem
   set_isSubTraceStart : ∀ (x : step) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet step.underlying go!"isSubTraceStart") (PairV #x #y) (Val #(({ x with isSubTraceStart' := y } : step)))
   get_isSubTraceEnd : ∀ (x : step), go.IsGoStepPureDetTagged under (StructFieldGet step.underlying go!"isSubTraceEnd") #x (Val #(x.isSubTraceEnd'))
   set_isSubTraceEnd : ∀ (x : step) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet step.underlying go!"isSubTraceEnd") (PairV #x #y) (Val #(({ x with isSubTraceEnd' := y } : step)))
+  method_set : go.MethodSetIs step.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType step.ty) []
 
 attribute [instance] step.TypeAssumptions.type_repr
   step.TypeAssumptions.underlying
@@ -742,8 +760,10 @@ attribute [instance] step.TypeAssumptions.type_repr
   step.TypeAssumptions.set_isSubTraceStart
   step.TypeAssumptions.get_isSubTraceEnd
   step.TypeAssumptions.set_isSubTraceEnd
+  step.TypeAssumptions.method_set
+  step.TypeAssumptions.ptr_method_set
 
-class Assumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   TraceKey_instance : TraceKey.TypeAssumptions
   StartTimeKey_instance : StartTimeKey.TypeAssumptions
   Field_instance : Field.TypeAssumptions

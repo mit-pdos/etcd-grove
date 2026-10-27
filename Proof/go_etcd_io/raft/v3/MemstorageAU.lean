@@ -26,7 +26,7 @@ namespace EtcdGrove
 open Iris Iris.BI Iris.ProofMode go_etcd_io.raft.v3
 
 section spec
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF] [StorageModel GF]
 variable [sem : go.Semantics]
@@ -129,7 +129,7 @@ instance memTokShared_timeless (γs : MemStorNames) (γss : GName) :
 end spec
 
 section proof
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF] [StorageModel GF]
 variable [sem : go.Semantics]
@@ -289,6 +289,7 @@ caller's lower bound of the snapshot counter, `CreateSnapshot(i)`'s `prev ≤ i`
 i` -- and each commit keeps the invariant (`Compact` raises `prev` to `ci ≤ ss`; `CreateSnapshot`
 raises `ss` to `i`, which the counter follows, and hands the caller a lower bound at `i`). -/
 
+omit [StorageModel GF] in
 theorem MemoryStorage.Compact.wp_shared
     (wp_Compact : MemoryStorage.Compact.spec (GF := GF) (hG := hG))
     (N : Namespace) (HN : ↑N ## (↑memSnapN : CoPset))
@@ -345,6 +346,7 @@ theorem MemoryStorage.Compact.wp_shared
     iapply HΦ
     ipureintro; right; rfl
 
+omit [StorageModel GF] in
 theorem MemoryStorage.CreateSnapshot.wp_shared
     (wp_CreateSnapshot : MemoryStorage.CreateSnapshot.spec (GF := GF) (hG := hG))
     (N : Namespace) (HN : ↑N ## (↑memSnapN : CoPset))

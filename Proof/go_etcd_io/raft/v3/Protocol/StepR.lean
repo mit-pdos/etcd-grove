@@ -73,7 +73,7 @@ namespace EtcdGrove
 open GMap go_etcd_io.raft.v3
 
 section state
-variable [FfiSyntax]
+variable [GooseExts]
 
 /-- A node's protocol state with what reconfiguration reads (see the file header). -/
 structure RState where
@@ -101,7 +101,7 @@ def NoConfIn (l : List EntryM) (lo hi : Nat) : Prop :=
   ∀ (k : Nat) (e : EntryM), lo ≤ k → k < hi → l[k]? = some e → ¬ IsConfEnt e
 
 /-- `stepLeader`'s conf-change loop at `r`: the batch and the new `pendingConfIndex`. -/
-def propBatch (r : RState) (ents : List EntryM) (cs : List (Option CCMsg)) :
+def propBatch (r : RState) (ents : List EntryM) (cs : List (Option ConfChangeIM)) :
     List EntryM × w64 :=
   propConf r.applied (plastIndex r.p) r.pci ents cs (CfgM.joint r.cfg.cfg)
 
@@ -112,7 +112,7 @@ def AdmFold (dec : CCDec) (c0 : CCState) (l : List EntryM) (cs : CCState) : Prop
 end state
 
 section model
-variable [FfiSyntax]
+variable [GooseExts]
 
 variable (Adm : List EntryM → CCState → Prop) (dec : CCDec) (id : w64)
 
@@ -259,7 +259,7 @@ inductive StepR : RState → List Msg → RState → Prop where
       (∀ m ∈ ms, ReplOk id r.p m) →
       (∀ m ∈ ms, AppCommitEq r.p m) →
       StepR r [] { r with p := psendMsgs r.p ms }
-  | propose (m : Msg) (r : RState) (cs : List (Option CCMsg)) :
+  | propose (m : Msg) (r : RState) (cs : List (Option ConfChangeIM)) :
       m.ty = .propose →
       r.p.role = .leader →
       CCTypesOk m.entries cs →
@@ -270,7 +270,7 @@ inductive StepR : RState → List Msg → RState → Prop where
           [pselfAck id (pappend r.p
             ((propBatch r m.entries cs).1.mapIdx (stamp r.p.term (plastIndex r.p))))]
         pci := (propBatch r m.entries cs).2 }
-  | propDrop (m : Msg) (r : RState) (cs : List (Option CCMsg)) :
+  | propDrop (m : Msg) (r : RState) (cs : List (Option ConfChangeIM)) :
       m.ty = .propose →
       r.p.role = .leader →
       CCTypesOk m.entries cs →
@@ -424,7 +424,7 @@ end model
 /-! ### Monotonicity in the admissible configurations -/
 
 section mono
-variable [FfiSyntax]
+variable [GooseExts]
 
 theorem StepR.mono {Adm Adm' : List EntryM → CCState → Prop} {dec : CCDec} {id : w64} {B : Int}
     (hA : ∀ l cs, Adm l cs → Adm' l cs) {r : RState} {ms : List Msg} {r' : RState}
@@ -483,7 +483,7 @@ end mono
 (Until D19p, 2026-10-18, also `stepR_static`: see the file header.) -/
 
 section static
-variable [FfiSyntax]
+variable [GooseExts]
 
 theorem preadRespondAll_role (id : w64) (s : PState) (qs : List ReadReq) :
     (preadRespondAll id s qs).role = s.role := by

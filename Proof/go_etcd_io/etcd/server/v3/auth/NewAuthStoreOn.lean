@@ -47,7 +47,7 @@ namespace auth
 open Iris Iris.BI Iris.ProofMode go_etcd_io.etcd.server.v3.auth
 
 section ghost
-variable [FfiSyntax] {GF : BundledGFunctors} [AllG GF]
+variable [GooseExts] {GF : BundledGFunctors} [AllG GF]
 
 /-- The authority keeps a recorded state. -/
 theorem authOwnF_stateAt_keep (γa : AuthNames) (hs : List AuthState) (i : Nat) (st : AuthState)
@@ -64,7 +64,7 @@ theorem authOwnF_stateAt_keep (γa : AuthNames) (hs : List AuthState) (i : Nat) 
 end ghost
 
 section lemmas
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
@@ -192,7 +192,7 @@ theorem tokenProviderOk_of_A (tp : GoInterface) (M : AuthMode) (A : IProp GF) :
 end lemmas
 
 section proof
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]

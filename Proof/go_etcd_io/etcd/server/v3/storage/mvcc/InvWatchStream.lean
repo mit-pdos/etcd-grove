@@ -124,7 +124,7 @@ def watchRangeOf (k e : List w8) (endk : GoSlice) (startRev id : w64) : WatchRan
   { key := k, end? := if endk = slice.nil then none else some e, startRev := startRev, id := id }
 
 section defs
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]

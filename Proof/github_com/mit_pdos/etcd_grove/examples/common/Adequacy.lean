@@ -40,7 +40,7 @@ open Iris Iris.BI Iris.ProgramLogic Iris.Std Iris.ProofMode
 
 /-- **`UnrecoveredPanic` excludes a final panic** (pure): adequacy's third conclusion, as the
 examples state it (no thread has ended in a panic value). -/
-theorem adequate_of_unrecovered [FfiSyntax] [FfiModel] {t2 : List Expr} {P Q : Prop}
+theorem adequate_of_unrecovered [GooseExts] {t2 : List Expr} {P Q : Prop}
     (H : P ∧ Q ∧ (∀ e2, e2 ∈ t2 → ¬ UnrecoveredPanic e2)) :
     P ∧ Q ∧ (∀ v, Val v ∈ t2 → v.isPanic = false) := by
   refine ⟨H.1, H.2.1, fun v hv => ?_⟩
@@ -50,15 +50,14 @@ theorem adequate_of_unrecovered [FfiSyntax] [FfiModel] {t2 : List Expr} {P Q : P
     exact absurd (UnrecoveredPanic.panic p) (H.2.2 _ hv)
 
 section adequacy
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiInterpAdequacy ffi]
-variable [FfiSemantics ext ffi] [GoGlobalContext]
+variable [GooseExts] [GooseInterp]
+variable [GooseSemantics] [GoGlobalContext]
 variable {GF : BundledGFunctors}
 
 /-- **A ghost-state instance at the local context `lctx`** (the examples state their hypotheses
 over every instance whose Go local context is the semantics' own). -/
 abbrev heapWith (hG : HeapGS .hasLC GF) (lctx : GoLocalContext) : HeapGS .hasLC GF :=
-  ⟨hG.goose_globalGS, ⟨hG.goose_localGS.gooseFfiLocalGS, lctx,
-    hG.goose_localGS.goose_na_heapGS, hG.goose_localGS.goose_go_stateGS⟩⟩
+  ⟨hG.goose_globalGS, { hG.goose_localGS with goose_go_local_context := lctx }⟩
 
 /-- **The right to initialize, from the empty package state.** -/
 theorem ownInitializing_of_empty [hG : HeapGS .hasLC GF] (getInit : GoString → IProp GF) :
@@ -106,11 +105,11 @@ def progOk0 [hG : HeapGS .hasLC GF] (init : val) (body : Expr) (φ : val → Pro
 /-- **A program's closed theorem over `goose_adequacy`** (see the file header): every real
 execution of `init #() ;; body` from a fresh state with one thread, of `n` steps: if the main
 thread has finished, its result is in `φ`; no thread is stuck; no thread has ended in a panic. -/
-theorem init_adequate [hPre : GooseGpreS ffi GF] [lctx : GoLocalContext]
+theorem init_adequate [hPre : GooseGpreS GF] [lctx : GoLocalContext]
     (init : val) (body : Expr) (φ : val → Prop) (hφ : ∀ p, ¬ φ (PanicV p))
-    (σ : state) (g : GlobalState) (Hinitg : ffi_initgP g.globalWorld)
-    (Hinitw : ffi_initP σ.world g.globalWorld)
-    (Hlctx : σ.goState.goLctx = lctx) (Hinit : IsInit σ) (Hthreads : g.threads = 1)
+    (σ : state) (g : GlobalState) (Hinitg : extsInitgP g.globalWorld)
+    (Hinitw : extsInitP σ.world g.globalWorld)
+    (Hlctx : σ.goState.goLctx = lctx) (Hinit : IsInit σ) (Hthreads : σ.threads = 1)
     (n : Nat) (κs : List Observation) (t2 : List Expr) (σ2 : CfgState)
     (Hsteps : RealNsteps n ([init #() ;; body], ((σ, g) : CfgState)) κs (t2, σ2))
     (Hprog : ∀ hG : HeapGS .hasLC GF, receiptBound GF = n + 1 → threadBound GF = n + 2 →
@@ -122,10 +121,10 @@ theorem init_adequate [hPre : GooseGpreS ffi GF] [lctx : GoLocalContext]
     n κs t2 σ2 Hsteps (Nat.lt_succ_self n) Hthreads (realThreadsBelow_of_one Hthreads)
   intro hG HN HT HL
   have Hp := Hprog hG HN HT
-  obtain ⟨G, ⟨fl, lc, nh, gs⟩⟩ := hG
+  obtain ⟨G, ⟨fl, lc, nh, gs, th, cr⟩⟩ := hG
   subst Hlctx
   subst HL
-  letI : HeapGS .hasLC GF := ⟨G, ⟨fl, σ.goState.goLctx, nh, gs⟩⟩
+  letI : HeapGS .hasLC GF := ⟨G, ⟨fl, σ.goState.goLctx, nh, gs, th, cr⟩⟩
   unfold IsInit at Hinit
   rw [Hinit]
   obtain ⟨getInit, I, Hinitwp, Hbody⟩ := Hp
@@ -139,12 +138,12 @@ theorem init_adequate [hPre : GooseGpreS ffi GF] [lctx : GoLocalContext]
 `init_adequate`, for a program whose initializer takes the read package's two metric names and
 whose body the addresses `As`, each with its HTTP protocol unregistered (`httpProtoFree`, 2026-10-24,
 rafthttp stage 6a, D39a). -/
-theorem etcd_adequate [hPre : GooseGpreS ffi GF] [lctx : GoLocalContext]
+theorem etcd_adequate [hPre : GooseGpreS GF] [lctx : GoLocalContext]
     (init : val) (body : Expr) (φ : val → Prop) (hφ : ∀ p, ¬ φ (PanicV p))
     (As : List GoString) (hAs : As.Nodup)
-    (σ : state) (g : GlobalState) (Hinitg : ffi_initgP g.globalWorld)
-    (Hinitw : ffi_initP σ.world g.globalWorld)
-    (Hlctx : σ.goState.goLctx = lctx) (Hinit : IsInit σ) (Hthreads : g.threads = 1)
+    (σ : state) (g : GlobalState) (Hinitg : extsInitgP g.globalWorld)
+    (Hinitw : extsInitP σ.world g.globalWorld)
+    (Hlctx : σ.goState.goLctx = lctx) (Hinit : IsInit σ) (Hthreads : σ.threads = 1)
     (HNs : prometheus.namesUnclaimed (init #() ;; body)
       [read.slowReadIndexName, read.readIndexFailedName])
     (HAs : addrsUnclaimed (init #() ;; body) As)
@@ -161,10 +160,10 @@ theorem etcd_adequate [hPre : GooseGpreS ffi GF] [lctx : GoLocalContext]
     n κs t2 σ2 Hsteps (Nat.lt_succ_self n) Hthreads (realThreadsBelow_of_one Hthreads)
   intro hG HN HT HL
   have Hp := Hprog hG HN HT
-  obtain ⟨G, ⟨fl, lc, nh, gs⟩⟩ := hG
+  obtain ⟨G, ⟨fl, lc, nh, gs, th, cr⟩⟩ := hG
   subst Hlctx
   subst HL
-  letI : HeapGS .hasLC GF := ⟨G, ⟨fl, σ.goState.goLctx, nh, gs⟩⟩
+  letI : HeapGS .hasLC GF := ⟨G, ⟨fl, σ.goState.goLctx, nh, gs, th, cr⟩⟩
   unfold IsInit at Hinit
   rw [Hinit]
   iintro - - Hgs Htok Hrights

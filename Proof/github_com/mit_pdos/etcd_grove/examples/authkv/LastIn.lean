@@ -20,7 +20,7 @@ namespace authkv
 open Iris Iris.BI Iris.ProgramLogic Iris.Std Iris.ProofMode common
 
 section lemmas
-variable [ext : FfiSyntax]
+variable [GooseExts]
 
 theorem lastInFrom_take_succ (evs : List wev) (j : Nat) (e : wev) (h : evs[j]? = some e) :
     lastInFrom (W64 0) (evs.take (j + 1)) =
@@ -31,7 +31,7 @@ theorem lastInFrom_take_succ (evs : List wev) (j : Nat) (e : wev) (h : evs[j]? =
 end lemmas
 
 section proof
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]

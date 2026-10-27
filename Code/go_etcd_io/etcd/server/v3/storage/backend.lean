@@ -35,300 +35,300 @@ end pkg_id
 
 namespace go_etcd_io.etcd.server.v3.storage.backend
 
-noncomputable def Backend.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def Backend.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/etcd/server/v3/storage/backend.Backend" [])
 
 attribute [irreducible] Backend.ty
 
-noncomputable def Snapshot.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def Snapshot.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/etcd/server/v3/storage/backend.Snapshot" [])
 
 attribute [irreducible] Snapshot.ty
 
-noncomputable def txReadBufferCache.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def txReadBufferCache.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/etcd/server/v3/storage/backend.txReadBufferCache" [])
 
 attribute [irreducible] txReadBufferCache.ty
 
-noncomputable def backend.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def backend.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/etcd/server/v3/storage/backend.backend" [])
 
 attribute [irreducible] backend.ty
 
-noncomputable def BackendConfig.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def BackendConfig.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/etcd/server/v3/storage/backend.BackendConfig" [])
 
 attribute [irreducible] BackendConfig.ty
 
-noncomputable def BackendConfigOption.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def BackendConfigOption.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/etcd/server/v3/storage/backend.BackendConfigOption" [])
 
 attribute [irreducible] BackendConfigOption.ty
 
-noncomputable def snapshot.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def snapshot.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/etcd/server/v3/storage/backend.snapshot" [])
 
 attribute [irreducible] snapshot.ty
 
-noncomputable def zapBoltLogger.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def zapBoltLogger.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/etcd/server/v3/storage/backend.zapBoltLogger" [])
 
 attribute [irreducible] zapBoltLogger.ty
 
-noncomputable def BucketID.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def BucketID.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/etcd/server/v3/storage/backend.BucketID" [])
 
 attribute [irreducible] BucketID.ty
 
-noncomputable def Bucket.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def Bucket.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/etcd/server/v3/storage/backend.Bucket" [])
 
 attribute [irreducible] Bucket.ty
 
-noncomputable def BatchTx.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def BatchTx.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/etcd/server/v3/storage/backend.BatchTx" [])
 
 attribute [irreducible] BatchTx.ty
 
-noncomputable def UnsafeReadWriter.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def UnsafeReadWriter.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/etcd/server/v3/storage/backend.UnsafeReadWriter" [])
 
 attribute [irreducible] UnsafeReadWriter.ty
 
-noncomputable def UnsafeWriter.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def UnsafeWriter.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/etcd/server/v3/storage/backend.UnsafeWriter" [])
 
 attribute [irreducible] UnsafeWriter.ty
 
-noncomputable def batchTx.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def batchTx.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/etcd/server/v3/storage/backend.batchTx" [])
 
 attribute [irreducible] batchTx.ty
 
-noncomputable def batchTxBuffered.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def batchTxBuffered.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/etcd/server/v3/storage/backend.batchTxBuffered" [])
 
 attribute [irreducible] batchTxBuffered.ty
 
-noncomputable def HookFunc.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def HookFunc.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/etcd/server/v3/storage/backend.HookFunc" [])
 
 attribute [irreducible] HookFunc.ty
 
-noncomputable def Hooks.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def Hooks.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/etcd/server/v3/storage/backend.Hooks" [])
 
 attribute [irreducible] Hooks.ty
 
-noncomputable def hooks.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def hooks.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/etcd/server/v3/storage/backend.hooks" [])
 
 attribute [irreducible] hooks.ty
 
-noncomputable def ReadTx.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def ReadTx.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/etcd/server/v3/storage/backend.ReadTx" [])
 
 attribute [irreducible] ReadTx.ty
 
-noncomputable def UnsafeReader.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def UnsafeReader.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/etcd/server/v3/storage/backend.UnsafeReader" [])
 
 attribute [irreducible] UnsafeReader.ty
 
-noncomputable def baseReadTx.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def baseReadTx.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/etcd/server/v3/storage/backend.baseReadTx" [])
 
 attribute [irreducible] baseReadTx.ty
 
-noncomputable def readTx.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def readTx.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/etcd/server/v3/storage/backend.readTx" [])
 
 attribute [irreducible] readTx.ty
 
-noncomputable def concurrentReadTx.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def concurrentReadTx.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/etcd/server/v3/storage/backend.concurrentReadTx" [])
 
 attribute [irreducible] concurrentReadTx.ty
 
-noncomputable def txBuffer.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def txBuffer.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/etcd/server/v3/storage/backend.txBuffer" [])
 
 attribute [irreducible] txBuffer.ty
 
-noncomputable def txWriteBuffer.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def txWriteBuffer.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/etcd/server/v3/storage/backend.txWriteBuffer" [])
 
 attribute [irreducible] txWriteBuffer.ty
 
-noncomputable def txReadBuffer.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def txReadBuffer.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/etcd/server/v3/storage/backend.txReadBuffer" [])
 
 attribute [irreducible] txReadBuffer.ty
 
-noncomputable def kv.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def kv.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/etcd/server/v3/storage/backend.kv" [])
 
 attribute [irreducible] kv.ty
 
-noncomputable def bucketBuffer.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def bucketBuffer.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/etcd/server/v3/storage/backend.bucketBuffer" [])
 
 attribute [irreducible] bucketBuffer.ty
 
-@[reducible] noncomputable def bucketBufferInitialSize [FfiSyntax] [GoGlobalContext] : val :=
+@[reducible] noncomputable def bucketBufferInitialSize [GooseExts] [GoGlobalContext] : val :=
   #(512 : Int)
 
-axiom EnvVerifyValueLock [FfiSyntax] [GoGlobalContext] : val
+axiom EnvVerifyValueLock [GooseExts] [GoGlobalContext] : val
 
-noncomputable def defaultBatchLimit [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def defaultBatchLimit [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/storage/backend.defaultBatchLimit"
 
-noncomputable def defaultBatchInterval [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def defaultBatchInterval [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/storage/backend.defaultBatchInterval"
 
-noncomputable def defragLimit [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def defragLimit [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/storage/backend.defragLimit"
 
-noncomputable def InitialMmapSize [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def InitialMmapSize [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/storage/backend.InitialMmapSize"
 
-noncomputable def minSnapshotWarningTimeout [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def minSnapshotWarningTimeout [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/storage/backend.minSnapshotWarningTimeout"
 
-noncomputable def safeRangeBucketNames [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def safeRangeBucketNames [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/storage/backend.safeRangeBucketNames"
 
-noncomputable def boltOpenOptions [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def boltOpenOptions [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/storage/backend.boltOpenOptions"
 
-axiom boltOpenOptions.init [FfiSyntax] [GoGlobalContext] : val
+axiom boltOpenOptions.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def commitSec [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def commitSec [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/storage/backend.commitSec"
 
-axiom commitSec.init [FfiSyntax] [GoGlobalContext] : val
+axiom commitSec.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def rebalanceSec [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def rebalanceSec [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/storage/backend.rebalanceSec"
 
-axiom rebalanceSec.init [FfiSyntax] [GoGlobalContext] : val
+axiom rebalanceSec.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def spillSec [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def spillSec [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/storage/backend.spillSec"
 
-axiom spillSec.init [FfiSyntax] [GoGlobalContext] : val
+axiom spillSec.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def writeSec [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def writeSec [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/storage/backend.writeSec"
 
-axiom writeSec.init [FfiSyntax] [GoGlobalContext] : val
+axiom writeSec.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def defragSec [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def defragSec [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/storage/backend.defragSec"
 
-axiom defragSec.init [FfiSyntax] [GoGlobalContext] : val
+axiom defragSec.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def defragBlockingSec [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def defragBlockingSec [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/storage/backend.defragBlockingSec"
 
-axiom defragBlockingSec.init [FfiSyntax] [GoGlobalContext] : val
+axiom defragBlockingSec.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def snapshotTransferSec [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def snapshotTransferSec [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/storage/backend.snapshotTransferSec"
 
-axiom snapshotTransferSec.init [FfiSyntax] [GoGlobalContext] : val
+axiom snapshotTransferSec.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def isDefragActive [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def isDefragActive [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/storage/backend.isDefragActive"
 
-axiom isDefragActive.init [FfiSyntax] [GoGlobalContext] : val
+axiom isDefragActive.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def DefaultBackendConfig [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def DefaultBackendConfig [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/storage/backend.DefaultBackendConfig"
 
-noncomputable def New [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def New [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/storage/backend.New"
 
-noncomputable def WithMmapSize [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def WithMmapSize [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/storage/backend.WithMmapSize"
 
-noncomputable def WithTimeout [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def WithTimeout [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/storage/backend.WithTimeout"
 
-noncomputable def NewDefaultBackend [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def NewDefaultBackend [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/storage/backend.NewDefaultBackend"
 
-noncomputable def newBackend [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def newBackend [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/storage/backend.newBackend"
 
-noncomputable def defragdb [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def defragdb [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/storage/backend.defragdb"
 
-noncomputable def defragdbAndTrackLastKeys [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def defragdbAndTrackLastKeys [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/storage/backend.defragdbAndTrackLastKeys"
 
-noncomputable def catchUpDefrag [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def catchUpDefrag [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/storage/backend.catchUpDefrag"
 
-noncomputable def verifyBulkCopyConsistency [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def verifyBulkCopyConsistency [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/storage/backend.verifyBulkCopyConsistency"
 
-noncomputable def hashBucketUpToKey [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def hashBucketUpToKey [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/storage/backend.hashBucketUpToKey"
 
-noncomputable def newBoltLoggerZap [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def newBoltLoggerZap [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/storage/backend.newBoltLoggerZap"
 
-noncomputable def RegisterSafeRangeBucket [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def RegisterSafeRangeBucket [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/storage/backend.RegisterSafeRangeBucket"
 
-noncomputable def isRegisteredSafeRangeBucket [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def isRegisteredSafeRangeBucket [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/storage/backend.isRegisteredSafeRangeBucket"
 
-noncomputable def unsafeRange [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def unsafeRange [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/storage/backend.unsafeRange"
 
-noncomputable def unsafeForEach [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def unsafeForEach [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/storage/backend.unsafeForEach"
 
-noncomputable def newBatchTxBuffered [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def newBatchTxBuffered [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/storage/backend.newBatchTxBuffered"
 
-noncomputable def NewHooks [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def NewHooks [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/storage/backend.NewHooks"
 
-noncomputable def init.«0» [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def init.«0» [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/storage/backend.init.0"
 
-noncomputable def newBucketBuffer [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def newBucketBuffer [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/storage/backend.newBucketBuffer"
 
-noncomputable def ValidateCalledInsideApply [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ValidateCalledInsideApply [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/storage/backend.ValidateCalledInsideApply"
 
-noncomputable def ValidateCalledOutSideApply [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ValidateCalledOutSideApply [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/storage/backend.ValidateCalledOutSideApply"
 
-noncomputable def ValidateCalledInsideUnittest [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ValidateCalledInsideUnittest [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/storage/backend.ValidateCalledInsideUnittest"
 
-noncomputable def verifyLockEnabled [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def verifyLockEnabled [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/storage/backend.verifyLockEnabled"
 
-noncomputable def insideApply [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def insideApply [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/storage/backend.insideApply"
 
-noncomputable def insideUnittest [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def insideUnittest [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/storage/backend.insideUnittest"
 
-noncomputable def VerifyBackendConsistency [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def VerifyBackendConsistency [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/storage/backend.VerifyBackendConsistency"
 
-noncomputable def unsafeVerifyTxConsistency [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def unsafeVerifyTxConsistency [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/storage/backend.unsafeVerifyTxConsistency"
 
 /-- go: backend.go:180:6 -/
-noncomputable def DefaultBackendConfig.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def DefaultBackendConfig.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "lg"
   (App (Val exceptionDo)
   (Let "lg" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)))) (Var "lg"))
@@ -340,7 +340,7 @@ noncomputable def DefaultBackendConfig.impl [FfiSyntax] [GoGlobalContext] : val 
   (App (Val (GoInstruction (CompositeLiteral BackendConfig.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"BatchInterval")) (ElementExpression _root_.Perennial.time.Duration.ty (Var "$v0"))), (KeyedElement (some (KeyField go!"BatchLimit")) (ElementExpression go.int (Var "$v1"))), (KeyedElement (some (KeyField go!"MmapSize")) (ElementExpression go.uint64 (Var "$v2"))), (KeyedElement (some (KeyField go!"Logger")) (ElementExpression (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty) (Var "$v3")))]))))))))))
 
 /-- go: backend.go:189:6 -/
-noncomputable def New.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def New.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "bcfg"
   (App (Val exceptionDo)
   (Let "bcfg" (App (Val (GoInstruction (GoAlloc BackendConfig.ty))) (Var "bcfg"))
@@ -349,7 +349,7 @@ noncomputable def New.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (App (Val (GoInstruction (FuncResolve newBackend []))) (Val #())) (Var "$a0"))))))))
 
 /-- go: backend.go:193:6 -/
-noncomputable def WithMmapSize.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def WithMmapSize.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "size"
   (App (Val exceptionDo)
   (Let "size" (App (Val (GoInstruction (GoAlloc go.uint64))) (Var "size"))
@@ -365,7 +365,7 @@ noncomputable def WithMmapSize.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore go.uint64))) (Pair (App (Val (GoInstruction (StructFieldRef BackendConfig.ty go!"MmapSize"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType BackendConfig.ty)))) (Var "bcfg"))) (Var "$r0")))))))))))))
 
 /-- go: backend.go:199:6 -/
-noncomputable def WithTimeout.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def WithTimeout.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "timeout"
   (App (Val exceptionDo)
   (Let "timeout" (App (Val (GoInstruction (GoAlloc _root_.Perennial.time.Duration.ty))) (Var "timeout"))
@@ -381,7 +381,7 @@ noncomputable def WithTimeout.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore _root_.Perennial.time.Duration.ty))) (Pair (App (Val (GoInstruction (StructFieldRef BackendConfig.ty go!"Timeout"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType BackendConfig.ty)))) (Var "bcfg"))) (Var "$r0")))))))))))))
 
 /-- go: backend.go:205:6 -/
-noncomputable def NewDefaultBackend.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def NewDefaultBackend.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "lg"
   (Lam "path"
   (Lam "opts"
@@ -419,7 +419,7 @@ noncomputable def NewDefaultBackend.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore BackendConfig.ty))) (Pair (Var "bcfg") (Var "$r0"))))))))))))))
 
 /-- go: backend.go:215:6 -/
-noncomputable def newBackend.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def newBackend.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "bcfg"
   (App (Val exceptionDo)
   (Let "bcfg" (App (Val (GoInstruction (GoAlloc BackendConfig.ty))) (Var "bcfg"))
@@ -549,7 +549,7 @@ noncomputable def newBackend.impl [FfiSyntax] [GoGlobalContext] : val :=
     The write result is isolated with other txs until the current one get committed.
 
     go: backend.go:284:19 -/
-noncomputable def backend.BatchTx.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def backend.BatchTx.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "b"
   (Lam BAnon
   (App (Val exceptionDo)
@@ -558,7 +558,7 @@ noncomputable def backend.BatchTx.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (Convert (go.GoType.PointerType batchTxBuffered.ty) BatchTx.ty))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType batchTxBuffered.ty)))) (App (Val (GoInstruction (StructFieldRef backend.ty go!"batchTx"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType backend.ty)))) (Var "b"))))))))))
 
 /-- go: backend.go:288:19 -/
-noncomputable def backend.SetTxPostLockInsideApplyHook.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def backend.SetTxPostLockInsideApplyHook.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "b"
   (Lam "hook"
   (App (Val wrapDefer)
@@ -583,7 +583,7 @@ noncomputable def backend.SetTxPostLockInsideApplyHook.impl [FfiSyntax] [GoGloba
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType batchTxBuffered.ty) go!"lock"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType batchTxBuffered.ty)))) (App (Val (GoInstruction (StructFieldRef backend.ty go!"batchTx"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType backend.ty)))) (Var "b"))))) (Val #())))))))))))
 
 /-- go: backend.go:296:19 -/
-noncomputable def backend.ReadTx.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def backend.ReadTx.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "b"
   (Lam BAnon
   (App (Val exceptionDo)
@@ -596,7 +596,7 @@ noncomputable def backend.ReadTx.impl [FfiSyntax] [GoGlobalContext] : val :=
     B) references the boltdb read Tx (and its bucket cache) of current batch interval.
 
     go: backend.go:301:19 -/
-noncomputable def backend.ConcurrentReadTx.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def backend.ConcurrentReadTx.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "b"
   (Lam BAnon
   (App (Val wrapDefer)
@@ -700,7 +700,7 @@ noncomputable def backend.ConcurrentReadTx.impl [FfiSyntax] [GoGlobalContext] : 
 /-- ForceCommit forces the current batching tx to commit.
 
     go: backend.go:377:19 -/
-noncomputable def backend.ForceCommit.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def backend.ForceCommit.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "b"
   (Lam BAnon
   (App (Val exceptionDo)
@@ -712,7 +712,7 @@ noncomputable def backend.ForceCommit.impl [FfiSyntax] [GoGlobalContext] : val :
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType batchTxBuffered.ty) go!"Commit"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType batchTxBuffered.ty)))) (App (Val (GoInstruction (StructFieldRef backend.ty go!"batchTx"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType backend.ty)))) (Var "b"))))) (Val #()))))))))
 
 /-- go: backend.go:455:19 -/
-noncomputable def backend.Size.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def backend.Size.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "b"
   (Lam BAnon
   (App (Val exceptionDo)
@@ -722,7 +722,7 @@ noncomputable def backend.Size.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.sync.atomic.LoadInt64 []))) (Val #())) (Var "$a0"))))))))
 
 /-- go: backend.go:459:19 -/
-noncomputable def backend.SizeInUse.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def backend.SizeInUse.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "b"
   (Lam BAnon
   (App (Val exceptionDo)
@@ -732,7 +732,7 @@ noncomputable def backend.SizeInUse.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.sync.atomic.LoadInt64 []))) (Val #())) (Var "$a0"))))))))
 
 /-- go: backend.go:463:19 -/
-noncomputable def backend.run.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def backend.run.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "b"
   (Lam BAnon
   (App (Val wrapDefer)
@@ -789,7 +789,7 @@ noncomputable def backend.run.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Var "$oldf") (Val #())))))))))))))))))
 
 /-- go: backend.go:481:19 -/
-noncomputable def backend.Close.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def backend.Close.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "b"
   (Lam BAnon
   (App (Val wrapDefer)
@@ -818,7 +818,7 @@ noncomputable def backend.Close.impl [FfiSyntax] [GoGlobalContext] : val :=
 /-- Commits returns total number of commits since start
 
     go: backend.go:490:19 -/
-noncomputable def backend.Commits.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def backend.Commits.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "b"
   (Lam BAnon
   (App (Val exceptionDo)
@@ -828,7 +828,7 @@ noncomputable def backend.Commits.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.sync.atomic.LoadInt64 []))) (Val #())) (Var "$a0"))))))))
 
 /-- go: backend.go:1086:19 -/
-noncomputable def backend.begin.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def backend.begin.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "b"
   (Lam "write"
   (App (Val exceptionDo)
@@ -880,7 +880,7 @@ noncomputable def backend.begin.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.RWMutex.ty) go!"RLock"))) (App (Val (GoInstruction (StructFieldRef backend.ty go!"mu"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType backend.ty)))) (Var "b")))) (Val #())))))))))
 
 /-- go: backend.go:1101:19 -/
-noncomputable def backend.unsafeBegin.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def backend.unsafeBegin.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "b"
   (Lam "write"
   (App (Val exceptionDo)
@@ -914,7 +914,7 @@ noncomputable def backend.unsafeBegin.impl [FfiSyntax] [GoGlobalContext] : val :
   (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.go_etcd_io.bbolt.Tx.ty)))) (Pair (Var "tx") (Var "$r0")))))))))))))))))
 
 /-- go: backend.go:1111:19 -/
-noncomputable def backend.OpenReadTxN.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def backend.OpenReadTxN.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "b"
   (Lam BAnon
   (App (Val exceptionDo)
@@ -924,7 +924,7 @@ noncomputable def backend.OpenReadTxN.impl [FfiSyntax] [GoGlobalContext] : val :
   (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.sync.atomic.LoadInt64 []))) (Val #())) (Var "$a0"))))))))
 
 /-- go: backend.go:1115:19 -/
-noncomputable def backend.LockForSafeRangeDelete.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def backend.LockForSafeRangeDelete.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "b"
   (Lam BAnon
   (App (Val exceptionDo)
@@ -936,7 +936,7 @@ noncomputable def backend.LockForSafeRangeDelete.impl [FfiSyntax] [GoGlobalConte
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.RWMutex.ty) go!"RLock"))) (App (Val (GoInstruction (StructFieldRef backend.ty go!"safeRangeDeleteMu"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType backend.ty)))) (Var "b")))) (Val #()))))))))
 
 /-- go: backend.go:1119:19 -/
-noncomputable def backend.UnlockForSafeRangeDelete.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def backend.UnlockForSafeRangeDelete.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "b"
   (Lam BAnon
   (App (Val exceptionDo)
@@ -948,7 +948,7 @@ noncomputable def backend.UnlockForSafeRangeDelete.impl [FfiSyntax] [GoGlobalCon
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.RWMutex.ty) go!"RUnlock"))) (App (Val (GoInstruction (StructFieldRef backend.ty go!"safeRangeDeleteMu"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType backend.ty)))) (Var "b")))) (Val #()))))))))
 
 /-- go: backend.go:1129:20 -/
-noncomputable def snapshot.Close.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def snapshot.Close.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam BAnon
   (App (Val exceptionDo)
@@ -966,7 +966,7 @@ noncomputable def snapshot.Close.impl [FfiSyntax] [GoGlobalContext] : val :=
 /-- Lock is supposed to be called only by the unit test.
 
     go: batch_tx.go:102:19 -/
-noncomputable def batchTx.Lock.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def batchTx.Lock.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "t"
   (Lam BAnon
   (App (Val exceptionDo)
@@ -982,7 +982,7 @@ noncomputable def batchTx.Lock.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (App (Val (GoInstruction (FuncResolve ValidateCalledInsideUnittest []))) (Val #())) (Var "$a0"))))))))))
 
 /-- go: batch_tx.go:107:19 -/
-noncomputable def batchTx.lock.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def batchTx.lock.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "t"
   (Lam BAnon
   (App (Val exceptionDo)
@@ -994,7 +994,7 @@ noncomputable def batchTx.lock.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.Mutex.ty) go!"Lock"))) (App (Val (GoInstruction (StructFieldRef batchTx.ty go!"Mutex"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType batchTx.ty)))) (Var "t")))) (Val #()))))))))
 
 /-- go: batch_tx.go:111:19 -/
-noncomputable def batchTx.LockInsideApply.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def batchTx.LockInsideApply.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "t"
   (Lam BAnon
   (App (Val exceptionDo)
@@ -1016,7 +1016,7 @@ noncomputable def batchTx.LockInsideApply.impl [FfiSyntax] [GoGlobalContext] : v
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType batchTx.ty) go!"lock"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType batchTx.ty)))) (Var "t"))) (Val #())))))))))
 
 /-- go: batch_tx.go:124:19 -/
-noncomputable def batchTx.LockOutsideApply.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def batchTx.LockOutsideApply.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "t"
   (Lam BAnon
   (App (Val exceptionDo)
@@ -1032,7 +1032,7 @@ noncomputable def batchTx.LockOutsideApply.impl [FfiSyntax] [GoGlobalContext] : 
   (App (App (Val (GoInstruction (FuncResolve ValidateCalledOutSideApply []))) (Val #())) (Var "$a0"))))))))))
 
 /-- go: batch_tx.go:129:19 -/
-noncomputable def batchTx.Unlock.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def batchTx.Unlock.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "t"
   (Lam BAnon
   (App (Val exceptionDo)
@@ -1051,7 +1051,7 @@ noncomputable def batchTx.Unlock.impl [FfiSyntax] [GoGlobalContext] : val :=
   (Val #())))))))))
 
 /-- go: batch_tx.go:136:19 -/
-noncomputable def batchTx.UnsafeCreateBucket.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def batchTx.UnsafeCreateBucket.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "t"
   (Lam "bucket"
   (App (Val exceptionDo)
@@ -1090,7 +1090,7 @@ noncomputable def batchTx.UnsafeCreateBucket.impl [FfiSyntax] [GoGlobalContext] 
   (Var "$r0"))))))))))))))))
 
 /-- go: batch_tx.go:147:19 -/
-noncomputable def batchTx.UnsafeDeleteBucket.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def batchTx.UnsafeDeleteBucket.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "t"
   (Lam "bucket"
   (App (Val exceptionDo)
@@ -1126,7 +1126,7 @@ noncomputable def batchTx.UnsafeDeleteBucket.impl [FfiSyntax] [GoGlobalContext] 
 /-- UnsafePut must be called holding the lock on the tx.
 
     go: batch_tx.go:160:19 -/
-noncomputable def batchTx.UnsafePut.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def batchTx.UnsafePut.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "t"
   (Lam "bucket"
   (Lam "key"
@@ -1149,7 +1149,7 @@ noncomputable def batchTx.UnsafePut.impl [FfiSyntax] [GoGlobalContext] : val :=
 /-- UnsafeSeqPut must be called holding the lock on the tx.
 
     go: batch_tx.go:165:19 -/
-noncomputable def batchTx.UnsafeSeqPut.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def batchTx.UnsafeSeqPut.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "t"
   (Lam "bucket"
   (Lam "key"
@@ -1170,7 +1170,7 @@ noncomputable def batchTx.UnsafeSeqPut.impl [FfiSyntax] [GoGlobalContext] : val 
   (App (App (App (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType batchTx.ty) go!"unsafePut"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType batchTx.ty)))) (Var "t"))) (Var "$a0")) (Var "$a1")) (Var "$a2")) (Var "$a3")))))))))))))))))
 
 /-- go: batch_tx.go:169:19 -/
-noncomputable def batchTx.unsafePut.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def batchTx.unsafePut.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "t"
   (Lam "bucketType"
   (Lam "key"
@@ -1237,7 +1237,7 @@ noncomputable def batchTx.unsafePut.impl [FfiSyntax] [GoGlobalContext] : val :=
 /-- UnsafeRange must be called holding the lock on the tx.
 
     go: batch_tx.go:194:19 -/
-noncomputable def batchTx.UnsafeRange.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def batchTx.UnsafeRange.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "t"
   (Lam "bucketType"
   (Lam "key"
@@ -1279,7 +1279,7 @@ noncomputable def batchTx.UnsafeRange.impl [FfiSyntax] [GoGlobalContext] : val :
   (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.go_etcd_io.bbolt.Bucket.ty)))) (Pair (Var "bucket") (Var "$r0"))))))))))))))))))
 
 /-- go: batch_tx.go:206:6 -/
-noncomputable def unsafeRange.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def unsafeRange.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "c"
   (Lam "key"
   (Lam "endKey"
@@ -1378,7 +1378,7 @@ noncomputable def unsafeRange.impl [FfiSyntax] [GoGlobalContext] : val :=
 /-- UnsafeDelete must be called holding the lock on the tx.
 
     go: batch_tx.go:229:19 -/
-noncomputable def batchTx.UnsafeDelete.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def batchTx.UnsafeDelete.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "t"
   (Lam "bucketType"
   (Lam "key"
@@ -1433,7 +1433,7 @@ noncomputable def batchTx.UnsafeDelete.impl [FfiSyntax] [GoGlobalContext] : val 
 /-- UnsafeForEach must be called holding the lock on the tx.
 
     go: batch_tx.go:250:19 -/
-noncomputable def batchTx.UnsafeForEach.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def batchTx.UnsafeForEach.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "t"
   (Lam "bucket"
   (Lam "visitor"
@@ -1448,7 +1448,7 @@ noncomputable def batchTx.UnsafeForEach.impl [FfiSyntax] [GoGlobalContext] : val
   (App (App (App (App (Val (GoInstruction (FuncResolve unsafeForEach []))) (Val #())) (Var "$a0")) (Var "$a1")) (Var "$a2")))))))))))))
 
 /-- go: batch_tx.go:254:6 -/
-noncomputable def unsafeForEach.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def unsafeForEach.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "tx"
   (Lam "bucket"
   (Lam "visitor"
@@ -1475,7 +1475,7 @@ noncomputable def unsafeForEach.impl [FfiSyntax] [GoGlobalContext] : val :=
 /-- Commit commits a previous tx and begins a new writable one.
 
     go: batch_tx.go:262:19 -/
-noncomputable def batchTx.Commit.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def batchTx.Commit.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "t"
   (Lam BAnon
   (App (Val exceptionDo)
@@ -1496,7 +1496,7 @@ noncomputable def batchTx.Commit.impl [FfiSyntax] [GoGlobalContext] : val :=
 /-- CommitAndStop commits the previous tx and does not create a new one.
 
     go: batch_tx.go:269:19 -/
-noncomputable def batchTx.CommitAndStop.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def batchTx.CommitAndStop.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "t"
   (Lam BAnon
   (App (Val exceptionDo)
@@ -1515,7 +1515,7 @@ noncomputable def batchTx.CommitAndStop.impl [FfiSyntax] [GoGlobalContext] : val
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType batchTx.ty) go!"lock"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType batchTx.ty)))) (Var "t"))) (Val #())))))))))
 
 /-- go: batch_tx.go:275:19 -/
-noncomputable def batchTx.safePending.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def batchTx.safePending.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "t"
   (Lam BAnon
   (App (Val wrapDefer)
@@ -1535,7 +1535,7 @@ noncomputable def batchTx.safePending.impl [FfiSyntax] [GoGlobalContext] : val :
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.Mutex.ty) go!"Lock"))) (App (Val (GoInstruction (StructFieldRef batchTx.ty go!"Mutex"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType batchTx.ty)))) (Var "t")))) (Val #())))))))))
 
 /-- go: batch_tx.go:281:19 -/
-noncomputable def batchTx.commit.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def batchTx.commit.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "t"
   (Lam "stop"
   (App (Val exceptionDo)
@@ -1608,7 +1608,7 @@ noncomputable def batchTx.commit.impl [FfiSyntax] [GoGlobalContext] : val :=
   (Val #()))))))))))
 
 /-- go: batch_tx.go:316:6 -/
-noncomputable def newBatchTxBuffered.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def newBatchTxBuffered.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "backend"
   (App (Val exceptionDo)
   (Let "backend" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType backend.ty)))) (Var "backend"))
@@ -1630,7 +1630,7 @@ noncomputable def newBatchTxBuffered.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore (go.GoType.PointerType batchTxBuffered.ty)))) (Pair (Var "tx") (Var "$r0"))))))))))
 
 /-- go: batch_tx.go:328:27 -/
-noncomputable def batchTxBuffered.Unlock.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def batchTxBuffered.Unlock.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "t"
   (Lam BAnon
   (App (Val exceptionDo)
@@ -1662,7 +1662,7 @@ noncomputable def batchTxBuffered.Unlock.impl [FfiSyntax] [GoGlobalContext] : va
   (Val #())))))))))
 
 /-- go: batch_tx.go:362:27 -/
-noncomputable def batchTxBuffered.Commit.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def batchTxBuffered.Commit.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "t"
   (Lam BAnon
   (App (Val exceptionDo)
@@ -1681,7 +1681,7 @@ noncomputable def batchTxBuffered.Commit.impl [FfiSyntax] [GoGlobalContext] : va
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType batchTxBuffered.ty) go!"lock"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType batchTxBuffered.ty)))) (Var "t"))) (Val #())))))))))
 
 /-- go: batch_tx.go:368:27 -/
-noncomputable def batchTxBuffered.CommitAndStop.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def batchTxBuffered.CommitAndStop.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "t"
   (Lam BAnon
   (App (Val exceptionDo)
@@ -1700,7 +1700,7 @@ noncomputable def batchTxBuffered.CommitAndStop.impl [FfiSyntax] [GoGlobalContex
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType batchTxBuffered.ty) go!"lock"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType batchTxBuffered.ty)))) (Var "t"))) (Val #())))))))))
 
 /-- go: batch_tx.go:374:27 -/
-noncomputable def batchTxBuffered.commit.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def batchTxBuffered.commit.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "t"
   (Lam "stop"
   (App (Val exceptionDo)
@@ -1720,7 +1720,7 @@ noncomputable def batchTxBuffered.commit.impl [FfiSyntax] [GoGlobalContext] : va
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType readTx.ty) go!"Lock"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType readTx.ty)))) (App (Val (GoInstruction (StructFieldRef backend.ty go!"readTx"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType backend.ty)))) (App (Val (GoInstruction (StructFieldRef batchTx.ty go!"backend"))) (App (Val (GoInstruction (StructFieldRef batchTxBuffered.ty go!"batchTx"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType batchTxBuffered.ty)))) (Var "t")))))))) (Val #()))))))))))
 
 /-- go: batch_tx.go:381:27 -/
-noncomputable def batchTxBuffered.unsafeCommit.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def batchTxBuffered.unsafeCommit.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "t"
   (Lam "stop"
   (App (Val exceptionDo)
@@ -1790,7 +1790,7 @@ noncomputable def batchTxBuffered.unsafeCommit.impl [FfiSyntax] [GoGlobalContext
   (Val #()))))))))))
 
 /-- go: batch_tx.go:408:27 -/
-noncomputable def batchTxBuffered.UnsafePut.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def batchTxBuffered.UnsafePut.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "t"
   (Lam "bucket"
   (Lam "key"
@@ -1816,7 +1816,7 @@ noncomputable def batchTxBuffered.UnsafePut.impl [FfiSyntax] [GoGlobalContext] :
   (App (App (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType batchTx.ty) go!"UnsafePut"))) (App (Val (GoInstruction (StructFieldRef batchTxBuffered.ty go!"batchTx"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType batchTxBuffered.ty)))) (Var "t")))) (Var "$a0")) (Var "$a1")) (Var "$a2")))))))))))))))))
 
 /-- go: batch_tx.go:413:27 -/
-noncomputable def batchTxBuffered.UnsafeSeqPut.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def batchTxBuffered.UnsafeSeqPut.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "t"
   (Lam "bucket"
   (Lam "key"
@@ -1842,7 +1842,7 @@ noncomputable def batchTxBuffered.UnsafeSeqPut.impl [FfiSyntax] [GoGlobalContext
   (App (App (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType batchTx.ty) go!"UnsafeSeqPut"))) (App (Val (GoInstruction (StructFieldRef batchTxBuffered.ty go!"batchTx"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType batchTxBuffered.ty)))) (Var "t")))) (Var "$a0")) (Var "$a1")) (Var "$a2")))))))))))))))))
 
 /-- go: batch_tx.go:418:27 -/
-noncomputable def batchTxBuffered.UnsafeDelete.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def batchTxBuffered.UnsafeDelete.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "t"
   (Lam "bucketType"
   (Lam "key"
@@ -1862,7 +1862,7 @@ noncomputable def batchTxBuffered.UnsafeDelete.impl [FfiSyntax] [GoGlobalContext
   (App (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType batchTx.ty) go!"UnsafeDelete"))) (App (Val (GoInstruction (StructFieldRef batchTxBuffered.ty go!"batchTx"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType batchTxBuffered.ty)))) (Var "t")))) (Var "$a0")) (Var "$a1"))))))))))))))
 
 /-- go: batch_tx.go:423:27 -/
-noncomputable def batchTxBuffered.UnsafeDeleteBucket.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def batchTxBuffered.UnsafeDeleteBucket.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "t"
   (Lam "bucket"
   (App (Val exceptionDo)
@@ -1879,7 +1879,7 @@ noncomputable def batchTxBuffered.UnsafeDeleteBucket.impl [FfiSyntax] [GoGlobalC
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType batchTx.ty) go!"UnsafeDeleteBucket"))) (App (Val (GoInstruction (StructFieldRef batchTxBuffered.ty go!"batchTx"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType batchTxBuffered.ty)))) (Var "t")))) (Var "$a0")))))))))))
 
 /-- go: config_linux.go:34:28 -/
-noncomputable def BackendConfig.mmapSize.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def BackendConfig.mmapSize.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "bcfg"
   (Lam BAnon
   (App (Val exceptionDo)
@@ -1888,7 +1888,7 @@ noncomputable def BackendConfig.mmapSize.impl [FfiSyntax] [GoGlobalContext] : va
   (App (Val (GoInstruction (Convert go.uint64 go.int))) (App (Val (GoInstruction (GoLoad go.uint64))) (App (Val (GoInstruction (StructFieldRef BackendConfig.ty go!"MmapSize"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType BackendConfig.ty)))) (Var "bcfg"))))))))))
 
 /-- go: hooks.go:30:16 -/
-noncomputable def hooks.OnPreCommitUnsafe.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def hooks.OnPreCommitUnsafe.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "h"
   (Lam "tx"
   (App (Val exceptionDo)
@@ -1902,7 +1902,7 @@ noncomputable def hooks.OnPreCommitUnsafe.impl [FfiSyntax] [GoGlobalContext] : v
   (App (App (Val (GoInstruction (GoLoad HookFunc.ty))) (App (Val (GoInstruction (StructFieldRef hooks.ty go!"onPreCommitUnsafe"))) (Var "h"))) (Var "$a0"))))))))))
 
 /-- go: hooks.go:34:6 -/
-noncomputable def NewHooks.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def NewHooks.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "onPreCommitUnsafe"
   (App (Val exceptionDo)
   (Let "onPreCommitUnsafe" (App (Val (GoInstruction (GoAlloc HookFunc.ty))) (Var "onPreCommitUnsafe"))
@@ -1911,7 +1911,7 @@ noncomputable def NewHooks.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (CompositeLiteral hooks.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"onPreCommitUnsafe")) (ElementExpression HookFunc.ty (Var "$v0")))]))))))))
 
 /-- go: read_tx.go:54:31 -/
-noncomputable def baseReadTx.UnsafeForEach.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def baseReadTx.UnsafeForEach.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "baseReadTx"
   (Lam "bucket"
   (Lam "visitor"
@@ -2009,7 +2009,7 @@ noncomputable def baseReadTx.UnsafeForEach.impl [FfiSyntax] [GoGlobalContext] : 
   (App (Val (GoInstruction (GoStore (go.GoType.MapType go.string (go.GoType.StructType []))))) (Pair (Var "dups") (Var "$r0"))))))))))))))
 
 /-- go: read_tx.go:78:31 -/
-noncomputable def baseReadTx.UnsafeRange.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def baseReadTx.UnsafeRange.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "baseReadTx"
   (Lam "bucketType"
   (Lam "key"
@@ -2166,7 +2166,7 @@ noncomputable def baseReadTx.UnsafeRange.impl [FfiSyntax] [GoGlobalContext] : va
   (Val #())))))))))))))))
 
 /-- go: read_tx.go:128:19 -/
-noncomputable def readTx.Lock.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def readTx.Lock.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "rt"
   (Lam BAnon
   (App (Val exceptionDo)
@@ -2178,7 +2178,7 @@ noncomputable def readTx.Lock.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.RWMutex.ty) go!"Lock"))) (App (Val (GoInstruction (StructFieldRef baseReadTx.ty go!"mu"))) (App (Val (GoInstruction (StructFieldRef readTx.ty go!"baseReadTx"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType readTx.ty)))) (Var "rt"))))) (Val #()))))))))
 
 /-- go: read_tx.go:129:19 -/
-noncomputable def readTx.Unlock.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def readTx.Unlock.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "rt"
   (Lam BAnon
   (App (Val exceptionDo)
@@ -2190,7 +2190,7 @@ noncomputable def readTx.Unlock.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.RWMutex.ty) go!"Unlock"))) (App (Val (GoInstruction (StructFieldRef baseReadTx.ty go!"mu"))) (App (Val (GoInstruction (StructFieldRef readTx.ty go!"baseReadTx"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType readTx.ty)))) (Var "rt"))))) (Val #()))))))))
 
 /-- go: read_tx.go:130:19 -/
-noncomputable def readTx.RLock.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def readTx.RLock.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "rt"
   (Lam BAnon
   (App (Val exceptionDo)
@@ -2202,7 +2202,7 @@ noncomputable def readTx.RLock.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.RWMutex.ty) go!"RLock"))) (App (Val (GoInstruction (StructFieldRef baseReadTx.ty go!"mu"))) (App (Val (GoInstruction (StructFieldRef readTx.ty go!"baseReadTx"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType readTx.ty)))) (Var "rt"))))) (Val #()))))))))
 
 /-- go: read_tx.go:131:19 -/
-noncomputable def readTx.RUnlock.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def readTx.RUnlock.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "rt"
   (Lam BAnon
   (App (Val exceptionDo)
@@ -2214,7 +2214,7 @@ noncomputable def readTx.RUnlock.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.RWMutex.ty) go!"RUnlock"))) (App (Val (GoInstruction (StructFieldRef baseReadTx.ty go!"mu"))) (App (Val (GoInstruction (StructFieldRef readTx.ty go!"baseReadTx"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType readTx.ty)))) (Var "rt"))))) (Val #()))))))))
 
 /-- go: read_tx.go:133:19 -/
-noncomputable def readTx.reset.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def readTx.reset.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "rt"
   (Lam BAnon
   (App (Val exceptionDo)
@@ -2238,7 +2238,7 @@ noncomputable def readTx.reset.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType txReadBuffer.ty) go!"reset"))) (App (Val (GoInstruction (StructFieldRef baseReadTx.ty go!"buf"))) (App (Val (GoInstruction (StructFieldRef readTx.ty go!"baseReadTx"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType readTx.ty)))) (Var "rt"))))) (Val #())))))))))
 
 /-- go: read_tx.go:144:29 -/
-noncomputable def concurrentReadTx.Lock.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def concurrentReadTx.Lock.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "rt"
   (Lam BAnon
   (App (Val exceptionDo)
@@ -2247,7 +2247,7 @@ noncomputable def concurrentReadTx.Lock.impl [FfiSyntax] [GoGlobalContext] : val
   (Val #()))))))
 
 /-- go: read_tx.go:145:29 -/
-noncomputable def concurrentReadTx.Unlock.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def concurrentReadTx.Unlock.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "rt"
   (Lam BAnon
   (App (Val exceptionDo)
@@ -2258,7 +2258,7 @@ noncomputable def concurrentReadTx.Unlock.impl [FfiSyntax] [GoGlobalContext] : v
 /-- RLock is no-op. concurrentReadTx does not need to be locked after it is created.
 
     go: read_tx.go:148:29 -/
-noncomputable def concurrentReadTx.RLock.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def concurrentReadTx.RLock.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "rt"
   (Lam BAnon
   (App (Val exceptionDo)
@@ -2269,7 +2269,7 @@ noncomputable def concurrentReadTx.RLock.impl [FfiSyntax] [GoGlobalContext] : va
 /-- RUnlock signals the end of concurrentReadTx.
 
     go: read_tx.go:151:29 -/
-noncomputable def concurrentReadTx.RUnlock.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def concurrentReadTx.RUnlock.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "rt"
   (Lam BAnon
   (App (Val exceptionDo)
@@ -2281,7 +2281,7 @@ noncomputable def concurrentReadTx.RUnlock.impl [FfiSyntax] [GoGlobalContext] : 
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.WaitGroup.ty) go!"Done"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.sync.WaitGroup.ty)))) (App (Val (GoInstruction (StructFieldRef baseReadTx.ty go!"txWg"))) (App (Val (GoInstruction (StructFieldRef concurrentReadTx.ty go!"baseReadTx"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType concurrentReadTx.ty)))) (Var "rt")))))) (Val #()))))))))
 
 /-- go: tx_buffer.go:32:22 -/
-noncomputable def txBuffer.reset.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def txBuffer.reset.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "txb"
   (Lam BAnon
   (App (Val exceptionDo)
@@ -2314,7 +2314,7 @@ noncomputable def txBuffer.reset.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore (go.GoType.PointerType bucketBuffer.ty)))) (Pair (Var "v") (Var "$value"))))))))))))))))
 
 /-- go: tx_buffer.go:50:27 -/
-noncomputable def txWriteBuffer.put.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def txWriteBuffer.put.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "txw"
   (Lam "bucket"
   (Lam "k"
@@ -2338,7 +2338,7 @@ noncomputable def txWriteBuffer.put.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (App (App (Val (map.insert BucketID.ty)) (App (Val (GoInstruction (GoLoad (go.GoType.MapType BucketID.ty go.bool)))) (App (Val (GoInstruction (StructFieldRef txWriteBuffer.ty go!"bucket2seq"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType txWriteBuffer.ty)))) (Var "txw"))))) (App (App (Val (GoInstruction (MethodResolve Bucket.ty go!"ID"))) (App (Val (GoInstruction (GoLoad Bucket.ty))) (Var "bucket"))) (Val #()))) (Var "$r0")))))))))))))))
 
 /-- go: tx_buffer.go:55:27 -/
-noncomputable def txWriteBuffer.putSeq.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def txWriteBuffer.putSeq.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "txw"
   (Lam "bucket"
   (Lam "k"
@@ -2404,7 +2404,7 @@ noncomputable def txWriteBuffer.putSeq.impl [FfiSyntax] [GoGlobalContext] : val 
   (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.verify.Verify []))) (Val #())) (Var "$a0")) (Var "$a1"))))))))))))))))
 
 /-- go: tx_buffer.go:75:27 -/
-noncomputable def txWriteBuffer.putInternal.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def txWriteBuffer.putInternal.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "txw"
   (Lam "bucket"
   (Lam "k"
@@ -2447,7 +2447,7 @@ noncomputable def txWriteBuffer.putInternal.impl [FfiSyntax] [GoGlobalContext] :
   (App (Val (GoInstruction (GoStore (go.GoType.PointerType bucketBuffer.ty)))) (Pair (Var "b") (Var "$r0"))))))))))))))))))))))
 
 /-- go: tx_buffer.go:84:27 -/
-noncomputable def txWriteBuffer.reset.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def txWriteBuffer.reset.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "txw"
   (Lam BAnon
   (App (Val exceptionDo)
@@ -2492,7 +2492,7 @@ noncomputable def txWriteBuffer.reset.impl [FfiSyntax] [GoGlobalContext] : val :
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType txBuffer.ty) go!"reset"))) (App (Val (GoInstruction (StructFieldRef txWriteBuffer.ty go!"txBuffer"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType txWriteBuffer.ty)))) (Var "txw")))) (Val #())))))))))
 
 /-- go: tx_buffer.go:96:27 -/
-noncomputable def txWriteBuffer.writeback.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def txWriteBuffer.writeback.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "txw"
   (Lam "txr"
   (App (Val exceptionDo)
@@ -2589,7 +2589,7 @@ noncomputable def txWriteBuffer.writeback.impl [FfiSyntax] [GoGlobalContext] : v
   (App (Val (GoInstruction (GoStore (go.GoType.PointerType bucketBuffer.ty)))) (Pair (Var "wb") (Var "$value"))))))))))))))))))
 
 /-- go: tx_buffer.go:124:26 -/
-noncomputable def txReadBuffer.Range.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def txReadBuffer.Range.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "txr"
   (Lam "bucket"
   (Lam "key"
@@ -2622,7 +2622,7 @@ noncomputable def txReadBuffer.Range.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore (go.GoType.PointerType bucketBuffer.ty)))) (Pair (Var "b") (Var "$r0")))))))))))))))))))
 
 /-- go: tx_buffer.go:131:26 -/
-noncomputable def txReadBuffer.ForEach.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def txReadBuffer.ForEach.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "txr"
   (Lam "bucket"
   (Lam "visitor"
@@ -2648,7 +2648,7 @@ noncomputable def txReadBuffer.ForEach.impl [FfiSyntax] [GoGlobalContext] : val 
 /-- unsafeCopy returns a copy of txReadBuffer, caller should acquire backend.readTx.RLock()
 
     go: tx_buffer.go:139:26 -/
-noncomputable def txReadBuffer.unsafeCopy.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def txReadBuffer.unsafeCopy.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "txr"
   (Lam BAnon
   (App (Val exceptionDo)
@@ -2682,7 +2682,7 @@ noncomputable def txReadBuffer.unsafeCopy.impl [FfiSyntax] [GoGlobalContext] : v
   (App (Val (GoInstruction (GoStore txReadBuffer.ty))) (Pair (Var "txrCopy") (Var "$r0")))))))))))
 
 /-- go: tx_buffer.go:164:6 -/
-noncomputable def newBucketBuffer.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def newBucketBuffer.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (App (Val exceptionDo)
   (App (Val doReturn)
@@ -2691,7 +2691,7 @@ noncomputable def newBucketBuffer.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (CompositeLiteral bucketBuffer.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"buf")) (ElementExpression (go.GoType.SliceType kv.ty) (Var "$v0"))), (KeyedElement (some (KeyField go!"used")) (ElementExpression go.int (Var "$v1")))]))))))))
 
 /-- go: tx_buffer.go:168:25 -/
-noncomputable def bucketBuffer.Range.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def bucketBuffer.Range.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "bb"
   (Lam "key"
   (Lam "endKey"
@@ -2797,7 +2797,7 @@ noncomputable def bucketBuffer.Range.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore (go.GoType.FunctionType (go.signature.Signature [go.int] false [go.bool]))))) (Pair (Var "f") (Var "$r0"))))))))))))))))))
 
 /-- go: tx_buffer.go:194:25 -/
-noncomputable def bucketBuffer.ForEach.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def bucketBuffer.ForEach.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "bb"
   (Lam "visitor"
   (App (Val exceptionDo)
@@ -2830,7 +2830,7 @@ noncomputable def bucketBuffer.ForEach.impl [FfiSyntax] [GoGlobalContext] : val 
   (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "i") (Var "$r0")))))))))))))
 
 /-- go: tx_buffer.go:203:25 -/
-noncomputable def bucketBuffer.add.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def bucketBuffer.add.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "bb"
   (Lam "k"
   (Lam "v"
@@ -2876,7 +2876,7 @@ noncomputable def bucketBuffer.add.impl [FfiSyntax] [GoGlobalContext] : val :=
 /-- merge merges data from bbsrc into bb.
 
     go: tx_buffer.go:214:25 -/
-noncomputable def bucketBuffer.merge.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def bucketBuffer.merge.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "bb"
   (Lam "bbsrc"
   (App (Val exceptionDo)
@@ -2920,7 +2920,7 @@ noncomputable def bucketBuffer.merge.impl [FfiSyntax] [GoGlobalContext] : val :=
 /-- dedupe removes duplicates, using only newest update
 
     go: tx_buffer.go:228:25 -/
-noncomputable def bucketBuffer.dedupe.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def bucketBuffer.dedupe.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "bb"
   (Lam BAnon
   (App (Val exceptionDo)
@@ -2970,7 +2970,7 @@ noncomputable def bucketBuffer.dedupe.impl [FfiSyntax] [GoGlobalContext] : val :
   (Val #())))))))))
 
 /-- go: tx_buffer.go:243:25 -/
-noncomputable def bucketBuffer.Len.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def bucketBuffer.Len.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "bb"
   (Lam BAnon
   (App (Val exceptionDo)
@@ -2979,7 +2979,7 @@ noncomputable def bucketBuffer.Len.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoLoad go.int))) (App (Val (GoInstruction (StructFieldRef bucketBuffer.ty go!"used"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType bucketBuffer.ty)))) (Var "bb")))))))))
 
 /-- go: tx_buffer.go:244:25 -/
-noncomputable def bucketBuffer.Less.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def bucketBuffer.Less.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "bb"
   (Lam "i"
   (Lam "j"
@@ -2993,7 +2993,7 @@ noncomputable def bucketBuffer.Less.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.bytes.Compare []))) (Val #())) (Var "$a0")) (Var "$a1")))) (Val #(W64 0))))))))))))
 
 /-- go: tx_buffer.go:247:25 -/
-noncomputable def bucketBuffer.Swap.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def bucketBuffer.Swap.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "bb"
   (Lam "i"
   (Lam "j"
@@ -3015,7 +3015,7 @@ noncomputable def bucketBuffer.Swap.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore kv.ty))) (Pair (Var "$l0") (Var "$r0")))))))))))))))))
 
 /-- go: tx_buffer.go:249:25 -/
-noncomputable def bucketBuffer.CopyUsed.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def bucketBuffer.CopyUsed.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "bb"
   (Lam BAnon
   (App (Val exceptionDo)
@@ -3049,9 +3049,9 @@ noncomputable def bucketBuffer.CopyUsed.impl [FfiSyntax] [GoGlobalContext] : val
 noncomputable instance info' : PkgInfo pkg_id.go_etcd_io.etcd.server.v3.storage.backend where
   pkgImportedPkgs := [pkg_id.bytes, pkg_id.fmt, pkg_id.io, pkg_id.sync, pkg_id.sync.atomic, pkg_id.time, pkg_id.go_uber_org.zap, pkg_id.go_etcd_io.bbolt, pkg_id.go_etcd_io.etcd.client.pkg.v3.verify, pkg_id.errors, pkg_id.math, pkg_id.go_etcd_io.bbolt.errors, pkg_id.github_com.prometheus.client_golang.prometheus, pkg_id.encoding.hex, pkg_id.sort]
 
-axiom «_».init [FfiSyntax] [GoGlobalContext] : val
+axiom «_».init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (App (Val (package.init pkg_id.go_etcd_io.etcd.server.v3.storage.backend)) (Lam BAnon
   (App (Val exceptionDo)
@@ -3165,51 +3165,59 @@ noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val (go.GlobalAlloc minSnapshotWarningTimeout _root_.Perennial.time.Duration.ty)) (Val #()))))))))
 
-abbrev Backend [FfiSyntax] : Type := GoInterface
+abbrev Backend [GooseExts] : Type := GoInterface
 
-@[reducible] noncomputable def Backend.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def Backend.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"BatchTx" (go.signature.Signature [] false [BatchTx.ty])), (go.InterfaceElem.MethodElem go!"Close" (go.signature.Signature [] false [go.error])), (go.InterfaceElem.MethodElem go!"ConcurrentReadTx" (go.signature.Signature [] false [ReadTx.ty])), (go.InterfaceElem.MethodElem go!"Defrag" (go.signature.Signature [] false [go.error])), (go.InterfaceElem.MethodElem go!"ForceCommit" (go.signature.Signature [] false [])), (go.InterfaceElem.MethodElem go!"Hash" (go.signature.Signature [(go.GoType.FunctionType (go.signature.Signature [(go.GoType.SliceType go.byte), (go.GoType.SliceType go.byte)] false [go.bool]))] false [go.uint32, go.error])), (go.InterfaceElem.MethodElem go!"LockForSafeRangeDelete" (go.signature.Signature [] false [])), (go.InterfaceElem.MethodElem go!"OpenReadTxN" (go.signature.Signature [] false [go.int64])), (go.InterfaceElem.MethodElem go!"ReadTx" (go.signature.Signature [] false [ReadTx.ty])), (go.InterfaceElem.MethodElem go!"SetTxPostLockInsideApplyHook" (go.signature.Signature [(go.GoType.FunctionType (go.signature.Signature [] false []))] false [])), (go.InterfaceElem.MethodElem go!"Size" (go.signature.Signature [] false [go.int64])), (go.InterfaceElem.MethodElem go!"SizeInUse" (go.signature.Signature [] false [go.int64])), (go.InterfaceElem.MethodElem go!"Snapshot" (go.signature.Signature [] false [Snapshot.ty])), (go.InterfaceElem.MethodElem go!"UnlockForSafeRangeDelete" (go.signature.Signature [] false []))])
 
-class Backend.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class Backend.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq Backend.ty Backend.underlying
+  method_set : go.MethodSetIs Backend.ty [(go!"BatchTx", (some (go.signature.Signature [] false [BatchTx.ty]))), (go!"Close", (some (go.signature.Signature [] false [go.error]))), (go!"ConcurrentReadTx", (some (go.signature.Signature [] false [ReadTx.ty]))), (go!"Defrag", (some (go.signature.Signature [] false [go.error]))), (go!"ForceCommit", (some (go.signature.Signature [] false []))), (go!"Hash", (some (go.signature.Signature [(go.GoType.FunctionType (go.signature.Signature [(go.GoType.SliceType go.byte), (go.GoType.SliceType go.byte)] false [go.bool]))] false [go.uint32, go.error]))), (go!"LockForSafeRangeDelete", (some (go.signature.Signature [] false []))), (go!"OpenReadTxN", (some (go.signature.Signature [] false [go.int64]))), (go!"ReadTx", (some (go.signature.Signature [] false [ReadTx.ty]))), (go!"SetTxPostLockInsideApplyHook", (some (go.signature.Signature [(go.GoType.FunctionType (go.signature.Signature [] false []))] false []))), (go!"Size", (some (go.signature.Signature [] false [go.int64]))), (go!"SizeInUse", (some (go.signature.Signature [] false [go.int64]))), (go!"Snapshot", (some (go.signature.Signature [] false [Snapshot.ty]))), (go!"UnlockForSafeRangeDelete", (some (go.signature.Signature [] false [])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType Backend.ty) []
 
 attribute [instance] Backend.TypeAssumptions.underlying
+  Backend.TypeAssumptions.method_set
+  Backend.TypeAssumptions.ptr_method_set
 
-abbrev Snapshot [FfiSyntax] : Type := GoInterface
+abbrev Snapshot [GooseExts] : Type := GoInterface
 
-@[reducible] noncomputable def Snapshot.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def Snapshot.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"Close" (go.signature.Signature [] false [go.error])), (go.InterfaceElem.MethodElem go!"Size" (go.signature.Signature [] false [go.int64])), (go.InterfaceElem.MethodElem go!"WriteTo" (go.signature.Signature [_root_.Perennial.io.Writer.ty] false [go.int64, go.error]))])
 
-class Snapshot.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class Snapshot.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq Snapshot.ty Snapshot.underlying
+  method_set : go.MethodSetIs Snapshot.ty [(go!"Close", (some (go.signature.Signature [] false [go.error]))), (go!"Size", (some (go.signature.Signature [] false [go.int64]))), (go!"WriteTo", (some (go.signature.Signature [_root_.Perennial.io.Writer.ty] false [go.int64, go.error])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType Snapshot.ty) []
 
 attribute [instance] Snapshot.TypeAssumptions.underlying
+  Snapshot.TypeAssumptions.method_set
+  Snapshot.TypeAssumptions.ptr_method_set
 
-structure txReadBufferCache [FfiSyntax] where
+structure txReadBufferCache [GooseExts] where
   mk ::
   mu' : _root_.Perennial.sync.Mutex
   buf' : Loc
   bufVersion' : w64
 
-noncomputable instance txReadBufferCache.zero_val [FfiSyntax] : ZeroVal txReadBufferCache :=
+noncomputable instance txReadBufferCache.zero_val [GooseExts] : ZeroVal txReadBufferCache :=
   ⟨txReadBufferCache.mk zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def txReadBufferCache.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def txReadBufferCache.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"mu" _root_.Perennial.sync.Mutex.ty),
 (go.field_decl.FieldDecl go!"buf" (go.GoType.PointerType txReadBuffer.ty)),
 (go.field_decl.FieldDecl go!"bufVersion" go.uint64)]
 
-@[irreducible] noncomputable def txReadBufferCache.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def txReadBufferCache.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   txReadBufferCache.fieldsUnsealed
 
-noncomputable instance equals_unfold_txReadBufferCache [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_txReadBufferCache [GooseExts] [GoGlobalContext] :
     EqualsUnfold txReadBufferCache.fields txReadBufferCache.fieldsUnsealed :=
   ⟨by unfold txReadBufferCache.fields; rfl⟩
 
-@[reducible] noncomputable def txReadBufferCache.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def txReadBufferCache.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType txReadBufferCache.fields)
 
-class txReadBufferCache.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class txReadBufferCache.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying txReadBufferCache.underlying txReadBufferCache
   underlying : go.UnderlyingDirectedEq txReadBufferCache.ty txReadBufferCache.underlying
   get_mu : ∀ (x : txReadBufferCache), go.IsGoStepPureDetTagged under (StructFieldGet txReadBufferCache.underlying go!"mu") #x (Val #(x.mu'))
@@ -3218,6 +3226,8 @@ class txReadBufferCache.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalCo
   set_buf : ∀ (x : txReadBufferCache) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet txReadBufferCache.underlying go!"buf") (PairV #x #y) (Val #(({ x with buf' := y } : txReadBufferCache)))
   get_bufVersion : ∀ (x : txReadBufferCache), go.IsGoStepPureDetTagged under (StructFieldGet txReadBufferCache.underlying go!"bufVersion") #x (Val #(x.bufVersion'))
   set_bufVersion : ∀ (x : txReadBufferCache) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet txReadBufferCache.underlying go!"bufVersion") (PairV #x #y) (Val #(({ x with bufVersion' := y } : txReadBufferCache)))
+  method_set : go.MethodSetIs txReadBufferCache.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType txReadBufferCache.ty) []
 
 attribute [instance] txReadBufferCache.TypeAssumptions.type_repr
   txReadBufferCache.TypeAssumptions.underlying
@@ -3227,18 +3237,24 @@ attribute [instance] txReadBufferCache.TypeAssumptions.type_repr
   txReadBufferCache.TypeAssumptions.set_buf
   txReadBufferCache.TypeAssumptions.get_bufVersion
   txReadBufferCache.TypeAssumptions.set_bufVersion
+  txReadBufferCache.TypeAssumptions.method_set
+  txReadBufferCache.TypeAssumptions.ptr_method_set
 
-abbrev Hooks [FfiSyntax] : Type := GoInterface
+abbrev Hooks [GooseExts] : Type := GoInterface
 
-@[reducible] noncomputable def Hooks.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def Hooks.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"OnPreCommitUnsafe" (go.signature.Signature [UnsafeReadWriter.ty] false []))])
 
-class Hooks.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class Hooks.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq Hooks.ty Hooks.underlying
+  method_set : go.MethodSetIs Hooks.ty [(go!"OnPreCommitUnsafe", (some (go.signature.Signature [UnsafeReadWriter.ty] false [])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType Hooks.ty) []
 
 attribute [instance] Hooks.TypeAssumptions.underlying
+  Hooks.TypeAssumptions.method_set
+  Hooks.TypeAssumptions.ptr_method_set
 
-structure backend [FfiSyntax] where
+structure backend [GooseExts] where
   mk ::
   size' : w64
   sizeInUse' : w64
@@ -3262,10 +3278,10 @@ structure backend [FfiSyntax] where
   txPostLockInsideApplyHook' : GoFunc
   lg' : Loc
 
-noncomputable instance backend.zero_val [FfiSyntax] : ZeroVal backend :=
+noncomputable instance backend.zero_val [GooseExts] : ZeroVal backend :=
   ⟨backend.mk zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def backend.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def backend.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"size" go.int64),
 (go.field_decl.FieldDecl go!"sizeInUse" go.int64),
 (go.field_decl.FieldDecl go!"commits" go.int64),
@@ -3288,17 +3304,17 @@ noncomputable instance backend.zero_val [FfiSyntax] : ZeroVal backend :=
 (go.field_decl.FieldDecl go!"txPostLockInsideApplyHook" (go.GoType.FunctionType (go.signature.Signature [] false []))),
 (go.field_decl.FieldDecl go!"lg" (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty))]
 
-@[irreducible] noncomputable def backend.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def backend.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   backend.fieldsUnsealed
 
-noncomputable instance equals_unfold_backend [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_backend [GooseExts] [GoGlobalContext] :
     EqualsUnfold backend.fields backend.fieldsUnsealed :=
   ⟨by unfold backend.fields; rfl⟩
 
-@[reducible] noncomputable def backend.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def backend.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType backend.fields)
 
-class backend.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class backend.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying backend.underlying backend
   underlying : go.UnderlyingDirectedEq backend.ty backend.underlying
   get_size : ∀ (x : backend), go.IsGoStepPureDetTagged under (StructFieldGet backend.underlying go!"size") #x (Val #(x.size'))
@@ -3343,6 +3359,8 @@ class backend.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [Go
   set_txPostLockInsideApplyHook : ∀ (x : backend) (y : GoFunc), go.IsGoStepPureDetTagged under (StructFieldSet backend.underlying go!"txPostLockInsideApplyHook") (PairV #x #y) (Val #(({ x with txPostLockInsideApplyHook' := y } : backend)))
   get_lg : ∀ (x : backend), go.IsGoStepPureDetTagged under (StructFieldGet backend.underlying go!"lg") #x (Val #(x.lg'))
   set_lg : ∀ (x : backend) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet backend.underlying go!"lg") (PairV #x #y) (Val #(({ x with lg' := y } : backend)))
+  method_set : go.MethodSetIs backend.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType backend.ty) [(go!"BatchTx", (some (go.signature.Signature [] false [BatchTx.ty]))), (go!"Close", (some (go.signature.Signature [] false [go.error]))), (go!"Commits", (some (go.signature.Signature [] false [go.int64]))), (go!"ConcurrentReadTx", (some (go.signature.Signature [] false [ReadTx.ty]))), (go!"Defrag", (some (go.signature.Signature [] false [go.error]))), (go!"ForceCommit", (some (go.signature.Signature [] false []))), (go!"Hash", (some (go.signature.Signature [(go.GoType.FunctionType (go.signature.Signature [(go.GoType.SliceType go.byte), (go.GoType.SliceType go.byte)] false [go.bool]))] false [go.uint32, go.error]))), (go!"LockForSafeRangeDelete", (some (go.signature.Signature [] false []))), (go!"OpenReadTxN", (some (go.signature.Signature [] false [go.int64]))), (go!"ReadTx", (some (go.signature.Signature [] false [ReadTx.ty]))), (go!"SetTxPostLockInsideApplyHook", (some (go.signature.Signature [(go.GoType.FunctionType (go.signature.Signature [] false []))] false []))), (go!"Size", (some (go.signature.Signature [] false [go.int64]))), (go!"SizeInUse", (some (go.signature.Signature [] false [go.int64]))), (go!"Snapshot", (some (go.signature.Signature [] false [Snapshot.ty]))), (go!"UnlockForSafeRangeDelete", (some (go.signature.Signature [] false []))), (go!"go.etcd.io/etcd/server/v3/storage/backend.begin", (some (go.signature.Signature [go.bool] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.bbolt.Tx.ty)]))), (go!"go.etcd.io/etcd/server/v3/storage/backend.cleanupTmpDB", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.bbolt.DB.ty), go.string] false []))), (go!"go.etcd.io/etcd/server/v3/storage/backend.createDefragTmpDB", (some (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.bbolt.DB.ty), go.string, go.error]))), (go!"go.etcd.io/etcd/server/v3/storage/backend.defrag", (some (go.signature.Signature [] false [go.error]))), (go!"go.etcd.io/etcd/server/v3/storage/backend.defragBlocking", (some (go.signature.Signature [] false [go.error]))), (go!"go.etcd.io/etcd/server/v3/storage/backend.defragNonBlocking", (some (go.signature.Signature [] false [go.error]))), (go!"go.etcd.io/etcd/server/v3/storage/backend.finishDefrag", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.bbolt.DB.ty), go.string, go.string, _root_.Perennial.time.Time.ty, go.int64, go.int64] false [go.error]))), (go!"go.etcd.io/etcd/server/v3/storage/backend.run", (some (go.signature.Signature [] false []))), (go!"go.etcd.io/etcd/server/v3/storage/backend.unsafeBegin", (some (go.signature.Signature [go.bool] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.bbolt.Tx.ty)])))]
   ptr_BatchTx_unfold : MethodUnfold (go.GoType.PointerType backend.ty) go!"BatchTx" backend.BatchTx.impl
   ptr_Close_unfold : MethodUnfold (go.GoType.PointerType backend.ty) go!"Close" backend.Close.impl
   ptr_Commits_unfold : MethodUnfold (go.GoType.PointerType backend.ty) go!"Commits" backend.Commits.impl
@@ -3403,6 +3421,8 @@ attribute [instance] backend.TypeAssumptions.type_repr
   backend.TypeAssumptions.set_txPostLockInsideApplyHook
   backend.TypeAssumptions.get_lg
   backend.TypeAssumptions.set_lg
+  backend.TypeAssumptions.method_set
+  backend.TypeAssumptions.ptr_method_set
   backend.TypeAssumptions.ptr_BatchTx_unfold
   backend.TypeAssumptions.ptr_Close_unfold
   backend.TypeAssumptions.ptr_Commits_unfold
@@ -3419,7 +3439,7 @@ attribute [instance] backend.TypeAssumptions.type_repr
   backend.TypeAssumptions.ptr_run_unfold
   backend.TypeAssumptions.ptr_unsafeBegin_unfold
 
-structure BackendConfig [FfiSyntax] where
+structure BackendConfig [GooseExts] where
   mk ::
   Path' : GoString
   BatchInterval' : _root_.Perennial.time.Duration
@@ -3433,10 +3453,10 @@ structure BackendConfig [FfiSyntax] where
   Timeout' : _root_.Perennial.time.Duration
   Hooks' : Hooks
 
-noncomputable instance BackendConfig.zero_val [FfiSyntax] : ZeroVal BackendConfig :=
+noncomputable instance BackendConfig.zero_val [GooseExts] : ZeroVal BackendConfig :=
   ⟨BackendConfig.mk zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def BackendConfig.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def BackendConfig.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"Path" go.string),
 (go.field_decl.FieldDecl go!"BatchInterval" _root_.Perennial.time.Duration.ty),
 (go.field_decl.FieldDecl go!"BatchLimit" go.int),
@@ -3449,17 +3469,17 @@ noncomputable instance BackendConfig.zero_val [FfiSyntax] : ZeroVal BackendConfi
 (go.field_decl.FieldDecl go!"Timeout" _root_.Perennial.time.Duration.ty),
 (go.field_decl.FieldDecl go!"Hooks" Hooks.ty)]
 
-@[irreducible] noncomputable def BackendConfig.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def BackendConfig.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   BackendConfig.fieldsUnsealed
 
-noncomputable instance equals_unfold_BackendConfig [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_BackendConfig [GooseExts] [GoGlobalContext] :
     EqualsUnfold BackendConfig.fields BackendConfig.fieldsUnsealed :=
   ⟨by unfold BackendConfig.fields; rfl⟩
 
-@[reducible] noncomputable def BackendConfig.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def BackendConfig.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType BackendConfig.fields)
 
-class BackendConfig.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class BackendConfig.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying BackendConfig.underlying BackendConfig
   underlying : go.UnderlyingDirectedEq BackendConfig.ty BackendConfig.underlying
   get_Path : ∀ (x : BackendConfig), go.IsGoStepPureDetTagged under (StructFieldGet BackendConfig.underlying go!"Path") #x (Val #(x.Path'))
@@ -3484,6 +3504,8 @@ class BackendConfig.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContex
   set_Timeout : ∀ (x : BackendConfig) (y : _root_.Perennial.time.Duration), go.IsGoStepPureDetTagged under (StructFieldSet BackendConfig.underlying go!"Timeout") (PairV #x #y) (Val #(({ x with Timeout' := y } : BackendConfig)))
   get_Hooks : ∀ (x : BackendConfig), go.IsGoStepPureDetTagged under (StructFieldGet BackendConfig.underlying go!"Hooks") #x (Val #(x.Hooks'))
   set_Hooks : ∀ (x : BackendConfig) (y : Hooks), go.IsGoStepPureDetTagged under (StructFieldSet BackendConfig.underlying go!"Hooks") (PairV #x #y) (Val #(({ x with Hooks' := y } : BackendConfig)))
+  method_set : go.MethodSetIs BackendConfig.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType BackendConfig.ty) [(go!"go.etcd.io/etcd/server/v3/storage/backend.mmapSize", (some (go.signature.Signature [] false [go.int])))]
   ptr_mmapSize_unfold : MethodUnfold (go.GoType.PointerType BackendConfig.ty) go!"mmapSize" BackendConfig.mmapSize.impl
 
 attribute [instance] BackendConfig.TypeAssumptions.type_repr
@@ -3510,43 +3532,49 @@ attribute [instance] BackendConfig.TypeAssumptions.type_repr
   BackendConfig.TypeAssumptions.set_Timeout
   BackendConfig.TypeAssumptions.get_Hooks
   BackendConfig.TypeAssumptions.set_Hooks
+  BackendConfig.TypeAssumptions.method_set
+  BackendConfig.TypeAssumptions.ptr_method_set
   BackendConfig.TypeAssumptions.ptr_mmapSize_unfold
 
-abbrev BackendConfigOption [FfiSyntax] : Type := GoFunc
+abbrev BackendConfigOption [GooseExts] : Type := GoFunc
 
-@[reducible] noncomputable def BackendConfigOption.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def BackendConfigOption.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.FunctionType (go.signature.Signature [(go.GoType.PointerType BackendConfig.ty)] false []))
 
-class BackendConfigOption.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class BackendConfigOption.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq BackendConfigOption.ty BackendConfigOption.underlying
+  method_set : go.MethodSetIs BackendConfigOption.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType BackendConfigOption.ty) []
 
 attribute [instance] BackendConfigOption.TypeAssumptions.underlying
+  BackendConfigOption.TypeAssumptions.method_set
+  BackendConfigOption.TypeAssumptions.ptr_method_set
 
-structure snapshot [FfiSyntax] where
+structure snapshot [GooseExts] where
   mk ::
   Tx' : Loc
   stopc' : GoChan
   donec' : GoChan
 
-noncomputable instance snapshot.zero_val [FfiSyntax] : ZeroVal snapshot :=
+noncomputable instance snapshot.zero_val [GooseExts] : ZeroVal snapshot :=
   ⟨snapshot.mk zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def snapshot.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def snapshot.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.EmbeddedField go!"Tx" (go.GoType.PointerType _root_.Perennial.go_etcd_io.bbolt.Tx.ty)),
 (go.field_decl.FieldDecl go!"stopc" (go.GoType.ChannelType go.ChanDir.sendrecv (go.GoType.StructType []))),
 (go.field_decl.FieldDecl go!"donec" (go.GoType.ChannelType go.ChanDir.sendrecv (go.GoType.StructType [])))]
 
-@[irreducible] noncomputable def snapshot.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def snapshot.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   snapshot.fieldsUnsealed
 
-noncomputable instance equals_unfold_snapshot [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_snapshot [GooseExts] [GoGlobalContext] :
     EqualsUnfold snapshot.fields snapshot.fieldsUnsealed :=
   ⟨by unfold snapshot.fields; rfl⟩
 
-@[reducible] noncomputable def snapshot.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def snapshot.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType snapshot.fields)
 
-class snapshot.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class snapshot.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying snapshot.underlying snapshot
   underlying : go.UnderlyingDirectedEq snapshot.ty snapshot.underlying
   get_Tx : ∀ (x : snapshot), go.IsGoStepPureDetTagged under (StructFieldGet snapshot.underlying go!"Tx") #x (Val #(x.Tx'))
@@ -3555,6 +3583,8 @@ class snapshot.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [G
   set_stopc : ∀ (x : snapshot) (y : GoChan), go.IsGoStepPureDetTagged under (StructFieldSet snapshot.underlying go!"stopc") (PairV #x #y) (Val #(({ x with stopc' := y } : snapshot)))
   get_donec : ∀ (x : snapshot), go.IsGoStepPureDetTagged under (StructFieldGet snapshot.underlying go!"donec") #x (Val #(x.donec'))
   set_donec : ∀ (x : snapshot) (y : GoChan), go.IsGoStepPureDetTagged under (StructFieldSet snapshot.underlying go!"donec") (PairV #x #y) (Val #(({ x with donec' := y } : snapshot)))
+  method_set : go.MethodSetIs snapshot.ty [(go!"Bucket", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.bbolt.Bucket.ty)]))), (go!"Check", (some (go.signature.Signature [(go.GoType.SliceType _root_.Perennial.go_etcd_io.bbolt.CheckOption.ty)] true [(go.GoType.ChannelType go.ChanDir.recvonly go.error)]))), (go!"Commit", (some (go.signature.Signature [] false [go.error]))), (go!"Copy", (some (go.signature.Signature [_root_.Perennial.io.Writer.ty] false [go.error]))), (go!"CopyFile", (some (go.signature.Signature [go.string, (go.GoType.Named go!"io/fs.FileMode" [])] false [go.error]))), (go!"CreateBucket", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.bbolt.Bucket.ty), go.error]))), (go!"CreateBucketIfNotExists", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.bbolt.Bucket.ty), go.error]))), (go!"Cursor", (some (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.bbolt.Cursor.ty)]))), (go!"DB", (some (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.bbolt.DB.ty)]))), (go!"DeleteBucket", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.error]))), (go!"ForEach", (some (go.signature.Signature [(go.GoType.FunctionType (go.signature.Signature [(go.GoType.SliceType go.byte), (go.GoType.PointerType _root_.Perennial.go_etcd_io.bbolt.Bucket.ty)] false [go.error]))] false [go.error]))), (go!"ID", (some (go.signature.Signature [] false [go.int]))), (go!"Inspect", (some (go.signature.Signature [] false [_root_.Perennial.go_etcd_io.bbolt.BucketStructure.ty]))), (go!"MoveBucket", (some (go.signature.Signature [(go.GoType.SliceType go.byte), (go.GoType.PointerType _root_.Perennial.go_etcd_io.bbolt.Bucket.ty), (go.GoType.PointerType _root_.Perennial.go_etcd_io.bbolt.Bucket.ty)] false [go.error]))), (go!"OnCommit", (some (go.signature.Signature [(go.GoType.FunctionType (go.signature.Signature [] false []))] false []))), (go!"Page", (some (go.signature.Signature [go.int] false [(go.GoType.PointerType (go.GoType.Named go!"go.etcd.io/bbolt/internal/common.PageInfo" [])), go.error]))), (go!"Rollback", (some (go.signature.Signature [] false [go.error]))), (go!"Size", (some (go.signature.Signature [] false [go.int64]))), (go!"Stats", (some (go.signature.Signature [] false [_root_.Perennial.go_etcd_io.bbolt.TxStats.ty]))), (go!"Writable", (some (go.signature.Signature [] false [go.bool]))), (go!"WriteTo", (some (go.signature.Signature [_root_.Perennial.io.Writer.ty] false [go.int64, go.error]))), (go!"go.etcd.io/bbolt.allocate", (some (go.signature.Signature [go.int] false [(go.GoType.PointerType (go.GoType.Named go!"go.etcd.io/bbolt/internal/common.Page" [])), go.error]))), (go!"go.etcd.io/bbolt.check", (some (go.signature.Signature [_root_.Perennial.go_etcd_io.bbolt.checkConfig.ty, (go.GoType.ChannelType go.ChanDir.sendrecv go.error)] false []))), (go!"go.etcd.io/bbolt.checkInvariantProperties", (some (go.signature.Signature [(go.GoType.Named go!"go.etcd.io/bbolt/internal/common.Pgid" []), (go.GoType.MapType (go.GoType.Named go!"go.etcd.io/bbolt/internal/common.Pgid" []) (go.GoType.PointerType (go.GoType.Named go!"go.etcd.io/bbolt/internal/common.Page" []))), (go.GoType.MapType (go.GoType.Named go!"go.etcd.io/bbolt/internal/common.Pgid" []) go.bool), _root_.Perennial.go_etcd_io.bbolt.KVStringer.ty, (go.GoType.ChannelType go.ChanDir.sendrecv go.error)] false []))), (go!"go.etcd.io/bbolt.close", (some (go.signature.Signature [] false []))), (go!"go.etcd.io/bbolt.commitFreelist", (some (go.signature.Signature [] false [go.error]))), (go!"go.etcd.io/bbolt.forEachPage", (some (go.signature.Signature [(go.GoType.Named go!"go.etcd.io/bbolt/internal/common.Pgid" []), (go.GoType.FunctionType (go.signature.Signature [(go.GoType.PointerType (go.GoType.Named go!"go.etcd.io/bbolt/internal/common.Page" [])), go.int, (go.GoType.SliceType (go.GoType.Named go!"go.etcd.io/bbolt/internal/common.Pgid" []))] false []))] false []))), (go!"go.etcd.io/bbolt.forEachPageInternal", (some (go.signature.Signature [(go.GoType.SliceType (go.GoType.Named go!"go.etcd.io/bbolt/internal/common.Pgid" [])), (go.GoType.FunctionType (go.signature.Signature [(go.GoType.PointerType (go.GoType.Named go!"go.etcd.io/bbolt/internal/common.Page" [])), go.int, (go.GoType.SliceType (go.GoType.Named go!"go.etcd.io/bbolt/internal/common.Pgid" []))] false []))] false []))), (go!"go.etcd.io/bbolt.init", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.bbolt.DB.ty)] false []))), (go!"go.etcd.io/bbolt.nonPhysicalRollback", (some (go.signature.Signature [] false []))), (go!"go.etcd.io/bbolt.page", (some (go.signature.Signature [(go.GoType.Named go!"go.etcd.io/bbolt/internal/common.Pgid" [])] false [(go.GoType.PointerType (go.GoType.Named go!"go.etcd.io/bbolt/internal/common.Page" []))]))), (go!"go.etcd.io/bbolt.recursivelyCheckBucket", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.bbolt.Bucket.ty), (go.GoType.MapType (go.GoType.Named go!"go.etcd.io/bbolt/internal/common.Pgid" []) (go.GoType.PointerType (go.GoType.Named go!"go.etcd.io/bbolt/internal/common.Page" []))), (go.GoType.MapType (go.GoType.Named go!"go.etcd.io/bbolt/internal/common.Pgid" []) go.bool), _root_.Perennial.go_etcd_io.bbolt.KVStringer.ty, (go.GoType.ChannelType go.ChanDir.sendrecv go.error)] false []))), (go!"go.etcd.io/bbolt.recursivelyCheckBucketInPage", (some (go.signature.Signature [(go.GoType.Named go!"go.etcd.io/bbolt/internal/common.Pgid" []), (go.GoType.MapType (go.GoType.Named go!"go.etcd.io/bbolt/internal/common.Pgid" []) (go.GoType.PointerType (go.GoType.Named go!"go.etcd.io/bbolt/internal/common.Page" []))), (go.GoType.MapType (go.GoType.Named go!"go.etcd.io/bbolt/internal/common.Pgid" []) go.bool), _root_.Perennial.go_etcd_io.bbolt.KVStringer.ty, (go.GoType.ChannelType go.ChanDir.sendrecv go.error)] false []))), (go!"go.etcd.io/bbolt.recursivelyCheckPage", (some (go.signature.Signature [(go.GoType.Named go!"go.etcd.io/bbolt/internal/common.Pgid" []), (go.GoType.MapType (go.GoType.Named go!"go.etcd.io/bbolt/internal/common.Pgid" []) (go.GoType.PointerType (go.GoType.Named go!"go.etcd.io/bbolt/internal/common.Page" []))), (go.GoType.MapType (go.GoType.Named go!"go.etcd.io/bbolt/internal/common.Pgid" []) go.bool), _root_.Perennial.go_etcd_io.bbolt.KVStringer.ty, (go.GoType.ChannelType go.ChanDir.sendrecv go.error)] false []))), (go!"go.etcd.io/bbolt.recursivelyCheckPageKeyOrder", (some (go.signature.Signature [(go.GoType.Named go!"go.etcd.io/bbolt/internal/common.Pgid" []), (go.GoType.FunctionType (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.string])), (go.GoType.ChannelType go.ChanDir.sendrecv go.error)] false []))), (go!"go.etcd.io/bbolt.recursivelyCheckPageKeyOrderInternal", (some (go.signature.Signature [(go.GoType.Named go!"go.etcd.io/bbolt/internal/common.Pgid" []), (go.GoType.SliceType go.byte), (go.GoType.SliceType go.byte), (go.GoType.SliceType (go.GoType.Named go!"go.etcd.io/bbolt/internal/common.Pgid" [])), (go.GoType.FunctionType (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.string])), (go.GoType.ChannelType go.ChanDir.sendrecv go.error)] false [(go.GoType.SliceType go.byte)]))), (go!"go.etcd.io/bbolt.rollback", (some (go.signature.Signature [] false []))), (go!"go.etcd.io/bbolt.write", (some (go.signature.Signature [] false [go.error]))), (go!"go.etcd.io/bbolt.writeMeta", (some (go.signature.Signature [] false [go.error])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType snapshot.ty) [(go!"Bucket", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.bbolt.Bucket.ty)]))), (go!"Check", (some (go.signature.Signature [(go.GoType.SliceType _root_.Perennial.go_etcd_io.bbolt.CheckOption.ty)] true [(go.GoType.ChannelType go.ChanDir.recvonly go.error)]))), (go!"Close", (some (go.signature.Signature [] false [go.error]))), (go!"Commit", (some (go.signature.Signature [] false [go.error]))), (go!"Copy", (some (go.signature.Signature [_root_.Perennial.io.Writer.ty] false [go.error]))), (go!"CopyFile", (some (go.signature.Signature [go.string, (go.GoType.Named go!"io/fs.FileMode" [])] false [go.error]))), (go!"CreateBucket", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.bbolt.Bucket.ty), go.error]))), (go!"CreateBucketIfNotExists", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.bbolt.Bucket.ty), go.error]))), (go!"Cursor", (some (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.bbolt.Cursor.ty)]))), (go!"DB", (some (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.bbolt.DB.ty)]))), (go!"DeleteBucket", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.error]))), (go!"ForEach", (some (go.signature.Signature [(go.GoType.FunctionType (go.signature.Signature [(go.GoType.SliceType go.byte), (go.GoType.PointerType _root_.Perennial.go_etcd_io.bbolt.Bucket.ty)] false [go.error]))] false [go.error]))), (go!"ID", (some (go.signature.Signature [] false [go.int]))), (go!"Inspect", (some (go.signature.Signature [] false [_root_.Perennial.go_etcd_io.bbolt.BucketStructure.ty]))), (go!"MoveBucket", (some (go.signature.Signature [(go.GoType.SliceType go.byte), (go.GoType.PointerType _root_.Perennial.go_etcd_io.bbolt.Bucket.ty), (go.GoType.PointerType _root_.Perennial.go_etcd_io.bbolt.Bucket.ty)] false [go.error]))), (go!"OnCommit", (some (go.signature.Signature [(go.GoType.FunctionType (go.signature.Signature [] false []))] false []))), (go!"Page", (some (go.signature.Signature [go.int] false [(go.GoType.PointerType (go.GoType.Named go!"go.etcd.io/bbolt/internal/common.PageInfo" [])), go.error]))), (go!"Rollback", (some (go.signature.Signature [] false [go.error]))), (go!"Size", (some (go.signature.Signature [] false [go.int64]))), (go!"Stats", (some (go.signature.Signature [] false [_root_.Perennial.go_etcd_io.bbolt.TxStats.ty]))), (go!"Writable", (some (go.signature.Signature [] false [go.bool]))), (go!"WriteTo", (some (go.signature.Signature [_root_.Perennial.io.Writer.ty] false [go.int64, go.error]))), (go!"go.etcd.io/bbolt.allocate", (some (go.signature.Signature [go.int] false [(go.GoType.PointerType (go.GoType.Named go!"go.etcd.io/bbolt/internal/common.Page" [])), go.error]))), (go!"go.etcd.io/bbolt.check", (some (go.signature.Signature [_root_.Perennial.go_etcd_io.bbolt.checkConfig.ty, (go.GoType.ChannelType go.ChanDir.sendrecv go.error)] false []))), (go!"go.etcd.io/bbolt.checkInvariantProperties", (some (go.signature.Signature [(go.GoType.Named go!"go.etcd.io/bbolt/internal/common.Pgid" []), (go.GoType.MapType (go.GoType.Named go!"go.etcd.io/bbolt/internal/common.Pgid" []) (go.GoType.PointerType (go.GoType.Named go!"go.etcd.io/bbolt/internal/common.Page" []))), (go.GoType.MapType (go.GoType.Named go!"go.etcd.io/bbolt/internal/common.Pgid" []) go.bool), _root_.Perennial.go_etcd_io.bbolt.KVStringer.ty, (go.GoType.ChannelType go.ChanDir.sendrecv go.error)] false []))), (go!"go.etcd.io/bbolt.close", (some (go.signature.Signature [] false []))), (go!"go.etcd.io/bbolt.commitFreelist", (some (go.signature.Signature [] false [go.error]))), (go!"go.etcd.io/bbolt.forEachPage", (some (go.signature.Signature [(go.GoType.Named go!"go.etcd.io/bbolt/internal/common.Pgid" []), (go.GoType.FunctionType (go.signature.Signature [(go.GoType.PointerType (go.GoType.Named go!"go.etcd.io/bbolt/internal/common.Page" [])), go.int, (go.GoType.SliceType (go.GoType.Named go!"go.etcd.io/bbolt/internal/common.Pgid" []))] false []))] false []))), (go!"go.etcd.io/bbolt.forEachPageInternal", (some (go.signature.Signature [(go.GoType.SliceType (go.GoType.Named go!"go.etcd.io/bbolt/internal/common.Pgid" [])), (go.GoType.FunctionType (go.signature.Signature [(go.GoType.PointerType (go.GoType.Named go!"go.etcd.io/bbolt/internal/common.Page" [])), go.int, (go.GoType.SliceType (go.GoType.Named go!"go.etcd.io/bbolt/internal/common.Pgid" []))] false []))] false []))), (go!"go.etcd.io/bbolt.init", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.bbolt.DB.ty)] false []))), (go!"go.etcd.io/bbolt.nonPhysicalRollback", (some (go.signature.Signature [] false []))), (go!"go.etcd.io/bbolt.page", (some (go.signature.Signature [(go.GoType.Named go!"go.etcd.io/bbolt/internal/common.Pgid" [])] false [(go.GoType.PointerType (go.GoType.Named go!"go.etcd.io/bbolt/internal/common.Page" []))]))), (go!"go.etcd.io/bbolt.recursivelyCheckBucket", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.bbolt.Bucket.ty), (go.GoType.MapType (go.GoType.Named go!"go.etcd.io/bbolt/internal/common.Pgid" []) (go.GoType.PointerType (go.GoType.Named go!"go.etcd.io/bbolt/internal/common.Page" []))), (go.GoType.MapType (go.GoType.Named go!"go.etcd.io/bbolt/internal/common.Pgid" []) go.bool), _root_.Perennial.go_etcd_io.bbolt.KVStringer.ty, (go.GoType.ChannelType go.ChanDir.sendrecv go.error)] false []))), (go!"go.etcd.io/bbolt.recursivelyCheckBucketInPage", (some (go.signature.Signature [(go.GoType.Named go!"go.etcd.io/bbolt/internal/common.Pgid" []), (go.GoType.MapType (go.GoType.Named go!"go.etcd.io/bbolt/internal/common.Pgid" []) (go.GoType.PointerType (go.GoType.Named go!"go.etcd.io/bbolt/internal/common.Page" []))), (go.GoType.MapType (go.GoType.Named go!"go.etcd.io/bbolt/internal/common.Pgid" []) go.bool), _root_.Perennial.go_etcd_io.bbolt.KVStringer.ty, (go.GoType.ChannelType go.ChanDir.sendrecv go.error)] false []))), (go!"go.etcd.io/bbolt.recursivelyCheckPage", (some (go.signature.Signature [(go.GoType.Named go!"go.etcd.io/bbolt/internal/common.Pgid" []), (go.GoType.MapType (go.GoType.Named go!"go.etcd.io/bbolt/internal/common.Pgid" []) (go.GoType.PointerType (go.GoType.Named go!"go.etcd.io/bbolt/internal/common.Page" []))), (go.GoType.MapType (go.GoType.Named go!"go.etcd.io/bbolt/internal/common.Pgid" []) go.bool), _root_.Perennial.go_etcd_io.bbolt.KVStringer.ty, (go.GoType.ChannelType go.ChanDir.sendrecv go.error)] false []))), (go!"go.etcd.io/bbolt.recursivelyCheckPageKeyOrder", (some (go.signature.Signature [(go.GoType.Named go!"go.etcd.io/bbolt/internal/common.Pgid" []), (go.GoType.FunctionType (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.string])), (go.GoType.ChannelType go.ChanDir.sendrecv go.error)] false []))), (go!"go.etcd.io/bbolt.recursivelyCheckPageKeyOrderInternal", (some (go.signature.Signature [(go.GoType.Named go!"go.etcd.io/bbolt/internal/common.Pgid" []), (go.GoType.SliceType go.byte), (go.GoType.SliceType go.byte), (go.GoType.SliceType (go.GoType.Named go!"go.etcd.io/bbolt/internal/common.Pgid" [])), (go.GoType.FunctionType (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.string])), (go.GoType.ChannelType go.ChanDir.sendrecv go.error)] false [(go.GoType.SliceType go.byte)]))), (go!"go.etcd.io/bbolt.rollback", (some (go.signature.Signature [] false []))), (go!"go.etcd.io/bbolt.write", (some (go.signature.Signature [] false [go.error]))), (go!"go.etcd.io/bbolt.writeMeta", (some (go.signature.Signature [] false [go.error])))]
   ptr_Close_unfold : MethodUnfold (go.GoType.PointerType snapshot.ty) go!"Close" snapshot.Close.impl
 
 attribute [instance] snapshot.TypeAssumptions.type_repr
@@ -3565,116 +3595,142 @@ attribute [instance] snapshot.TypeAssumptions.type_repr
   snapshot.TypeAssumptions.set_stopc
   snapshot.TypeAssumptions.get_donec
   snapshot.TypeAssumptions.set_donec
+  snapshot.TypeAssumptions.method_set
+  snapshot.TypeAssumptions.ptr_method_set
   snapshot.TypeAssumptions.ptr_Close_unfold
 
-structure zapBoltLogger [FfiSyntax] where
+structure zapBoltLogger [GooseExts] where
   mk ::
   SugaredLogger' : Loc
 
-noncomputable instance zapBoltLogger.zero_val [FfiSyntax] : ZeroVal zapBoltLogger :=
+noncomputable instance zapBoltLogger.zero_val [GooseExts] : ZeroVal zapBoltLogger :=
   ⟨zapBoltLogger.mk zeroValDef⟩
 
-@[reducible] noncomputable def zapBoltLogger.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def zapBoltLogger.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.EmbeddedField go!"SugaredLogger" (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.SugaredLogger.ty))]
 
-@[irreducible] noncomputable def zapBoltLogger.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def zapBoltLogger.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   zapBoltLogger.fieldsUnsealed
 
-noncomputable instance equals_unfold_zapBoltLogger [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_zapBoltLogger [GooseExts] [GoGlobalContext] :
     EqualsUnfold zapBoltLogger.fields zapBoltLogger.fieldsUnsealed :=
   ⟨by unfold zapBoltLogger.fields; rfl⟩
 
-@[reducible] noncomputable def zapBoltLogger.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def zapBoltLogger.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType zapBoltLogger.fields)
 
-class zapBoltLogger.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class zapBoltLogger.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying zapBoltLogger.underlying zapBoltLogger
   underlying : go.UnderlyingDirectedEq zapBoltLogger.ty zapBoltLogger.underlying
   get_SugaredLogger : ∀ (x : zapBoltLogger), go.IsGoStepPureDetTagged under (StructFieldGet zapBoltLogger.underlying go!"SugaredLogger") #x (Val #(x.SugaredLogger'))
   set_SugaredLogger : ∀ (x : zapBoltLogger) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet zapBoltLogger.underlying go!"SugaredLogger") (PairV #x #y) (Val #(({ x with SugaredLogger' := y } : zapBoltLogger)))
+  method_set : go.MethodSetIs zapBoltLogger.ty [(go!"DPanic", (some (go.signature.Signature [(go.GoType.SliceType (go.GoType.InterfaceType []))] true []))), (go!"DPanicf", (some (go.signature.Signature [go.string, (go.GoType.SliceType (go.GoType.InterfaceType []))] true []))), (go!"DPanicln", (some (go.signature.Signature [(go.GoType.SliceType (go.GoType.InterfaceType []))] true []))), (go!"DPanicw", (some (go.signature.Signature [go.string, (go.GoType.SliceType (go.GoType.InterfaceType []))] true []))), (go!"Debug", (some (go.signature.Signature [(go.GoType.SliceType (go.GoType.InterfaceType []))] true []))), (go!"Debugf", (some (go.signature.Signature [go.string, (go.GoType.SliceType (go.GoType.InterfaceType []))] true []))), (go!"Debugln", (some (go.signature.Signature [(go.GoType.SliceType (go.GoType.InterfaceType []))] true []))), (go!"Debugw", (some (go.signature.Signature [go.string, (go.GoType.SliceType (go.GoType.InterfaceType []))] true []))), (go!"Desugar", (some (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)]))), (go!"Error", (some (go.signature.Signature [(go.GoType.SliceType (go.GoType.InterfaceType []))] true []))), (go!"Errorf", (some (go.signature.Signature [go.string, (go.GoType.SliceType (go.GoType.InterfaceType []))] true []))), (go!"Errorln", (some (go.signature.Signature [(go.GoType.SliceType (go.GoType.InterfaceType []))] true []))), (go!"Errorw", (some (go.signature.Signature [go.string, (go.GoType.SliceType (go.GoType.InterfaceType []))] true []))), (go!"Fatal", (some (go.signature.Signature [(go.GoType.SliceType (go.GoType.InterfaceType []))] true []))), (go!"Fatalf", (some (go.signature.Signature [go.string, (go.GoType.SliceType (go.GoType.InterfaceType []))] true []))), (go!"Fatalln", (some (go.signature.Signature [(go.GoType.SliceType (go.GoType.InterfaceType []))] true []))), (go!"Fatalw", (some (go.signature.Signature [go.string, (go.GoType.SliceType (go.GoType.InterfaceType []))] true []))), (go!"Info", (some (go.signature.Signature [(go.GoType.SliceType (go.GoType.InterfaceType []))] true []))), (go!"Infof", (some (go.signature.Signature [go.string, (go.GoType.SliceType (go.GoType.InterfaceType []))] true []))), (go!"Infoln", (some (go.signature.Signature [(go.GoType.SliceType (go.GoType.InterfaceType []))] true []))), (go!"Infow", (some (go.signature.Signature [go.string, (go.GoType.SliceType (go.GoType.InterfaceType []))] true []))), (go!"Level", (some (go.signature.Signature [] false [(go.GoType.Named go!"go.uber.org/zap/zapcore.Level" [])]))), (go!"Log", (some (go.signature.Signature [(go.GoType.Named go!"go.uber.org/zap/zapcore.Level" []), (go.GoType.SliceType (go.GoType.InterfaceType []))] true []))), (go!"Logf", (some (go.signature.Signature [(go.GoType.Named go!"go.uber.org/zap/zapcore.Level" []), go.string, (go.GoType.SliceType (go.GoType.InterfaceType []))] true []))), (go!"Logln", (some (go.signature.Signature [(go.GoType.Named go!"go.uber.org/zap/zapcore.Level" []), (go.GoType.SliceType (go.GoType.InterfaceType []))] true []))), (go!"Logw", (some (go.signature.Signature [(go.GoType.Named go!"go.uber.org/zap/zapcore.Level" []), go.string, (go.GoType.SliceType (go.GoType.InterfaceType []))] true []))), (go!"Named", (some (go.signature.Signature [go.string] false [(go.GoType.PointerType _root_.Perennial.go_uber_org.zap.SugaredLogger.ty)]))), (go!"Panic", (some (go.signature.Signature [(go.GoType.SliceType (go.GoType.InterfaceType []))] true []))), (go!"Panicf", (some (go.signature.Signature [go.string, (go.GoType.SliceType (go.GoType.InterfaceType []))] true []))), (go!"Panicln", (some (go.signature.Signature [(go.GoType.SliceType (go.GoType.InterfaceType []))] true []))), (go!"Panicw", (some (go.signature.Signature [go.string, (go.GoType.SliceType (go.GoType.InterfaceType []))] true []))), (go!"Sync", (some (go.signature.Signature [] false [go.error]))), (go!"Warn", (some (go.signature.Signature [(go.GoType.SliceType (go.GoType.InterfaceType []))] true []))), (go!"Warnf", (some (go.signature.Signature [go.string, (go.GoType.SliceType (go.GoType.InterfaceType []))] true []))), (go!"Warnln", (some (go.signature.Signature [(go.GoType.SliceType (go.GoType.InterfaceType []))] true []))), (go!"Warnw", (some (go.signature.Signature [go.string, (go.GoType.SliceType (go.GoType.InterfaceType []))] true []))), (go!"With", (some (go.signature.Signature [(go.GoType.SliceType (go.GoType.InterfaceType []))] true [(go.GoType.PointerType _root_.Perennial.go_uber_org.zap.SugaredLogger.ty)]))), (go!"WithLazy", (some (go.signature.Signature [(go.GoType.SliceType (go.GoType.InterfaceType []))] true [(go.GoType.PointerType _root_.Perennial.go_uber_org.zap.SugaredLogger.ty)]))), (go!"WithOptions", (some (go.signature.Signature [(go.GoType.SliceType _root_.Perennial.go_uber_org.zap.Option.ty)] true [(go.GoType.PointerType _root_.Perennial.go_uber_org.zap.SugaredLogger.ty)]))), (go!"go.uber.org/zap.log", (some (go.signature.Signature [(go.GoType.Named go!"go.uber.org/zap/zapcore.Level" []), go.string, (go.GoType.SliceType (go.GoType.InterfaceType [])), (go.GoType.SliceType (go.GoType.InterfaceType []))] false []))), (go!"go.uber.org/zap.logln", (some (go.signature.Signature [(go.GoType.Named go!"go.uber.org/zap/zapcore.Level" []), (go.GoType.SliceType (go.GoType.InterfaceType [])), (go.GoType.SliceType (go.GoType.InterfaceType []))] false []))), (go!"go.uber.org/zap.sweetenFields", (some (go.signature.Signature [(go.GoType.SliceType (go.GoType.InterfaceType []))] false [(go.GoType.SliceType (go.GoType.Named go!"go.uber.org/zap/zapcore.Field" []))])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType zapBoltLogger.ty) [(go!"DPanic", (some (go.signature.Signature [(go.GoType.SliceType (go.GoType.InterfaceType []))] true []))), (go!"DPanicf", (some (go.signature.Signature [go.string, (go.GoType.SliceType (go.GoType.InterfaceType []))] true []))), (go!"DPanicln", (some (go.signature.Signature [(go.GoType.SliceType (go.GoType.InterfaceType []))] true []))), (go!"DPanicw", (some (go.signature.Signature [go.string, (go.GoType.SliceType (go.GoType.InterfaceType []))] true []))), (go!"Debug", (some (go.signature.Signature [(go.GoType.SliceType (go.GoType.InterfaceType []))] true []))), (go!"Debugf", (some (go.signature.Signature [go.string, (go.GoType.SliceType (go.GoType.InterfaceType []))] true []))), (go!"Debugln", (some (go.signature.Signature [(go.GoType.SliceType (go.GoType.InterfaceType []))] true []))), (go!"Debugw", (some (go.signature.Signature [go.string, (go.GoType.SliceType (go.GoType.InterfaceType []))] true []))), (go!"Desugar", (some (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)]))), (go!"Error", (some (go.signature.Signature [(go.GoType.SliceType (go.GoType.InterfaceType []))] true []))), (go!"Errorf", (some (go.signature.Signature [go.string, (go.GoType.SliceType (go.GoType.InterfaceType []))] true []))), (go!"Errorln", (some (go.signature.Signature [(go.GoType.SliceType (go.GoType.InterfaceType []))] true []))), (go!"Errorw", (some (go.signature.Signature [go.string, (go.GoType.SliceType (go.GoType.InterfaceType []))] true []))), (go!"Fatal", (some (go.signature.Signature [(go.GoType.SliceType (go.GoType.InterfaceType []))] true []))), (go!"Fatalf", (some (go.signature.Signature [go.string, (go.GoType.SliceType (go.GoType.InterfaceType []))] true []))), (go!"Fatalln", (some (go.signature.Signature [(go.GoType.SliceType (go.GoType.InterfaceType []))] true []))), (go!"Fatalw", (some (go.signature.Signature [go.string, (go.GoType.SliceType (go.GoType.InterfaceType []))] true []))), (go!"Info", (some (go.signature.Signature [(go.GoType.SliceType (go.GoType.InterfaceType []))] true []))), (go!"Infof", (some (go.signature.Signature [go.string, (go.GoType.SliceType (go.GoType.InterfaceType []))] true []))), (go!"Infoln", (some (go.signature.Signature [(go.GoType.SliceType (go.GoType.InterfaceType []))] true []))), (go!"Infow", (some (go.signature.Signature [go.string, (go.GoType.SliceType (go.GoType.InterfaceType []))] true []))), (go!"Level", (some (go.signature.Signature [] false [(go.GoType.Named go!"go.uber.org/zap/zapcore.Level" [])]))), (go!"Log", (some (go.signature.Signature [(go.GoType.Named go!"go.uber.org/zap/zapcore.Level" []), (go.GoType.SliceType (go.GoType.InterfaceType []))] true []))), (go!"Logf", (some (go.signature.Signature [(go.GoType.Named go!"go.uber.org/zap/zapcore.Level" []), go.string, (go.GoType.SliceType (go.GoType.InterfaceType []))] true []))), (go!"Logln", (some (go.signature.Signature [(go.GoType.Named go!"go.uber.org/zap/zapcore.Level" []), (go.GoType.SliceType (go.GoType.InterfaceType []))] true []))), (go!"Logw", (some (go.signature.Signature [(go.GoType.Named go!"go.uber.org/zap/zapcore.Level" []), go.string, (go.GoType.SliceType (go.GoType.InterfaceType []))] true []))), (go!"Named", (some (go.signature.Signature [go.string] false [(go.GoType.PointerType _root_.Perennial.go_uber_org.zap.SugaredLogger.ty)]))), (go!"Panic", (some (go.signature.Signature [(go.GoType.SliceType (go.GoType.InterfaceType []))] true []))), (go!"Panicf", (some (go.signature.Signature [go.string, (go.GoType.SliceType (go.GoType.InterfaceType []))] true []))), (go!"Panicln", (some (go.signature.Signature [(go.GoType.SliceType (go.GoType.InterfaceType []))] true []))), (go!"Panicw", (some (go.signature.Signature [go.string, (go.GoType.SliceType (go.GoType.InterfaceType []))] true []))), (go!"Sync", (some (go.signature.Signature [] false [go.error]))), (go!"Warn", (some (go.signature.Signature [(go.GoType.SliceType (go.GoType.InterfaceType []))] true []))), (go!"Warnf", (some (go.signature.Signature [go.string, (go.GoType.SliceType (go.GoType.InterfaceType []))] true []))), (go!"Warning", (some (go.signature.Signature [(go.GoType.SliceType go.any)] true []))), (go!"Warningf", (some (go.signature.Signature [go.string, (go.GoType.SliceType go.any)] true []))), (go!"Warnln", (some (go.signature.Signature [(go.GoType.SliceType (go.GoType.InterfaceType []))] true []))), (go!"Warnw", (some (go.signature.Signature [go.string, (go.GoType.SliceType (go.GoType.InterfaceType []))] true []))), (go!"With", (some (go.signature.Signature [(go.GoType.SliceType (go.GoType.InterfaceType []))] true [(go.GoType.PointerType _root_.Perennial.go_uber_org.zap.SugaredLogger.ty)]))), (go!"WithLazy", (some (go.signature.Signature [(go.GoType.SliceType (go.GoType.InterfaceType []))] true [(go.GoType.PointerType _root_.Perennial.go_uber_org.zap.SugaredLogger.ty)]))), (go!"WithOptions", (some (go.signature.Signature [(go.GoType.SliceType _root_.Perennial.go_uber_org.zap.Option.ty)] true [(go.GoType.PointerType _root_.Perennial.go_uber_org.zap.SugaredLogger.ty)]))), (go!"go.uber.org/zap.log", (some (go.signature.Signature [(go.GoType.Named go!"go.uber.org/zap/zapcore.Level" []), go.string, (go.GoType.SliceType (go.GoType.InterfaceType [])), (go.GoType.SliceType (go.GoType.InterfaceType []))] false []))), (go!"go.uber.org/zap.logln", (some (go.signature.Signature [(go.GoType.Named go!"go.uber.org/zap/zapcore.Level" []), (go.GoType.SliceType (go.GoType.InterfaceType [])), (go.GoType.SliceType (go.GoType.InterfaceType []))] false []))), (go!"go.uber.org/zap.sweetenFields", (some (go.signature.Signature [(go.GoType.SliceType (go.GoType.InterfaceType []))] false [(go.GoType.SliceType (go.GoType.Named go!"go.uber.org/zap/zapcore.Field" []))])))]
 
 attribute [instance] zapBoltLogger.TypeAssumptions.type_repr
   zapBoltLogger.TypeAssumptions.underlying
   zapBoltLogger.TypeAssumptions.get_SugaredLogger
   zapBoltLogger.TypeAssumptions.set_SugaredLogger
+  zapBoltLogger.TypeAssumptions.method_set
+  zapBoltLogger.TypeAssumptions.ptr_method_set
 
-abbrev BucketID [FfiSyntax] : Type := w64
+abbrev BucketID [GooseExts] : Type := w64
 
-@[reducible] noncomputable def BucketID.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def BucketID.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   go.int
 
-class BucketID.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class BucketID.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq BucketID.ty BucketID.underlying
+  method_set : go.MethodSetIs BucketID.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType BucketID.ty) []
 
 attribute [instance] BucketID.TypeAssumptions.underlying
+  BucketID.TypeAssumptions.method_set
+  BucketID.TypeAssumptions.ptr_method_set
 
-abbrev Bucket [FfiSyntax] : Type := GoInterface
+abbrev Bucket [GooseExts] : Type := GoInterface
 
-@[reducible] noncomputable def Bucket.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def Bucket.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"ID" (go.signature.Signature [] false [BucketID.ty])), (go.InterfaceElem.MethodElem go!"IsSafeRangeBucket" (go.signature.Signature [] false [go.bool])), (go.InterfaceElem.MethodElem go!"Name" (go.signature.Signature [] false [(go.GoType.SliceType go.byte)])), (go.InterfaceElem.MethodElem go!"String" (go.signature.Signature [] false [go.string]))])
 
-class Bucket.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class Bucket.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq Bucket.ty Bucket.underlying
+  method_set : go.MethodSetIs Bucket.ty [(go!"ID", (some (go.signature.Signature [] false [BucketID.ty]))), (go!"IsSafeRangeBucket", (some (go.signature.Signature [] false [go.bool]))), (go!"Name", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte)]))), (go!"String", (some (go.signature.Signature [] false [go.string])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType Bucket.ty) []
 
 attribute [instance] Bucket.TypeAssumptions.underlying
+  Bucket.TypeAssumptions.method_set
+  Bucket.TypeAssumptions.ptr_method_set
 
-abbrev BatchTx [FfiSyntax] : Type := GoInterface
+abbrev BatchTx [GooseExts] : Type := GoInterface
 
-@[reducible] noncomputable def BatchTx.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
-  (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"Commit" (go.signature.Signature [] false [])), (go.InterfaceElem.MethodElem go!"CommitAndStop" (go.signature.Signature [] false [])), (go.InterfaceElem.MethodElem go!"Lock" (go.signature.Signature [] false [])), (go.InterfaceElem.MethodElem go!"LockInsideApply" (go.signature.Signature [] false [])), (go.InterfaceElem.MethodElem go!"LockOutsideApply" (go.signature.Signature [] false [])), (go.InterfaceElem.MethodElem go!"Unlock" (go.signature.Signature [] false [])), (go.InterfaceElem.TypeElem [(go.type_term.TypeTerm UnsafeReadWriter.ty)])])
+@[reducible] noncomputable def BatchTx.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
+  (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"Commit" (go.signature.Signature [] false [])), (go.InterfaceElem.MethodElem go!"CommitAndStop" (go.signature.Signature [] false [])), (go.InterfaceElem.MethodElem go!"Lock" (go.signature.Signature [] false [])), (go.InterfaceElem.MethodElem go!"LockInsideApply" (go.signature.Signature [] false [])), (go.InterfaceElem.MethodElem go!"LockOutsideApply" (go.signature.Signature [] false [])), (go.InterfaceElem.MethodElem go!"Unlock" (go.signature.Signature [] false [])), (go.InterfaceElem.MethodElem go!"UnsafeCreateBucket" (go.signature.Signature [Bucket.ty] false [])), (go.InterfaceElem.MethodElem go!"UnsafeDelete" (go.signature.Signature [Bucket.ty, (go.GoType.SliceType go.byte)] false [])), (go.InterfaceElem.MethodElem go!"UnsafeDeleteBucket" (go.signature.Signature [Bucket.ty] false [])), (go.InterfaceElem.MethodElem go!"UnsafeForEach" (go.signature.Signature [Bucket.ty, (go.GoType.FunctionType (go.signature.Signature [(go.GoType.SliceType go.byte), (go.GoType.SliceType go.byte)] false [go.error]))] false [go.error])), (go.InterfaceElem.MethodElem go!"UnsafePut" (go.signature.Signature [Bucket.ty, (go.GoType.SliceType go.byte), (go.GoType.SliceType go.byte)] false [])), (go.InterfaceElem.MethodElem go!"UnsafeRange" (go.signature.Signature [Bucket.ty, (go.GoType.SliceType go.byte), (go.GoType.SliceType go.byte), go.int64] false [(go.GoType.SliceType (go.GoType.SliceType go.byte)), (go.GoType.SliceType (go.GoType.SliceType go.byte))])), (go.InterfaceElem.MethodElem go!"UnsafeSeqPut" (go.signature.Signature [Bucket.ty, (go.GoType.SliceType go.byte), (go.GoType.SliceType go.byte)] false []))])
 
-class BatchTx.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class BatchTx.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq BatchTx.ty BatchTx.underlying
+  method_set : go.MethodSetIs BatchTx.ty [(go!"Commit", (some (go.signature.Signature [] false []))), (go!"CommitAndStop", (some (go.signature.Signature [] false []))), (go!"Lock", (some (go.signature.Signature [] false []))), (go!"LockInsideApply", (some (go.signature.Signature [] false []))), (go!"LockOutsideApply", (some (go.signature.Signature [] false []))), (go!"Unlock", (some (go.signature.Signature [] false []))), (go!"UnsafeCreateBucket", (some (go.signature.Signature [Bucket.ty] false []))), (go!"UnsafeDelete", (some (go.signature.Signature [Bucket.ty, (go.GoType.SliceType go.byte)] false []))), (go!"UnsafeDeleteBucket", (some (go.signature.Signature [Bucket.ty] false []))), (go!"UnsafeForEach", (some (go.signature.Signature [Bucket.ty, (go.GoType.FunctionType (go.signature.Signature [(go.GoType.SliceType go.byte), (go.GoType.SliceType go.byte)] false [go.error]))] false [go.error]))), (go!"UnsafePut", (some (go.signature.Signature [Bucket.ty, (go.GoType.SliceType go.byte), (go.GoType.SliceType go.byte)] false []))), (go!"UnsafeRange", (some (go.signature.Signature [Bucket.ty, (go.GoType.SliceType go.byte), (go.GoType.SliceType go.byte), go.int64] false [(go.GoType.SliceType (go.GoType.SliceType go.byte)), (go.GoType.SliceType (go.GoType.SliceType go.byte))]))), (go!"UnsafeSeqPut", (some (go.signature.Signature [Bucket.ty, (go.GoType.SliceType go.byte), (go.GoType.SliceType go.byte)] false [])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType BatchTx.ty) []
 
 attribute [instance] BatchTx.TypeAssumptions.underlying
+  BatchTx.TypeAssumptions.method_set
+  BatchTx.TypeAssumptions.ptr_method_set
 
-abbrev UnsafeReadWriter [FfiSyntax] : Type := GoInterface
+abbrev UnsafeReadWriter [GooseExts] : Type := GoInterface
 
-@[reducible] noncomputable def UnsafeReadWriter.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
-  (go.GoType.InterfaceType [(go.InterfaceElem.TypeElem [(go.type_term.TypeTerm UnsafeReader.ty)]), (go.InterfaceElem.TypeElem [(go.type_term.TypeTerm UnsafeWriter.ty)])])
+@[reducible] noncomputable def UnsafeReadWriter.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
+  (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"UnsafeCreateBucket" (go.signature.Signature [Bucket.ty] false [])), (go.InterfaceElem.MethodElem go!"UnsafeDelete" (go.signature.Signature [Bucket.ty, (go.GoType.SliceType go.byte)] false [])), (go.InterfaceElem.MethodElem go!"UnsafeDeleteBucket" (go.signature.Signature [Bucket.ty] false [])), (go.InterfaceElem.MethodElem go!"UnsafeForEach" (go.signature.Signature [Bucket.ty, (go.GoType.FunctionType (go.signature.Signature [(go.GoType.SliceType go.byte), (go.GoType.SliceType go.byte)] false [go.error]))] false [go.error])), (go.InterfaceElem.MethodElem go!"UnsafePut" (go.signature.Signature [Bucket.ty, (go.GoType.SliceType go.byte), (go.GoType.SliceType go.byte)] false [])), (go.InterfaceElem.MethodElem go!"UnsafeRange" (go.signature.Signature [Bucket.ty, (go.GoType.SliceType go.byte), (go.GoType.SliceType go.byte), go.int64] false [(go.GoType.SliceType (go.GoType.SliceType go.byte)), (go.GoType.SliceType (go.GoType.SliceType go.byte))])), (go.InterfaceElem.MethodElem go!"UnsafeSeqPut" (go.signature.Signature [Bucket.ty, (go.GoType.SliceType go.byte), (go.GoType.SliceType go.byte)] false []))])
 
-class UnsafeReadWriter.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class UnsafeReadWriter.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq UnsafeReadWriter.ty UnsafeReadWriter.underlying
+  method_set : go.MethodSetIs UnsafeReadWriter.ty [(go!"UnsafeCreateBucket", (some (go.signature.Signature [Bucket.ty] false []))), (go!"UnsafeDelete", (some (go.signature.Signature [Bucket.ty, (go.GoType.SliceType go.byte)] false []))), (go!"UnsafeDeleteBucket", (some (go.signature.Signature [Bucket.ty] false []))), (go!"UnsafeForEach", (some (go.signature.Signature [Bucket.ty, (go.GoType.FunctionType (go.signature.Signature [(go.GoType.SliceType go.byte), (go.GoType.SliceType go.byte)] false [go.error]))] false [go.error]))), (go!"UnsafePut", (some (go.signature.Signature [Bucket.ty, (go.GoType.SliceType go.byte), (go.GoType.SliceType go.byte)] false []))), (go!"UnsafeRange", (some (go.signature.Signature [Bucket.ty, (go.GoType.SliceType go.byte), (go.GoType.SliceType go.byte), go.int64] false [(go.GoType.SliceType (go.GoType.SliceType go.byte)), (go.GoType.SliceType (go.GoType.SliceType go.byte))]))), (go!"UnsafeSeqPut", (some (go.signature.Signature [Bucket.ty, (go.GoType.SliceType go.byte), (go.GoType.SliceType go.byte)] false [])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType UnsafeReadWriter.ty) []
 
 attribute [instance] UnsafeReadWriter.TypeAssumptions.underlying
+  UnsafeReadWriter.TypeAssumptions.method_set
+  UnsafeReadWriter.TypeAssumptions.ptr_method_set
 
-abbrev UnsafeWriter [FfiSyntax] : Type := GoInterface
+abbrev UnsafeWriter [GooseExts] : Type := GoInterface
 
-@[reducible] noncomputable def UnsafeWriter.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def UnsafeWriter.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"UnsafeCreateBucket" (go.signature.Signature [Bucket.ty] false [])), (go.InterfaceElem.MethodElem go!"UnsafeDelete" (go.signature.Signature [Bucket.ty, (go.GoType.SliceType go.byte)] false [])), (go.InterfaceElem.MethodElem go!"UnsafeDeleteBucket" (go.signature.Signature [Bucket.ty] false [])), (go.InterfaceElem.MethodElem go!"UnsafePut" (go.signature.Signature [Bucket.ty, (go.GoType.SliceType go.byte), (go.GoType.SliceType go.byte)] false [])), (go.InterfaceElem.MethodElem go!"UnsafeSeqPut" (go.signature.Signature [Bucket.ty, (go.GoType.SliceType go.byte), (go.GoType.SliceType go.byte)] false []))])
 
-class UnsafeWriter.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class UnsafeWriter.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq UnsafeWriter.ty UnsafeWriter.underlying
+  method_set : go.MethodSetIs UnsafeWriter.ty [(go!"UnsafeCreateBucket", (some (go.signature.Signature [Bucket.ty] false []))), (go!"UnsafeDelete", (some (go.signature.Signature [Bucket.ty, (go.GoType.SliceType go.byte)] false []))), (go!"UnsafeDeleteBucket", (some (go.signature.Signature [Bucket.ty] false []))), (go!"UnsafePut", (some (go.signature.Signature [Bucket.ty, (go.GoType.SliceType go.byte), (go.GoType.SliceType go.byte)] false []))), (go!"UnsafeSeqPut", (some (go.signature.Signature [Bucket.ty, (go.GoType.SliceType go.byte), (go.GoType.SliceType go.byte)] false [])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType UnsafeWriter.ty) []
 
 attribute [instance] UnsafeWriter.TypeAssumptions.underlying
+  UnsafeWriter.TypeAssumptions.method_set
+  UnsafeWriter.TypeAssumptions.ptr_method_set
 
-structure batchTx [FfiSyntax] where
+structure batchTx [GooseExts] where
   mk ::
   Mutex' : _root_.Perennial.sync.Mutex
   tx' : Loc
   backend' : Loc
   pending' : w64
 
-noncomputable instance batchTx.zero_val [FfiSyntax] : ZeroVal batchTx :=
+noncomputable instance batchTx.zero_val [GooseExts] : ZeroVal batchTx :=
   ⟨batchTx.mk zeroValDef zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def batchTx.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def batchTx.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.EmbeddedField go!"Mutex" _root_.Perennial.sync.Mutex.ty),
 (go.field_decl.FieldDecl go!"tx" (go.GoType.PointerType _root_.Perennial.go_etcd_io.bbolt.Tx.ty)),
 (go.field_decl.FieldDecl go!"backend" (go.GoType.PointerType backend.ty)),
 (go.field_decl.FieldDecl go!"pending" go.int)]
 
-@[irreducible] noncomputable def batchTx.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def batchTx.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   batchTx.fieldsUnsealed
 
-noncomputable instance equals_unfold_batchTx [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_batchTx [GooseExts] [GoGlobalContext] :
     EqualsUnfold batchTx.fields batchTx.fieldsUnsealed :=
   ⟨by unfold batchTx.fields; rfl⟩
 
-@[reducible] noncomputable def batchTx.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def batchTx.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType batchTx.fields)
 
-class batchTx.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class batchTx.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying batchTx.underlying batchTx
   underlying : go.UnderlyingDirectedEq batchTx.ty batchTx.underlying
   get_Mutex : ∀ (x : batchTx), go.IsGoStepPureDetTagged under (StructFieldGet batchTx.underlying go!"Mutex") #x (Val #(x.Mutex'))
@@ -3685,6 +3741,8 @@ class batchTx.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [Go
   set_backend : ∀ (x : batchTx) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet batchTx.underlying go!"backend") (PairV #x #y) (Val #(({ x with backend' := y } : batchTx)))
   get_pending : ∀ (x : batchTx), go.IsGoStepPureDetTagged under (StructFieldGet batchTx.underlying go!"pending") #x (Val #(x.pending'))
   set_pending : ∀ (x : batchTx) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet batchTx.underlying go!"pending") (PairV #x #y) (Val #(({ x with pending' := y } : batchTx)))
+  method_set : go.MethodSetIs batchTx.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType batchTx.ty) [(go!"Commit", (some (go.signature.Signature [] false []))), (go!"CommitAndStop", (some (go.signature.Signature [] false []))), (go!"Lock", (some (go.signature.Signature [] false []))), (go!"LockInsideApply", (some (go.signature.Signature [] false []))), (go!"LockOutsideApply", (some (go.signature.Signature [] false []))), (go!"TryLock", (some (go.signature.Signature [] false [go.bool]))), (go!"Unlock", (some (go.signature.Signature [] false []))), (go!"UnsafeCreateBucket", (some (go.signature.Signature [Bucket.ty] false []))), (go!"UnsafeDelete", (some (go.signature.Signature [Bucket.ty, (go.GoType.SliceType go.byte)] false []))), (go!"UnsafeDeleteBucket", (some (go.signature.Signature [Bucket.ty] false []))), (go!"UnsafeForEach", (some (go.signature.Signature [Bucket.ty, (go.GoType.FunctionType (go.signature.Signature [(go.GoType.SliceType go.byte), (go.GoType.SliceType go.byte)] false [go.error]))] false [go.error]))), (go!"UnsafePut", (some (go.signature.Signature [Bucket.ty, (go.GoType.SliceType go.byte), (go.GoType.SliceType go.byte)] false []))), (go!"UnsafeRange", (some (go.signature.Signature [Bucket.ty, (go.GoType.SliceType go.byte), (go.GoType.SliceType go.byte), go.int64] false [(go.GoType.SliceType (go.GoType.SliceType go.byte)), (go.GoType.SliceType (go.GoType.SliceType go.byte))]))), (go!"UnsafeSeqPut", (some (go.signature.Signature [Bucket.ty, (go.GoType.SliceType go.byte), (go.GoType.SliceType go.byte)] false []))), (go!"go.etcd.io/etcd/server/v3/storage/backend.commit", (some (go.signature.Signature [go.bool] false []))), (go!"go.etcd.io/etcd/server/v3/storage/backend.lock", (some (go.signature.Signature [] false []))), (go!"go.etcd.io/etcd/server/v3/storage/backend.safePending", (some (go.signature.Signature [] false [go.int]))), (go!"go.etcd.io/etcd/server/v3/storage/backend.unsafePut", (some (go.signature.Signature [Bucket.ty, (go.GoType.SliceType go.byte), (go.GoType.SliceType go.byte), go.bool] false [])))]
   ptr_Commit_unfold : MethodUnfold (go.GoType.PointerType batchTx.ty) go!"Commit" batchTx.Commit.impl
   ptr_CommitAndStop_unfold : MethodUnfold (go.GoType.PointerType batchTx.ty) go!"CommitAndStop" batchTx.CommitAndStop.impl
   ptr_Lock_unfold : MethodUnfold (go.GoType.PointerType batchTx.ty) go!"Lock" batchTx.Lock.impl
@@ -3715,6 +3773,8 @@ attribute [instance] batchTx.TypeAssumptions.type_repr
   batchTx.TypeAssumptions.set_backend
   batchTx.TypeAssumptions.get_pending
   batchTx.TypeAssumptions.set_pending
+  batchTx.TypeAssumptions.method_set
+  batchTx.TypeAssumptions.ptr_method_set
   batchTx.TypeAssumptions.ptr_Commit_unfold
   batchTx.TypeAssumptions.ptr_CommitAndStop_unfold
   batchTx.TypeAssumptions.ptr_Lock_unfold
@@ -3734,68 +3794,74 @@ attribute [instance] batchTx.TypeAssumptions.type_repr
   batchTx.TypeAssumptions.ptr_safePending_unfold
   batchTx.TypeAssumptions.ptr_unsafePut_unfold
 
-structure txBuffer [FfiSyntax] where
+structure txBuffer [GooseExts] where
   mk ::
   buckets' : GoMap
 
-noncomputable instance txBuffer.zero_val [FfiSyntax] : ZeroVal txBuffer :=
+noncomputable instance txBuffer.zero_val [GooseExts] : ZeroVal txBuffer :=
   ⟨txBuffer.mk zeroValDef⟩
 
-@[reducible] noncomputable def txBuffer.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def txBuffer.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"buckets" (go.GoType.MapType BucketID.ty (go.GoType.PointerType bucketBuffer.ty)))]
 
-@[irreducible] noncomputable def txBuffer.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def txBuffer.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   txBuffer.fieldsUnsealed
 
-noncomputable instance equals_unfold_txBuffer [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_txBuffer [GooseExts] [GoGlobalContext] :
     EqualsUnfold txBuffer.fields txBuffer.fieldsUnsealed :=
   ⟨by unfold txBuffer.fields; rfl⟩
 
-@[reducible] noncomputable def txBuffer.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def txBuffer.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType txBuffer.fields)
 
-class txBuffer.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class txBuffer.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying txBuffer.underlying txBuffer
   underlying : go.UnderlyingDirectedEq txBuffer.ty txBuffer.underlying
   get_buckets : ∀ (x : txBuffer), go.IsGoStepPureDetTagged under (StructFieldGet txBuffer.underlying go!"buckets") #x (Val #(x.buckets'))
   set_buckets : ∀ (x : txBuffer) (y : GoMap), go.IsGoStepPureDetTagged under (StructFieldSet txBuffer.underlying go!"buckets") (PairV #x #y) (Val #(({ x with buckets' := y } : txBuffer)))
+  method_set : go.MethodSetIs txBuffer.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType txBuffer.ty) [(go!"go.etcd.io/etcd/server/v3/storage/backend.reset", (some (go.signature.Signature [] false [])))]
   ptr_reset_unfold : MethodUnfold (go.GoType.PointerType txBuffer.ty) go!"reset" txBuffer.reset.impl
 
 attribute [instance] txBuffer.TypeAssumptions.type_repr
   txBuffer.TypeAssumptions.underlying
   txBuffer.TypeAssumptions.get_buckets
   txBuffer.TypeAssumptions.set_buckets
+  txBuffer.TypeAssumptions.method_set
+  txBuffer.TypeAssumptions.ptr_method_set
   txBuffer.TypeAssumptions.ptr_reset_unfold
 
-structure txWriteBuffer [FfiSyntax] where
+structure txWriteBuffer [GooseExts] where
   mk ::
   txBuffer' : txBuffer
   bucket2seq' : GoMap
 
-noncomputable instance txWriteBuffer.zero_val [FfiSyntax] : ZeroVal txWriteBuffer :=
+noncomputable instance txWriteBuffer.zero_val [GooseExts] : ZeroVal txWriteBuffer :=
   ⟨txWriteBuffer.mk zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def txWriteBuffer.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def txWriteBuffer.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.EmbeddedField go!"txBuffer" txBuffer.ty),
 (go.field_decl.FieldDecl go!"bucket2seq" (go.GoType.MapType BucketID.ty go.bool))]
 
-@[irreducible] noncomputable def txWriteBuffer.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def txWriteBuffer.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   txWriteBuffer.fieldsUnsealed
 
-noncomputable instance equals_unfold_txWriteBuffer [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_txWriteBuffer [GooseExts] [GoGlobalContext] :
     EqualsUnfold txWriteBuffer.fields txWriteBuffer.fieldsUnsealed :=
   ⟨by unfold txWriteBuffer.fields; rfl⟩
 
-@[reducible] noncomputable def txWriteBuffer.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def txWriteBuffer.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType txWriteBuffer.fields)
 
-class txWriteBuffer.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class txWriteBuffer.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying txWriteBuffer.underlying txWriteBuffer
   underlying : go.UnderlyingDirectedEq txWriteBuffer.ty txWriteBuffer.underlying
   get_txBuffer : ∀ (x : txWriteBuffer), go.IsGoStepPureDetTagged under (StructFieldGet txWriteBuffer.underlying go!"txBuffer") #x (Val #(x.txBuffer'))
   set_txBuffer : ∀ (x : txWriteBuffer) (y : txBuffer), go.IsGoStepPureDetTagged under (StructFieldSet txWriteBuffer.underlying go!"txBuffer") (PairV #x #y) (Val #(({ x with txBuffer' := y } : txWriteBuffer)))
   get_bucket2seq : ∀ (x : txWriteBuffer), go.IsGoStepPureDetTagged under (StructFieldGet txWriteBuffer.underlying go!"bucket2seq") #x (Val #(x.bucket2seq'))
   set_bucket2seq : ∀ (x : txWriteBuffer) (y : GoMap), go.IsGoStepPureDetTagged under (StructFieldSet txWriteBuffer.underlying go!"bucket2seq") (PairV #x #y) (Val #(({ x with bucket2seq' := y } : txWriteBuffer)))
+  method_set : go.MethodSetIs txWriteBuffer.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType txWriteBuffer.ty) [(go!"go.etcd.io/etcd/server/v3/storage/backend.put", (some (go.signature.Signature [Bucket.ty, (go.GoType.SliceType go.byte), (go.GoType.SliceType go.byte)] false []))), (go!"go.etcd.io/etcd/server/v3/storage/backend.putInternal", (some (go.signature.Signature [Bucket.ty, (go.GoType.SliceType go.byte), (go.GoType.SliceType go.byte)] false []))), (go!"go.etcd.io/etcd/server/v3/storage/backend.putSeq", (some (go.signature.Signature [Bucket.ty, (go.GoType.SliceType go.byte), (go.GoType.SliceType go.byte)] false []))), (go!"go.etcd.io/etcd/server/v3/storage/backend.reset", (some (go.signature.Signature [] false []))), (go!"go.etcd.io/etcd/server/v3/storage/backend.writeback", (some (go.signature.Signature [(go.GoType.PointerType txReadBuffer.ty)] false [])))]
   ptr_put_unfold : MethodUnfold (go.GoType.PointerType txWriteBuffer.ty) go!"put" txWriteBuffer.put.impl
   ptr_putInternal_unfold : MethodUnfold (go.GoType.PointerType txWriteBuffer.ty) go!"putInternal" txWriteBuffer.putInternal.impl
   ptr_putSeq_unfold : MethodUnfold (go.GoType.PointerType txWriteBuffer.ty) go!"putSeq" txWriteBuffer.putSeq.impl
@@ -3808,37 +3874,39 @@ attribute [instance] txWriteBuffer.TypeAssumptions.type_repr
   txWriteBuffer.TypeAssumptions.set_txBuffer
   txWriteBuffer.TypeAssumptions.get_bucket2seq
   txWriteBuffer.TypeAssumptions.set_bucket2seq
+  txWriteBuffer.TypeAssumptions.method_set
+  txWriteBuffer.TypeAssumptions.ptr_method_set
   txWriteBuffer.TypeAssumptions.ptr_put_unfold
   txWriteBuffer.TypeAssumptions.ptr_putInternal_unfold
   txWriteBuffer.TypeAssumptions.ptr_putSeq_unfold
   txWriteBuffer.TypeAssumptions.ptr_reset_unfold
   txWriteBuffer.TypeAssumptions.ptr_writeback_unfold
 
-structure batchTxBuffered [FfiSyntax] where
+structure batchTxBuffered [GooseExts] where
   mk ::
   batchTx' : batchTx
   buf' : txWriteBuffer
   pendingDeleteOperations' : w64
 
-noncomputable instance batchTxBuffered.zero_val [FfiSyntax] : ZeroVal batchTxBuffered :=
+noncomputable instance batchTxBuffered.zero_val [GooseExts] : ZeroVal batchTxBuffered :=
   ⟨batchTxBuffered.mk zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def batchTxBuffered.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def batchTxBuffered.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.EmbeddedField go!"batchTx" batchTx.ty),
 (go.field_decl.FieldDecl go!"buf" txWriteBuffer.ty),
 (go.field_decl.FieldDecl go!"pendingDeleteOperations" go.int)]
 
-@[irreducible] noncomputable def batchTxBuffered.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def batchTxBuffered.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   batchTxBuffered.fieldsUnsealed
 
-noncomputable instance equals_unfold_batchTxBuffered [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_batchTxBuffered [GooseExts] [GoGlobalContext] :
     EqualsUnfold batchTxBuffered.fields batchTxBuffered.fieldsUnsealed :=
   ⟨by unfold batchTxBuffered.fields; rfl⟩
 
-@[reducible] noncomputable def batchTxBuffered.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def batchTxBuffered.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType batchTxBuffered.fields)
 
-class batchTxBuffered.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class batchTxBuffered.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying batchTxBuffered.underlying batchTxBuffered
   underlying : go.UnderlyingDirectedEq batchTxBuffered.ty batchTxBuffered.underlying
   get_batchTx : ∀ (x : batchTxBuffered), go.IsGoStepPureDetTagged under (StructFieldGet batchTxBuffered.underlying go!"batchTx") #x (Val #(x.batchTx'))
@@ -3847,6 +3915,8 @@ class batchTxBuffered.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalCont
   set_buf : ∀ (x : batchTxBuffered) (y : txWriteBuffer), go.IsGoStepPureDetTagged under (StructFieldSet batchTxBuffered.underlying go!"buf") (PairV #x #y) (Val #(({ x with buf' := y } : batchTxBuffered)))
   get_pendingDeleteOperations : ∀ (x : batchTxBuffered), go.IsGoStepPureDetTagged under (StructFieldGet batchTxBuffered.underlying go!"pendingDeleteOperations") #x (Val #(x.pendingDeleteOperations'))
   set_pendingDeleteOperations : ∀ (x : batchTxBuffered) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet batchTxBuffered.underlying go!"pendingDeleteOperations") (PairV #x #y) (Val #(({ x with pendingDeleteOperations' := y } : batchTxBuffered)))
+  method_set : go.MethodSetIs batchTxBuffered.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType batchTxBuffered.ty) [(go!"Commit", (some (go.signature.Signature [] false []))), (go!"CommitAndStop", (some (go.signature.Signature [] false []))), (go!"Lock", (some (go.signature.Signature [] false []))), (go!"LockInsideApply", (some (go.signature.Signature [] false []))), (go!"LockOutsideApply", (some (go.signature.Signature [] false []))), (go!"TryLock", (some (go.signature.Signature [] false [go.bool]))), (go!"Unlock", (some (go.signature.Signature [] false []))), (go!"UnsafeCreateBucket", (some (go.signature.Signature [Bucket.ty] false []))), (go!"UnsafeDelete", (some (go.signature.Signature [Bucket.ty, (go.GoType.SliceType go.byte)] false []))), (go!"UnsafeDeleteBucket", (some (go.signature.Signature [Bucket.ty] false []))), (go!"UnsafeForEach", (some (go.signature.Signature [Bucket.ty, (go.GoType.FunctionType (go.signature.Signature [(go.GoType.SliceType go.byte), (go.GoType.SliceType go.byte)] false [go.error]))] false [go.error]))), (go!"UnsafePut", (some (go.signature.Signature [Bucket.ty, (go.GoType.SliceType go.byte), (go.GoType.SliceType go.byte)] false []))), (go!"UnsafeRange", (some (go.signature.Signature [Bucket.ty, (go.GoType.SliceType go.byte), (go.GoType.SliceType go.byte), go.int64] false [(go.GoType.SliceType (go.GoType.SliceType go.byte)), (go.GoType.SliceType (go.GoType.SliceType go.byte))]))), (go!"UnsafeSeqPut", (some (go.signature.Signature [Bucket.ty, (go.GoType.SliceType go.byte), (go.GoType.SliceType go.byte)] false []))), (go!"go.etcd.io/etcd/server/v3/storage/backend.commit", (some (go.signature.Signature [go.bool] false []))), (go!"go.etcd.io/etcd/server/v3/storage/backend.lock", (some (go.signature.Signature [] false []))), (go!"go.etcd.io/etcd/server/v3/storage/backend.safePending", (some (go.signature.Signature [] false [go.int]))), (go!"go.etcd.io/etcd/server/v3/storage/backend.unsafeCommit", (some (go.signature.Signature [go.bool] false []))), (go!"go.etcd.io/etcd/server/v3/storage/backend.unsafePut", (some (go.signature.Signature [Bucket.ty, (go.GoType.SliceType go.byte), (go.GoType.SliceType go.byte), go.bool] false [])))]
   ptr_Commit_unfold : MethodUnfold (go.GoType.PointerType batchTxBuffered.ty) go!"Commit" batchTxBuffered.Commit.impl
   ptr_CommitAndStop_unfold : MethodUnfold (go.GoType.PointerType batchTxBuffered.ty) go!"CommitAndStop" batchTxBuffered.CommitAndStop.impl
   ptr_Lock_unfold : MethodUnfold (go.GoType.PointerType batchTxBuffered.ty) go!"Lock" (LamV "$r"
@@ -3883,6 +3953,8 @@ attribute [instance] batchTxBuffered.TypeAssumptions.type_repr
   batchTxBuffered.TypeAssumptions.set_buf
   batchTxBuffered.TypeAssumptions.get_pendingDeleteOperations
   batchTxBuffered.TypeAssumptions.set_pendingDeleteOperations
+  batchTxBuffered.TypeAssumptions.method_set
+  batchTxBuffered.TypeAssumptions.ptr_method_set
   batchTxBuffered.TypeAssumptions.ptr_Commit_unfold
   batchTxBuffered.TypeAssumptions.ptr_CommitAndStop_unfold
   batchTxBuffered.TypeAssumptions.ptr_Lock_unfold
@@ -3902,41 +3974,47 @@ attribute [instance] batchTxBuffered.TypeAssumptions.type_repr
   batchTxBuffered.TypeAssumptions.ptr_safePending_unfold
   batchTxBuffered.TypeAssumptions.ptr_unsafeCommit_unfold
 
-abbrev HookFunc [FfiSyntax] : Type := GoFunc
+abbrev HookFunc [GooseExts] : Type := GoFunc
 
-@[reducible] noncomputable def HookFunc.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def HookFunc.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.FunctionType (go.signature.Signature [UnsafeReadWriter.ty] false []))
 
-class HookFunc.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class HookFunc.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq HookFunc.ty HookFunc.underlying
+  method_set : go.MethodSetIs HookFunc.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType HookFunc.ty) []
 
 attribute [instance] HookFunc.TypeAssumptions.underlying
+  HookFunc.TypeAssumptions.method_set
+  HookFunc.TypeAssumptions.ptr_method_set
 
-structure hooks [FfiSyntax] where
+structure hooks [GooseExts] where
   mk ::
   onPreCommitUnsafe' : HookFunc
 
-noncomputable instance hooks.zero_val [FfiSyntax] : ZeroVal hooks :=
+noncomputable instance hooks.zero_val [GooseExts] : ZeroVal hooks :=
   ⟨hooks.mk zeroValDef⟩
 
-@[reducible] noncomputable def hooks.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def hooks.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"onPreCommitUnsafe" HookFunc.ty)]
 
-@[irreducible] noncomputable def hooks.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def hooks.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   hooks.fieldsUnsealed
 
-noncomputable instance equals_unfold_hooks [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_hooks [GooseExts] [GoGlobalContext] :
     EqualsUnfold hooks.fields hooks.fieldsUnsealed :=
   ⟨by unfold hooks.fields; rfl⟩
 
-@[reducible] noncomputable def hooks.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def hooks.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType hooks.fields)
 
-class hooks.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class hooks.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying hooks.underlying hooks
   underlying : go.UnderlyingDirectedEq hooks.ty hooks.underlying
   get_onPreCommitUnsafe : ∀ (x : hooks), go.IsGoStepPureDetTagged under (StructFieldGet hooks.underlying go!"onPreCommitUnsafe") #x (Val #(x.onPreCommitUnsafe'))
   set_onPreCommitUnsafe : ∀ (x : hooks) (y : HookFunc), go.IsGoStepPureDetTagged under (StructFieldSet hooks.underlying go!"onPreCommitUnsafe") (PairV #x #y) (Val #(({ x with onPreCommitUnsafe' := y } : hooks)))
+  method_set : go.MethodSetIs hooks.ty [(go!"OnPreCommitUnsafe", (some (go.signature.Signature [UnsafeReadWriter.ty] false [])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType hooks.ty) [(go!"OnPreCommitUnsafe", (some (go.signature.Signature [UnsafeReadWriter.ty] false [])))]
   OnPreCommitUnsafe_unfold : MethodUnfold hooks.ty go!"OnPreCommitUnsafe" hooks.OnPreCommitUnsafe.impl
   ptr_OnPreCommitUnsafe_unfold : MethodUnfold (go.GoType.PointerType hooks.ty) go!"OnPreCommitUnsafe" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve hooks.ty go!"OnPreCommitUnsafe"))) (App (Val (GoInstruction (GoLoad hooks.ty))) (Var "$r"))))
@@ -3945,58 +4023,70 @@ attribute [instance] hooks.TypeAssumptions.type_repr
   hooks.TypeAssumptions.underlying
   hooks.TypeAssumptions.get_onPreCommitUnsafe
   hooks.TypeAssumptions.set_onPreCommitUnsafe
+  hooks.TypeAssumptions.method_set
+  hooks.TypeAssumptions.ptr_method_set
   hooks.TypeAssumptions.OnPreCommitUnsafe_unfold
   hooks.TypeAssumptions.ptr_OnPreCommitUnsafe_unfold
 
-abbrev ReadTx [FfiSyntax] : Type := GoInterface
+abbrev ReadTx [GooseExts] : Type := GoInterface
 
-@[reducible] noncomputable def ReadTx.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
-  (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"RLock" (go.signature.Signature [] false [])), (go.InterfaceElem.MethodElem go!"RUnlock" (go.signature.Signature [] false [])), (go.InterfaceElem.TypeElem [(go.type_term.TypeTerm UnsafeReader.ty)])])
+@[reducible] noncomputable def ReadTx.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
+  (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"RLock" (go.signature.Signature [] false [])), (go.InterfaceElem.MethodElem go!"RUnlock" (go.signature.Signature [] false [])), (go.InterfaceElem.MethodElem go!"UnsafeForEach" (go.signature.Signature [Bucket.ty, (go.GoType.FunctionType (go.signature.Signature [(go.GoType.SliceType go.byte), (go.GoType.SliceType go.byte)] false [go.error]))] false [go.error])), (go.InterfaceElem.MethodElem go!"UnsafeRange" (go.signature.Signature [Bucket.ty, (go.GoType.SliceType go.byte), (go.GoType.SliceType go.byte), go.int64] false [(go.GoType.SliceType (go.GoType.SliceType go.byte)), (go.GoType.SliceType (go.GoType.SliceType go.byte))]))])
 
-class ReadTx.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class ReadTx.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq ReadTx.ty ReadTx.underlying
+  method_set : go.MethodSetIs ReadTx.ty [(go!"RLock", (some (go.signature.Signature [] false []))), (go!"RUnlock", (some (go.signature.Signature [] false []))), (go!"UnsafeForEach", (some (go.signature.Signature [Bucket.ty, (go.GoType.FunctionType (go.signature.Signature [(go.GoType.SliceType go.byte), (go.GoType.SliceType go.byte)] false [go.error]))] false [go.error]))), (go!"UnsafeRange", (some (go.signature.Signature [Bucket.ty, (go.GoType.SliceType go.byte), (go.GoType.SliceType go.byte), go.int64] false [(go.GoType.SliceType (go.GoType.SliceType go.byte)), (go.GoType.SliceType (go.GoType.SliceType go.byte))])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType ReadTx.ty) []
 
 attribute [instance] ReadTx.TypeAssumptions.underlying
+  ReadTx.TypeAssumptions.method_set
+  ReadTx.TypeAssumptions.ptr_method_set
 
-abbrev UnsafeReader [FfiSyntax] : Type := GoInterface
+abbrev UnsafeReader [GooseExts] : Type := GoInterface
 
-@[reducible] noncomputable def UnsafeReader.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def UnsafeReader.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"UnsafeForEach" (go.signature.Signature [Bucket.ty, (go.GoType.FunctionType (go.signature.Signature [(go.GoType.SliceType go.byte), (go.GoType.SliceType go.byte)] false [go.error]))] false [go.error])), (go.InterfaceElem.MethodElem go!"UnsafeRange" (go.signature.Signature [Bucket.ty, (go.GoType.SliceType go.byte), (go.GoType.SliceType go.byte), go.int64] false [(go.GoType.SliceType (go.GoType.SliceType go.byte)), (go.GoType.SliceType (go.GoType.SliceType go.byte))]))])
 
-class UnsafeReader.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class UnsafeReader.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq UnsafeReader.ty UnsafeReader.underlying
+  method_set : go.MethodSetIs UnsafeReader.ty [(go!"UnsafeForEach", (some (go.signature.Signature [Bucket.ty, (go.GoType.FunctionType (go.signature.Signature [(go.GoType.SliceType go.byte), (go.GoType.SliceType go.byte)] false [go.error]))] false [go.error]))), (go!"UnsafeRange", (some (go.signature.Signature [Bucket.ty, (go.GoType.SliceType go.byte), (go.GoType.SliceType go.byte), go.int64] false [(go.GoType.SliceType (go.GoType.SliceType go.byte)), (go.GoType.SliceType (go.GoType.SliceType go.byte))])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType UnsafeReader.ty) []
 
 attribute [instance] UnsafeReader.TypeAssumptions.underlying
+  UnsafeReader.TypeAssumptions.method_set
+  UnsafeReader.TypeAssumptions.ptr_method_set
 
-structure txReadBuffer [FfiSyntax] where
+structure txReadBuffer [GooseExts] where
   mk ::
   txBuffer' : txBuffer
   bufVersion' : w64
 
-noncomputable instance txReadBuffer.zero_val [FfiSyntax] : ZeroVal txReadBuffer :=
+noncomputable instance txReadBuffer.zero_val [GooseExts] : ZeroVal txReadBuffer :=
   ⟨txReadBuffer.mk zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def txReadBuffer.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def txReadBuffer.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.EmbeddedField go!"txBuffer" txBuffer.ty),
 (go.field_decl.FieldDecl go!"bufVersion" go.uint64)]
 
-@[irreducible] noncomputable def txReadBuffer.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def txReadBuffer.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   txReadBuffer.fieldsUnsealed
 
-noncomputable instance equals_unfold_txReadBuffer [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_txReadBuffer [GooseExts] [GoGlobalContext] :
     EqualsUnfold txReadBuffer.fields txReadBuffer.fieldsUnsealed :=
   ⟨by unfold txReadBuffer.fields; rfl⟩
 
-@[reducible] noncomputable def txReadBuffer.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def txReadBuffer.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType txReadBuffer.fields)
 
-class txReadBuffer.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class txReadBuffer.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying txReadBuffer.underlying txReadBuffer
   underlying : go.UnderlyingDirectedEq txReadBuffer.ty txReadBuffer.underlying
   get_txBuffer : ∀ (x : txReadBuffer), go.IsGoStepPureDetTagged under (StructFieldGet txReadBuffer.underlying go!"txBuffer") #x (Val #(x.txBuffer'))
   set_txBuffer : ∀ (x : txReadBuffer) (y : txBuffer), go.IsGoStepPureDetTagged under (StructFieldSet txReadBuffer.underlying go!"txBuffer") (PairV #x #y) (Val #(({ x with txBuffer' := y } : txReadBuffer)))
   get_bufVersion : ∀ (x : txReadBuffer), go.IsGoStepPureDetTagged under (StructFieldGet txReadBuffer.underlying go!"bufVersion") #x (Val #(x.bufVersion'))
   set_bufVersion : ∀ (x : txReadBuffer) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet txReadBuffer.underlying go!"bufVersion") (PairV #x #y) (Val #(({ x with bufVersion' := y } : txReadBuffer)))
+  method_set : go.MethodSetIs txReadBuffer.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType txReadBuffer.ty) [(go!"ForEach", (some (go.signature.Signature [Bucket.ty, (go.GoType.FunctionType (go.signature.Signature [(go.GoType.SliceType go.byte), (go.GoType.SliceType go.byte)] false [go.error]))] false [go.error]))), (go!"Range", (some (go.signature.Signature [Bucket.ty, (go.GoType.SliceType go.byte), (go.GoType.SliceType go.byte), go.int64] false [(go.GoType.SliceType (go.GoType.SliceType go.byte)), (go.GoType.SliceType (go.GoType.SliceType go.byte))]))), (go!"go.etcd.io/etcd/server/v3/storage/backend.reset", (some (go.signature.Signature [] false []))), (go!"go.etcd.io/etcd/server/v3/storage/backend.unsafeCopy", (some (go.signature.Signature [] false [txReadBuffer.ty])))]
   ptr_ForEach_unfold : MethodUnfold (go.GoType.PointerType txReadBuffer.ty) go!"ForEach" txReadBuffer.ForEach.impl
   ptr_Range_unfold : MethodUnfold (go.GoType.PointerType txReadBuffer.ty) go!"Range" txReadBuffer.Range.impl
   ptr_reset_unfold : MethodUnfold (go.GoType.PointerType txReadBuffer.ty) go!"reset" (LamV "$r"
@@ -4009,12 +4099,14 @@ attribute [instance] txReadBuffer.TypeAssumptions.type_repr
   txReadBuffer.TypeAssumptions.set_txBuffer
   txReadBuffer.TypeAssumptions.get_bufVersion
   txReadBuffer.TypeAssumptions.set_bufVersion
+  txReadBuffer.TypeAssumptions.method_set
+  txReadBuffer.TypeAssumptions.ptr_method_set
   txReadBuffer.TypeAssumptions.ptr_ForEach_unfold
   txReadBuffer.TypeAssumptions.ptr_Range_unfold
   txReadBuffer.TypeAssumptions.ptr_reset_unfold
   txReadBuffer.TypeAssumptions.ptr_unsafeCopy_unfold
 
-structure baseReadTx [FfiSyntax] where
+structure baseReadTx [GooseExts] where
   mk ::
   mu' : _root_.Perennial.sync.RWMutex
   buf' : txReadBuffer
@@ -4023,10 +4115,10 @@ structure baseReadTx [FfiSyntax] where
   buckets' : GoMap
   txWg' : Loc
 
-noncomputable instance baseReadTx.zero_val [FfiSyntax] : ZeroVal baseReadTx :=
+noncomputable instance baseReadTx.zero_val [GooseExts] : ZeroVal baseReadTx :=
   ⟨baseReadTx.mk zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def baseReadTx.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def baseReadTx.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"mu" _root_.Perennial.sync.RWMutex.ty),
 (go.field_decl.FieldDecl go!"buf" txReadBuffer.ty),
 (go.field_decl.FieldDecl go!"txMu" (go.GoType.PointerType _root_.Perennial.sync.RWMutex.ty)),
@@ -4034,17 +4126,17 @@ noncomputable instance baseReadTx.zero_val [FfiSyntax] : ZeroVal baseReadTx :=
 (go.field_decl.FieldDecl go!"buckets" (go.GoType.MapType BucketID.ty (go.GoType.PointerType _root_.Perennial.go_etcd_io.bbolt.Bucket.ty))),
 (go.field_decl.FieldDecl go!"txWg" (go.GoType.PointerType _root_.Perennial.sync.WaitGroup.ty))]
 
-@[irreducible] noncomputable def baseReadTx.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def baseReadTx.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   baseReadTx.fieldsUnsealed
 
-noncomputable instance equals_unfold_baseReadTx [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_baseReadTx [GooseExts] [GoGlobalContext] :
     EqualsUnfold baseReadTx.fields baseReadTx.fieldsUnsealed :=
   ⟨by unfold baseReadTx.fields; rfl⟩
 
-@[reducible] noncomputable def baseReadTx.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def baseReadTx.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType baseReadTx.fields)
 
-class baseReadTx.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class baseReadTx.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying baseReadTx.underlying baseReadTx
   underlying : go.UnderlyingDirectedEq baseReadTx.ty baseReadTx.underlying
   get_mu : ∀ (x : baseReadTx), go.IsGoStepPureDetTagged under (StructFieldGet baseReadTx.underlying go!"mu") #x (Val #(x.mu'))
@@ -4059,6 +4151,8 @@ class baseReadTx.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] 
   set_buckets : ∀ (x : baseReadTx) (y : GoMap), go.IsGoStepPureDetTagged under (StructFieldSet baseReadTx.underlying go!"buckets") (PairV #x #y) (Val #(({ x with buckets' := y } : baseReadTx)))
   get_txWg : ∀ (x : baseReadTx), go.IsGoStepPureDetTagged under (StructFieldGet baseReadTx.underlying go!"txWg") #x (Val #(x.txWg'))
   set_txWg : ∀ (x : baseReadTx) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet baseReadTx.underlying go!"txWg") (PairV #x #y) (Val #(({ x with txWg' := y } : baseReadTx)))
+  method_set : go.MethodSetIs baseReadTx.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType baseReadTx.ty) [(go!"UnsafeForEach", (some (go.signature.Signature [Bucket.ty, (go.GoType.FunctionType (go.signature.Signature [(go.GoType.SliceType go.byte), (go.GoType.SliceType go.byte)] false [go.error]))] false [go.error]))), (go!"UnsafeRange", (some (go.signature.Signature [Bucket.ty, (go.GoType.SliceType go.byte), (go.GoType.SliceType go.byte), go.int64] false [(go.GoType.SliceType (go.GoType.SliceType go.byte)), (go.GoType.SliceType (go.GoType.SliceType go.byte))])))]
   ptr_UnsafeForEach_unfold : MethodUnfold (go.GoType.PointerType baseReadTx.ty) go!"UnsafeForEach" baseReadTx.UnsafeForEach.impl
   ptr_UnsafeRange_unfold : MethodUnfold (go.GoType.PointerType baseReadTx.ty) go!"UnsafeRange" baseReadTx.UnsafeRange.impl
 
@@ -4076,34 +4170,38 @@ attribute [instance] baseReadTx.TypeAssumptions.type_repr
   baseReadTx.TypeAssumptions.set_buckets
   baseReadTx.TypeAssumptions.get_txWg
   baseReadTx.TypeAssumptions.set_txWg
+  baseReadTx.TypeAssumptions.method_set
+  baseReadTx.TypeAssumptions.ptr_method_set
   baseReadTx.TypeAssumptions.ptr_UnsafeForEach_unfold
   baseReadTx.TypeAssumptions.ptr_UnsafeRange_unfold
 
-structure readTx [FfiSyntax] where
+structure readTx [GooseExts] where
   mk ::
   baseReadTx' : baseReadTx
 
-noncomputable instance readTx.zero_val [FfiSyntax] : ZeroVal readTx :=
+noncomputable instance readTx.zero_val [GooseExts] : ZeroVal readTx :=
   ⟨readTx.mk zeroValDef⟩
 
-@[reducible] noncomputable def readTx.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def readTx.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.EmbeddedField go!"baseReadTx" baseReadTx.ty)]
 
-@[irreducible] noncomputable def readTx.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def readTx.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   readTx.fieldsUnsealed
 
-noncomputable instance equals_unfold_readTx [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_readTx [GooseExts] [GoGlobalContext] :
     EqualsUnfold readTx.fields readTx.fieldsUnsealed :=
   ⟨by unfold readTx.fields; rfl⟩
 
-@[reducible] noncomputable def readTx.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def readTx.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType readTx.fields)
 
-class readTx.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class readTx.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying readTx.underlying readTx
   underlying : go.UnderlyingDirectedEq readTx.ty readTx.underlying
   get_baseReadTx : ∀ (x : readTx), go.IsGoStepPureDetTagged under (StructFieldGet readTx.underlying go!"baseReadTx") #x (Val #(x.baseReadTx'))
   set_baseReadTx : ∀ (x : readTx) (y : baseReadTx), go.IsGoStepPureDetTagged under (StructFieldSet readTx.underlying go!"baseReadTx") (PairV #x #y) (Val #(({ x with baseReadTx' := y } : readTx)))
+  method_set : go.MethodSetIs readTx.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType readTx.ty) [(go!"Lock", (some (go.signature.Signature [] false []))), (go!"RLock", (some (go.signature.Signature [] false []))), (go!"RUnlock", (some (go.signature.Signature [] false []))), (go!"Unlock", (some (go.signature.Signature [] false []))), (go!"UnsafeForEach", (some (go.signature.Signature [Bucket.ty, (go.GoType.FunctionType (go.signature.Signature [(go.GoType.SliceType go.byte), (go.GoType.SliceType go.byte)] false [go.error]))] false [go.error]))), (go!"UnsafeRange", (some (go.signature.Signature [Bucket.ty, (go.GoType.SliceType go.byte), (go.GoType.SliceType go.byte), go.int64] false [(go.GoType.SliceType (go.GoType.SliceType go.byte)), (go.GoType.SliceType (go.GoType.SliceType go.byte))]))), (go!"go.etcd.io/etcd/server/v3/storage/backend.reset", (some (go.signature.Signature [] false [])))]
   ptr_Lock_unfold : MethodUnfold (go.GoType.PointerType readTx.ty) go!"Lock" readTx.Lock.impl
   ptr_RLock_unfold : MethodUnfold (go.GoType.PointerType readTx.ty) go!"RLock" readTx.RLock.impl
   ptr_RUnlock_unfold : MethodUnfold (go.GoType.PointerType readTx.ty) go!"RUnlock" readTx.RUnlock.impl
@@ -4118,6 +4216,8 @@ attribute [instance] readTx.TypeAssumptions.type_repr
   readTx.TypeAssumptions.underlying
   readTx.TypeAssumptions.get_baseReadTx
   readTx.TypeAssumptions.set_baseReadTx
+  readTx.TypeAssumptions.method_set
+  readTx.TypeAssumptions.ptr_method_set
   readTx.TypeAssumptions.ptr_Lock_unfold
   readTx.TypeAssumptions.ptr_RLock_unfold
   readTx.TypeAssumptions.ptr_RUnlock_unfold
@@ -4126,31 +4226,33 @@ attribute [instance] readTx.TypeAssumptions.type_repr
   readTx.TypeAssumptions.ptr_UnsafeRange_unfold
   readTx.TypeAssumptions.ptr_reset_unfold
 
-structure concurrentReadTx [FfiSyntax] where
+structure concurrentReadTx [GooseExts] where
   mk ::
   baseReadTx' : baseReadTx
 
-noncomputable instance concurrentReadTx.zero_val [FfiSyntax] : ZeroVal concurrentReadTx :=
+noncomputable instance concurrentReadTx.zero_val [GooseExts] : ZeroVal concurrentReadTx :=
   ⟨concurrentReadTx.mk zeroValDef⟩
 
-@[reducible] noncomputable def concurrentReadTx.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def concurrentReadTx.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.EmbeddedField go!"baseReadTx" baseReadTx.ty)]
 
-@[irreducible] noncomputable def concurrentReadTx.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def concurrentReadTx.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   concurrentReadTx.fieldsUnsealed
 
-noncomputable instance equals_unfold_concurrentReadTx [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_concurrentReadTx [GooseExts] [GoGlobalContext] :
     EqualsUnfold concurrentReadTx.fields concurrentReadTx.fieldsUnsealed :=
   ⟨by unfold concurrentReadTx.fields; rfl⟩
 
-@[reducible] noncomputable def concurrentReadTx.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def concurrentReadTx.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType concurrentReadTx.fields)
 
-class concurrentReadTx.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class concurrentReadTx.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying concurrentReadTx.underlying concurrentReadTx
   underlying : go.UnderlyingDirectedEq concurrentReadTx.ty concurrentReadTx.underlying
   get_baseReadTx : ∀ (x : concurrentReadTx), go.IsGoStepPureDetTagged under (StructFieldGet concurrentReadTx.underlying go!"baseReadTx") #x (Val #(x.baseReadTx'))
   set_baseReadTx : ∀ (x : concurrentReadTx) (y : baseReadTx), go.IsGoStepPureDetTagged under (StructFieldSet concurrentReadTx.underlying go!"baseReadTx") (PairV #x #y) (Val #(({ x with baseReadTx' := y } : concurrentReadTx)))
+  method_set : go.MethodSetIs concurrentReadTx.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType concurrentReadTx.ty) [(go!"Lock", (some (go.signature.Signature [] false []))), (go!"RLock", (some (go.signature.Signature [] false []))), (go!"RUnlock", (some (go.signature.Signature [] false []))), (go!"Unlock", (some (go.signature.Signature [] false []))), (go!"UnsafeForEach", (some (go.signature.Signature [Bucket.ty, (go.GoType.FunctionType (go.signature.Signature [(go.GoType.SliceType go.byte), (go.GoType.SliceType go.byte)] false [go.error]))] false [go.error]))), (go!"UnsafeRange", (some (go.signature.Signature [Bucket.ty, (go.GoType.SliceType go.byte), (go.GoType.SliceType go.byte), go.int64] false [(go.GoType.SliceType (go.GoType.SliceType go.byte)), (go.GoType.SliceType (go.GoType.SliceType go.byte))])))]
   ptr_Lock_unfold : MethodUnfold (go.GoType.PointerType concurrentReadTx.ty) go!"Lock" concurrentReadTx.Lock.impl
   ptr_RLock_unfold : MethodUnfold (go.GoType.PointerType concurrentReadTx.ty) go!"RLock" concurrentReadTx.RLock.impl
   ptr_RUnlock_unfold : MethodUnfold (go.GoType.PointerType concurrentReadTx.ty) go!"RUnlock" concurrentReadTx.RUnlock.impl
@@ -4164,6 +4266,8 @@ attribute [instance] concurrentReadTx.TypeAssumptions.type_repr
   concurrentReadTx.TypeAssumptions.underlying
   concurrentReadTx.TypeAssumptions.get_baseReadTx
   concurrentReadTx.TypeAssumptions.set_baseReadTx
+  concurrentReadTx.TypeAssumptions.method_set
+  concurrentReadTx.TypeAssumptions.ptr_method_set
   concurrentReadTx.TypeAssumptions.ptr_Lock_unfold
   concurrentReadTx.TypeAssumptions.ptr_RLock_unfold
   concurrentReadTx.TypeAssumptions.ptr_RUnlock_unfold
@@ -4171,35 +4275,37 @@ attribute [instance] concurrentReadTx.TypeAssumptions.type_repr
   concurrentReadTx.TypeAssumptions.ptr_UnsafeForEach_unfold
   concurrentReadTx.TypeAssumptions.ptr_UnsafeRange_unfold
 
-structure kv [FfiSyntax] where
+structure kv [GooseExts] where
   mk ::
   key' : GoSlice
   val' : GoSlice
 
-noncomputable instance kv.zero_val [FfiSyntax] : ZeroVal kv :=
+noncomputable instance kv.zero_val [GooseExts] : ZeroVal kv :=
   ⟨kv.mk zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def kv.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def kv.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"key" (go.GoType.SliceType go.byte)),
 (go.field_decl.FieldDecl go!"val" (go.GoType.SliceType go.byte))]
 
-@[irreducible] noncomputable def kv.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def kv.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   kv.fieldsUnsealed
 
-noncomputable instance equals_unfold_kv [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_kv [GooseExts] [GoGlobalContext] :
     EqualsUnfold kv.fields kv.fieldsUnsealed :=
   ⟨by unfold kv.fields; rfl⟩
 
-@[reducible] noncomputable def kv.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def kv.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType kv.fields)
 
-class kv.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class kv.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying kv.underlying kv
   underlying : go.UnderlyingDirectedEq kv.ty kv.underlying
   get_key : ∀ (x : kv), go.IsGoStepPureDetTagged under (StructFieldGet kv.underlying go!"key") #x (Val #(x.key'))
   set_key : ∀ (x : kv) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet kv.underlying go!"key") (PairV #x #y) (Val #(({ x with key' := y } : kv)))
   get_val : ∀ (x : kv), go.IsGoStepPureDetTagged under (StructFieldGet kv.underlying go!"val") #x (Val #(x.val'))
   set_val : ∀ (x : kv) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet kv.underlying go!"val") (PairV #x #y) (Val #(({ x with val' := y } : kv)))
+  method_set : go.MethodSetIs kv.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType kv.ty) []
 
 attribute [instance] kv.TypeAssumptions.type_repr
   kv.TypeAssumptions.underlying
@@ -4207,36 +4313,40 @@ attribute [instance] kv.TypeAssumptions.type_repr
   kv.TypeAssumptions.set_key
   kv.TypeAssumptions.get_val
   kv.TypeAssumptions.set_val
+  kv.TypeAssumptions.method_set
+  kv.TypeAssumptions.ptr_method_set
 
-structure bucketBuffer [FfiSyntax] where
+structure bucketBuffer [GooseExts] where
   mk ::
   buf' : GoSlice
   used' : w64
 
-noncomputable instance bucketBuffer.zero_val [FfiSyntax] : ZeroVal bucketBuffer :=
+noncomputable instance bucketBuffer.zero_val [GooseExts] : ZeroVal bucketBuffer :=
   ⟨bucketBuffer.mk zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def bucketBuffer.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def bucketBuffer.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"buf" (go.GoType.SliceType kv.ty)),
 (go.field_decl.FieldDecl go!"used" go.int)]
 
-@[irreducible] noncomputable def bucketBuffer.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def bucketBuffer.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   bucketBuffer.fieldsUnsealed
 
-noncomputable instance equals_unfold_bucketBuffer [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_bucketBuffer [GooseExts] [GoGlobalContext] :
     EqualsUnfold bucketBuffer.fields bucketBuffer.fieldsUnsealed :=
   ⟨by unfold bucketBuffer.fields; rfl⟩
 
-@[reducible] noncomputable def bucketBuffer.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def bucketBuffer.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType bucketBuffer.fields)
 
-class bucketBuffer.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class bucketBuffer.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying bucketBuffer.underlying bucketBuffer
   underlying : go.UnderlyingDirectedEq bucketBuffer.ty bucketBuffer.underlying
   get_buf : ∀ (x : bucketBuffer), go.IsGoStepPureDetTagged under (StructFieldGet bucketBuffer.underlying go!"buf") #x (Val #(x.buf'))
   set_buf : ∀ (x : bucketBuffer) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet bucketBuffer.underlying go!"buf") (PairV #x #y) (Val #(({ x with buf' := y } : bucketBuffer)))
   get_used : ∀ (x : bucketBuffer), go.IsGoStepPureDetTagged under (StructFieldGet bucketBuffer.underlying go!"used") #x (Val #(x.used'))
   set_used : ∀ (x : bucketBuffer) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet bucketBuffer.underlying go!"used") (PairV #x #y) (Val #(({ x with used' := y } : bucketBuffer)))
+  method_set : go.MethodSetIs bucketBuffer.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType bucketBuffer.ty) [(go!"CopyUsed", (some (go.signature.Signature [] false [(go.GoType.PointerType bucketBuffer.ty)]))), (go!"ForEach", (some (go.signature.Signature [(go.GoType.FunctionType (go.signature.Signature [(go.GoType.SliceType go.byte), (go.GoType.SliceType go.byte)] false [go.error]))] false [go.error]))), (go!"Len", (some (go.signature.Signature [] false [go.int]))), (go!"Less", (some (go.signature.Signature [go.int, go.int] false [go.bool]))), (go!"Range", (some (go.signature.Signature [(go.GoType.SliceType go.byte), (go.GoType.SliceType go.byte), go.int64] false [(go.GoType.SliceType (go.GoType.SliceType go.byte)), (go.GoType.SliceType (go.GoType.SliceType go.byte))]))), (go!"Swap", (some (go.signature.Signature [go.int, go.int] false []))), (go!"go.etcd.io/etcd/server/v3/storage/backend.add", (some (go.signature.Signature [(go.GoType.SliceType go.byte), (go.GoType.SliceType go.byte)] false []))), (go!"go.etcd.io/etcd/server/v3/storage/backend.dedupe", (some (go.signature.Signature [] false []))), (go!"go.etcd.io/etcd/server/v3/storage/backend.merge", (some (go.signature.Signature [(go.GoType.PointerType bucketBuffer.ty)] false [])))]
   ptr_CopyUsed_unfold : MethodUnfold (go.GoType.PointerType bucketBuffer.ty) go!"CopyUsed" bucketBuffer.CopyUsed.impl
   ptr_ForEach_unfold : MethodUnfold (go.GoType.PointerType bucketBuffer.ty) go!"ForEach" bucketBuffer.ForEach.impl
   ptr_Len_unfold : MethodUnfold (go.GoType.PointerType bucketBuffer.ty) go!"Len" bucketBuffer.Len.impl
@@ -4253,6 +4363,8 @@ attribute [instance] bucketBuffer.TypeAssumptions.type_repr
   bucketBuffer.TypeAssumptions.set_buf
   bucketBuffer.TypeAssumptions.get_used
   bucketBuffer.TypeAssumptions.set_used
+  bucketBuffer.TypeAssumptions.method_set
+  bucketBuffer.TypeAssumptions.ptr_method_set
   bucketBuffer.TypeAssumptions.ptr_CopyUsed_unfold
   bucketBuffer.TypeAssumptions.ptr_ForEach_unfold
   bucketBuffer.TypeAssumptions.ptr_Len_unfold
@@ -4263,7 +4375,7 @@ attribute [instance] bucketBuffer.TypeAssumptions.type_repr
   bucketBuffer.TypeAssumptions.ptr_dedupe_unfold
   bucketBuffer.TypeAssumptions.ptr_merge_unfold
 
-class Assumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   Backend_instance : Backend.TypeAssumptions
   Snapshot_instance : Snapshot.TypeAssumptions
   txReadBufferCache_instance : txReadBufferCache.TypeAssumptions

@@ -34,7 +34,7 @@ structure RaftNames : Type 1 where
   reRdFresh : GName
   reRdCred : GName
   reTbl : GName
-  reDyn : Option ((e : FfiSyntax) → DynCfg)
+  reDyn : Option ((e : GooseExts) → DynCfg)
   reCCOk : Prop
   reBootRaw : List BootEntry
   reCfg_ne : self.reCfg ≠ ∅
@@ -231,7 +231,7 @@ theorem cqAt_intro [ReceiptGS GF] (γ : RaftNames) (t n : w64) (G : List EntryM)
 theorem CfgAt.static {γ : RaftNames} {P : List EntryM} {c : CfgM} (Hst : γ.reDyn = none) (H : CfgAt
     γ P c) : CfgStatic γ c
 
-def DynCfg.all (D : DynCfg) (e : FfiSyntax) : DynCfg :=
+def DynCfg.all [ext : GooseExts] (D : DynCfg) (e : GooseExts) : DynCfg :=
   if h : e = ext then ⋯ ▸ D else DynCfg.trivial
 
 theorem leadPrefix_wf [ReceiptGS GF] (γ : RaftNames) (L t : w64) (b : entryID) (l : List EntryM) : ⊢
@@ -591,7 +591,7 @@ structure DynCfg : Type where
   fold : Option CfgM
   adj : QOverlap c1 c2
 
-def RaftNames.dyn (γ : RaftNames) : Option DynCfg :=
+def RaftNames.dyn [ext : GooseExts] (γ : RaftNames) : Option DynCfg :=
   Option.map (fun f => f ext) γ.reDyn
 
 theorem isAcked_timeless (γ : RaftNames) (v t i : w64) : Timeless (isAcked γ v t i)
@@ -605,7 +605,7 @@ theorem isWinCore_timeless (γ : RaftNames) (id term : w64) (c : CfgM) (q : GSet
 theorem isCampK_camp [ReceiptGS GF] (γ : RaftNames) (c T : w64) (F : List EntryM) (k : w64) : ⊢
     isCampK γ c T F k -∗ isCamp γ c T F
 
-theorem DynCfg.all_self (D : DynCfg) : D.all ext = D
+theorem DynCfg.all_self [ext : GooseExts] (D : DynCfg) : D.all ext = D
 
 def cmtLb (γ : RaftNames) (ldr t n : w64) : IProp GF :=
   iprop(∃ γl γc, ⌜γ.reLcm !! ldr = some γl⌝ ∗ t ↪[γl]□ γc ∗ monoNatLbOwn γc (uint.nat n))

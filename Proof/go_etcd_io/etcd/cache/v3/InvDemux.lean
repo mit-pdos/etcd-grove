@@ -471,7 +471,7 @@ structure DemuxNames where
   views : GName
 
 section addrs
-variable [FfiSyntax] [GoGlobalContext] [GoSemanticsFunctions]
+variable [GooseExts] [GoGlobalContext] [GoSemanticsFunctions]
 
 /-- The address of `d.mu`. -/
 abbrev demuxMuAddr (d : Loc) : Loc := structFieldRef demux go!"mu" d
@@ -520,7 +520,7 @@ theorem predCode_inj {p1 p2 : Option (GoString → Bool)} (h : predCode p1 = pre
       simpa [predCode] using congrFun h (some k)
 
 section defs
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
@@ -1744,7 +1744,7 @@ theorem Delivered.init (pred : Option (GoString → Bool)) (s : w64) (v : View)
           cancel := fun m h => absurd h (hph m) }
 
 section lemmas
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]

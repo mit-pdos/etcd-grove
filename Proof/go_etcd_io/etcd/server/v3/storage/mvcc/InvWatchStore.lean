@@ -180,7 +180,7 @@ instance RespM.countable : Pos.Countable RespM :=
     (by rintro ⟨a, b, c, d, e, f, g⟩ ⟨a', b', c', d', e', f', g'⟩ h; have h := Pos.encode_inj h;
         simp_all)
 
-instance watchResponseCountable [FfiSyntax] : Pos.Countable WatchResponse :=
+instance watchResponseCountable [GooseExts] : Pos.Countable WatchResponse :=
   .ofInjective (fun r => Pos.Countable.encode (r.WatchID', r.Events', r.Revision', r.CompactRevision'))
     (by rintro ⟨a, b, c, d⟩ ⟨a', b', c', d'⟩ h; have h := Pos.encode_inj h; simp_all)
 
@@ -260,7 +260,7 @@ theorem regMap_lookup (L : List Loc) (w : Loc) : (regMap L !! w).isSome ↔ w �
     · rw [GMap.lookup_insert_ne _ _ (Ne.symm h), ih]; simp [h]
 
 section addrs
-variable [FfiSyntax] [GoGlobalContext] [GoSemanticsFunctions]
+variable [GooseExts] [GoGlobalContext] [GoSemanticsFunctions]
 
 /-- The address of the watchable store's own `mu`. -/
 abbrev wsMuAddr (s : Loc) : Loc := structFieldRef watchableStore go!"mu" s
@@ -416,7 +416,7 @@ theorem findSome_isSome_of_mem {B : GMap Loc EventBatch} {l : List (GMap Loc Eve
       | some _ => simp
 
 section reprs
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]

@@ -25,7 +25,7 @@ namespace EtcdGrove
 open Iris Iris.BI Iris.ProofMode go_etcd_io.etcd.server.v3.etcdserver
 
 section proof
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
@@ -48,7 +48,7 @@ theorem EtcdServer.snapshotIfNeededAndCompactRaftLog.wp_proof
     have : uint.Z ai < receiptBound GF := by omega
     split <;> omega
   iunfold srvSnapState at Hss
-  icases Hss with ⟨%d, %m, %f, Hd, Hm, Hf, %Hdm, #Hms, %σ, Htok, %Hσ⟩
+  icases Hss with ⟨%d, %m, %f, Hd, Hm, Hf, %Hdm, #Hms, #Hro, Hak, %γss, #Htinv, #Hslb⟩
   (try wp_auto)
   wp_apply hD s ep f ai d sc $$ [Hf Hai Hd] as %r1 ⟨Hf, Hai, Hd, %Hr1⟩
   · iframe #; iframe
@@ -62,11 +62,12 @@ theorem EtcdServer.snapshotIfNeededAndCompactRaftLog.wp_proof
     iapply HΦ
     iexists st
     iframe Hai Hat Hcs Hst Hbe Happ Hlr HKV
-    isplitl [Hd Hm Hf Htok]
-    · iunfold srvSnapState; iexists d, m, f; iframe Hd Hm Hf Hms
+    isplitl [Hd Hm Hf Hak]
+    · iunfold srvSnapState; iexists d, m, f; iframe Hd Hm Hf Hms Hro Hak
       isplitr
       · ipureintro; exact Hdm
-      iexists σ; iframe Htok; ipureintro; exact ⟨Hσ.1, by word⟩
+      iexists γss; iframe Htinv
+      iapply monoNatLbOwn_le (uint.nat (W64 0)) (by simp) $$ Hslb
     ipureintro; exact ⟨hok, rfl⟩
   all_goals (
     -- (D19i part 1) the trigger fires only past index `0`
@@ -82,30 +83,31 @@ theorem EtcdServer.snapshotIfNeededAndCompactRaftLog.wp_proof
     -- (E3p) `snapshot` takes the row's part shared by both auth modes
     icases srvApplyKV_core s E γw x $$ HKV with ⟨%ua, HKV, HKVk⟩
     wp_apply hS s E γw γ ci b ep st ai at' cs a t x _ ms γs (W64 0) ua hok
-        $$ [Hd Hm Hf Htok Hai Hat Hcs Hst Hbe Happ Hlr HKV]
+        $$ [Hd Hm Hf Hak Hai Hat Hcs Hst Hbe Happ Hlr HKV]
       as ⟨%st', Hss, Hai, Hat, Hcs, Hst, Hbe, Happ, Hlr, HKV, %hst'⟩
     · iframe #
       iframe Hai Hat Hcs Hst Hbe Happ Hlr HKV
-      iunfold srvSnapState; iexists d, m, f; iframe Hd Hm Hf Hms
+      iunfold srvSnapState; iexists d, m, f; iframe Hd Hm Hf Hms Hro Hak
       isplitr
       · ipureintro; exact Hdm
-      iexists σ; iframe Htok; ipureintro; exact ⟨Hσ.1, by word⟩
+      iexists γss; iframe Htinv
+      iapply monoNatLbOwn_le (uint.nat (W64 0)) (by simp) $$ Hslb
     iunfold srvSnapState at Hss
-    icases Hss with ⟨%d', %m', %f', Hd, Hm, Hf, %Hdm', -, %σ', Htok, %Hσ'⟩
+    icases Hss with ⟨%d', %m', %f', Hd, Hm, Hf, %Hdm', -, -, Hak, %γss', #Htinv', #Hslb'⟩
     (try wp_auto)
-    wp_apply hC s ai ms γs σ' scu lg Hσ'.1 Hσ'.2 Hai1 Hcmp $$ [Hlr Htok]
-      as ⟨Hlr, %σ'', Htok, %Hσ''⟩
-    · iframe #; iframe Hlr Htok; ipureintro; exact Hlgn
+    wp_apply hC s ai ms γs γss' ai scu lg (Int.le_refl _) Hai1 Hcmp $$ [Hlr] as Hlr
+    · iframe #; iframe Hlr; ipureintro; exact Hlgn
     (try wp_auto)
     ihave HKV := HKVk $$ HKV
     iapply HΦ
     iexists st'
     iframe Hai Hat Hcs Hst Hbe Happ Hlr HKV
-    isplitl [Hd Hm Hf Htok]
-    · iunfold srvSnapState; iexists d', m', f'; iframe Hd Hm Hf Hms
+    isplitl [Hd Hm Hf Hak]
+    · iunfold srvSnapState; iexists d', m', f'; iframe Hd Hm Hf Hms Hro Hak
       isplitr
       · ipureintro; exact Hdm'
-      iexists σ''; iframe Htok; ipureintro; exact ⟨Hσ''.1, by word⟩
+      iexists γss'; iframe Htinv'
+      iapply monoNatLbOwn_le (uint.nat (W64 0)) (by simp) $$ Hslb'
     ipureintro; exact hst')
 
 
@@ -127,7 +129,7 @@ theorem EtcdServer.snapshotIfNeededAndCompactRaftLog.wp_proofOn
     have : uint.Z ai < receiptBound GF := by omega
     split <;> omega
   iunfold srvSnapState at Hss
-  icases Hss with ⟨%d, %m, %f, Hd, Hm, Hf, %Hdm, #Hms, %σ, Htok, %Hσ⟩
+  icases Hss with ⟨%d, %m, %f, Hd, Hm, Hf, %Hdm, #Hms, #Hro, Hak, %γss, #Htinv, #Hslb⟩
   (try wp_auto)
   wp_apply hD s ep f ai d sc $$ [Hf Hai Hd] as %r1 ⟨Hf, Hai, Hd, %Hr1⟩
   · iframe #; iframe
@@ -141,11 +143,12 @@ theorem EtcdServer.snapshotIfNeededAndCompactRaftLog.wp_proofOn
     iapply HΦ
     iexists st
     iframe Hai Hat Hcs Hst Hbe Happ Hlr HKV
-    isplitl [Hd Hm Hf Htok]
-    · iunfold srvSnapState; iexists d, m, f; iframe Hd Hm Hf Hms
+    isplitl [Hd Hm Hf Hak]
+    · iunfold srvSnapState; iexists d, m, f; iframe Hd Hm Hf Hms Hro Hak
       isplitr
       · ipureintro; exact Hdm
-      iexists σ; iframe Htok; ipureintro; exact ⟨Hσ.1, by word⟩
+      iexists γss; iframe Htinv
+      iapply monoNatLbOwn_le (uint.nat (W64 0)) (by simp) $$ Hslb
     ipureintro; exact ⟨hok, rfl⟩
   all_goals (
     -- (D19i part 1) the trigger fires only past index `0`
@@ -161,30 +164,31 @@ theorem EtcdServer.snapshotIfNeededAndCompactRaftLog.wp_proofOn
     -- (E3p) `snapshot` takes the row's part shared by both auth modes
     icases srvApplyKVOn_core s E γw x sa $$ HKV with ⟨%ua, HKV, HKVk⟩
     wp_apply hS s E γw γ ci b ep st ai at' cs a t x _ ms γs (W64 0) ua hok
-        $$ [Hd Hm Hf Htok Hai Hat Hcs Hst Hbe Happ Hlr HKV]
+        $$ [Hd Hm Hf Hak Hai Hat Hcs Hst Hbe Happ Hlr HKV]
       as ⟨%st', Hss, Hai, Hat, Hcs, Hst, Hbe, Happ, Hlr, HKV, %hst'⟩
     · iframe #
       iframe Hai Hat Hcs Hst Hbe Happ Hlr HKV
-      iunfold srvSnapState; iexists d, m, f; iframe Hd Hm Hf Hms
+      iunfold srvSnapState; iexists d, m, f; iframe Hd Hm Hf Hms Hro Hak
       isplitr
       · ipureintro; exact Hdm
-      iexists σ; iframe Htok; ipureintro; exact ⟨Hσ.1, by word⟩
+      iexists γss; iframe Htinv
+      iapply monoNatLbOwn_le (uint.nat (W64 0)) (by simp) $$ Hslb
     iunfold srvSnapState at Hss
-    icases Hss with ⟨%d', %m', %f', Hd, Hm, Hf, %Hdm', -, %σ', Htok, %Hσ'⟩
+    icases Hss with ⟨%d', %m', %f', Hd, Hm, Hf, %Hdm', -, -, Hak, %γss', #Htinv', #Hslb'⟩
     (try wp_auto)
-    wp_apply hC s ai ms γs σ' scu lg Hσ'.1 Hσ'.2 Hai1 Hcmp $$ [Hlr Htok]
-      as ⟨Hlr, %σ'', Htok, %Hσ''⟩
-    · iframe #; iframe Hlr Htok; ipureintro; exact Hlgn
+    wp_apply hC s ai ms γs γss' ai scu lg (Int.le_refl _) Hai1 Hcmp $$ [Hlr] as Hlr
+    · iframe #; iframe Hlr; ipureintro; exact Hlgn
     (try wp_auto)
     ihave HKV := HKVk $$ HKV
     iapply HΦ
     iexists st'
     iframe Hai Hat Hcs Hst Hbe Happ Hlr HKV
-    isplitl [Hd Hm Hf Htok]
-    · iunfold srvSnapState; iexists d', m', f'; iframe Hd Hm Hf Hms
+    isplitl [Hd Hm Hf Hak]
+    · iunfold srvSnapState; iexists d', m', f'; iframe Hd Hm Hf Hms Hro Hak
       isplitr
       · ipureintro; exact Hdm'
-      iexists σ''; iframe Htok; ipureintro; exact ⟨Hσ''.1, by word⟩
+      iexists γss'; iframe Htinv'
+      iapply monoNatLbOwn_le (uint.nat (W64 0)) (by simp) $$ Hslb'
     ipureintro; exact hst')
 
 end proof

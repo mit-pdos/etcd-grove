@@ -21,22 +21,22 @@ end pkg_id
 
 namespace k8s_io.apiserver.pkg.util.feature
 
-noncomputable def DefaultMutableFeatureGate [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def DefaultMutableFeatureGate [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apiserver/pkg/util/feature.DefaultMutableFeatureGate"
 
-axiom DefaultMutableFeatureGate.init [FfiSyntax] [GoGlobalContext] : val
+axiom DefaultMutableFeatureGate.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def DefaultFeatureGate [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def DefaultFeatureGate [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apiserver/pkg/util/feature.DefaultFeatureGate"
 
-axiom DefaultFeatureGate.init [FfiSyntax] [GoGlobalContext] : val
+axiom DefaultFeatureGate.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable instance info' : PkgInfo pkg_id.k8s_io.apiserver.pkg.util.feature where
   pkgImportedPkgs := [pkg_id.k8s_io.component_base.featuregate]
 
-axiom «_».init [FfiSyntax] [GoGlobalContext] : val
+axiom «_».init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (App (Val (package.init pkg_id.k8s_io.apiserver.pkg.util.feature)) (Lam BAnon
   (App (Val exceptionDo)
@@ -49,7 +49,7 @@ noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val _root_.Perennial.k8s_io.component_base.featuregate.initialize') (Val #()))))))))
 
-class Assumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   import_featuregate_Assumption : _root_.Perennial.k8s_io.component_base.featuregate.Assumptions
 
 attribute [instance] Assumptions.import_featuregate_Assumption

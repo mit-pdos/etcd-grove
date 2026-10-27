@@ -30,7 +30,7 @@ namespace EtcdGrove
 open Iris Iris.BI go_etcd_io.etcd.server.v3.etcdserver go_etcd_io.raft.v3
 
 section addrs
-variable [FfiSyntax] [GoGlobalContext] [GoSemanticsFunctions]
+variable [GooseExts] [GoGlobalContext] [GoSemanticsFunctions]
 
 /-- `s.beHooks`. -/
 abbrev srvBeHooksAddr (s : Loc) : Loc := structFieldRef EtcdServer go!"beHooks" s
@@ -46,10 +46,10 @@ abbrev srvTrIface (t : Loc) : GoInterface :=
 end addrs
 
 section pure
-variable [FfiSyntax]
+variable [GooseExts]
 
 /-- **The transport's peers after a conf change** (see the file header). -/
-def ccPeersAfter (v3 : Bool) (m : CCV1M) (bk : GMap GoString backend.BktData) (rs : trIds) :
+def ccPeersAfter (v3 : Bool) (m : ConfChangeM) (bk : GMap GoString backend.BktData) (rs : trIds) :
     trIds :=
   if m.type = W32 1 ∧ (v3 = false ∨ membership.ccValidOn bk m = true) then
     rs.filter (· != m.nodeId)
@@ -215,7 +215,7 @@ theorem size_le_of_keys {V : Type} (mem : GMap w64 V) (S : GSet w64)
 end pure
 
 section defs
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
@@ -264,7 +264,7 @@ def srvApRes (s : Loc) (γr : ReadNames) (A : List EntryModel) : IProp GF :=
 end defs
 
 section lemmas
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
@@ -363,7 +363,7 @@ theorem srvApplyKV_ua_rt (s : Loc) (E : apply.AEnv GF) (γw : GName) (x : apply.
   iexact Hrest
 
 /-- A conf change in the scope keeps the members among the boot configuration's. -/
-theorem ccRest_memKeys (v3 : Bool) (cm : CCV1M) (r : apply.RestM) (S : GSet w64)
+theorem ccRest_memKeys (v3 : Bool) (cm : ConfChangeM) (r : apply.RestM) (S : GSet w64)
     (hin : cm.nodeId ∈ S) (h : ∀ k, (r.mem !! k).isSome = true → k ∈ S) :
     ∀ k, ((ccRest v3 cm r).mem !! k).isSome = true → k ∈ S := by
   intro k hk
@@ -387,7 +387,7 @@ theorem ccRest_memKeys (v3 : Bool) (cm : CCV1M) (r : apply.RestM) (S : GSet w64)
 /-- **The resource around a conf entry** `m` (decoding to `cm`, in the scope, the next entry after
 `A`): the pieces `applyConfChange` takes, the premises it asks of them, and the way back, after
 it, to the resource after `A ++ [m]`. -/
-theorem srvApRes_cc (s : Loc) (γr : ReadNames) (A : List EntryModel) (m : EntryModel) (cm : CCV1M)
+theorem srvApRes_cc (s : Loc) (γr : ReadNames) (A : List EntryModel) (m : EntryModel) (cm : ConfChangeM)
     (γs : ServerRaftNames) (hγs : γs = γr.raft)
     (hty : m.typ ≠ W32 0) (hdec : ccDecodeV1 m.data = some cm) (hok : ccApplyOkM γr.raft cm)
     (hidx : uint.Z m.index = (γr.raft.pre ++ A).length + 1) :

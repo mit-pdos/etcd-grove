@@ -38,7 +38,7 @@ open Iris Iris.BI
 open github_com.mit_pdos.etcd_grove.examples.k8setcd3 (mstore mcfg item Input Output state)
 
 section defs
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]

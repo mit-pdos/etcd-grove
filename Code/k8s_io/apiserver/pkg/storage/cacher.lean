@@ -65,350 +65,350 @@ end pkg_id
 
 namespace k8s_io.apiserver.pkg.storage.cacher
 
-noncomputable def cacheWatcher.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def cacheWatcher.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/apiserver/pkg/storage/cacher.cacheWatcher" [])
 
 attribute [irreducible] cacheWatcher.ty
 
-noncomputable def Config.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def Config.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/apiserver/pkg/storage/cacher.Config" [])
 
 attribute [irreducible] Config.ty
 
-noncomputable def watchersMap.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def watchersMap.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/apiserver/pkg/storage/cacher.watchersMap" [])
 
 attribute [irreducible] watchersMap.ty
 
-noncomputable def indexedWatchers.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def indexedWatchers.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/apiserver/pkg/storage/cacher.indexedWatchers" [])
 
 attribute [irreducible] indexedWatchers.ty
 
-noncomputable def watchSelector.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def watchSelector.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/apiserver/pkg/storage/cacher.watchSelector" [])
 
 attribute [irreducible] watchSelector.ty
 
-noncomputable def watcherBookmarkTimeBuckets.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def watcherBookmarkTimeBuckets.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/apiserver/pkg/storage/cacher.watcherBookmarkTimeBuckets" [])
 
 attribute [irreducible] watcherBookmarkTimeBuckets.ty
 
-noncomputable def indexedTriggerFunc.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def indexedTriggerFunc.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/apiserver/pkg/storage/cacher.indexedTriggerFunc" [])
 
 attribute [irreducible] indexedTriggerFunc.ty
 
-noncomputable def Cacher.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def Cacher.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/apiserver/pkg/storage/cacher.Cacher" [])
 
 attribute [irreducible] Cacher.ty
 
-noncomputable def namespacedName.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def namespacedName.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/apiserver/pkg/storage/cacher.namespacedName" [])
 
 attribute [irreducible] namespacedName.ty
 
-noncomputable def listResp.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def listResp.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/apiserver/pkg/storage/cacher.listResp" [])
 
 attribute [irreducible] listResp.ty
 
-noncomputable def watchEventFilter.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def watchEventFilter.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/apiserver/pkg/storage/cacher.watchEventFilter" [])
 
 attribute [irreducible] watchEventFilter.ty
 
-noncomputable def errWatcher.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def errWatcher.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/apiserver/pkg/storage/cacher.errWatcher" [])
 
 attribute [irreducible] errWatcher.ty
 
-noncomputable def immediateCloseWatcher.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def immediateCloseWatcher.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/apiserver/pkg/storage/cacher.immediateCloseWatcher" [])
 
 attribute [irreducible] immediateCloseWatcher.ty
 
-noncomputable def metaRuntimeInterface.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def metaRuntimeInterface.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/apiserver/pkg/storage/cacher.metaRuntimeInterface" [])
 
 attribute [irreducible] metaRuntimeInterface.ty
 
-noncomputable def serializationResult.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def serializationResult.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/apiserver/pkg/storage/cacher.serializationResult" [])
 
 attribute [irreducible] serializationResult.ty
 
-noncomputable def serializationsCache.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def serializationsCache.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/apiserver/pkg/storage/cacher.serializationsCache" [])
 
 attribute [irreducible] serializationsCache.ty
 
-noncomputable def cachingObject.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def cachingObject.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/apiserver/pkg/storage/cacher.cachingObject" [])
 
 attribute [irreducible] cachingObject.ty
 
-noncomputable def compactor.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def compactor.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/apiserver/pkg/storage/cacher.compactor" [])
 
 attribute [irreducible] compactor.ty
 
-noncomputable def CacheDelegator.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def CacheDelegator.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/apiserver/pkg/storage/cacher.CacheDelegator" [])
 
 attribute [irreducible] CacheDelegator.ty
 
-noncomputable def listerWatcher.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def listerWatcher.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/apiserver/pkg/storage/cacher.listerWatcher" [])
 
 attribute [irreducible] listerWatcher.ty
 
-noncomputable def status.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def status.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/apiserver/pkg/storage/cacher.status" [])
 
 attribute [irreducible] status.ty
 
-noncomputable def ready.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def ready.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/apiserver/pkg/storage/cacher.ready" [])
 
 attribute [irreducible] ready.ty
 
-noncomputable def timeBudget.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def timeBudget.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/apiserver/pkg/storage/cacher.timeBudget" [])
 
 attribute [irreducible] timeBudget.ty
 
-noncomputable def timeBudgetImpl.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def timeBudgetImpl.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/apiserver/pkg/storage/cacher.timeBudgetImpl" [])
 
 attribute [irreducible] timeBudgetImpl.ty
 
-noncomputable def watchCacheEvent.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def watchCacheEvent.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/apiserver/pkg/storage/cacher.watchCacheEvent" [])
 
 attribute [irreducible] watchCacheEvent.ty
 
-noncomputable def watchCache.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def watchCache.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/apiserver/pkg/storage/cacher.watchCache" [])
 
 attribute [irreducible] watchCache.ty
 
-noncomputable def ImmutableWatchCacheConfig.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def ImmutableWatchCacheConfig.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/apiserver/pkg/storage/cacher.ImmutableWatchCacheConfig" [])
 
 attribute [irreducible] ImmutableWatchCacheConfig.ty
 
-noncomputable def watchCacheHistory.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def watchCacheHistory.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/apiserver/pkg/storage/cacher.watchCacheHistory" [])
 
 attribute [irreducible] watchCacheHistory.ty
 
-noncomputable def cacheIntervalSource.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def cacheIntervalSource.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/apiserver/pkg/storage/cacher.cacheIntervalSource" [])
 
 attribute [irreducible] cacheIntervalSource.ty
 
-noncomputable def watchCacheInterval.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def watchCacheInterval.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/apiserver/pkg/storage/cacher.watchCacheInterval" [])
 
 attribute [irreducible] watchCacheInterval.ty
 
-noncomputable def indexerFunc.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def indexerFunc.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/apiserver/pkg/storage/cacher.indexerFunc" [])
 
 attribute [irreducible] indexerFunc.ty
 
-noncomputable def indexValidator.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def indexValidator.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/apiserver/pkg/storage/cacher.indexValidator" [])
 
 attribute [irreducible] indexValidator.ty
 
-noncomputable def historyCacheIntervalSource.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def historyCacheIntervalSource.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/apiserver/pkg/storage/cacher.historyCacheIntervalSource" [])
 
 attribute [irreducible] historyCacheIntervalSource.ty
 
-noncomputable def snapshotCacheIntervalSource.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def snapshotCacheIntervalSource.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/apiserver/pkg/storage/cacher.snapshotCacheIntervalSource" [])
 
 attribute [irreducible] snapshotCacheIntervalSource.ty
 
-noncomputable def lazySnapshotCacheIntervalSource.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def lazySnapshotCacheIntervalSource.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/apiserver/pkg/storage/cacher.lazySnapshotCacheIntervalSource" [])
 
 attribute [irreducible] lazySnapshotCacheIntervalSource.ty
 
-noncomputable def watchCacheIntervalBuffer.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def watchCacheIntervalBuffer.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/apiserver/pkg/storage/cacher.watchCacheIntervalBuffer" [])
 
 attribute [irreducible] watchCacheIntervalBuffer.ty
 
-axiom cacheWatcher.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom cacheWatcher.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom Cacher.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom Cacher.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom watchCacheEvent.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom watchCacheEvent.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom cacheWatcherWaitingForBookmark [FfiSyntax] [GoGlobalContext] : val
+axiom cacheWatcherWaitingForBookmark [GooseExts] [GoGlobalContext] : val
 
-axiom cacheWatcherBookmarkReceived [FfiSyntax] [GoGlobalContext] : val
+axiom cacheWatcherBookmarkReceived [GooseExts] [GoGlobalContext] : val
 
-axiom cacheWatcherBookmarkSent [FfiSyntax] [GoGlobalContext] : val
+axiom cacheWatcherBookmarkSent [GooseExts] [GoGlobalContext] : val
 
-axiom storageWatchListPageSize [FfiSyntax] [GoGlobalContext] : val
+axiom storageWatchListPageSize [GooseExts] [GoGlobalContext] : val
 
-axiom defaultBookmarkFrequency [FfiSyntax] [GoGlobalContext] : val
+axiom defaultBookmarkFrequency [GooseExts] [GoGlobalContext] : val
 
-axiom compactorPollPeriod [FfiSyntax] [GoGlobalContext] : val
+axiom compactorPollPeriod [GooseExts] [GoGlobalContext] : val
 
-axiom Pending [FfiSyntax] [GoGlobalContext] : val
+axiom Pending [GooseExts] [GoGlobalContext] : val
 
-axiom Ready [FfiSyntax] [GoGlobalContext] : val
+axiom Ready [GooseExts] [GoGlobalContext] : val
 
-axiom Stopped [FfiSyntax] [GoGlobalContext] : val
+axiom Stopped [GooseExts] [GoGlobalContext] : val
 
-axiom refreshPerSecond [FfiSyntax] [GoGlobalContext] : val
+axiom refreshPerSecond [GooseExts] [GoGlobalContext] : val
 
-axiom maxBudget [FfiSyntax] [GoGlobalContext] : val
+axiom maxBudget [GooseExts] [GoGlobalContext] : val
 
-@[reducible] noncomputable def blockTimeout [FfiSyntax] [GoGlobalContext] : val :=
+@[reducible] noncomputable def blockTimeout [GooseExts] [GoGlobalContext] : val :=
   #(W64 3000000000)
 
-@[reducible] noncomputable def resourceVersionTooHighRetrySeconds [FfiSyntax] [GoGlobalContext] : val :=
+@[reducible] noncomputable def resourceVersionTooHighRetrySeconds [GooseExts] [GoGlobalContext] : val :=
   #(1 : Int)
 
-axiom defaultLowerBoundCapacity [FfiSyntax] [GoGlobalContext] : val
+axiom defaultLowerBoundCapacity [GooseExts] [GoGlobalContext] : val
 
-axiom defaultUpperBoundCapacity [FfiSyntax] [GoGlobalContext] : val
+axiom defaultUpperBoundCapacity [GooseExts] [GoGlobalContext] : val
 
-axiom minWatchChanSize [FfiSyntax] [GoGlobalContext] : val
+axiom minWatchChanSize [GooseExts] [GoGlobalContext] : val
 
-axiom maxWatchChanSizeWithIndexAndTrigger [FfiSyntax] [GoGlobalContext] : val
+axiom maxWatchChanSizeWithIndexAndTrigger [GooseExts] [GoGlobalContext] : val
 
-axiom maxWatchChanSizeWithIndexWithoutTrigger [FfiSyntax] [GoGlobalContext] : val
+axiom maxWatchChanSizeWithIndexWithoutTrigger [GooseExts] [GoGlobalContext] : val
 
-axiom maxWatchChanSizeWithoutIndex [FfiSyntax] [GoGlobalContext] : val
+axiom maxWatchChanSizeWithoutIndex [GooseExts] [GoGlobalContext] : val
 
-axiom bufferSize [FfiSyntax] [GoGlobalContext] : val
+axiom bufferSize [GooseExts] [GoGlobalContext] : val
 
-noncomputable def emptyFunc [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def emptyFunc [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apiserver/pkg/storage/cacher.emptyFunc"
 
-axiom emptyFunc.init [FfiSyntax] [GoGlobalContext] : val
+axiom emptyFunc.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def coreNamespaceResource [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def coreNamespaceResource [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apiserver/pkg/storage/cacher.coreNamespaceResource"
 
-axiom coreNamespaceResource.init [FfiSyntax] [GoGlobalContext] : val
+axiom coreNamespaceResource.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def DefaultEventFreshDuration [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def DefaultEventFreshDuration [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apiserver/pkg/storage/cacher.DefaultEventFreshDuration"
 
-axiom DefaultEventFreshDuration.init [FfiSyntax] [GoGlobalContext] : val
+axiom DefaultEventFreshDuration.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def invalidationCacheTimestampLock [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def invalidationCacheTimestampLock [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apiserver/pkg/storage/cacher.invalidationCacheTimestampLock"
 
-noncomputable def invalidationCacheTimestamp [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def invalidationCacheTimestamp [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apiserver/pkg/storage/cacher.invalidationCacheTimestamp"
 
-noncomputable def newCacheWatcher [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def newCacheWatcher [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apiserver/pkg/storage/cacher.newCacheWatcher"
 
-noncomputable def getMutableObject [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def getMutableObject [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apiserver/pkg/storage/cacher.getMutableObject"
 
-noncomputable def updateResourceVersion [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def updateResourceVersion [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apiserver/pkg/storage/cacher.updateResourceVersion"
 
-noncomputable def newTimeBucketWatchers [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def newTimeBucketWatchers [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apiserver/pkg/storage/cacher.newTimeBucketWatchers"
 
-noncomputable def NewCacherFromConfig [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def NewCacherFromConfig [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apiserver/pkg/storage/cacher.NewCacherFromConfig"
 
-noncomputable def computeListLimit [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def computeListLimit [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apiserver/pkg/storage/cacher.computeListLimit"
 
-noncomputable def baseObjectThreadUnsafe [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def baseObjectThreadUnsafe [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apiserver/pkg/storage/cacher.baseObjectThreadUnsafe"
 
-noncomputable def setCachingObjects [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def setCachingObjects [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apiserver/pkg/storage/cacher.setCachingObjects"
 
-noncomputable def forEachSelectionKey [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def forEachSelectionKey [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apiserver/pkg/storage/cacher.forEachSelectionKey"
 
-noncomputable def forgetWatcher [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def forgetWatcher [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apiserver/pkg/storage/cacher.forgetWatcher"
 
-noncomputable def newWatchEventFilter [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def newWatchEventFilter [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apiserver/pkg/storage/cacher.newWatchEventFilter"
 
-noncomputable def isListWatchRequest [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def isListWatchRequest [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apiserver/pkg/storage/cacher.isListWatchRequest"
 
-noncomputable def newErrWatcher [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def newErrWatcher [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apiserver/pkg/storage/cacher.newErrWatcher"
 
-noncomputable def newImmediateCloseWatcher [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def newImmediateCloseWatcher [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apiserver/pkg/storage/cacher.newImmediateCloseWatcher"
 
-noncomputable def newCachingObject [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def newCachingObject [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apiserver/pkg/storage/cacher.newCachingObject"
 
-noncomputable def shouldLogCacheInvalidation [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def shouldLogCacheInvalidation [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apiserver/pkg/storage/cacher.shouldLogCacheInvalidation"
 
-noncomputable def newCompactor [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def newCompactor [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apiserver/pkg/storage/cacher.newCompactor"
 
-noncomputable def NewCacheDelegator [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def NewCacheDelegator [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apiserver/pkg/storage/cacher.NewCacheDelegator"
 
-noncomputable def shouldDelegateListOnNotReadyCache [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def shouldDelegateListOnNotReadyCache [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apiserver/pkg/storage/cacher.shouldDelegateListOnNotReadyCache"
 
-noncomputable def NewListerWatcher [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def NewListerWatcher [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apiserver/pkg/storage/cacher.NewListerWatcher"
 
-noncomputable def newReady [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def newReady [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apiserver/pkg/storage/cacher.newReady"
 
-noncomputable def newTimeBudget [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def newTimeBudget [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apiserver/pkg/storage/cacher.newTimeBudget"
 
-noncomputable def calculateRetryAfterForUnreadyCache [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def calculateRetryAfterForUnreadyCache [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apiserver/pkg/storage/cacher.calculateRetryAfterForUnreadyCache"
 
-noncomputable def newWatchCache [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def newWatchCache [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apiserver/pkg/storage/cacher.newWatchCache"
 
-noncomputable def newWatchCacheHistory [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def newWatchCacheHistory [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apiserver/pkg/storage/cacher.newWatchCacheHistory"
 
-noncomputable def capacityUpperBound [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def capacityUpperBound [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apiserver/pkg/storage/cacher.capacityUpperBound"
 
-noncomputable def eventsFromNext [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def eventsFromNext [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apiserver/pkg/storage/cacher.eventsFromNext"
 
-noncomputable def newCacheInterval [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def newCacheInterval [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apiserver/pkg/storage/cacher.newCacheInterval"
 
-noncomputable def newCacheIntervalFromStore [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def newCacheIntervalFromStore [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apiserver/pkg/storage/cacher.newCacheIntervalFromStore"
 
-noncomputable def newCacheIntervalFromLazySnapshot [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def newCacheIntervalFromLazySnapshot [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apiserver/pkg/storage/cacher.newCacheIntervalFromLazySnapshot"
 
-noncomputable def storeElementToWatchCacheEvent [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def storeElementToWatchCacheEvent [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apiserver/pkg/storage/cacher.storeElementToWatchCacheEvent"
 
 /-- go: cacher.go:734:18 -/
-noncomputable def Cacher.get.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def Cacher.get.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "c"
   (Lam "ctx"
   (Lam "key"
@@ -486,7 +486,7 @@ noncomputable def Cacher.get.impl [FfiSyntax] [GoGlobalContext] : val :=
 /-- Add takes runtime.Object as an argument.
 
     go: watch_cache.go:167:22 -/
-noncomputable def watchCache.Add.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def watchCache.Add.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "w"
   (Lam "obj"
   (App (Val exceptionDo)
@@ -533,7 +533,7 @@ noncomputable def watchCache.Add.impl [FfiSyntax] [GoGlobalContext] : val :=
 /-- Update takes runtime.Object as an argument.
 
     go: watch_cache.go:178:22 -/
-noncomputable def watchCache.Update.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def watchCache.Update.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "w"
   (Lam "obj"
   (App (Val exceptionDo)
@@ -580,7 +580,7 @@ noncomputable def watchCache.Update.impl [FfiSyntax] [GoGlobalContext] : val :=
 /-- Delete takes runtime.Object as an argument.
 
     go: watch_cache.go:189:22 -/
-noncomputable def watchCache.Delete.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def watchCache.Delete.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "w"
   (Lam "obj"
   (App (Val exceptionDo)
@@ -625,7 +625,7 @@ noncomputable def watchCache.Delete.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore _root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty))) (Pair (Var "object") (Var "$r0"))))))))))))))))))))
 
 /-- go: watch_cache.go:199:22 -/
-noncomputable def watchCache.objectToVersionedRuntimeObject.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def watchCache.objectToVersionedRuntimeObject.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "w"
   (Lam "obj"
   (App (Val exceptionDo)
@@ -680,7 +680,7 @@ noncomputable def watchCache.objectToVersionedRuntimeObject.impl [FfiSyntax] [Go
     at any point in time.
 
     go: watch_cache.go:213:22 -/
-noncomputable def watchCache.processEvent.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def watchCache.processEvent.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "w"
   (Lam "event"
   (Lam "resourceVersion"
@@ -910,7 +910,7 @@ noncomputable def watchCache.processEvent.impl [FfiSyntax] [GoGlobalContext] : v
   (App (Val (GoInstruction (GoStore _root_.Perennial.time.Time.ty))) (Pair (Var "cacheReceived") (Var "$r0"))))))))))))))
 
 /-- go: watch_cache.go:283:22 -/
-noncomputable def watchCache.UpdateResourceVersion.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def watchCache.UpdateResourceVersion.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "w"
   (Lam "resourceVersion"
   (App (Val exceptionDo)
@@ -1015,7 +1015,7 @@ noncomputable def watchCache.UpdateResourceVersion.impl [FfiSyntax] [GoGlobalCon
 /-- waitUntilFreshLocked waits until cache is at least as fresh as given resourceVersion.
 
     go: watch_cache.go:326:22 -/
-noncomputable def watchCache.waitUntilFreshLocked.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def watchCache.waitUntilFreshLocked.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "w"
   (Lam "ctx"
   (Lam "resourceVersion"
@@ -1106,7 +1106,7 @@ noncomputable def watchCache.waitUntilFreshLocked.impl [FfiSyntax] [GoGlobalCont
   (Val #()))))))))))))
 
 /-- go: watch_cache.go:506:22 -/
-noncomputable def watchCache.waitAndGetLatestSnapshot.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def watchCache.waitAndGetLatestSnapshot.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "w"
   (Lam "ctx"
   (Lam "recursive"
@@ -1179,7 +1179,7 @@ noncomputable def watchCache.waitAndGetLatestSnapshot.impl [FfiSyntax] [GoGlobal
   (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.k8s_io.component_base.tracing.Span.ty)))) (Pair (Var "span") (Var "$r0")))))))))))))))))))))))
 
 /-- go: watch_cache.go:520:22 -/
-noncomputable def watchCache.getLatestSnapshotLocked.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def watchCache.getLatestSnapshotLocked.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "w"
   (Lam "ctx"
   (Lam "recursive"
@@ -1274,7 +1274,7 @@ noncomputable def watchCache.getLatestSnapshotLocked.impl [FfiSyntax] [GoGlobalC
   (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.k8s_io.component_base.tracing.Span.ty)))) (Pair (Var "span") (Var "$r0"))))))))))))))))))
 
 /-- go: watch_cache.go:545:22 -/
-noncomputable def watchCache.checkSnapshotResourceVersion.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def watchCache.checkSnapshotResourceVersion.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "w"
   (Lam "snap"
   (Lam "expectedRV"
@@ -1319,7 +1319,7 @@ noncomputable def watchCache.checkSnapshotResourceVersion.impl [FfiSyntax] [GoGl
   (Val #()))))))))))))
 
 /-- go: watch_cache.go:555:22 -/
-noncomputable def watchCache.notFresh.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def watchCache.notFresh.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "w"
   (Lam "resourceVersion"
   (App (Val wrapDefer)
@@ -1342,7 +1342,7 @@ noncomputable def watchCache.notFresh.impl [FfiSyntax] [GoGlobalContext] : val :
 /-- WaitUntilFreshAndGet returns a pointers to <storeElement> object.
 
     go: watch_cache.go:562:22 -/
-noncomputable def watchCache.WaitUntilFreshAndGet.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def watchCache.WaitUntilFreshAndGet.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "w"
   (Lam "ctx"
   (Lam "resourceVersion"
@@ -1476,9 +1476,9 @@ noncomputable def watchCache.WaitUntilFreshAndGet.impl [FfiSyntax] [GoGlobalCont
 noncomputable instance info' : PkgInfo pkg_id.k8s_io.apiserver.pkg.storage.cacher where
   pkgImportedPkgs := [pkg_id.context, pkg_id.fmt, pkg_id.sync, pkg_id.time, pkg_id.k8s_io.utils.clock, pkg_id.k8s_io.apimachinery.pkg.runtime, pkg_id.k8s_io.apimachinery.pkg.runtime.schema, pkg_id.k8s_io.apimachinery.pkg.util.runtime, pkg_id.k8s_io.apimachinery.pkg.watch, pkg_id.k8s_io.apiserver.pkg.storage, pkg_id.k8s_io.apiserver.pkg.util.flowcontrol, pkg_id.k8s_io.klog.v2, pkg_id.net.http, pkg_id.reflect, pkg_id.strings, pkg_id.go_opentelemetry_io.otel.«attribute», pkg_id.google_golang_org.grpc.metadata, pkg_id.k8s_io.apimachinery.pkg.api.errors, pkg_id.k8s_io.apimachinery.pkg.api.«meta», pkg_id.k8s_io.apimachinery.pkg.apis.«meta».v1, pkg_id.k8s_io.apimachinery.pkg.conversion, pkg_id.k8s_io.apimachinery.pkg.fields, pkg_id.k8s_io.apimachinery.pkg.labels, pkg_id.k8s_io.apimachinery.pkg.util.wait, pkg_id.k8s_io.apiserver.pkg.audit, pkg_id.k8s_io.apiserver.pkg.endpoints.request, pkg_id.k8s_io.apiserver.pkg.features, pkg_id.k8s_io.apiserver.pkg.storage.cacher.delegator, pkg_id.k8s_io.apiserver.pkg.storage.cacher.key, pkg_id.k8s_io.apiserver.pkg.storage.cacher.progress, pkg_id.k8s_io.apiserver.pkg.storage.cacher.store, pkg_id.k8s_io.apiserver.pkg.storage.feature, pkg_id.k8s_io.apiserver.pkg.util.feature, pkg_id.k8s_io.client_go.tools.cache, pkg_id.k8s_io.component_base.tracing, pkg_id.bytes, pkg_id.io, pkg_id.sync.atomic, pkg_id.k8s_io.apimachinery.pkg.types, pkg_id.k8s_io.apiserver.pkg.storage.cacher.consistency, pkg_id.k8s_io.client_go.util.consistencydetector, pkg_id.k8s_io.client_go.util.watchlist, pkg_id.math, pkg_id.sort, pkg_id.iter]
 
-axiom «_».init [FfiSyntax] [GoGlobalContext] : val
+axiom «_».init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (App (Val (package.init pkg_id.k8s_io.apiserver.pkg.storage.cacher)) (Lam BAnon
   (App (Val exceptionDo)
@@ -1636,16 +1636,20 @@ axiom cacheWatcher : Type
 axiom cacheWatcher.zero_val : ZeroVal cacheWatcher
 attribute [instance] cacheWatcher.zero_val
 
-class cacheWatcher.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class cacheWatcher.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying cacheWatcher.underlying cacheWatcher
   underlying : go.UnderlyingDirectedEq cacheWatcher.ty cacheWatcher.underlying
   isUnderlying : go.IsUnderlying cacheWatcher.underlying cacheWatcher.underlying
+  method_set : go.MethodSetIs cacheWatcher.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType cacheWatcher.ty) [(go!"ResultChan", (some (go.signature.Signature [] false [(go.GoType.ChannelType go.ChanDir.recvonly _root_.Perennial.k8s_io.apimachinery.pkg.watch.Event.ty)]))), (go!"Stop", (some (go.signature.Signature [] false []))), (go!"k8s.io/apiserver/pkg/storage/cacher.add", (some (go.signature.Signature [(go.GoType.PointerType watchCacheEvent.ty), (go.GoType.PointerType _root_.Perennial.time.Timer.ty)] false [go.bool]))), (go!"k8s.io/apiserver/pkg/storage/cacher.convertToWatchEvent", (some (go.signature.Signature [(go.GoType.PointerType watchCacheEvent.ty)] false [(go.GoType.PointerType _root_.Perennial.k8s_io.apimachinery.pkg.watch.Event.ty)]))), (go!"k8s.io/apiserver/pkg/storage/cacher.isDoneChannelClosedLocked", (some (go.signature.Signature [] false [go.bool]))), (go!"k8s.io/apiserver/pkg/storage/cacher.markBookmarkAfterRvAsReceived", (some (go.signature.Signature [(go.GoType.PointerType watchCacheEvent.ty)] false []))), (go!"k8s.io/apiserver/pkg/storage/cacher.markBookmarkAfterRvSent", (some (go.signature.Signature [(go.GoType.PointerType watchCacheEvent.ty)] false []))), (go!"k8s.io/apiserver/pkg/storage/cacher.nextBookmarkTime", (some (go.signature.Signature [_root_.Perennial.time.Time.ty, _root_.Perennial.time.Duration.ty] false [_root_.Perennial.time.Time.ty, go.bool]))), (go!"k8s.io/apiserver/pkg/storage/cacher.nonblockingAdd", (some (go.signature.Signature [(go.GoType.PointerType watchCacheEvent.ty)] false [go.bool]))), (go!"k8s.io/apiserver/pkg/storage/cacher.observeDispatchMetrics", (some (go.signature.Signature [(go.GoType.PointerType watchCacheEvent.ty), _root_.Perennial.time.Time.ty, _root_.Perennial.time.Time.ty, _root_.Perennial.time.Time.ty] false []))), (go!"k8s.io/apiserver/pkg/storage/cacher.process", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType watchCacheInterval.ty), go.uint64] false []))), (go!"k8s.io/apiserver/pkg/storage/cacher.processIncomingEvents", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.uint64] false []))), (go!"k8s.io/apiserver/pkg/storage/cacher.processInitialEvents", (some (go.signature.Signature [(go.GoType.PointerType watchCacheInterval.ty), go.uint64] false [go.uint64, go.error]))), (go!"k8s.io/apiserver/pkg/storage/cacher.sendWatchCacheEvent", (some (go.signature.Signature [(go.GoType.PointerType watchCacheEvent.ty)] false [_root_.Perennial.time.Time.ty, _root_.Perennial.time.Time.ty]))), (go!"k8s.io/apiserver/pkg/storage/cacher.setBookmarkAfterResourceVersion", (some (go.signature.Signature [go.uint64] false []))), (go!"k8s.io/apiserver/pkg/storage/cacher.setDrainInputBufferLocked", (some (go.signature.Signature [go.bool] false []))), (go!"k8s.io/apiserver/pkg/storage/cacher.stopLocked", (some (go.signature.Signature [] false []))), (go!"k8s.io/apiserver/pkg/storage/cacher.wasBookmarkAfterRvReceived", (some (go.signature.Signature [] false [go.bool]))), (go!"k8s.io/apiserver/pkg/storage/cacher.wasBookmarkAfterRvReceivedLocked", (some (go.signature.Signature [] false [go.bool]))), (go!"k8s.io/apiserver/pkg/storage/cacher.wasBookmarkAfterRvSent", (some (go.signature.Signature [] false [go.bool]))), (go!"k8s.io/apiserver/pkg/storage/cacher.wasBookmarkAfterRvSentLocked", (some (go.signature.Signature [] false [go.bool])))]
 
 attribute [instance] cacheWatcher.TypeAssumptions.type_repr
   cacheWatcher.TypeAssumptions.underlying
   cacheWatcher.TypeAssumptions.isUnderlying
+  cacheWatcher.TypeAssumptions.method_set
+  cacheWatcher.TypeAssumptions.ptr_method_set
 
-structure Config [FfiSyntax] where
+structure Config [GooseExts] where
   mk ::
   Storage' : _root_.Perennial.k8s_io.apiserver.pkg.storage.Interface
   Versioner' : _root_.Perennial.k8s_io.apiserver.pkg.storage.Versioner
@@ -1661,10 +1665,10 @@ structure Config [FfiSyntax] where
   Codec' : _root_.Perennial.k8s_io.apimachinery.pkg.runtime.Codec
   Clock' : _root_.Perennial.k8s_io.utils.clock.WithTicker
 
-noncomputable instance Config.zero_val [FfiSyntax] : ZeroVal Config :=
+noncomputable instance Config.zero_val [GooseExts] : ZeroVal Config :=
   ⟨Config.mk zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def Config.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def Config.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"Storage" _root_.Perennial.k8s_io.apiserver.pkg.storage.Interface.ty),
 (go.field_decl.FieldDecl go!"Versioner" _root_.Perennial.k8s_io.apiserver.pkg.storage.Versioner.ty),
 (go.field_decl.FieldDecl go!"GroupResource" _root_.Perennial.k8s_io.apimachinery.pkg.runtime.schema.GroupResource.ty),
@@ -1679,17 +1683,17 @@ noncomputable instance Config.zero_val [FfiSyntax] : ZeroVal Config :=
 (go.field_decl.FieldDecl go!"Codec" _root_.Perennial.k8s_io.apimachinery.pkg.runtime.Codec.ty),
 (go.field_decl.FieldDecl go!"Clock" _root_.Perennial.k8s_io.utils.clock.WithTicker.ty)]
 
-@[irreducible] noncomputable def Config.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def Config.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   Config.fieldsUnsealed
 
-noncomputable instance equals_unfold_Config [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_Config [GooseExts] [GoGlobalContext] :
     EqualsUnfold Config.fields Config.fieldsUnsealed :=
   ⟨by unfold Config.fields; rfl⟩
 
-@[reducible] noncomputable def Config.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def Config.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType Config.fields)
 
-class Config.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class Config.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying Config.underlying Config
   underlying : go.UnderlyingDirectedEq Config.ty Config.underlying
   get_Storage : ∀ (x : Config), go.IsGoStepPureDetTagged under (StructFieldGet Config.underlying go!"Storage") #x (Val #(x.Storage'))
@@ -1718,6 +1722,8 @@ class Config.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoS
   set_Codec : ∀ (x : Config) (y : _root_.Perennial.k8s_io.apimachinery.pkg.runtime.Codec), go.IsGoStepPureDetTagged under (StructFieldSet Config.underlying go!"Codec") (PairV #x #y) (Val #(({ x with Codec' := y } : Config)))
   get_Clock : ∀ (x : Config), go.IsGoStepPureDetTagged under (StructFieldGet Config.underlying go!"Clock") #x (Val #(x.Clock'))
   set_Clock : ∀ (x : Config) (y : _root_.Perennial.k8s_io.utils.clock.WithTicker), go.IsGoStepPureDetTagged under (StructFieldSet Config.underlying go!"Clock") (PairV #x #y) (Val #(({ x with Clock' := y } : Config)))
+  method_set : go.MethodSetIs Config.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType Config.ty) []
 
 attribute [instance] Config.TypeAssumptions.type_repr
   Config.TypeAssumptions.underlying
@@ -1747,46 +1753,54 @@ attribute [instance] Config.TypeAssumptions.type_repr
   Config.TypeAssumptions.set_Codec
   Config.TypeAssumptions.get_Clock
   Config.TypeAssumptions.set_Clock
+  Config.TypeAssumptions.method_set
+  Config.TypeAssumptions.ptr_method_set
 
-abbrev watchersMap [FfiSyntax] : Type := GoMap
+abbrev watchersMap [GooseExts] : Type := GoMap
 
-@[reducible] noncomputable def watchersMap.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def watchersMap.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.MapType go.int (go.GoType.PointerType cacheWatcher.ty))
 
-class watchersMap.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class watchersMap.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq watchersMap.ty watchersMap.underlying
+  method_set : go.MethodSetIs watchersMap.ty [(go!"k8s.io/apiserver/pkg/storage/cacher.addWatcher", (some (go.signature.Signature [(go.GoType.PointerType cacheWatcher.ty), go.int] false []))), (go!"k8s.io/apiserver/pkg/storage/cacher.deleteWatcher", (some (go.signature.Signature [go.int] false []))), (go!"k8s.io/apiserver/pkg/storage/cacher.terminateAll", (some (go.signature.Signature [(go.GoType.FunctionType (go.signature.Signature [(go.GoType.PointerType cacheWatcher.ty)] false []))] false [])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType watchersMap.ty) [(go!"k8s.io/apiserver/pkg/storage/cacher.addWatcher", (some (go.signature.Signature [(go.GoType.PointerType cacheWatcher.ty), go.int] false []))), (go!"k8s.io/apiserver/pkg/storage/cacher.deleteWatcher", (some (go.signature.Signature [go.int] false []))), (go!"k8s.io/apiserver/pkg/storage/cacher.terminateAll", (some (go.signature.Signature [(go.GoType.FunctionType (go.signature.Signature [(go.GoType.PointerType cacheWatcher.ty)] false []))] false [])))]
 
 attribute [instance] watchersMap.TypeAssumptions.underlying
+  watchersMap.TypeAssumptions.method_set
+  watchersMap.TypeAssumptions.ptr_method_set
 
-structure indexedWatchers [FfiSyntax] where
+structure indexedWatchers [GooseExts] where
   mk ::
   scopeWatchers' : GoMap
   indexWatchers' : GoMap
 
-noncomputable instance indexedWatchers.zero_val [FfiSyntax] : ZeroVal indexedWatchers :=
+noncomputable instance indexedWatchers.zero_val [GooseExts] : ZeroVal indexedWatchers :=
   ⟨indexedWatchers.mk zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def indexedWatchers.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def indexedWatchers.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"scopeWatchers" (go.GoType.MapType namespacedName.ty watchersMap.ty)),
 (go.field_decl.FieldDecl go!"indexWatchers" (go.GoType.MapType go.string watchersMap.ty))]
 
-@[irreducible] noncomputable def indexedWatchers.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def indexedWatchers.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   indexedWatchers.fieldsUnsealed
 
-noncomputable instance equals_unfold_indexedWatchers [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_indexedWatchers [GooseExts] [GoGlobalContext] :
     EqualsUnfold indexedWatchers.fields indexedWatchers.fieldsUnsealed :=
   ⟨by unfold indexedWatchers.fields; rfl⟩
 
-@[reducible] noncomputable def indexedWatchers.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def indexedWatchers.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType indexedWatchers.fields)
 
-class indexedWatchers.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class indexedWatchers.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying indexedWatchers.underlying indexedWatchers
   underlying : go.UnderlyingDirectedEq indexedWatchers.ty indexedWatchers.underlying
   get_scopeWatchers : ∀ (x : indexedWatchers), go.IsGoStepPureDetTagged under (StructFieldGet indexedWatchers.underlying go!"scopeWatchers") #x (Val #(x.scopeWatchers'))
   set_scopeWatchers : ∀ (x : indexedWatchers) (y : GoMap), go.IsGoStepPureDetTagged under (StructFieldSet indexedWatchers.underlying go!"scopeWatchers") (PairV #x #y) (Val #(({ x with scopeWatchers' := y } : indexedWatchers)))
   get_indexWatchers : ∀ (x : indexedWatchers), go.IsGoStepPureDetTagged under (StructFieldGet indexedWatchers.underlying go!"indexWatchers") #x (Val #(x.indexWatchers'))
   set_indexWatchers : ∀ (x : indexedWatchers) (y : GoMap), go.IsGoStepPureDetTagged under (StructFieldSet indexedWatchers.underlying go!"indexWatchers") (PairV #x #y) (Val #(({ x with indexWatchers' := y } : indexedWatchers)))
+  method_set : go.MethodSetIs indexedWatchers.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType indexedWatchers.ty) [(go!"k8s.io/apiserver/pkg/storage/cacher.addWatcher", (some (go.signature.Signature [(go.GoType.PointerType cacheWatcher.ty), go.int, watchSelector.ty] false []))), (go!"k8s.io/apiserver/pkg/storage/cacher.deleteWatcher", (some (go.signature.Signature [go.int, watchSelector.ty] false []))), (go!"k8s.io/apiserver/pkg/storage/cacher.terminateAll", (some (go.signature.Signature [_root_.Perennial.k8s_io.apimachinery.pkg.runtime.schema.GroupResource.ty, (go.GoType.FunctionType (go.signature.Signature [(go.GoType.PointerType cacheWatcher.ty)] false []))] false [])))]
 
 attribute [instance] indexedWatchers.TypeAssumptions.type_repr
   indexedWatchers.TypeAssumptions.underlying
@@ -1794,36 +1808,40 @@ attribute [instance] indexedWatchers.TypeAssumptions.type_repr
   indexedWatchers.TypeAssumptions.set_scopeWatchers
   indexedWatchers.TypeAssumptions.get_indexWatchers
   indexedWatchers.TypeAssumptions.set_indexWatchers
+  indexedWatchers.TypeAssumptions.method_set
+  indexedWatchers.TypeAssumptions.ptr_method_set
 
-structure namespacedName [FfiSyntax] where
+structure namespacedName [GooseExts] where
   mk ::
   namespace' : GoString
   name' : GoString
 
-noncomputable instance namespacedName.zero_val [FfiSyntax] : ZeroVal namespacedName :=
+noncomputable instance namespacedName.zero_val [GooseExts] : ZeroVal namespacedName :=
   ⟨namespacedName.mk zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def namespacedName.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def namespacedName.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"namespace" go.string),
 (go.field_decl.FieldDecl go!"name" go.string)]
 
-@[irreducible] noncomputable def namespacedName.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def namespacedName.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   namespacedName.fieldsUnsealed
 
-noncomputable instance equals_unfold_namespacedName [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_namespacedName [GooseExts] [GoGlobalContext] :
     EqualsUnfold namespacedName.fields namespacedName.fieldsUnsealed :=
   ⟨by unfold namespacedName.fields; rfl⟩
 
-@[reducible] noncomputable def namespacedName.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def namespacedName.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType namespacedName.fields)
 
-class namespacedName.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class namespacedName.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying namespacedName.underlying namespacedName
   underlying : go.UnderlyingDirectedEq namespacedName.ty namespacedName.underlying
   get_namespace : ∀ (x : namespacedName), go.IsGoStepPureDetTagged under (StructFieldGet namespacedName.underlying go!"namespace") #x (Val #(x.namespace'))
   set_namespace : ∀ (x : namespacedName) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet namespacedName.underlying go!"namespace") (PairV #x #y) (Val #(({ x with namespace' := y } : namespacedName)))
   get_name : ∀ (x : namespacedName), go.IsGoStepPureDetTagged under (StructFieldGet namespacedName.underlying go!"name") #x (Val #(x.name'))
   set_name : ∀ (x : namespacedName) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet namespacedName.underlying go!"name") (PairV #x #y) (Val #(({ x with name' := y } : namespacedName)))
+  method_set : go.MethodSetIs namespacedName.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType namespacedName.ty) []
 
 attribute [instance] namespacedName.TypeAssumptions.type_repr
   namespacedName.TypeAssumptions.underlying
@@ -1831,36 +1849,40 @@ attribute [instance] namespacedName.TypeAssumptions.type_repr
   namespacedName.TypeAssumptions.set_namespace
   namespacedName.TypeAssumptions.get_name
   namespacedName.TypeAssumptions.set_name
+  namespacedName.TypeAssumptions.method_set
+  namespacedName.TypeAssumptions.ptr_method_set
 
-structure watchSelector [FfiSyntax] where
+structure watchSelector [GooseExts] where
   mk ::
   scope' : namespacedName
   indexValue' : Loc
 
-noncomputable instance watchSelector.zero_val [FfiSyntax] : ZeroVal watchSelector :=
+noncomputable instance watchSelector.zero_val [GooseExts] : ZeroVal watchSelector :=
   ⟨watchSelector.mk zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def watchSelector.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def watchSelector.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"scope" namespacedName.ty),
 (go.field_decl.FieldDecl go!"indexValue" (go.GoType.PointerType go.string))]
 
-@[irreducible] noncomputable def watchSelector.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def watchSelector.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   watchSelector.fieldsUnsealed
 
-noncomputable instance equals_unfold_watchSelector [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_watchSelector [GooseExts] [GoGlobalContext] :
     EqualsUnfold watchSelector.fields watchSelector.fieldsUnsealed :=
   ⟨by unfold watchSelector.fields; rfl⟩
 
-@[reducible] noncomputable def watchSelector.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def watchSelector.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType watchSelector.fields)
 
-class watchSelector.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class watchSelector.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying watchSelector.underlying watchSelector
   underlying : go.UnderlyingDirectedEq watchSelector.ty watchSelector.underlying
   get_scope : ∀ (x : watchSelector), go.IsGoStepPureDetTagged under (StructFieldGet watchSelector.underlying go!"scope") #x (Val #(x.scope'))
   set_scope : ∀ (x : watchSelector) (y : namespacedName), go.IsGoStepPureDetTagged under (StructFieldSet watchSelector.underlying go!"scope") (PairV #x #y) (Val #(({ x with scope' := y } : watchSelector)))
   get_indexValue : ∀ (x : watchSelector), go.IsGoStepPureDetTagged under (StructFieldGet watchSelector.underlying go!"indexValue") #x (Val #(x.indexValue'))
   set_indexValue : ∀ (x : watchSelector) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet watchSelector.underlying go!"indexValue") (PairV #x #y) (Val #(({ x with indexValue' := y } : watchSelector)))
+  method_set : go.MethodSetIs watchSelector.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType watchSelector.ty) []
 
 attribute [instance] watchSelector.TypeAssumptions.type_repr
   watchSelector.TypeAssumptions.underlying
@@ -1868,8 +1890,10 @@ attribute [instance] watchSelector.TypeAssumptions.type_repr
   watchSelector.TypeAssumptions.set_scope
   watchSelector.TypeAssumptions.get_indexValue
   watchSelector.TypeAssumptions.set_indexValue
+  watchSelector.TypeAssumptions.method_set
+  watchSelector.TypeAssumptions.ptr_method_set
 
-structure watcherBookmarkTimeBuckets [FfiSyntax] where
+structure watcherBookmarkTimeBuckets [GooseExts] where
   mk ::
   watchersBuckets' : GoMap
   createTime' : _root_.Perennial.time.Time
@@ -1877,27 +1901,27 @@ structure watcherBookmarkTimeBuckets [FfiSyntax] where
   clock' : _root_.Perennial.k8s_io.utils.clock.Clock
   bookmarkFrequency' : _root_.Perennial.time.Duration
 
-noncomputable instance watcherBookmarkTimeBuckets.zero_val [FfiSyntax] : ZeroVal watcherBookmarkTimeBuckets :=
+noncomputable instance watcherBookmarkTimeBuckets.zero_val [GooseExts] : ZeroVal watcherBookmarkTimeBuckets :=
   ⟨watcherBookmarkTimeBuckets.mk zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def watcherBookmarkTimeBuckets.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def watcherBookmarkTimeBuckets.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"watchersBuckets" (go.GoType.MapType go.int64 (go.GoType.SliceType (go.GoType.PointerType cacheWatcher.ty)))),
 (go.field_decl.FieldDecl go!"createTime" _root_.Perennial.time.Time.ty),
 (go.field_decl.FieldDecl go!"startBucketID" go.int64),
 (go.field_decl.FieldDecl go!"clock" _root_.Perennial.k8s_io.utils.clock.Clock.ty),
 (go.field_decl.FieldDecl go!"bookmarkFrequency" _root_.Perennial.time.Duration.ty)]
 
-@[irreducible] noncomputable def watcherBookmarkTimeBuckets.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def watcherBookmarkTimeBuckets.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   watcherBookmarkTimeBuckets.fieldsUnsealed
 
-noncomputable instance equals_unfold_watcherBookmarkTimeBuckets [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_watcherBookmarkTimeBuckets [GooseExts] [GoGlobalContext] :
     EqualsUnfold watcherBookmarkTimeBuckets.fields watcherBookmarkTimeBuckets.fieldsUnsealed :=
   ⟨by unfold watcherBookmarkTimeBuckets.fields; rfl⟩
 
-@[reducible] noncomputable def watcherBookmarkTimeBuckets.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def watcherBookmarkTimeBuckets.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType watcherBookmarkTimeBuckets.fields)
 
-class watcherBookmarkTimeBuckets.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class watcherBookmarkTimeBuckets.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying watcherBookmarkTimeBuckets.underlying watcherBookmarkTimeBuckets
   underlying : go.UnderlyingDirectedEq watcherBookmarkTimeBuckets.ty watcherBookmarkTimeBuckets.underlying
   get_watchersBuckets : ∀ (x : watcherBookmarkTimeBuckets), go.IsGoStepPureDetTagged under (StructFieldGet watcherBookmarkTimeBuckets.underlying go!"watchersBuckets") #x (Val #(x.watchersBuckets'))
@@ -1910,6 +1934,8 @@ class watcherBookmarkTimeBuckets.TypeAssumptions [FfiSyntax] [GoGlobalContext] [
   set_clock : ∀ (x : watcherBookmarkTimeBuckets) (y : _root_.Perennial.k8s_io.utils.clock.Clock), go.IsGoStepPureDetTagged under (StructFieldSet watcherBookmarkTimeBuckets.underlying go!"clock") (PairV #x #y) (Val #(({ x with clock' := y } : watcherBookmarkTimeBuckets)))
   get_bookmarkFrequency : ∀ (x : watcherBookmarkTimeBuckets), go.IsGoStepPureDetTagged under (StructFieldGet watcherBookmarkTimeBuckets.underlying go!"bookmarkFrequency") #x (Val #(x.bookmarkFrequency'))
   set_bookmarkFrequency : ∀ (x : watcherBookmarkTimeBuckets) (y : _root_.Perennial.time.Duration), go.IsGoStepPureDetTagged under (StructFieldSet watcherBookmarkTimeBuckets.underlying go!"bookmarkFrequency") (PairV #x #y) (Val #(({ x with bookmarkFrequency' := y } : watcherBookmarkTimeBuckets)))
+  method_set : go.MethodSetIs watcherBookmarkTimeBuckets.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType watcherBookmarkTimeBuckets.ty) [(go!"k8s.io/apiserver/pkg/storage/cacher.addWatcherThreadUnsafe", (some (go.signature.Signature [(go.GoType.PointerType cacheWatcher.ty)] false [go.bool]))), (go!"k8s.io/apiserver/pkg/storage/cacher.popExpiredWatchersThreadUnsafe", (some (go.signature.Signature [] false [(go.GoType.SliceType (go.GoType.SliceType (go.GoType.PointerType cacheWatcher.ty)))])))]
 
 attribute [instance] watcherBookmarkTimeBuckets.TypeAssumptions.type_repr
   watcherBookmarkTimeBuckets.TypeAssumptions.underlying
@@ -1923,36 +1949,40 @@ attribute [instance] watcherBookmarkTimeBuckets.TypeAssumptions.type_repr
   watcherBookmarkTimeBuckets.TypeAssumptions.set_clock
   watcherBookmarkTimeBuckets.TypeAssumptions.get_bookmarkFrequency
   watcherBookmarkTimeBuckets.TypeAssumptions.set_bookmarkFrequency
+  watcherBookmarkTimeBuckets.TypeAssumptions.method_set
+  watcherBookmarkTimeBuckets.TypeAssumptions.ptr_method_set
 
-structure indexedTriggerFunc [FfiSyntax] where
+structure indexedTriggerFunc [GooseExts] where
   mk ::
   indexName' : GoString
   indexerFunc' : _root_.Perennial.k8s_io.apiserver.pkg.storage.IndexerFunc
 
-noncomputable instance indexedTriggerFunc.zero_val [FfiSyntax] : ZeroVal indexedTriggerFunc :=
+noncomputable instance indexedTriggerFunc.zero_val [GooseExts] : ZeroVal indexedTriggerFunc :=
   ⟨indexedTriggerFunc.mk zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def indexedTriggerFunc.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def indexedTriggerFunc.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"indexName" go.string),
 (go.field_decl.FieldDecl go!"indexerFunc" _root_.Perennial.k8s_io.apiserver.pkg.storage.IndexerFunc.ty)]
 
-@[irreducible] noncomputable def indexedTriggerFunc.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def indexedTriggerFunc.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   indexedTriggerFunc.fieldsUnsealed
 
-noncomputable instance equals_unfold_indexedTriggerFunc [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_indexedTriggerFunc [GooseExts] [GoGlobalContext] :
     EqualsUnfold indexedTriggerFunc.fields indexedTriggerFunc.fieldsUnsealed :=
   ⟨by unfold indexedTriggerFunc.fields; rfl⟩
 
-@[reducible] noncomputable def indexedTriggerFunc.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def indexedTriggerFunc.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType indexedTriggerFunc.fields)
 
-class indexedTriggerFunc.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class indexedTriggerFunc.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying indexedTriggerFunc.underlying indexedTriggerFunc
   underlying : go.UnderlyingDirectedEq indexedTriggerFunc.ty indexedTriggerFunc.underlying
   get_indexName : ∀ (x : indexedTriggerFunc), go.IsGoStepPureDetTagged under (StructFieldGet indexedTriggerFunc.underlying go!"indexName") #x (Val #(x.indexName'))
   set_indexName : ∀ (x : indexedTriggerFunc) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet indexedTriggerFunc.underlying go!"indexName") (PairV #x #y) (Val #(({ x with indexName' := y } : indexedTriggerFunc)))
   get_indexerFunc : ∀ (x : indexedTriggerFunc), go.IsGoStepPureDetTagged under (StructFieldGet indexedTriggerFunc.underlying go!"indexerFunc") #x (Val #(x.indexerFunc'))
   set_indexerFunc : ∀ (x : indexedTriggerFunc) (y : _root_.Perennial.k8s_io.apiserver.pkg.storage.IndexerFunc), go.IsGoStepPureDetTagged under (StructFieldSet indexedTriggerFunc.underlying go!"indexerFunc") (PairV #x #y) (Val #(({ x with indexerFunc' := y } : indexedTriggerFunc)))
+  method_set : go.MethodSetIs indexedTriggerFunc.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType indexedTriggerFunc.ty) []
 
 attribute [instance] indexedTriggerFunc.TypeAssumptions.type_repr
   indexedTriggerFunc.TypeAssumptions.underlying
@@ -1960,51 +1990,59 @@ attribute [instance] indexedTriggerFunc.TypeAssumptions.type_repr
   indexedTriggerFunc.TypeAssumptions.set_indexName
   indexedTriggerFunc.TypeAssumptions.get_indexerFunc
   indexedTriggerFunc.TypeAssumptions.set_indexerFunc
+  indexedTriggerFunc.TypeAssumptions.method_set
+  indexedTriggerFunc.TypeAssumptions.ptr_method_set
 
 axiom Cacher : Type
 axiom Cacher.zero_val : ZeroVal Cacher
 attribute [instance] Cacher.zero_val
 
-class Cacher.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class Cacher.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying Cacher.underlying Cacher
   underlying : go.UnderlyingDirectedEq Cacher.ty Cacher.underlying
   isUnderlying : go.IsUnderlying Cacher.underlying Cacher.underlying
+  method_set : go.MethodSetIs Cacher.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType Cacher.ty) [(go!"Compact", (some (go.signature.Signature [go.string] false [go.error]))), (go!"Get", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.string, _root_.Perennial.k8s_io.apiserver.pkg.storage.GetOptions.ty, _root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty] false [go.error]))), (go!"GetList", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.string, _root_.Perennial.k8s_io.apiserver.pkg.storage.ListOptions.ty, _root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty] false [go.error]))), (go!"LastSyncResourceVersion", (some (go.signature.Signature [] false [go.uint64, go.error]))), (go!"Lock", (some (go.signature.Signature [] false []))), (go!"MarkConsistent", (some (go.signature.Signature [go.bool] false []))), (go!"RLock", (some (go.signature.Signature [] false []))), (go!"RLocker", (some (go.signature.Signature [] false [_root_.Perennial.sync.Locker.ty]))), (go!"RUnlock", (some (go.signature.Signature [] false []))), (go!"Ready", (some (go.signature.Signature [] false [go.bool]))), (go!"ShouldDelegateConsistentRead", (some (go.signature.Signature [] false [_root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.delegator.Result.ty, go.error]))), (go!"ShouldDelegateContinue", (some (go.signature.Signature [go.string, go.bool] false [_root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.delegator.Result.ty, go.error]))), (go!"ShouldDelegateExactRV", (some (go.signature.Signature [go.string, go.bool] false [_root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.delegator.Result.ty, go.error]))), (go!"Stop", (some (go.signature.Signature [] false []))), (go!"TryLock", (some (go.signature.Signature [] false [go.bool]))), (go!"TryRLock", (some (go.signature.Signature [] false [go.bool]))), (go!"Unlock", (some (go.signature.Signature [] false []))), (go!"Wait", (some (go.signature.Signature [_root_.Perennial.context.Context.ty] false [go.error]))), (go!"Watch", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.string, _root_.Perennial.k8s_io.apiserver.pkg.storage.ListOptions.ty] false [_root_.Perennial.k8s_io.apimachinery.pkg.watch.Interface.ty, go.error]))), (go!"k8s.io/apiserver/pkg/storage/cacher.dispatchEvent", (some (go.signature.Signature [(go.GoType.PointerType watchCacheEvent.ty)] false []))), (go!"k8s.io/apiserver/pkg/storage/cacher.dispatchEvents", (some (go.signature.Signature [] false []))), (go!"k8s.io/apiserver/pkg/storage/cacher.finishDispatching", (some (go.signature.Signature [] false []))), (go!"k8s.io/apiserver/pkg/storage/cacher.get", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.string, go.string] false [_root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty, go.bool, go.uint64, go.error]))), (go!"k8s.io/apiserver/pkg/storage/cacher.getBookmarkAfterResourceVersionLocked", (some (go.signature.Signature [go.uint64, go.uint64, _root_.Perennial.k8s_io.apiserver.pkg.storage.ListOptions.ty] false [go.uint64]))), (go!"k8s.io/apiserver/pkg/storage/cacher.getKeys", (some (go.signature.Signature [_root_.Perennial.context.Context.ty] false [(go.GoType.SliceType go.string), go.error]))), (go!"k8s.io/apiserver/pkg/storage/cacher.getWatchCacheResourceVersion", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.uint64, _root_.Perennial.k8s_io.apiserver.pkg.storage.ListOptions.ty] false [go.uint64, go.error]))), (go!"k8s.io/apiserver/pkg/storage/cacher.isStopped", (some (go.signature.Signature [] false [go.bool]))), (go!"k8s.io/apiserver/pkg/storage/cacher.prepareKey", (some (go.signature.Signature [go.string, go.bool] false [go.string, go.error]))), (go!"k8s.io/apiserver/pkg/storage/cacher.processEvent", (some (go.signature.Signature [(go.GoType.PointerType watchCacheEvent.ty)] false []))), (go!"k8s.io/apiserver/pkg/storage/cacher.setInitialEventsEndBookmark", (some (go.signature.Signature [(go.GoType.PointerType watchCacheInterval.ty), go.uint64] false []))), (go!"k8s.io/apiserver/pkg/storage/cacher.shouldDelegateExactRV", (some (go.signature.Signature [go.uint64] false [_root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.delegator.Result.ty, go.error]))), (go!"k8s.io/apiserver/pkg/storage/cacher.startCaching", (some (go.signature.Signature [(go.GoType.ChannelType go.ChanDir.recvonly (go.GoType.StructType []))] false []))), (go!"k8s.io/apiserver/pkg/storage/cacher.startDispatching", (some (go.signature.Signature [(go.GoType.PointerType watchCacheEvent.ty)] false []))), (go!"k8s.io/apiserver/pkg/storage/cacher.startDispatchingBookmarkEventsLocked", (some (go.signature.Signature [] false []))), (go!"k8s.io/apiserver/pkg/storage/cacher.stopWatcherLocked", (some (go.signature.Signature [(go.GoType.PointerType cacheWatcher.ty)] false []))), (go!"k8s.io/apiserver/pkg/storage/cacher.terminateAllWatchers", (some (go.signature.Signature [] false []))), (go!"k8s.io/apiserver/pkg/storage/cacher.triggerValuesThreadUnsafe", (some (go.signature.Signature [(go.GoType.PointerType watchCacheEvent.ty)] false [(go.GoType.SliceType go.string), go.bool]))), (go!"k8s.io/apiserver/pkg/storage/cacher.watchSelector", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, _root_.Perennial.k8s_io.apiserver.pkg.storage.SelectionPredicate.ty] false [watchSelector.ty]))), (go!"sync.rUnlockSlow", (some (go.signature.Signature [go.int32] false [])))]
   ptr_get_unfold : MethodUnfold (go.GoType.PointerType Cacher.ty) go!"get" Cacher.get.impl
 
 attribute [instance] Cacher.TypeAssumptions.type_repr
   Cacher.TypeAssumptions.underlying
   Cacher.TypeAssumptions.isUnderlying
+  Cacher.TypeAssumptions.method_set
+  Cacher.TypeAssumptions.ptr_method_set
   Cacher.TypeAssumptions.ptr_get_unfold
 
-structure listResp [FfiSyntax] where
+structure listResp [GooseExts] where
   mk ::
   ResourceVersion' : w64
   Range' : _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.store.Range
 
-noncomputable instance listResp.zero_val [FfiSyntax] : ZeroVal listResp :=
+noncomputable instance listResp.zero_val [GooseExts] : ZeroVal listResp :=
   ⟨listResp.mk zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def listResp.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def listResp.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"ResourceVersion" go.uint64),
 (go.field_decl.EmbeddedField go!"Range" _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.store.Range.ty)]
 
-@[irreducible] noncomputable def listResp.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def listResp.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   listResp.fieldsUnsealed
 
-noncomputable instance equals_unfold_listResp [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_listResp [GooseExts] [GoGlobalContext] :
     EqualsUnfold listResp.fields listResp.fieldsUnsealed :=
   ⟨by unfold listResp.fields; rfl⟩
 
-@[reducible] noncomputable def listResp.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def listResp.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType listResp.fields)
 
-class listResp.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class listResp.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying listResp.underlying listResp
   underlying : go.UnderlyingDirectedEq listResp.ty listResp.underlying
   get_ResourceVersion : ∀ (x : listResp), go.IsGoStepPureDetTagged under (StructFieldGet listResp.underlying go!"ResourceVersion") #x (Val #(x.ResourceVersion'))
   set_ResourceVersion : ∀ (x : listResp) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet listResp.underlying go!"ResourceVersion") (PairV #x #y) (Val #(({ x with ResourceVersion' := y } : listResp)))
   get_Range : ∀ (x : listResp), go.IsGoStepPureDetTagged under (StructFieldGet listResp.underlying go!"Range") #x (Val #(x.Range'))
   set_Range : ∀ (x : listResp) (y : _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.store.Range), go.IsGoStepPureDetTagged under (StructFieldSet listResp.underlying go!"Range") (PairV #x #y) (Val #(({ x with Range' := y } : listResp)))
+  method_set : go.MethodSetIs listResp.ty [(go!"All", (some (go.signature.Signature [] false [(_root_.Perennial.iter.Seq2.ty (go.GoType.PointerType _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.store.Element.ty) go.error)]))), (go!"Count", (some (go.signature.Signature [] false [go.int])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType listResp.ty) [(go!"All", (some (go.signature.Signature [] false [(_root_.Perennial.iter.Seq2.ty (go.GoType.PointerType _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.store.Element.ty) go.error)]))), (go!"Count", (some (go.signature.Signature [] false [go.int])))]
 
 attribute [instance] listResp.TypeAssumptions.type_repr
   listResp.TypeAssumptions.underlying
@@ -2012,32 +2050,34 @@ attribute [instance] listResp.TypeAssumptions.type_repr
   listResp.TypeAssumptions.set_ResourceVersion
   listResp.TypeAssumptions.get_Range
   listResp.TypeAssumptions.set_Range
+  listResp.TypeAssumptions.method_set
+  listResp.TypeAssumptions.ptr_method_set
 
-structure watchEventFilter [FfiSyntax] where
+structure watchEventFilter [GooseExts] where
   mk ::
   prefix' : GoString
   opts' : _root_.Perennial.k8s_io.apiserver.pkg.storage.ListOptions
   groupResource' : _root_.Perennial.k8s_io.apimachinery.pkg.runtime.schema.GroupResource
 
-noncomputable instance watchEventFilter.zero_val [FfiSyntax] : ZeroVal watchEventFilter :=
+noncomputable instance watchEventFilter.zero_val [GooseExts] : ZeroVal watchEventFilter :=
   ⟨watchEventFilter.mk zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def watchEventFilter.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def watchEventFilter.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"prefix" go.string),
 (go.field_decl.FieldDecl go!"opts" _root_.Perennial.k8s_io.apiserver.pkg.storage.ListOptions.ty),
 (go.field_decl.FieldDecl go!"groupResource" _root_.Perennial.k8s_io.apimachinery.pkg.runtime.schema.GroupResource.ty)]
 
-@[irreducible] noncomputable def watchEventFilter.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def watchEventFilter.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   watchEventFilter.fieldsUnsealed
 
-noncomputable instance equals_unfold_watchEventFilter [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_watchEventFilter [GooseExts] [GoGlobalContext] :
     EqualsUnfold watchEventFilter.fields watchEventFilter.fieldsUnsealed :=
   ⟨by unfold watchEventFilter.fields; rfl⟩
 
-@[reducible] noncomputable def watchEventFilter.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def watchEventFilter.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType watchEventFilter.fields)
 
-class watchEventFilter.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class watchEventFilter.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying watchEventFilter.underlying watchEventFilter
   underlying : go.UnderlyingDirectedEq watchEventFilter.ty watchEventFilter.underlying
   get_prefix : ∀ (x : watchEventFilter), go.IsGoStepPureDetTagged under (StructFieldGet watchEventFilter.underlying go!"prefix") #x (Val #(x.prefix'))
@@ -2046,6 +2086,8 @@ class watchEventFilter.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalCon
   set_opts : ∀ (x : watchEventFilter) (y : _root_.Perennial.k8s_io.apiserver.pkg.storage.ListOptions), go.IsGoStepPureDetTagged under (StructFieldSet watchEventFilter.underlying go!"opts") (PairV #x #y) (Val #(({ x with opts' := y } : watchEventFilter)))
   get_groupResource : ∀ (x : watchEventFilter), go.IsGoStepPureDetTagged under (StructFieldGet watchEventFilter.underlying go!"groupResource") #x (Val #(x.groupResource'))
   set_groupResource : ∀ (x : watchEventFilter) (y : _root_.Perennial.k8s_io.apimachinery.pkg.runtime.schema.GroupResource), go.IsGoStepPureDetTagged under (StructFieldSet watchEventFilter.underlying go!"groupResource") (PairV #x #y) (Val #(({ x with groupResource' := y } : watchEventFilter)))
+  method_set : go.MethodSetIs watchEventFilter.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType watchEventFilter.ty) [(go!"k8s.io/apiserver/pkg/storage/cacher.filterWithAttrsAndPrefix", (some (go.signature.Signature [go.string, _root_.Perennial.k8s_io.apimachinery.pkg.labels.Set'.ty, _root_.Perennial.k8s_io.apimachinery.pkg.fields.Set'.ty, _root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty] false [go.bool])))]
 
 attribute [instance] watchEventFilter.TypeAssumptions.type_repr
   watchEventFilter.TypeAssumptions.underlying
@@ -2055,104 +2097,118 @@ attribute [instance] watchEventFilter.TypeAssumptions.type_repr
   watchEventFilter.TypeAssumptions.set_opts
   watchEventFilter.TypeAssumptions.get_groupResource
   watchEventFilter.TypeAssumptions.set_groupResource
+  watchEventFilter.TypeAssumptions.method_set
+  watchEventFilter.TypeAssumptions.ptr_method_set
 
-structure errWatcher [FfiSyntax] where
+structure errWatcher [GooseExts] where
   mk ::
   result' : GoChan
 
-noncomputable instance errWatcher.zero_val [FfiSyntax] : ZeroVal errWatcher :=
+noncomputable instance errWatcher.zero_val [GooseExts] : ZeroVal errWatcher :=
   ⟨errWatcher.mk zeroValDef⟩
 
-@[reducible] noncomputable def errWatcher.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def errWatcher.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"result" (go.GoType.ChannelType go.ChanDir.sendrecv _root_.Perennial.k8s_io.apimachinery.pkg.watch.Event.ty))]
 
-@[irreducible] noncomputable def errWatcher.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def errWatcher.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   errWatcher.fieldsUnsealed
 
-noncomputable instance equals_unfold_errWatcher [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_errWatcher [GooseExts] [GoGlobalContext] :
     EqualsUnfold errWatcher.fields errWatcher.fieldsUnsealed :=
   ⟨by unfold errWatcher.fields; rfl⟩
 
-@[reducible] noncomputable def errWatcher.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def errWatcher.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType errWatcher.fields)
 
-class errWatcher.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class errWatcher.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying errWatcher.underlying errWatcher
   underlying : go.UnderlyingDirectedEq errWatcher.ty errWatcher.underlying
   get_result : ∀ (x : errWatcher), go.IsGoStepPureDetTagged under (StructFieldGet errWatcher.underlying go!"result") #x (Val #(x.result'))
   set_result : ∀ (x : errWatcher) (y : GoChan), go.IsGoStepPureDetTagged under (StructFieldSet errWatcher.underlying go!"result") (PairV #x #y) (Val #(({ x with result' := y } : errWatcher)))
+  method_set : go.MethodSetIs errWatcher.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType errWatcher.ty) [(go!"ResultChan", (some (go.signature.Signature [] false [(go.GoType.ChannelType go.ChanDir.recvonly _root_.Perennial.k8s_io.apimachinery.pkg.watch.Event.ty)]))), (go!"Stop", (some (go.signature.Signature [] false [])))]
 
 attribute [instance] errWatcher.TypeAssumptions.type_repr
   errWatcher.TypeAssumptions.underlying
   errWatcher.TypeAssumptions.get_result
   errWatcher.TypeAssumptions.set_result
+  errWatcher.TypeAssumptions.method_set
+  errWatcher.TypeAssumptions.ptr_method_set
 
-structure immediateCloseWatcher [FfiSyntax] where
+structure immediateCloseWatcher [GooseExts] where
   mk ::
   result' : GoChan
 
-noncomputable instance immediateCloseWatcher.zero_val [FfiSyntax] : ZeroVal immediateCloseWatcher :=
+noncomputable instance immediateCloseWatcher.zero_val [GooseExts] : ZeroVal immediateCloseWatcher :=
   ⟨immediateCloseWatcher.mk zeroValDef⟩
 
-@[reducible] noncomputable def immediateCloseWatcher.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def immediateCloseWatcher.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"result" (go.GoType.ChannelType go.ChanDir.sendrecv _root_.Perennial.k8s_io.apimachinery.pkg.watch.Event.ty))]
 
-@[irreducible] noncomputable def immediateCloseWatcher.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def immediateCloseWatcher.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   immediateCloseWatcher.fieldsUnsealed
 
-noncomputable instance equals_unfold_immediateCloseWatcher [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_immediateCloseWatcher [GooseExts] [GoGlobalContext] :
     EqualsUnfold immediateCloseWatcher.fields immediateCloseWatcher.fieldsUnsealed :=
   ⟨by unfold immediateCloseWatcher.fields; rfl⟩
 
-@[reducible] noncomputable def immediateCloseWatcher.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def immediateCloseWatcher.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType immediateCloseWatcher.fields)
 
-class immediateCloseWatcher.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class immediateCloseWatcher.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying immediateCloseWatcher.underlying immediateCloseWatcher
   underlying : go.UnderlyingDirectedEq immediateCloseWatcher.ty immediateCloseWatcher.underlying
   get_result : ∀ (x : immediateCloseWatcher), go.IsGoStepPureDetTagged under (StructFieldGet immediateCloseWatcher.underlying go!"result") #x (Val #(x.result'))
   set_result : ∀ (x : immediateCloseWatcher) (y : GoChan), go.IsGoStepPureDetTagged under (StructFieldSet immediateCloseWatcher.underlying go!"result") (PairV #x #y) (Val #(({ x with result' := y } : immediateCloseWatcher)))
+  method_set : go.MethodSetIs immediateCloseWatcher.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType immediateCloseWatcher.ty) [(go!"ResultChan", (some (go.signature.Signature [] false [(go.GoType.ChannelType go.ChanDir.recvonly _root_.Perennial.k8s_io.apimachinery.pkg.watch.Event.ty)]))), (go!"Stop", (some (go.signature.Signature [] false [])))]
 
 attribute [instance] immediateCloseWatcher.TypeAssumptions.type_repr
   immediateCloseWatcher.TypeAssumptions.underlying
   immediateCloseWatcher.TypeAssumptions.get_result
   immediateCloseWatcher.TypeAssumptions.set_result
+  immediateCloseWatcher.TypeAssumptions.method_set
+  immediateCloseWatcher.TypeAssumptions.ptr_method_set
 
-abbrev metaRuntimeInterface [FfiSyntax] : Type := GoInterface
+abbrev metaRuntimeInterface [GooseExts] : Type := GoInterface
 
-@[reducible] noncomputable def metaRuntimeInterface.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
-  (go.GoType.InterfaceType [(go.InterfaceElem.TypeElem [(go.type_term.TypeTerm _root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty)]), (go.InterfaceElem.TypeElem [(go.type_term.TypeTerm _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.Object.ty)])])
+@[reducible] noncomputable def metaRuntimeInterface.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
+  (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"DeepCopyObject" (go.signature.Signature [] false [_root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty])), (go.InterfaceElem.MethodElem go!"GetAnnotations" (go.signature.Signature [] false [(go.GoType.MapType go.string go.string)])), (go.InterfaceElem.MethodElem go!"GetCreationTimestamp" (go.signature.Signature [] false [_root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.Time.ty])), (go.InterfaceElem.MethodElem go!"GetDeletionGracePeriodSeconds" (go.signature.Signature [] false [(go.GoType.PointerType go.int64)])), (go.InterfaceElem.MethodElem go!"GetDeletionTimestamp" (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.Time.ty)])), (go.InterfaceElem.MethodElem go!"GetFinalizers" (go.signature.Signature [] false [(go.GoType.SliceType go.string)])), (go.InterfaceElem.MethodElem go!"GetGenerateName" (go.signature.Signature [] false [go.string])), (go.InterfaceElem.MethodElem go!"GetGeneration" (go.signature.Signature [] false [go.int64])), (go.InterfaceElem.MethodElem go!"GetLabels" (go.signature.Signature [] false [(go.GoType.MapType go.string go.string)])), (go.InterfaceElem.MethodElem go!"GetManagedFields" (go.signature.Signature [] false [(go.GoType.SliceType _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ManagedFieldsEntry.ty)])), (go.InterfaceElem.MethodElem go!"GetName" (go.signature.Signature [] false [go.string])), (go.InterfaceElem.MethodElem go!"GetNamespace" (go.signature.Signature [] false [go.string])), (go.InterfaceElem.MethodElem go!"GetObjectKind" (go.signature.Signature [] false [_root_.Perennial.k8s_io.apimachinery.pkg.runtime.schema.ObjectKind.ty])), (go.InterfaceElem.MethodElem go!"GetOwnerReferences" (go.signature.Signature [] false [(go.GoType.SliceType _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.OwnerReference.ty)])), (go.InterfaceElem.MethodElem go!"GetResourceVersion" (go.signature.Signature [] false [go.string])), (go.InterfaceElem.MethodElem go!"GetSelfLink" (go.signature.Signature [] false [go.string])), (go.InterfaceElem.MethodElem go!"GetUID" (go.signature.Signature [] false [_root_.Perennial.k8s_io.apimachinery.pkg.types.UID.ty])), (go.InterfaceElem.MethodElem go!"SetAnnotations" (go.signature.Signature [(go.GoType.MapType go.string go.string)] false [])), (go.InterfaceElem.MethodElem go!"SetCreationTimestamp" (go.signature.Signature [_root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.Time.ty] false [])), (go.InterfaceElem.MethodElem go!"SetDeletionGracePeriodSeconds" (go.signature.Signature [(go.GoType.PointerType go.int64)] false [])), (go.InterfaceElem.MethodElem go!"SetDeletionTimestamp" (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.Time.ty)] false [])), (go.InterfaceElem.MethodElem go!"SetFinalizers" (go.signature.Signature [(go.GoType.SliceType go.string)] false [])), (go.InterfaceElem.MethodElem go!"SetGenerateName" (go.signature.Signature [go.string] false [])), (go.InterfaceElem.MethodElem go!"SetGeneration" (go.signature.Signature [go.int64] false [])), (go.InterfaceElem.MethodElem go!"SetLabels" (go.signature.Signature [(go.GoType.MapType go.string go.string)] false [])), (go.InterfaceElem.MethodElem go!"SetManagedFields" (go.signature.Signature [(go.GoType.SliceType _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ManagedFieldsEntry.ty)] false [])), (go.InterfaceElem.MethodElem go!"SetName" (go.signature.Signature [go.string] false [])), (go.InterfaceElem.MethodElem go!"SetNamespace" (go.signature.Signature [go.string] false [])), (go.InterfaceElem.MethodElem go!"SetOwnerReferences" (go.signature.Signature [(go.GoType.SliceType _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.OwnerReference.ty)] false [])), (go.InterfaceElem.MethodElem go!"SetResourceVersion" (go.signature.Signature [go.string] false [])), (go.InterfaceElem.MethodElem go!"SetSelfLink" (go.signature.Signature [go.string] false [])), (go.InterfaceElem.MethodElem go!"SetUID" (go.signature.Signature [_root_.Perennial.k8s_io.apimachinery.pkg.types.UID.ty] false []))])
 
-class metaRuntimeInterface.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class metaRuntimeInterface.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq metaRuntimeInterface.ty metaRuntimeInterface.underlying
+  method_set : go.MethodSetIs metaRuntimeInterface.ty [(go!"DeepCopyObject", (some (go.signature.Signature [] false [_root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty]))), (go!"GetAnnotations", (some (go.signature.Signature [] false [(go.GoType.MapType go.string go.string)]))), (go!"GetCreationTimestamp", (some (go.signature.Signature [] false [_root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.Time.ty]))), (go!"GetDeletionGracePeriodSeconds", (some (go.signature.Signature [] false [(go.GoType.PointerType go.int64)]))), (go!"GetDeletionTimestamp", (some (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.Time.ty)]))), (go!"GetFinalizers", (some (go.signature.Signature [] false [(go.GoType.SliceType go.string)]))), (go!"GetGenerateName", (some (go.signature.Signature [] false [go.string]))), (go!"GetGeneration", (some (go.signature.Signature [] false [go.int64]))), (go!"GetLabels", (some (go.signature.Signature [] false [(go.GoType.MapType go.string go.string)]))), (go!"GetManagedFields", (some (go.signature.Signature [] false [(go.GoType.SliceType _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ManagedFieldsEntry.ty)]))), (go!"GetName", (some (go.signature.Signature [] false [go.string]))), (go!"GetNamespace", (some (go.signature.Signature [] false [go.string]))), (go!"GetObjectKind", (some (go.signature.Signature [] false [_root_.Perennial.k8s_io.apimachinery.pkg.runtime.schema.ObjectKind.ty]))), (go!"GetOwnerReferences", (some (go.signature.Signature [] false [(go.GoType.SliceType _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.OwnerReference.ty)]))), (go!"GetResourceVersion", (some (go.signature.Signature [] false [go.string]))), (go!"GetSelfLink", (some (go.signature.Signature [] false [go.string]))), (go!"GetUID", (some (go.signature.Signature [] false [_root_.Perennial.k8s_io.apimachinery.pkg.types.UID.ty]))), (go!"SetAnnotations", (some (go.signature.Signature [(go.GoType.MapType go.string go.string)] false []))), (go!"SetCreationTimestamp", (some (go.signature.Signature [_root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.Time.ty] false []))), (go!"SetDeletionGracePeriodSeconds", (some (go.signature.Signature [(go.GoType.PointerType go.int64)] false []))), (go!"SetDeletionTimestamp", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.Time.ty)] false []))), (go!"SetFinalizers", (some (go.signature.Signature [(go.GoType.SliceType go.string)] false []))), (go!"SetGenerateName", (some (go.signature.Signature [go.string] false []))), (go!"SetGeneration", (some (go.signature.Signature [go.int64] false []))), (go!"SetLabels", (some (go.signature.Signature [(go.GoType.MapType go.string go.string)] false []))), (go!"SetManagedFields", (some (go.signature.Signature [(go.GoType.SliceType _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ManagedFieldsEntry.ty)] false []))), (go!"SetName", (some (go.signature.Signature [go.string] false []))), (go!"SetNamespace", (some (go.signature.Signature [go.string] false []))), (go!"SetOwnerReferences", (some (go.signature.Signature [(go.GoType.SliceType _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.OwnerReference.ty)] false []))), (go!"SetResourceVersion", (some (go.signature.Signature [go.string] false []))), (go!"SetSelfLink", (some (go.signature.Signature [go.string] false []))), (go!"SetUID", (some (go.signature.Signature [_root_.Perennial.k8s_io.apimachinery.pkg.types.UID.ty] false [])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType metaRuntimeInterface.ty) []
 
 attribute [instance] metaRuntimeInterface.TypeAssumptions.underlying
+  metaRuntimeInterface.TypeAssumptions.method_set
+  metaRuntimeInterface.TypeAssumptions.ptr_method_set
 
-structure serializationResult [FfiSyntax] where
+structure serializationResult [GooseExts] where
   mk ::
   once' : _root_.Perennial.sync.Once
   raw' : GoSlice
   err' : GoError
 
-noncomputable instance serializationResult.zero_val [FfiSyntax] : ZeroVal serializationResult :=
+noncomputable instance serializationResult.zero_val [GooseExts] : ZeroVal serializationResult :=
   ⟨serializationResult.mk zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def serializationResult.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def serializationResult.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"once" _root_.Perennial.sync.Once.ty),
 (go.field_decl.FieldDecl go!"raw" (go.GoType.SliceType go.byte)),
 (go.field_decl.FieldDecl go!"err" go.error)]
 
-@[irreducible] noncomputable def serializationResult.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def serializationResult.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   serializationResult.fieldsUnsealed
 
-noncomputable instance equals_unfold_serializationResult [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_serializationResult [GooseExts] [GoGlobalContext] :
     EqualsUnfold serializationResult.fields serializationResult.fieldsUnsealed :=
   ⟨by unfold serializationResult.fields; rfl⟩
 
-@[reducible] noncomputable def serializationResult.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def serializationResult.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType serializationResult.fields)
 
-class serializationResult.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class serializationResult.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying serializationResult.underlying serializationResult
   underlying : go.UnderlyingDirectedEq serializationResult.ty serializationResult.underlying
   get_once : ∀ (x : serializationResult), go.IsGoStepPureDetTagged under (StructFieldGet serializationResult.underlying go!"once") #x (Val #(x.once'))
@@ -2161,6 +2217,8 @@ class serializationResult.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocal
   set_raw : ∀ (x : serializationResult) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet serializationResult.underlying go!"raw") (PairV #x #y) (Val #(({ x with raw' := y } : serializationResult)))
   get_err : ∀ (x : serializationResult), go.IsGoStepPureDetTagged under (StructFieldGet serializationResult.underlying go!"err") #x (Val #(x.err'))
   set_err : ∀ (x : serializationResult) (y : GoError), go.IsGoStepPureDetTagged under (StructFieldSet serializationResult.underlying go!"err") (PairV #x #y) (Val #(({ x with err' := y } : serializationResult)))
+  method_set : go.MethodSetIs serializationResult.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType serializationResult.ty) []
 
 attribute [instance] serializationResult.TypeAssumptions.type_repr
   serializationResult.TypeAssumptions.underlying
@@ -2170,44 +2228,50 @@ attribute [instance] serializationResult.TypeAssumptions.type_repr
   serializationResult.TypeAssumptions.set_raw
   serializationResult.TypeAssumptions.get_err
   serializationResult.TypeAssumptions.set_err
+  serializationResult.TypeAssumptions.method_set
+  serializationResult.TypeAssumptions.ptr_method_set
 
-abbrev serializationsCache [FfiSyntax] : Type := GoMap
+abbrev serializationsCache [GooseExts] : Type := GoMap
 
-@[reducible] noncomputable def serializationsCache.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def serializationsCache.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.MapType _root_.Perennial.k8s_io.apimachinery.pkg.runtime.Identifier.ty (go.GoType.PointerType serializationResult.ty))
 
-class serializationsCache.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class serializationsCache.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq serializationsCache.ty serializationsCache.underlying
+  method_set : go.MethodSetIs serializationsCache.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType serializationsCache.ty) []
 
 attribute [instance] serializationsCache.TypeAssumptions.underlying
+  serializationsCache.TypeAssumptions.method_set
+  serializationsCache.TypeAssumptions.ptr_method_set
 
-structure cachingObject [FfiSyntax] where
+structure cachingObject [GooseExts] where
   mk ::
   lock' : _root_.Perennial.sync.RWMutex
   deepCopied' : Bool
   object' : metaRuntimeInterface
   serializations' : _root_.Perennial.sync.atomic.Value
 
-noncomputable instance cachingObject.zero_val [FfiSyntax] : ZeroVal cachingObject :=
+noncomputable instance cachingObject.zero_val [GooseExts] : ZeroVal cachingObject :=
   ⟨cachingObject.mk zeroValDef zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def cachingObject.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def cachingObject.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"lock" _root_.Perennial.sync.RWMutex.ty),
 (go.field_decl.FieldDecl go!"deepCopied" go.bool),
 (go.field_decl.FieldDecl go!"object" metaRuntimeInterface.ty),
 (go.field_decl.FieldDecl go!"serializations" _root_.Perennial.sync.atomic.Value.ty)]
 
-@[irreducible] noncomputable def cachingObject.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def cachingObject.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   cachingObject.fieldsUnsealed
 
-noncomputable instance equals_unfold_cachingObject [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_cachingObject [GooseExts] [GoGlobalContext] :
     EqualsUnfold cachingObject.fields cachingObject.fieldsUnsealed :=
   ⟨by unfold cachingObject.fields; rfl⟩
 
-@[reducible] noncomputable def cachingObject.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def cachingObject.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType cachingObject.fields)
 
-class cachingObject.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class cachingObject.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying cachingObject.underlying cachingObject
   underlying : go.UnderlyingDirectedEq cachingObject.ty cachingObject.underlying
   get_lock : ∀ (x : cachingObject), go.IsGoStepPureDetTagged under (StructFieldGet cachingObject.underlying go!"lock") #x (Val #(x.lock'))
@@ -2218,6 +2282,8 @@ class cachingObject.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContex
   set_object : ∀ (x : cachingObject) (y : metaRuntimeInterface), go.IsGoStepPureDetTagged under (StructFieldSet cachingObject.underlying go!"object") (PairV #x #y) (Val #(({ x with object' := y } : cachingObject)))
   get_serializations : ∀ (x : cachingObject), go.IsGoStepPureDetTagged under (StructFieldGet cachingObject.underlying go!"serializations") #x (Val #(x.serializations'))
   set_serializations : ∀ (x : cachingObject) (y : _root_.Perennial.sync.atomic.Value), go.IsGoStepPureDetTagged under (StructFieldSet cachingObject.underlying go!"serializations") (PairV #x #y) (Val #(({ x with serializations' := y } : cachingObject)))
+  method_set : go.MethodSetIs cachingObject.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType cachingObject.ty) [(go!"CacheEncode", (some (go.signature.Signature [_root_.Perennial.k8s_io.apimachinery.pkg.runtime.Identifier.ty, (go.GoType.FunctionType (go.signature.Signature [_root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty, _root_.Perennial.io.Writer.ty] false [go.error])), _root_.Perennial.io.Writer.ty] false [go.error]))), (go!"DeepCopyObject", (some (go.signature.Signature [] false [_root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty]))), (go!"GetAnnotations", (some (go.signature.Signature [] false [(go.GoType.MapType go.string go.string)]))), (go!"GetCreationTimestamp", (some (go.signature.Signature [] false [_root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.Time.ty]))), (go!"GetDeletionGracePeriodSeconds", (some (go.signature.Signature [] false [(go.GoType.PointerType go.int64)]))), (go!"GetDeletionTimestamp", (some (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.Time.ty)]))), (go!"GetFinalizers", (some (go.signature.Signature [] false [(go.GoType.SliceType go.string)]))), (go!"GetGenerateName", (some (go.signature.Signature [] false [go.string]))), (go!"GetGeneration", (some (go.signature.Signature [] false [go.int64]))), (go!"GetLabels", (some (go.signature.Signature [] false [(go.GoType.MapType go.string go.string)]))), (go!"GetManagedFields", (some (go.signature.Signature [] false [(go.GoType.SliceType _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ManagedFieldsEntry.ty)]))), (go!"GetName", (some (go.signature.Signature [] false [go.string]))), (go!"GetNamespace", (some (go.signature.Signature [] false [go.string]))), (go!"GetObject", (some (go.signature.Signature [] false [_root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty]))), (go!"GetObjectKind", (some (go.signature.Signature [] false [_root_.Perennial.k8s_io.apimachinery.pkg.runtime.schema.ObjectKind.ty]))), (go!"GetOwnerReferences", (some (go.signature.Signature [] false [(go.GoType.SliceType _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.OwnerReference.ty)]))), (go!"GetResourceVersion", (some (go.signature.Signature [] false [go.string]))), (go!"GetSelfLink", (some (go.signature.Signature [] false [go.string]))), (go!"GetUID", (some (go.signature.Signature [] false [_root_.Perennial.k8s_io.apimachinery.pkg.types.UID.ty]))), (go!"SetAnnotations", (some (go.signature.Signature [(go.GoType.MapType go.string go.string)] false []))), (go!"SetCreationTimestamp", (some (go.signature.Signature [_root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.Time.ty] false []))), (go!"SetDeletionGracePeriodSeconds", (some (go.signature.Signature [(go.GoType.PointerType go.int64)] false []))), (go!"SetDeletionTimestamp", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.Time.ty)] false []))), (go!"SetFinalizers", (some (go.signature.Signature [(go.GoType.SliceType go.string)] false []))), (go!"SetGenerateName", (some (go.signature.Signature [go.string] false []))), (go!"SetGeneration", (some (go.signature.Signature [go.int64] false []))), (go!"SetLabels", (some (go.signature.Signature [(go.GoType.MapType go.string go.string)] false []))), (go!"SetManagedFields", (some (go.signature.Signature [(go.GoType.SliceType _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ManagedFieldsEntry.ty)] false []))), (go!"SetName", (some (go.signature.Signature [go.string] false []))), (go!"SetNamespace", (some (go.signature.Signature [go.string] false []))), (go!"SetOwnerReferences", (some (go.signature.Signature [(go.GoType.SliceType _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.OwnerReference.ty)] false []))), (go!"SetResourceVersion", (some (go.signature.Signature [go.string] false []))), (go!"SetSelfLink", (some (go.signature.Signature [go.string] false []))), (go!"SetUID", (some (go.signature.Signature [_root_.Perennial.k8s_io.apimachinery.pkg.types.UID.ty] false []))), (go!"k8s.io/apiserver/pkg/storage/cacher.conditionalSet", (some (go.signature.Signature [(go.GoType.FunctionType (go.signature.Signature [] false [go.bool])), (go.GoType.FunctionType (go.signature.Signature [] false []))] false []))), (go!"k8s.io/apiserver/pkg/storage/cacher.getSerializationResult", (some (go.signature.Signature [_root_.Perennial.k8s_io.apimachinery.pkg.runtime.Identifier.ty] false [(go.GoType.PointerType serializationResult.ty)]))), (go!"k8s.io/apiserver/pkg/storage/cacher.invalidateCacheLocked", (some (go.signature.Signature [] false [])))]
 
 attribute [instance] cachingObject.TypeAssumptions.type_repr
   cachingObject.TypeAssumptions.underlying
@@ -2229,8 +2295,10 @@ attribute [instance] cachingObject.TypeAssumptions.type_repr
   cachingObject.TypeAssumptions.set_object
   cachingObject.TypeAssumptions.get_serializations
   cachingObject.TypeAssumptions.set_serializations
+  cachingObject.TypeAssumptions.method_set
+  cachingObject.TypeAssumptions.ptr_method_set
 
-structure compactor [FfiSyntax] where
+structure compactor [GooseExts] where
   mk ::
   clock' : _root_.Perennial.k8s_io.utils.clock.Clock
   store' : _root_.Perennial.k8s_io.apiserver.pkg.storage.Interface
@@ -2238,27 +2306,27 @@ structure compactor [FfiSyntax] where
   lock' : _root_.Perennial.sync.Mutex
   compactRevision' : w64
 
-noncomputable instance compactor.zero_val [FfiSyntax] : ZeroVal compactor :=
+noncomputable instance compactor.zero_val [GooseExts] : ZeroVal compactor :=
   ⟨compactor.mk zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def compactor.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def compactor.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"clock" _root_.Perennial.k8s_io.utils.clock.Clock.ty),
 (go.field_decl.FieldDecl go!"store" _root_.Perennial.k8s_io.apiserver.pkg.storage.Interface.ty),
 (go.field_decl.FieldDecl go!"wc" (go.GoType.PointerType watchCache.ty)),
 (go.field_decl.FieldDecl go!"lock" _root_.Perennial.sync.Mutex.ty),
 (go.field_decl.FieldDecl go!"compactRevision" go.int64)]
 
-@[irreducible] noncomputable def compactor.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def compactor.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   compactor.fieldsUnsealed
 
-noncomputable instance equals_unfold_compactor [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_compactor [GooseExts] [GoGlobalContext] :
     EqualsUnfold compactor.fields compactor.fieldsUnsealed :=
   ⟨by unfold compactor.fields; rfl⟩
 
-@[reducible] noncomputable def compactor.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def compactor.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType compactor.fields)
 
-class compactor.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class compactor.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying compactor.underlying compactor
   underlying : go.UnderlyingDirectedEq compactor.ty compactor.underlying
   get_clock : ∀ (x : compactor), go.IsGoStepPureDetTagged under (StructFieldGet compactor.underlying go!"clock") #x (Val #(x.clock'))
@@ -2271,6 +2339,8 @@ class compactor.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [
   set_lock : ∀ (x : compactor) (y : _root_.Perennial.sync.Mutex), go.IsGoStepPureDetTagged under (StructFieldSet compactor.underlying go!"lock") (PairV #x #y) (Val #(({ x with lock' := y } : compactor)))
   get_compactRevision : ∀ (x : compactor), go.IsGoStepPureDetTagged under (StructFieldGet compactor.underlying go!"compactRevision") #x (Val #(x.compactRevision'))
   set_compactRevision : ∀ (x : compactor) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet compactor.underlying go!"compactRevision") (PairV #x #y) (Val #(({ x with compactRevision' := y } : compactor)))
+  method_set : go.MethodSetIs compactor.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType compactor.ty) [(go!"Revision", (some (go.signature.Signature [] false [go.int64]))), (go!"Run", (some (go.signature.Signature [(go.GoType.ChannelType go.ChanDir.recvonly (go.GoType.StructType []))] false []))), (go!"k8s.io/apiserver/pkg/storage/cacher.compactIfNeeded", (some (go.signature.Signature [] false [])))]
 
 attribute [instance] compactor.TypeAssumptions.type_repr
   compactor.TypeAssumptions.underlying
@@ -2284,8 +2354,10 @@ attribute [instance] compactor.TypeAssumptions.type_repr
   compactor.TypeAssumptions.set_lock
   compactor.TypeAssumptions.get_compactRevision
   compactor.TypeAssumptions.set_compactRevision
+  compactor.TypeAssumptions.method_set
+  compactor.TypeAssumptions.ptr_method_set
 
-structure CacheDelegator [FfiSyntax] where
+structure CacheDelegator [GooseExts] where
   mk ::
   cacher' : Loc
   storage' : _root_.Perennial.k8s_io.apiserver.pkg.storage.Interface
@@ -2294,10 +2366,10 @@ structure CacheDelegator [FfiSyntax] where
   stopOnce' : _root_.Perennial.sync.Once
   stopCh' : GoChan
 
-noncomputable instance CacheDelegator.zero_val [FfiSyntax] : ZeroVal CacheDelegator :=
+noncomputable instance CacheDelegator.zero_val [GooseExts] : ZeroVal CacheDelegator :=
   ⟨CacheDelegator.mk zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def CacheDelegator.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def CacheDelegator.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"cacher" (go.GoType.PointerType Cacher.ty)),
 (go.field_decl.FieldDecl go!"storage" _root_.Perennial.k8s_io.apiserver.pkg.storage.Interface.ty),
 (go.field_decl.FieldDecl go!"checker" (go.GoType.PointerType _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.consistency.Checker.ty)),
@@ -2305,17 +2377,17 @@ noncomputable instance CacheDelegator.zero_val [FfiSyntax] : ZeroVal CacheDelega
 (go.field_decl.FieldDecl go!"stopOnce" _root_.Perennial.sync.Once.ty),
 (go.field_decl.FieldDecl go!"stopCh" (go.GoType.ChannelType go.ChanDir.sendrecv (go.GoType.StructType [])))]
 
-@[irreducible] noncomputable def CacheDelegator.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def CacheDelegator.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   CacheDelegator.fieldsUnsealed
 
-noncomputable instance equals_unfold_CacheDelegator [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_CacheDelegator [GooseExts] [GoGlobalContext] :
     EqualsUnfold CacheDelegator.fields CacheDelegator.fieldsUnsealed :=
   ⟨by unfold CacheDelegator.fields; rfl⟩
 
-@[reducible] noncomputable def CacheDelegator.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def CacheDelegator.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType CacheDelegator.fields)
 
-class CacheDelegator.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class CacheDelegator.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying CacheDelegator.underlying CacheDelegator
   underlying : go.UnderlyingDirectedEq CacheDelegator.ty CacheDelegator.underlying
   get_cacher : ∀ (x : CacheDelegator), go.IsGoStepPureDetTagged under (StructFieldGet CacheDelegator.underlying go!"cacher") #x (Val #(x.cacher'))
@@ -2330,6 +2402,8 @@ class CacheDelegator.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalConte
   set_stopOnce : ∀ (x : CacheDelegator) (y : _root_.Perennial.sync.Once), go.IsGoStepPureDetTagged under (StructFieldSet CacheDelegator.underlying go!"stopOnce") (PairV #x #y) (Val #(({ x with stopOnce' := y } : CacheDelegator)))
   get_stopCh : ∀ (x : CacheDelegator), go.IsGoStepPureDetTagged under (StructFieldGet CacheDelegator.underlying go!"stopCh") #x (Val #(x.stopCh'))
   set_stopCh : ∀ (x : CacheDelegator) (y : GoChan), go.IsGoStepPureDetTagged under (StructFieldSet CacheDelegator.underlying go!"stopCh") (PairV #x #y) (Val #(({ x with stopCh' := y } : CacheDelegator)))
+  method_set : go.MethodSetIs CacheDelegator.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType CacheDelegator.ty) [(go!"CompactRevision", (some (go.signature.Signature [] false [go.int64]))), (go!"Create", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.string, _root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty, _root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty, go.uint64] false [go.error]))), (go!"Delete", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.string, _root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty, (go.GoType.PointerType _root_.Perennial.k8s_io.apiserver.pkg.storage.Preconditions.ty), _root_.Perennial.k8s_io.apiserver.pkg.storage.ValidateObjectFunc.ty, _root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty, _root_.Perennial.k8s_io.apiserver.pkg.storage.DeleteOptions.ty] false [go.error]))), (go!"EnableResourceSizeEstimation", (some (go.signature.Signature [_root_.Perennial.k8s_io.apiserver.pkg.storage.KeysFunc.ty] false [go.error]))), (go!"Get", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.string, _root_.Perennial.k8s_io.apiserver.pkg.storage.GetOptions.ty, _root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty] false [go.error]))), (go!"GetCurrentResourceVersion", (some (go.signature.Signature [_root_.Perennial.context.Context.ty] false [go.uint64, go.error]))), (go!"GetList", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.string, _root_.Perennial.k8s_io.apiserver.pkg.storage.ListOptions.ty, _root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty] false [go.error]))), (go!"GuaranteedUpdate", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.string, _root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty, go.bool, (go.GoType.PointerType _root_.Perennial.k8s_io.apiserver.pkg.storage.Preconditions.ty), _root_.Perennial.k8s_io.apiserver.pkg.storage.UpdateFunc.ty, _root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty] false [go.error]))), (go!"ReadinessCheck", (some (go.signature.Signature [] false [go.error]))), (go!"RequestWatchProgress", (some (go.signature.Signature [_root_.Perennial.context.Context.ty] false [go.error]))), (go!"Stats", (some (go.signature.Signature [_root_.Perennial.context.Context.ty] false [_root_.Perennial.k8s_io.apiserver.pkg.storage.Stats.ty, go.error]))), (go!"Stop", (some (go.signature.Signature [] false []))), (go!"Versioner", (some (go.signature.Signature [] false [_root_.Perennial.k8s_io.apiserver.pkg.storage.Versioner.ty]))), (go!"Watch", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.string, _root_.Perennial.k8s_io.apiserver.pkg.storage.ListOptions.ty] false [_root_.Perennial.k8s_io.apimachinery.pkg.watch.Interface.ty, go.error])))]
 
 attribute [instance] CacheDelegator.TypeAssumptions.type_repr
   CacheDelegator.TypeAssumptions.underlying
@@ -2345,8 +2419,10 @@ attribute [instance] CacheDelegator.TypeAssumptions.type_repr
   CacheDelegator.TypeAssumptions.set_stopOnce
   CacheDelegator.TypeAssumptions.get_stopCh
   CacheDelegator.TypeAssumptions.set_stopCh
+  CacheDelegator.TypeAssumptions.method_set
+  CacheDelegator.TypeAssumptions.ptr_method_set
 
-structure listerWatcher [FfiSyntax] where
+structure listerWatcher [GooseExts] where
   mk ::
   storage' : _root_.Perennial.k8s_io.apiserver.pkg.storage.Interface
   resourcePrefix' : GoString
@@ -2355,10 +2431,10 @@ structure listerWatcher [FfiSyntax] where
   unsupportedWatchListSemantics' : Bool
   watchListConsistencyCheckEnabled' : Bool
 
-noncomputable instance listerWatcher.zero_val [FfiSyntax] : ZeroVal listerWatcher :=
+noncomputable instance listerWatcher.zero_val [GooseExts] : ZeroVal listerWatcher :=
   ⟨listerWatcher.mk zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def listerWatcher.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def listerWatcher.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"storage" _root_.Perennial.k8s_io.apiserver.pkg.storage.Interface.ty),
 (go.field_decl.FieldDecl go!"resourcePrefix" go.string),
 (go.field_decl.FieldDecl go!"newListFunc" (go.GoType.FunctionType (go.signature.Signature [] false [_root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty]))),
@@ -2366,17 +2442,17 @@ noncomputable instance listerWatcher.zero_val [FfiSyntax] : ZeroVal listerWatche
 (go.field_decl.FieldDecl go!"unsupportedWatchListSemantics" go.bool),
 (go.field_decl.FieldDecl go!"watchListConsistencyCheckEnabled" go.bool)]
 
-@[irreducible] noncomputable def listerWatcher.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def listerWatcher.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   listerWatcher.fieldsUnsealed
 
-noncomputable instance equals_unfold_listerWatcher [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_listerWatcher [GooseExts] [GoGlobalContext] :
     EqualsUnfold listerWatcher.fields listerWatcher.fieldsUnsealed :=
   ⟨by unfold listerWatcher.fields; rfl⟩
 
-@[reducible] noncomputable def listerWatcher.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def listerWatcher.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType listerWatcher.fields)
 
-class listerWatcher.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class listerWatcher.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying listerWatcher.underlying listerWatcher
   underlying : go.UnderlyingDirectedEq listerWatcher.ty listerWatcher.underlying
   get_storage : ∀ (x : listerWatcher), go.IsGoStepPureDetTagged under (StructFieldGet listerWatcher.underlying go!"storage") #x (Val #(x.storage'))
@@ -2391,6 +2467,8 @@ class listerWatcher.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContex
   set_unsupportedWatchListSemantics : ∀ (x : listerWatcher) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet listerWatcher.underlying go!"unsupportedWatchListSemantics") (PairV #x #y) (Val #(({ x with unsupportedWatchListSemantics' := y } : listerWatcher)))
   get_watchListConsistencyCheckEnabled : ∀ (x : listerWatcher), go.IsGoStepPureDetTagged under (StructFieldGet listerWatcher.underlying go!"watchListConsistencyCheckEnabled") #x (Val #(x.watchListConsistencyCheckEnabled'))
   set_watchListConsistencyCheckEnabled : ∀ (x : listerWatcher) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet listerWatcher.underlying go!"watchListConsistencyCheckEnabled") (PairV #x #y) (Val #(({ x with watchListConsistencyCheckEnabled' := y } : listerWatcher)))
+  method_set : go.MethodSetIs listerWatcher.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType listerWatcher.ty) [(go!"IsWatchListSemanticsUnSupported", (some (go.signature.Signature [] false [go.bool]))), (go!"List", (some (go.signature.Signature [_root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ListOptions.ty] false [_root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty, go.error]))), (go!"Watch", (some (go.signature.Signature [_root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ListOptions.ty] false [_root_.Perennial.k8s_io.apimachinery.pkg.watch.Interface.ty, go.error])))]
 
 attribute [instance] listerWatcher.TypeAssumptions.type_repr
   listerWatcher.TypeAssumptions.underlying
@@ -2406,18 +2484,24 @@ attribute [instance] listerWatcher.TypeAssumptions.type_repr
   listerWatcher.TypeAssumptions.set_unsupportedWatchListSemantics
   listerWatcher.TypeAssumptions.get_watchListConsistencyCheckEnabled
   listerWatcher.TypeAssumptions.set_watchListConsistencyCheckEnabled
+  listerWatcher.TypeAssumptions.method_set
+  listerWatcher.TypeAssumptions.ptr_method_set
 
-abbrev status [FfiSyntax] : Type := w64
+abbrev status [GooseExts] : Type := w64
 
-@[reducible] noncomputable def status.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def status.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   go.int
 
-class status.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class status.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq status.ty status.underlying
+  method_set : go.MethodSetIs status.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType status.ty) []
 
 attribute [instance] status.TypeAssumptions.underlying
+  status.TypeAssumptions.method_set
+  status.TypeAssumptions.ptr_method_set
 
-structure ready [FfiSyntax] where
+structure ready [GooseExts] where
   mk ::
   state' : status
   lastErr' : GoError
@@ -2428,10 +2512,10 @@ structure ready [FfiSyntax] where
   clock' : _root_.Perennial.k8s_io.utils.clock.Clock
   lastStateChangeTime' : _root_.Perennial.time.Time
 
-noncomputable instance ready.zero_val [FfiSyntax] : ZeroVal ready :=
+noncomputable instance ready.zero_val [GooseExts] : ZeroVal ready :=
   ⟨ready.mk zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def ready.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def ready.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"state" status.ty),
 (go.field_decl.FieldDecl go!"lastErr" go.error),
 (go.field_decl.FieldDecl go!"generation" go.int),
@@ -2441,17 +2525,17 @@ noncomputable instance ready.zero_val [FfiSyntax] : ZeroVal ready :=
 (go.field_decl.FieldDecl go!"clock" _root_.Perennial.k8s_io.utils.clock.Clock.ty),
 (go.field_decl.FieldDecl go!"lastStateChangeTime" _root_.Perennial.time.Time.ty)]
 
-@[irreducible] noncomputable def ready.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def ready.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   ready.fieldsUnsealed
 
-noncomputable instance equals_unfold_ready [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_ready [GooseExts] [GoGlobalContext] :
     EqualsUnfold ready.fields ready.fieldsUnsealed :=
   ⟨by unfold ready.fields; rfl⟩
 
-@[reducible] noncomputable def ready.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def ready.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType ready.fields)
 
-class ready.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class ready.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying ready.underlying ready
   underlying : go.UnderlyingDirectedEq ready.ty ready.underlying
   get_state : ∀ (x : ready), go.IsGoStepPureDetTagged under (StructFieldGet ready.underlying go!"state") #x (Val #(x.state'))
@@ -2470,6 +2554,8 @@ class ready.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSe
   set_clock : ∀ (x : ready) (y : _root_.Perennial.k8s_io.utils.clock.Clock), go.IsGoStepPureDetTagged under (StructFieldSet ready.underlying go!"clock") (PairV #x #y) (Val #(({ x with clock' := y } : ready)))
   get_lastStateChangeTime : ∀ (x : ready), go.IsGoStepPureDetTagged under (StructFieldGet ready.underlying go!"lastStateChangeTime") #x (Val #(x.lastStateChangeTime'))
   set_lastStateChangeTime : ∀ (x : ready) (y : _root_.Perennial.time.Time), go.IsGoStepPureDetTagged under (StructFieldSet ready.underlying go!"lastStateChangeTime") (PairV #x #y) (Val #(({ x with lastStateChangeTime' := y } : ready)))
+  method_set : go.MethodSetIs ready.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType ready.ty) [(go!"k8s.io/apiserver/pkg/storage/cacher.check", (some (go.signature.Signature [] false [_root_.Perennial.time.Duration.ty, go.error]))), (go!"k8s.io/apiserver/pkg/storage/cacher.checkAndReadGeneration", (some (go.signature.Signature [] false [go.int, _root_.Perennial.time.Duration.ty, go.error]))), (go!"k8s.io/apiserver/pkg/storage/cacher.done", (some (go.signature.Signature [] false [(go.GoType.ChannelType go.ChanDir.sendrecv (go.GoType.StructType []))]))), (go!"k8s.io/apiserver/pkg/storage/cacher.readGenerationLocked", (some (go.signature.Signature [] false [go.int, go.error]))), (go!"k8s.io/apiserver/pkg/storage/cacher.set", (some (go.signature.Signature [go.bool, go.error] false []))), (go!"k8s.io/apiserver/pkg/storage/cacher.setError", (some (go.signature.Signature [go.error] false []))), (go!"k8s.io/apiserver/pkg/storage/cacher.setReady", (some (go.signature.Signature [] false []))), (go!"k8s.io/apiserver/pkg/storage/cacher.stop", (some (go.signature.Signature [] false []))), (go!"k8s.io/apiserver/pkg/storage/cacher.updateLastStateChangeTimeLocked", (some (go.signature.Signature [] false []))), (go!"k8s.io/apiserver/pkg/storage/cacher.wait", (some (go.signature.Signature [_root_.Perennial.context.Context.ty] false [go.error]))), (go!"k8s.io/apiserver/pkg/storage/cacher.waitAndReadGeneration", (some (go.signature.Signature [_root_.Perennial.context.Context.ty] false [go.int, go.error])))]
 
 attribute [instance] ready.TypeAssumptions.type_repr
   ready.TypeAssumptions.underlying
@@ -2489,18 +2575,24 @@ attribute [instance] ready.TypeAssumptions.type_repr
   ready.TypeAssumptions.set_clock
   ready.TypeAssumptions.get_lastStateChangeTime
   ready.TypeAssumptions.set_lastStateChangeTime
+  ready.TypeAssumptions.method_set
+  ready.TypeAssumptions.ptr_method_set
 
-abbrev timeBudget [FfiSyntax] : Type := GoInterface
+abbrev timeBudget [GooseExts] : Type := GoInterface
 
-@[reducible] noncomputable def timeBudget.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
-  (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"returnUnused" (go.signature.Signature [_root_.Perennial.time.Duration.ty] false [])), (go.InterfaceElem.MethodElem go!"takeAvailable" (go.signature.Signature [] false [_root_.Perennial.time.Duration.ty]))])
+@[reducible] noncomputable def timeBudget.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
+  (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"k8s.io/apiserver/pkg/storage/cacher.returnUnused" (go.signature.Signature [_root_.Perennial.time.Duration.ty] false [])), (go.InterfaceElem.MethodElem go!"k8s.io/apiserver/pkg/storage/cacher.takeAvailable" (go.signature.Signature [] false [_root_.Perennial.time.Duration.ty]))])
 
-class timeBudget.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class timeBudget.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq timeBudget.ty timeBudget.underlying
+  method_set : go.MethodSetIs timeBudget.ty [(go!"k8s.io/apiserver/pkg/storage/cacher.returnUnused", (some (go.signature.Signature [_root_.Perennial.time.Duration.ty] false []))), (go!"k8s.io/apiserver/pkg/storage/cacher.takeAvailable", (some (go.signature.Signature [] false [_root_.Perennial.time.Duration.ty])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType timeBudget.ty) []
 
 attribute [instance] timeBudget.TypeAssumptions.underlying
+  timeBudget.TypeAssumptions.method_set
+  timeBudget.TypeAssumptions.ptr_method_set
 
-structure timeBudgetImpl [FfiSyntax] where
+structure timeBudgetImpl [GooseExts] where
   mk ::
   Mutex' : _root_.Perennial.sync.Mutex
   clock' : _root_.Perennial.k8s_io.utils.clock.Clock
@@ -2509,10 +2601,10 @@ structure timeBudgetImpl [FfiSyntax] where
   refresh' : _root_.Perennial.time.Duration
   last' : _root_.Perennial.time.Time
 
-noncomputable instance timeBudgetImpl.zero_val [FfiSyntax] : ZeroVal timeBudgetImpl :=
+noncomputable instance timeBudgetImpl.zero_val [GooseExts] : ZeroVal timeBudgetImpl :=
   ⟨timeBudgetImpl.mk zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def timeBudgetImpl.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def timeBudgetImpl.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.EmbeddedField go!"Mutex" _root_.Perennial.sync.Mutex.ty),
 (go.field_decl.FieldDecl go!"clock" _root_.Perennial.k8s_io.utils.clock.Clock.ty),
 (go.field_decl.FieldDecl go!"budget" _root_.Perennial.time.Duration.ty),
@@ -2520,17 +2612,17 @@ noncomputable instance timeBudgetImpl.zero_val [FfiSyntax] : ZeroVal timeBudgetI
 (go.field_decl.FieldDecl go!"refresh" _root_.Perennial.time.Duration.ty),
 (go.field_decl.FieldDecl go!"last" _root_.Perennial.time.Time.ty)]
 
-@[irreducible] noncomputable def timeBudgetImpl.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def timeBudgetImpl.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   timeBudgetImpl.fieldsUnsealed
 
-noncomputable instance equals_unfold_timeBudgetImpl [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_timeBudgetImpl [GooseExts] [GoGlobalContext] :
     EqualsUnfold timeBudgetImpl.fields timeBudgetImpl.fieldsUnsealed :=
   ⟨by unfold timeBudgetImpl.fields; rfl⟩
 
-@[reducible] noncomputable def timeBudgetImpl.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def timeBudgetImpl.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType timeBudgetImpl.fields)
 
-class timeBudgetImpl.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class timeBudgetImpl.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying timeBudgetImpl.underlying timeBudgetImpl
   underlying : go.UnderlyingDirectedEq timeBudgetImpl.ty timeBudgetImpl.underlying
   get_Mutex : ∀ (x : timeBudgetImpl), go.IsGoStepPureDetTagged under (StructFieldGet timeBudgetImpl.underlying go!"Mutex") #x (Val #(x.Mutex'))
@@ -2545,6 +2637,8 @@ class timeBudgetImpl.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalConte
   set_refresh : ∀ (x : timeBudgetImpl) (y : _root_.Perennial.time.Duration), go.IsGoStepPureDetTagged under (StructFieldSet timeBudgetImpl.underlying go!"refresh") (PairV #x #y) (Val #(({ x with refresh' := y } : timeBudgetImpl)))
   get_last : ∀ (x : timeBudgetImpl), go.IsGoStepPureDetTagged under (StructFieldGet timeBudgetImpl.underlying go!"last") #x (Val #(x.last'))
   set_last : ∀ (x : timeBudgetImpl) (y : _root_.Perennial.time.Time), go.IsGoStepPureDetTagged under (StructFieldSet timeBudgetImpl.underlying go!"last") (PairV #x #y) (Val #(({ x with last' := y } : timeBudgetImpl)))
+  method_set : go.MethodSetIs timeBudgetImpl.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType timeBudgetImpl.ty) [(go!"Lock", (some (go.signature.Signature [] false []))), (go!"TryLock", (some (go.signature.Signature [] false [go.bool]))), (go!"Unlock", (some (go.signature.Signature [] false []))), (go!"k8s.io/apiserver/pkg/storage/cacher.returnUnused", (some (go.signature.Signature [_root_.Perennial.time.Duration.ty] false []))), (go!"k8s.io/apiserver/pkg/storage/cacher.takeAvailable", (some (go.signature.Signature [] false [_root_.Perennial.time.Duration.ty])))]
 
 attribute [instance] timeBudgetImpl.TypeAssumptions.type_repr
   timeBudgetImpl.TypeAssumptions.underlying
@@ -2560,21 +2654,27 @@ attribute [instance] timeBudgetImpl.TypeAssumptions.type_repr
   timeBudgetImpl.TypeAssumptions.set_refresh
   timeBudgetImpl.TypeAssumptions.get_last
   timeBudgetImpl.TypeAssumptions.set_last
+  timeBudgetImpl.TypeAssumptions.method_set
+  timeBudgetImpl.TypeAssumptions.ptr_method_set
 
 axiom watchCacheEvent : Type
 axiom watchCacheEvent.zero_val : ZeroVal watchCacheEvent
 attribute [instance] watchCacheEvent.zero_val
 
-class watchCacheEvent.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class watchCacheEvent.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying watchCacheEvent.underlying watchCacheEvent
   underlying : go.UnderlyingDirectedEq watchCacheEvent.ty watchCacheEvent.underlying
   isUnderlying : go.IsUnderlying watchCacheEvent.underlying watchCacheEvent.underlying
+  method_set : go.MethodSetIs watchCacheEvent.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType watchCacheEvent.ty) []
 
 attribute [instance] watchCacheEvent.TypeAssumptions.type_repr
   watchCacheEvent.TypeAssumptions.underlying
   watchCacheEvent.TypeAssumptions.isUnderlying
+  watchCacheEvent.TypeAssumptions.method_set
+  watchCacheEvent.TypeAssumptions.ptr_method_set
 
-structure watchCache [FfiSyntax] where
+structure watchCache [GooseExts] where
   mk ::
   RWMutex' : _root_.Perennial.sync.RWMutex
   cond' : Loc
@@ -2584,10 +2684,10 @@ structure watchCache [FfiSyntax] where
   storage' : Loc
   config' : Loc
 
-noncomputable instance watchCache.zero_val [FfiSyntax] : ZeroVal watchCache :=
+noncomputable instance watchCache.zero_val [GooseExts] : ZeroVal watchCache :=
   ⟨watchCache.mk zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def watchCache.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def watchCache.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.EmbeddedField go!"RWMutex" _root_.Perennial.sync.RWMutex.ty),
 (go.field_decl.FieldDecl go!"cond" (go.GoType.PointerType _root_.Perennial.sync.Cond.ty)),
 (go.field_decl.FieldDecl go!"resourceVersion" go.uint64),
@@ -2596,17 +2696,17 @@ noncomputable instance watchCache.zero_val [FfiSyntax] : ZeroVal watchCache :=
 (go.field_decl.FieldDecl go!"storage" (go.GoType.PointerType _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.store.WatchCacheStorage.ty)),
 (go.field_decl.FieldDecl go!"config" (go.GoType.PointerType ImmutableWatchCacheConfig.ty))]
 
-@[irreducible] noncomputable def watchCache.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def watchCache.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   watchCache.fieldsUnsealed
 
-noncomputable instance equals_unfold_watchCache [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_watchCache [GooseExts] [GoGlobalContext] :
     EqualsUnfold watchCache.fields watchCache.fieldsUnsealed :=
   ⟨by unfold watchCache.fields; rfl⟩
 
-@[reducible] noncomputable def watchCache.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def watchCache.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType watchCache.fields)
 
-class watchCache.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class watchCache.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying watchCache.underlying watchCache
   underlying : go.UnderlyingDirectedEq watchCache.ty watchCache.underlying
   get_RWMutex : ∀ (x : watchCache), go.IsGoStepPureDetTagged under (StructFieldGet watchCache.underlying go!"RWMutex") #x (Val #(x.RWMutex'))
@@ -2623,6 +2723,8 @@ class watchCache.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] 
   set_storage : ∀ (x : watchCache) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet watchCache.underlying go!"storage") (PairV #x #y) (Val #(({ x with storage' := y } : watchCache)))
   get_config : ∀ (x : watchCache), go.IsGoStepPureDetTagged under (StructFieldGet watchCache.underlying go!"config") #x (Val #(x.config'))
   set_config : ∀ (x : watchCache) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet watchCache.underlying go!"config") (PairV #x #y) (Val #(({ x with config' := y } : watchCache)))
+  method_set : go.MethodSetIs watchCache.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType watchCache.ty) [(go!"Add", (some (go.signature.Signature [(go.GoType.InterfaceType [])] false [go.error]))), (go!"Delete", (some (go.signature.Signature [(go.GoType.InterfaceType [])] false [go.error]))), (go!"Lock", (some (go.signature.Signature [] false []))), (go!"RLock", (some (go.signature.Signature [] false []))), (go!"RLocker", (some (go.signature.Signature [] false [_root_.Perennial.sync.Locker.ty]))), (go!"RUnlock", (some (go.signature.Signature [] false []))), (go!"Replace", (some (go.signature.Signature [(go.GoType.SliceType (go.GoType.InterfaceType [])), go.string] false [go.error]))), (go!"Resync", (some (go.signature.Signature [] false [go.error]))), (go!"SetOnReplace", (some (go.signature.Signature [(go.GoType.FunctionType (go.signature.Signature [] false []))] false []))), (go!"TryLock", (some (go.signature.Signature [] false [go.bool]))), (go!"TryRLock", (some (go.signature.Signature [] false [go.bool]))), (go!"Unlock", (some (go.signature.Signature [] false []))), (go!"Update", (some (go.signature.Signature [(go.GoType.InterfaceType [])] false [go.error]))), (go!"UpdateResourceVersion", (some (go.signature.Signature [go.string] false []))), (go!"WaitUntilFreshAndGet", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.string, go.string] false [(go.GoType.InterfaceType []), go.bool, go.uint64, go.error]))), (go!"WaitUntilFreshAndGetKeys", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.uint64] false [(go.GoType.SliceType go.string), go.error]))), (go!"WaitUntilFreshAndGetList", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.string, _root_.Perennial.k8s_io.apiserver.pkg.storage.ListOptions.ty] false [listResp.ty, go.string, go.error]))), (go!"k8s.io/apiserver/pkg/storage/cacher.checkSnapshotResourceVersion", (some (go.signature.Signature [_root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.store.Snapshot.ty, go.uint64] false []))), (go!"k8s.io/apiserver/pkg/storage/cacher.getAllEventsSinceLocked", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.uint64, go.string, _root_.Perennial.k8s_io.apiserver.pkg.storage.ListOptions.ty] false [(go.GoType.PointerType watchCacheInterval.ty), go.error]))), (go!"k8s.io/apiserver/pkg/storage/cacher.getIntervalFromStoreLocked", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.string, _root_.Perennial.k8s_io.apiserver.pkg.storage.ListOptions.ty] false [(go.GoType.PointerType watchCacheInterval.ty), go.string, go.error]))), (go!"k8s.io/apiserver/pkg/storage/cacher.getLatestSnapshotLocked", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.bool, (go.GoType.SliceType _root_.Perennial.k8s_io.apiserver.pkg.storage.MatchValue.ty)] false [_root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.store.Snapshot.ty, go.string]))), (go!"k8s.io/apiserver/pkg/storage/cacher.getListResourceVersion", (some (go.signature.Signature [] false [go.uint64]))), (go!"k8s.io/apiserver/pkg/storage/cacher.notFresh", (some (go.signature.Signature [go.uint64] false [go.bool]))), (go!"k8s.io/apiserver/pkg/storage/cacher.objectToVersionedRuntimeObject", (some (go.signature.Signature [(go.GoType.InterfaceType [])] false [_root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty, go.uint64, go.error]))), (go!"k8s.io/apiserver/pkg/storage/cacher.processEvent", (some (go.signature.Signature [_root_.Perennial.k8s_io.apimachinery.pkg.watch.Event.ty, go.uint64] false [go.error]))), (go!"k8s.io/apiserver/pkg/storage/cacher.suggestedWatchChannelSize", (some (go.signature.Signature [go.bool, go.bool] false [go.int]))), (go!"k8s.io/apiserver/pkg/storage/cacher.waitAndGetExactSnapshot", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.uint64] false [_root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.store.Snapshot.ty, go.error]))), (go!"k8s.io/apiserver/pkg/storage/cacher.waitAndGetLatestSnapshot", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.bool, go.uint64, (go.GoType.SliceType _root_.Perennial.k8s_io.apiserver.pkg.storage.MatchValue.ty)] false [_root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.store.Snapshot.ty, go.uint64, go.string, go.error]))), (go!"k8s.io/apiserver/pkg/storage/cacher.waitAndListConsistent", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.bool, go.string, go.string, (go.GoType.SliceType _root_.Perennial.k8s_io.apiserver.pkg.storage.MatchValue.ty)] false [listResp.ty, go.string, go.error]))), (go!"k8s.io/apiserver/pkg/storage/cacher.waitAndListExactRV", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.string, go.string, go.uint64] false [listResp.ty, go.string, go.error]))), (go!"k8s.io/apiserver/pkg/storage/cacher.waitAndListLatestRV", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.bool, go.uint64, go.string, go.string, (go.GoType.SliceType _root_.Perennial.k8s_io.apiserver.pkg.storage.MatchValue.ty)] false [listResp.ty, go.string, go.error]))), (go!"k8s.io/apiserver/pkg/storage/cacher.waitUntilFreshAndListNonRecursive", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.string, _root_.Perennial.k8s_io.apiserver.pkg.storage.ListOptions.ty] false [listResp.ty, go.string, go.error]))), (go!"k8s.io/apiserver/pkg/storage/cacher.waitUntilFreshAndListRecursive", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.string, _root_.Perennial.k8s_io.apiserver.pkg.storage.ListOptions.ty] false [listResp.ty, go.string, go.error]))), (go!"k8s.io/apiserver/pkg/storage/cacher.waitUntilFreshLocked", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.uint64] false [go.error]))), (go!"sync.rUnlockSlow", (some (go.signature.Signature [go.int32] false [])))]
   ptr_Add_unfold : MethodUnfold (go.GoType.PointerType watchCache.ty) go!"Add" watchCache.Add.impl
   ptr_Delete_unfold : MethodUnfold (go.GoType.PointerType watchCache.ty) go!"Delete" watchCache.Delete.impl
   ptr_Lock_unfold : MethodUnfold (go.GoType.PointerType watchCache.ty) go!"Lock" (LamV "$r"
@@ -2662,6 +2764,8 @@ attribute [instance] watchCache.TypeAssumptions.type_repr
   watchCache.TypeAssumptions.set_storage
   watchCache.TypeAssumptions.get_config
   watchCache.TypeAssumptions.set_config
+  watchCache.TypeAssumptions.method_set
+  watchCache.TypeAssumptions.ptr_method_set
   watchCache.TypeAssumptions.ptr_Add_unfold
   watchCache.TypeAssumptions.ptr_Delete_unfold
   watchCache.TypeAssumptions.ptr_Lock_unfold
@@ -2680,17 +2784,21 @@ attribute [instance] watchCache.TypeAssumptions.type_repr
   watchCache.TypeAssumptions.ptr_waitAndGetLatestSnapshot_unfold
   watchCache.TypeAssumptions.ptr_waitUntilFreshLocked_unfold
 
-abbrev indexValidator [FfiSyntax] : Type := GoFunc
+abbrev indexValidator [GooseExts] : Type := GoFunc
 
-@[reducible] noncomputable def indexValidator.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def indexValidator.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.FunctionType (go.signature.Signature [go.int] false [go.bool]))
 
-class indexValidator.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class indexValidator.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq indexValidator.ty indexValidator.underlying
+  method_set : go.MethodSetIs indexValidator.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType indexValidator.ty) []
 
 attribute [instance] indexValidator.TypeAssumptions.underlying
+  indexValidator.TypeAssumptions.method_set
+  indexValidator.TypeAssumptions.ptr_method_set
 
-structure ImmutableWatchCacheConfig [FfiSyntax] where
+structure ImmutableWatchCacheConfig [GooseExts] where
   mk ::
   keyFunc' : GoFunc
   getAttrsFunc' : GoFunc
@@ -2702,10 +2810,10 @@ structure ImmutableWatchCacheConfig [FfiSyntax] where
   waitingUntilFresh' : Loc
   getCurrentRV' : GoFunc
 
-noncomputable instance ImmutableWatchCacheConfig.zero_val [FfiSyntax] : ZeroVal ImmutableWatchCacheConfig :=
+noncomputable instance ImmutableWatchCacheConfig.zero_val [GooseExts] : ZeroVal ImmutableWatchCacheConfig :=
   ⟨ImmutableWatchCacheConfig.mk zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def ImmutableWatchCacheConfig.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def ImmutableWatchCacheConfig.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"keyFunc" (go.GoType.FunctionType (go.signature.Signature [_root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty] false [go.string, go.error]))),
 (go.field_decl.FieldDecl go!"getAttrsFunc" (go.GoType.FunctionType (go.signature.Signature [_root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty] false [_root_.Perennial.k8s_io.apimachinery.pkg.labels.Set'.ty, _root_.Perennial.k8s_io.apimachinery.pkg.fields.Set'.ty, go.error]))),
 (go.field_decl.FieldDecl go!"eventHandler" (go.GoType.FunctionType (go.signature.Signature [(go.GoType.PointerType watchCacheEvent.ty)] false []))),
@@ -2716,17 +2824,17 @@ noncomputable instance ImmutableWatchCacheConfig.zero_val [FfiSyntax] : ZeroVal 
 (go.field_decl.FieldDecl go!"waitingUntilFresh" (go.GoType.PointerType _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.progress.ConditionalProgressRequester.ty)),
 (go.field_decl.FieldDecl go!"getCurrentRV" (go.GoType.FunctionType (go.signature.Signature [_root_.Perennial.context.Context.ty] false [go.uint64, go.error])))]
 
-@[irreducible] noncomputable def ImmutableWatchCacheConfig.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def ImmutableWatchCacheConfig.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   ImmutableWatchCacheConfig.fieldsUnsealed
 
-noncomputable instance equals_unfold_ImmutableWatchCacheConfig [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_ImmutableWatchCacheConfig [GooseExts] [GoGlobalContext] :
     EqualsUnfold ImmutableWatchCacheConfig.fields ImmutableWatchCacheConfig.fieldsUnsealed :=
   ⟨by unfold ImmutableWatchCacheConfig.fields; rfl⟩
 
-@[reducible] noncomputable def ImmutableWatchCacheConfig.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def ImmutableWatchCacheConfig.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType ImmutableWatchCacheConfig.fields)
 
-class ImmutableWatchCacheConfig.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class ImmutableWatchCacheConfig.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying ImmutableWatchCacheConfig.underlying ImmutableWatchCacheConfig
   underlying : go.UnderlyingDirectedEq ImmutableWatchCacheConfig.ty ImmutableWatchCacheConfig.underlying
   get_keyFunc : ∀ (x : ImmutableWatchCacheConfig), go.IsGoStepPureDetTagged under (StructFieldGet ImmutableWatchCacheConfig.underlying go!"keyFunc") #x (Val #(x.keyFunc'))
@@ -2747,6 +2855,8 @@ class ImmutableWatchCacheConfig.TypeAssumptions [FfiSyntax] [GoGlobalContext] [G
   set_waitingUntilFresh : ∀ (x : ImmutableWatchCacheConfig) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet ImmutableWatchCacheConfig.underlying go!"waitingUntilFresh") (PairV #x #y) (Val #(({ x with waitingUntilFresh' := y } : ImmutableWatchCacheConfig)))
   get_getCurrentRV : ∀ (x : ImmutableWatchCacheConfig), go.IsGoStepPureDetTagged under (StructFieldGet ImmutableWatchCacheConfig.underlying go!"getCurrentRV") #x (Val #(x.getCurrentRV'))
   set_getCurrentRV : ∀ (x : ImmutableWatchCacheConfig) (y : GoFunc), go.IsGoStepPureDetTagged under (StructFieldSet ImmutableWatchCacheConfig.underlying go!"getCurrentRV") (PairV #x #y) (Val #(({ x with getCurrentRV' := y } : ImmutableWatchCacheConfig)))
+  method_set : go.MethodSetIs ImmutableWatchCacheConfig.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType ImmutableWatchCacheConfig.ty) []
 
 attribute [instance] ImmutableWatchCacheConfig.TypeAssumptions.type_repr
   ImmutableWatchCacheConfig.TypeAssumptions.underlying
@@ -2768,8 +2878,10 @@ attribute [instance] ImmutableWatchCacheConfig.TypeAssumptions.type_repr
   ImmutableWatchCacheConfig.TypeAssumptions.set_waitingUntilFresh
   ImmutableWatchCacheConfig.TypeAssumptions.get_getCurrentRV
   ImmutableWatchCacheConfig.TypeAssumptions.set_getCurrentRV
+  ImmutableWatchCacheConfig.TypeAssumptions.method_set
+  ImmutableWatchCacheConfig.TypeAssumptions.ptr_method_set
 
-structure watchCacheHistory [FfiSyntax] where
+structure watchCacheHistory [GooseExts] where
   mk ::
   config' : Loc
   capacity' : w64
@@ -2782,10 +2894,10 @@ structure watchCacheHistory [FfiSyntax] where
   listResourceVersion' : w64
   eventFreshDuration' : _root_.Perennial.time.Duration
 
-noncomputable instance watchCacheHistory.zero_val [FfiSyntax] : ZeroVal watchCacheHistory :=
+noncomputable instance watchCacheHistory.zero_val [GooseExts] : ZeroVal watchCacheHistory :=
   ⟨watchCacheHistory.mk zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def watchCacheHistory.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def watchCacheHistory.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"config" (go.GoType.PointerType ImmutableWatchCacheConfig.ty)),
 (go.field_decl.FieldDecl go!"capacity" go.int),
 (go.field_decl.FieldDecl go!"upperBoundCapacity" go.int),
@@ -2797,17 +2909,17 @@ noncomputable instance watchCacheHistory.zero_val [FfiSyntax] : ZeroVal watchCac
 (go.field_decl.FieldDecl go!"listResourceVersion" go.uint64),
 (go.field_decl.FieldDecl go!"eventFreshDuration" _root_.Perennial.time.Duration.ty)]
 
-@[irreducible] noncomputable def watchCacheHistory.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def watchCacheHistory.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   watchCacheHistory.fieldsUnsealed
 
-noncomputable instance equals_unfold_watchCacheHistory [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_watchCacheHistory [GooseExts] [GoGlobalContext] :
     EqualsUnfold watchCacheHistory.fields watchCacheHistory.fieldsUnsealed :=
   ⟨by unfold watchCacheHistory.fields; rfl⟩
 
-@[reducible] noncomputable def watchCacheHistory.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def watchCacheHistory.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType watchCacheHistory.fields)
 
-class watchCacheHistory.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class watchCacheHistory.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying watchCacheHistory.underlying watchCacheHistory
   underlying : go.UnderlyingDirectedEq watchCacheHistory.ty watchCacheHistory.underlying
   get_config : ∀ (x : watchCacheHistory), go.IsGoStepPureDetTagged under (StructFieldGet watchCacheHistory.underlying go!"config") #x (Val #(x.config'))
@@ -2830,6 +2942,8 @@ class watchCacheHistory.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalCo
   set_listResourceVersion : ∀ (x : watchCacheHistory) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet watchCacheHistory.underlying go!"listResourceVersion") (PairV #x #y) (Val #(({ x with listResourceVersion' := y } : watchCacheHistory)))
   get_eventFreshDuration : ∀ (x : watchCacheHistory), go.IsGoStepPureDetTagged under (StructFieldGet watchCacheHistory.underlying go!"eventFreshDuration") #x (Val #(x.eventFreshDuration'))
   set_eventFreshDuration : ∀ (x : watchCacheHistory) (y : _root_.Perennial.time.Duration), go.IsGoStepPureDetTagged under (StructFieldSet watchCacheHistory.underlying go!"eventFreshDuration") (PairV #x #y) (Val #(({ x with eventFreshDuration' := y } : watchCacheHistory)))
+  method_set : go.MethodSetIs watchCacheHistory.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType watchCacheHistory.ty) [(go!"Capacity", (some (go.signature.Signature [] false [go.int]))), (go!"GetIntervalLocked", (some (go.signature.Signature [go.uint64, _root_.Perennial.sync.Locker.ty] false [(go.GoType.PointerType watchCacheInterval.ty), go.error]))), (go!"OldestResourceVersionLocked", (some (go.signature.Signature [] false [go.uint64]))), (go!"ResetLocked", (some (go.signature.Signature [go.uint64] false []))), (go!"k8s.io/apiserver/pkg/storage/cacher.doCacheResizeLocked", (some (go.signature.Signature [go.int] false []))), (go!"k8s.io/apiserver/pkg/storage/cacher.isCacheFullLocked", (some (go.signature.Signature [] false [go.bool]))), (go!"k8s.io/apiserver/pkg/storage/cacher.isIndexValidLocked", (some (go.signature.Signature [go.int] false [go.bool]))), (go!"k8s.io/apiserver/pkg/storage/cacher.oldestServableLocked", (some (go.signature.Signature [] false [go.uint64, go.bool]))), (go!"k8s.io/apiserver/pkg/storage/cacher.resizeCacheLocked", (some (go.signature.Signature [_root_.Perennial.time.Time.ty] false []))), (go!"k8s.io/apiserver/pkg/storage/cacher.suggestedWatchChannelSize", (some (go.signature.Signature [go.bool, go.bool] false [go.int]))), (go!"k8s.io/apiserver/pkg/storage/cacher.updateCache", (some (go.signature.Signature [(go.GoType.PointerType watchCacheEvent.ty)] false [])))]
 
 attribute [instance] watchCacheHistory.TypeAssumptions.type_repr
   watchCacheHistory.TypeAssumptions.underlying
@@ -2853,42 +2967,48 @@ attribute [instance] watchCacheHistory.TypeAssumptions.type_repr
   watchCacheHistory.TypeAssumptions.set_listResourceVersion
   watchCacheHistory.TypeAssumptions.get_eventFreshDuration
   watchCacheHistory.TypeAssumptions.set_eventFreshDuration
+  watchCacheHistory.TypeAssumptions.method_set
+  watchCacheHistory.TypeAssumptions.ptr_method_set
 
-abbrev cacheIntervalSource [FfiSyntax] : Type := GoInterface
+abbrev cacheIntervalSource [GooseExts] : Type := GoInterface
 
-@[reducible] noncomputable def cacheIntervalSource.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def cacheIntervalSource.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"All" (go.signature.Signature [] false [(_root_.Perennial.iter.Seq2.ty (go.GoType.PointerType watchCacheEvent.ty) go.error)]))])
 
-class cacheIntervalSource.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class cacheIntervalSource.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq cacheIntervalSource.ty cacheIntervalSource.underlying
+  method_set : go.MethodSetIs cacheIntervalSource.ty [(go!"All", (some (go.signature.Signature [] false [(_root_.Perennial.iter.Seq2.ty (go.GoType.PointerType watchCacheEvent.ty) go.error)])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType cacheIntervalSource.ty) []
 
 attribute [instance] cacheIntervalSource.TypeAssumptions.underlying
+  cacheIntervalSource.TypeAssumptions.method_set
+  cacheIntervalSource.TypeAssumptions.ptr_method_set
 
-structure watchCacheInterval [FfiSyntax] where
+structure watchCacheInterval [GooseExts] where
   mk ::
   source' : cacheIntervalSource
   resourceVersion' : w64
   initialEventsEndBookmark' : Loc
 
-noncomputable instance watchCacheInterval.zero_val [FfiSyntax] : ZeroVal watchCacheInterval :=
+noncomputable instance watchCacheInterval.zero_val [GooseExts] : ZeroVal watchCacheInterval :=
   ⟨watchCacheInterval.mk zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def watchCacheInterval.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def watchCacheInterval.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"source" cacheIntervalSource.ty),
 (go.field_decl.FieldDecl go!"resourceVersion" go.uint64),
 (go.field_decl.FieldDecl go!"initialEventsEndBookmark" (go.GoType.PointerType watchCacheEvent.ty))]
 
-@[irreducible] noncomputable def watchCacheInterval.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def watchCacheInterval.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   watchCacheInterval.fieldsUnsealed
 
-noncomputable instance equals_unfold_watchCacheInterval [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_watchCacheInterval [GooseExts] [GoGlobalContext] :
     EqualsUnfold watchCacheInterval.fields watchCacheInterval.fieldsUnsealed :=
   ⟨by unfold watchCacheInterval.fields; rfl⟩
 
-@[reducible] noncomputable def watchCacheInterval.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def watchCacheInterval.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType watchCacheInterval.fields)
 
-class watchCacheInterval.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class watchCacheInterval.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying watchCacheInterval.underlying watchCacheInterval
   underlying : go.UnderlyingDirectedEq watchCacheInterval.ty watchCacheInterval.underlying
   get_source : ∀ (x : watchCacheInterval), go.IsGoStepPureDetTagged under (StructFieldGet watchCacheInterval.underlying go!"source") #x (Val #(x.source'))
@@ -2897,6 +3017,8 @@ class watchCacheInterval.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalC
   set_resourceVersion : ∀ (x : watchCacheInterval) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet watchCacheInterval.underlying go!"resourceVersion") (PairV #x #y) (Val #(({ x with resourceVersion' := y } : watchCacheInterval)))
   get_initialEventsEndBookmark : ∀ (x : watchCacheInterval), go.IsGoStepPureDetTagged under (StructFieldGet watchCacheInterval.underlying go!"initialEventsEndBookmark") #x (Val #(x.initialEventsEndBookmark'))
   set_initialEventsEndBookmark : ∀ (x : watchCacheInterval) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet watchCacheInterval.underlying go!"initialEventsEndBookmark") (PairV #x #y) (Val #(({ x with initialEventsEndBookmark' := y } : watchCacheInterval)))
+  method_set : go.MethodSetIs watchCacheInterval.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType watchCacheInterval.ty) [(go!"All", (some (go.signature.Signature [] false [(_root_.Perennial.iter.Seq2.ty (go.GoType.PointerType watchCacheEvent.ty) go.error)])))]
 
 attribute [instance] watchCacheInterval.TypeAssumptions.type_repr
   watchCacheInterval.TypeAssumptions.underlying
@@ -2906,18 +3028,24 @@ attribute [instance] watchCacheInterval.TypeAssumptions.type_repr
   watchCacheInterval.TypeAssumptions.set_resourceVersion
   watchCacheInterval.TypeAssumptions.get_initialEventsEndBookmark
   watchCacheInterval.TypeAssumptions.set_initialEventsEndBookmark
+  watchCacheInterval.TypeAssumptions.method_set
+  watchCacheInterval.TypeAssumptions.ptr_method_set
 
-abbrev indexerFunc [FfiSyntax] : Type := GoFunc
+abbrev indexerFunc [GooseExts] : Type := GoFunc
 
-@[reducible] noncomputable def indexerFunc.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def indexerFunc.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.FunctionType (go.signature.Signature [go.int] false [(go.GoType.PointerType watchCacheEvent.ty)]))
 
-class indexerFunc.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class indexerFunc.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq indexerFunc.ty indexerFunc.underlying
+  method_set : go.MethodSetIs indexerFunc.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType indexerFunc.ty) []
 
 attribute [instance] indexerFunc.TypeAssumptions.underlying
+  indexerFunc.TypeAssumptions.method_set
+  indexerFunc.TypeAssumptions.ptr_method_set
 
-structure historyCacheIntervalSource [FfiSyntax] where
+structure historyCacheIntervalSource [GooseExts] where
   mk ::
   startIndex' : w64
   endIndex' : w64
@@ -2926,10 +3054,10 @@ structure historyCacheIntervalSource [FfiSyntax] where
   buffer' : Loc
   lock' : _root_.Perennial.sync.Locker
 
-noncomputable instance historyCacheIntervalSource.zero_val [FfiSyntax] : ZeroVal historyCacheIntervalSource :=
+noncomputable instance historyCacheIntervalSource.zero_val [GooseExts] : ZeroVal historyCacheIntervalSource :=
   ⟨historyCacheIntervalSource.mk zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def historyCacheIntervalSource.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def historyCacheIntervalSource.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"startIndex" go.int),
 (go.field_decl.FieldDecl go!"endIndex" go.int),
 (go.field_decl.FieldDecl go!"indexer" indexerFunc.ty),
@@ -2937,17 +3065,17 @@ noncomputable instance historyCacheIntervalSource.zero_val [FfiSyntax] : ZeroVal
 (go.field_decl.FieldDecl go!"buffer" (go.GoType.PointerType watchCacheIntervalBuffer.ty)),
 (go.field_decl.FieldDecl go!"lock" _root_.Perennial.sync.Locker.ty)]
 
-@[irreducible] noncomputable def historyCacheIntervalSource.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def historyCacheIntervalSource.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   historyCacheIntervalSource.fieldsUnsealed
 
-noncomputable instance equals_unfold_historyCacheIntervalSource [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_historyCacheIntervalSource [GooseExts] [GoGlobalContext] :
     EqualsUnfold historyCacheIntervalSource.fields historyCacheIntervalSource.fieldsUnsealed :=
   ⟨by unfold historyCacheIntervalSource.fields; rfl⟩
 
-@[reducible] noncomputable def historyCacheIntervalSource.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def historyCacheIntervalSource.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType historyCacheIntervalSource.fields)
 
-class historyCacheIntervalSource.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class historyCacheIntervalSource.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying historyCacheIntervalSource.underlying historyCacheIntervalSource
   underlying : go.UnderlyingDirectedEq historyCacheIntervalSource.ty historyCacheIntervalSource.underlying
   get_startIndex : ∀ (x : historyCacheIntervalSource), go.IsGoStepPureDetTagged under (StructFieldGet historyCacheIntervalSource.underlying go!"startIndex") #x (Val #(x.startIndex'))
@@ -2962,6 +3090,8 @@ class historyCacheIntervalSource.TypeAssumptions [FfiSyntax] [GoGlobalContext] [
   set_buffer : ∀ (x : historyCacheIntervalSource) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet historyCacheIntervalSource.underlying go!"buffer") (PairV #x #y) (Val #(({ x with buffer' := y } : historyCacheIntervalSource)))
   get_lock : ∀ (x : historyCacheIntervalSource), go.IsGoStepPureDetTagged under (StructFieldGet historyCacheIntervalSource.underlying go!"lock") #x (Val #(x.lock'))
   set_lock : ∀ (x : historyCacheIntervalSource) (y : _root_.Perennial.sync.Locker), go.IsGoStepPureDetTagged under (StructFieldSet historyCacheIntervalSource.underlying go!"lock") (PairV #x #y) (Val #(({ x with lock' := y } : historyCacheIntervalSource)))
+  method_set : go.MethodSetIs historyCacheIntervalSource.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType historyCacheIntervalSource.ty) [(go!"All", (some (go.signature.Signature [] false [(_root_.Perennial.iter.Seq2.ty (go.GoType.PointerType watchCacheEvent.ty) go.error)]))), (go!"k8s.io/apiserver/pkg/storage/cacher.fillBuffer", (some (go.signature.Signature [] false []))), (go!"k8s.io/apiserver/pkg/storage/cacher.next", (some (go.signature.Signature [] false [(go.GoType.PointerType watchCacheEvent.ty), go.error])))]
 
 attribute [instance] historyCacheIntervalSource.TypeAssumptions.type_repr
   historyCacheIntervalSource.TypeAssumptions.underlying
@@ -2977,65 +3107,71 @@ attribute [instance] historyCacheIntervalSource.TypeAssumptions.type_repr
   historyCacheIntervalSource.TypeAssumptions.set_buffer
   historyCacheIntervalSource.TypeAssumptions.get_lock
   historyCacheIntervalSource.TypeAssumptions.set_lock
+  historyCacheIntervalSource.TypeAssumptions.method_set
+  historyCacheIntervalSource.TypeAssumptions.ptr_method_set
 
-structure snapshotCacheIntervalSource [FfiSyntax] where
+structure snapshotCacheIntervalSource [GooseExts] where
   mk ::
   buffer' : Loc
 
-noncomputable instance snapshotCacheIntervalSource.zero_val [FfiSyntax] : ZeroVal snapshotCacheIntervalSource :=
+noncomputable instance snapshotCacheIntervalSource.zero_val [GooseExts] : ZeroVal snapshotCacheIntervalSource :=
   ⟨snapshotCacheIntervalSource.mk zeroValDef⟩
 
-@[reducible] noncomputable def snapshotCacheIntervalSource.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def snapshotCacheIntervalSource.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"buffer" (go.GoType.PointerType watchCacheIntervalBuffer.ty))]
 
-@[irreducible] noncomputable def snapshotCacheIntervalSource.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def snapshotCacheIntervalSource.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   snapshotCacheIntervalSource.fieldsUnsealed
 
-noncomputable instance equals_unfold_snapshotCacheIntervalSource [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_snapshotCacheIntervalSource [GooseExts] [GoGlobalContext] :
     EqualsUnfold snapshotCacheIntervalSource.fields snapshotCacheIntervalSource.fieldsUnsealed :=
   ⟨by unfold snapshotCacheIntervalSource.fields; rfl⟩
 
-@[reducible] noncomputable def snapshotCacheIntervalSource.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def snapshotCacheIntervalSource.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType snapshotCacheIntervalSource.fields)
 
-class snapshotCacheIntervalSource.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class snapshotCacheIntervalSource.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying snapshotCacheIntervalSource.underlying snapshotCacheIntervalSource
   underlying : go.UnderlyingDirectedEq snapshotCacheIntervalSource.ty snapshotCacheIntervalSource.underlying
   get_buffer : ∀ (x : snapshotCacheIntervalSource), go.IsGoStepPureDetTagged under (StructFieldGet snapshotCacheIntervalSource.underlying go!"buffer") #x (Val #(x.buffer'))
   set_buffer : ∀ (x : snapshotCacheIntervalSource) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet snapshotCacheIntervalSource.underlying go!"buffer") (PairV #x #y) (Val #(({ x with buffer' := y } : snapshotCacheIntervalSource)))
+  method_set : go.MethodSetIs snapshotCacheIntervalSource.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType snapshotCacheIntervalSource.ty) [(go!"All", (some (go.signature.Signature [] false [(_root_.Perennial.iter.Seq2.ty (go.GoType.PointerType watchCacheEvent.ty) go.error)]))), (go!"k8s.io/apiserver/pkg/storage/cacher.next", (some (go.signature.Signature [] false [(go.GoType.PointerType watchCacheEvent.ty), go.error])))]
 
 attribute [instance] snapshotCacheIntervalSource.TypeAssumptions.type_repr
   snapshotCacheIntervalSource.TypeAssumptions.underlying
   snapshotCacheIntervalSource.TypeAssumptions.get_buffer
   snapshotCacheIntervalSource.TypeAssumptions.set_buffer
+  snapshotCacheIntervalSource.TypeAssumptions.method_set
+  snapshotCacheIntervalSource.TypeAssumptions.ptr_method_set
 
-structure lazySnapshotCacheIntervalSource [FfiSyntax] where
+structure lazySnapshotCacheIntervalSource [GooseExts] where
   mk ::
   snapshot' : _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.store.Snapshot
   resourceVersion' : w64
   key' : GoString
   recursive' : Bool
 
-noncomputable instance lazySnapshotCacheIntervalSource.zero_val [FfiSyntax] : ZeroVal lazySnapshotCacheIntervalSource :=
+noncomputable instance lazySnapshotCacheIntervalSource.zero_val [GooseExts] : ZeroVal lazySnapshotCacheIntervalSource :=
   ⟨lazySnapshotCacheIntervalSource.mk zeroValDef zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def lazySnapshotCacheIntervalSource.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def lazySnapshotCacheIntervalSource.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"snapshot" _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.store.Snapshot.ty),
 (go.field_decl.FieldDecl go!"resourceVersion" go.uint64),
 (go.field_decl.FieldDecl go!"key" go.string),
 (go.field_decl.FieldDecl go!"recursive" go.bool)]
 
-@[irreducible] noncomputable def lazySnapshotCacheIntervalSource.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def lazySnapshotCacheIntervalSource.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   lazySnapshotCacheIntervalSource.fieldsUnsealed
 
-noncomputable instance equals_unfold_lazySnapshotCacheIntervalSource [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_lazySnapshotCacheIntervalSource [GooseExts] [GoGlobalContext] :
     EqualsUnfold lazySnapshotCacheIntervalSource.fields lazySnapshotCacheIntervalSource.fieldsUnsealed :=
   ⟨by unfold lazySnapshotCacheIntervalSource.fields; rfl⟩
 
-@[reducible] noncomputable def lazySnapshotCacheIntervalSource.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def lazySnapshotCacheIntervalSource.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType lazySnapshotCacheIntervalSource.fields)
 
-class lazySnapshotCacheIntervalSource.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class lazySnapshotCacheIntervalSource.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying lazySnapshotCacheIntervalSource.underlying lazySnapshotCacheIntervalSource
   underlying : go.UnderlyingDirectedEq lazySnapshotCacheIntervalSource.ty lazySnapshotCacheIntervalSource.underlying
   get_snapshot : ∀ (x : lazySnapshotCacheIntervalSource), go.IsGoStepPureDetTagged under (StructFieldGet lazySnapshotCacheIntervalSource.underlying go!"snapshot") #x (Val #(x.snapshot'))
@@ -3046,6 +3182,8 @@ class lazySnapshotCacheIntervalSource.TypeAssumptions [FfiSyntax] [GoGlobalConte
   set_key : ∀ (x : lazySnapshotCacheIntervalSource) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet lazySnapshotCacheIntervalSource.underlying go!"key") (PairV #x #y) (Val #(({ x with key' := y } : lazySnapshotCacheIntervalSource)))
   get_recursive : ∀ (x : lazySnapshotCacheIntervalSource), go.IsGoStepPureDetTagged under (StructFieldGet lazySnapshotCacheIntervalSource.underlying go!"recursive") #x (Val #(x.recursive'))
   set_recursive : ∀ (x : lazySnapshotCacheIntervalSource) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet lazySnapshotCacheIntervalSource.underlying go!"recursive") (PairV #x #y) (Val #(({ x with recursive' := y } : lazySnapshotCacheIntervalSource)))
+  method_set : go.MethodSetIs lazySnapshotCacheIntervalSource.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType lazySnapshotCacheIntervalSource.ty) [(go!"All", (some (go.signature.Signature [] false [(_root_.Perennial.iter.Seq2.ty (go.GoType.PointerType watchCacheEvent.ty) go.error)])))]
 
 attribute [instance] lazySnapshotCacheIntervalSource.TypeAssumptions.type_repr
   lazySnapshotCacheIntervalSource.TypeAssumptions.underlying
@@ -3057,32 +3195,34 @@ attribute [instance] lazySnapshotCacheIntervalSource.TypeAssumptions.type_repr
   lazySnapshotCacheIntervalSource.TypeAssumptions.set_key
   lazySnapshotCacheIntervalSource.TypeAssumptions.get_recursive
   lazySnapshotCacheIntervalSource.TypeAssumptions.set_recursive
+  lazySnapshotCacheIntervalSource.TypeAssumptions.method_set
+  lazySnapshotCacheIntervalSource.TypeAssumptions.ptr_method_set
 
-structure watchCacheIntervalBuffer [FfiSyntax] where
+structure watchCacheIntervalBuffer [GooseExts] where
   mk ::
   buffer' : GoSlice
   startIndex' : w64
   endIndex' : w64
 
-noncomputable instance watchCacheIntervalBuffer.zero_val [FfiSyntax] : ZeroVal watchCacheIntervalBuffer :=
+noncomputable instance watchCacheIntervalBuffer.zero_val [GooseExts] : ZeroVal watchCacheIntervalBuffer :=
   ⟨watchCacheIntervalBuffer.mk zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def watchCacheIntervalBuffer.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def watchCacheIntervalBuffer.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"buffer" (go.GoType.SliceType (go.GoType.PointerType watchCacheEvent.ty))),
 (go.field_decl.FieldDecl go!"startIndex" go.int),
 (go.field_decl.FieldDecl go!"endIndex" go.int)]
 
-@[irreducible] noncomputable def watchCacheIntervalBuffer.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def watchCacheIntervalBuffer.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   watchCacheIntervalBuffer.fieldsUnsealed
 
-noncomputable instance equals_unfold_watchCacheIntervalBuffer [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_watchCacheIntervalBuffer [GooseExts] [GoGlobalContext] :
     EqualsUnfold watchCacheIntervalBuffer.fields watchCacheIntervalBuffer.fieldsUnsealed :=
   ⟨by unfold watchCacheIntervalBuffer.fields; rfl⟩
 
-@[reducible] noncomputable def watchCacheIntervalBuffer.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def watchCacheIntervalBuffer.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType watchCacheIntervalBuffer.fields)
 
-class watchCacheIntervalBuffer.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class watchCacheIntervalBuffer.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying watchCacheIntervalBuffer.underlying watchCacheIntervalBuffer
   underlying : go.UnderlyingDirectedEq watchCacheIntervalBuffer.ty watchCacheIntervalBuffer.underlying
   get_buffer : ∀ (x : watchCacheIntervalBuffer), go.IsGoStepPureDetTagged under (StructFieldGet watchCacheIntervalBuffer.underlying go!"buffer") #x (Val #(x.buffer'))
@@ -3091,6 +3231,8 @@ class watchCacheIntervalBuffer.TypeAssumptions [FfiSyntax] [GoGlobalContext] [Go
   set_startIndex : ∀ (x : watchCacheIntervalBuffer) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet watchCacheIntervalBuffer.underlying go!"startIndex") (PairV #x #y) (Val #(({ x with startIndex' := y } : watchCacheIntervalBuffer)))
   get_endIndex : ∀ (x : watchCacheIntervalBuffer), go.IsGoStepPureDetTagged under (StructFieldGet watchCacheIntervalBuffer.underlying go!"endIndex") #x (Val #(x.endIndex'))
   set_endIndex : ∀ (x : watchCacheIntervalBuffer) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet watchCacheIntervalBuffer.underlying go!"endIndex") (PairV #x #y) (Val #(({ x with endIndex' := y } : watchCacheIntervalBuffer)))
+  method_set : go.MethodSetIs watchCacheIntervalBuffer.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType watchCacheIntervalBuffer.ty) [(go!"k8s.io/apiserver/pkg/storage/cacher.isEmpty", (some (go.signature.Signature [] false [go.bool]))), (go!"k8s.io/apiserver/pkg/storage/cacher.isFull", (some (go.signature.Signature [] false [go.bool]))), (go!"k8s.io/apiserver/pkg/storage/cacher.next", (some (go.signature.Signature [] false [(go.GoType.PointerType watchCacheEvent.ty), go.bool])))]
 
 attribute [instance] watchCacheIntervalBuffer.TypeAssumptions.type_repr
   watchCacheIntervalBuffer.TypeAssumptions.underlying
@@ -3100,8 +3242,10 @@ attribute [instance] watchCacheIntervalBuffer.TypeAssumptions.type_repr
   watchCacheIntervalBuffer.TypeAssumptions.set_startIndex
   watchCacheIntervalBuffer.TypeAssumptions.get_endIndex
   watchCacheIntervalBuffer.TypeAssumptions.set_endIndex
+  watchCacheIntervalBuffer.TypeAssumptions.method_set
+  watchCacheIntervalBuffer.TypeAssumptions.ptr_method_set
 
-class Assumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   cacheWatcher_instance : cacheWatcher.TypeAssumptions
   Config_instance : Config.TypeAssumptions
   watchersMap_instance : watchersMap.TypeAssumptions

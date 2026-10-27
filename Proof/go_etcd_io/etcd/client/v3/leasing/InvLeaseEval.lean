@@ -38,7 +38,7 @@ namespace EtcdGrove
 open Iris Iris.BI go_etcd_io.etcd.client.v3.leasing go_etcd_io.etcd.api.v3
 
 section model
-variable [ext : FfiSyntax]
+variable [GooseExts]
 
 /-- `evalCmp`'s sign of the cached key-value `kv` against `m`: `0` with none, or for a lease
 target. -/
@@ -70,7 +70,7 @@ def leaseEvalOk (st : LeaseCacheSt) (os : List OpFull) : Bool :=
 end model
 
 section defs
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [EM : EtcdModel GF]
@@ -116,7 +116,7 @@ end defs
 
 section lemmas
 open Iris.ProofMode
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [EM : EtcdModel GF]

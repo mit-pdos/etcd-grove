@@ -55,7 +55,7 @@ namespace EtcdGrove
 open Iris Iris.BI Iris.ProgramLogic Iris.Std
 
 /-- The initializers of the packages whose `wp_initialize'` is not generated here. -/
-inductive ExternalInit [FfiSyntax] [GoGlobalContext] : GoString → val → Prop where
+inductive ExternalInit [GooseExts] [GoGlobalContext] : GoString → val → Prop where
   | bytes : ExternalInit pkg_id.bytes _root_.Perennial.bytes.initialize'
   | context : ExternalInit pkg_id.context _root_.Perennial.context.initialize'
   | encoding_binary : ExternalInit pkg_id.encoding.binary _root_.Perennial.encoding.binary.initialize'
@@ -78,7 +78,7 @@ inductive ExternalInit [FfiSyntax] [GoGlobalContext] : GoString → val → Prop
   | time : ExternalInit pkg_id.time _root_.Perennial.time.initialize'
 
 section ax
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]

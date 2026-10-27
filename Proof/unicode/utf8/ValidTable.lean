@@ -22,7 +22,7 @@ def utf8.acceptPairs : List (w8 × w8) :=
 /-- `acceptRanges[k]`, as a pair. -/
 def utf8.accPair (k : Nat) : w8 × w8 := utf8.acceptPairs.getD k (0, 0)
 
-theorem utf8.acceptTable_lookup [FfiSyntax] (k : Nat) (hk : k < 16) :
+theorem utf8.acceptTable_lookup [GooseExts] (k : Nat) (hk : k < 16) :
     utf8.acceptTable[k]? = some ⟨(utf8.accPair k).1, (utf8.accPair k).2⟩ := by
   match k, hk with
   | 0, _ => rfl | 1, _ => rfl | 2, _ => rfl | 3, _ => rfl | 4, _ => rfl | 5, _ => rfl

@@ -17,7 +17,7 @@ namespace EtcdGrove
 open Iris Iris.BI go_etcd_io.etcd.server.v3.etcdserver
 
 section spec
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
@@ -40,7 +40,15 @@ applied index (`memFloorAtLeast`, the floor raft raised at the `Advance` that `r
 reports), the conf state `nil` or read-only (`epConfState`'s `epCsOk`): `CreateSnapshot.spec`'s premises (its
 boundary at most `ai`). Either it is created at `ai` or the storage's snapshot is already at or
 past `ai` (`ErrSnapOutOfDate`, returned on): the token's snapshot index is at least `ai`
-afterwards; the snapshot indices move only to `ai`. -/
+afterwards; the snapshot indices move only to `ai`.
+
+(D22 J4, 2026-10-26) The token is shared (`srvSnapState`'s body: its ghost part in an invariant
+raft's goroutine shares, the counter `γss` of the storage's snapshot index): the snapshot index is
+at least `ai` afterwards in the counter (`CreateSnapshot.wp_shared`'s lower bound on both
+branches). Still an axiom (names-only): its proof needs the created
+snapshot's certificate in the storage's registry (`CreateSnapshot`'s premise; the server holds no
+registry authority, `bootOk`) and the snapshot directory's invariant for `Release` (J1a's bundle,
+which does not reach the apply thread yet): `notes/decisions.md`, "D22 J4". -/
 abbrev EtcdServer.snapshot.spec : Prop :=
   ∀ (s : Loc) (E : apply.AEnv GF) (γw : GName) (γ : ApplyNames) (ci : Loc) (b : GoInterface) (ep : Loc)
     (st : ApplyState) (ai at' : w64) (cs : Loc) (a t : w64) (x : apply.ApplyKV) (toDisk : Bool)

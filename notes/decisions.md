@@ -8115,6 +8115,7 @@ derived. A fact that names a predicate defined above the owner's `Base.lean` is 
 
 **Method sets are premises** (`EtcdGrove.ErrorStringLeaf`, `EtcdGrove.RpctypesEtcdErrorMethods`),
 as Perennial's `context.ErrorStringIsError`: the semantics leaves method sets uninterpreted.
+*Superseded* (2026-10-27, "Method-set facts are theorems of goose's method sets", below).
 
 **Item 8: context's facts (a Perennial proposal).** Perennial's `context` fact (`isInit`) keeps
 only that `Canceled` and `DeadlineExceeded` are typed errors, though its initializer stores
@@ -15939,6 +15940,42 @@ theorem's statement changed (fingerprint: the four `_any` results and the defini
 changed, the rest identical); the trust base's axioms are the same 538, two of them stronger
 (`grpc.ClientConn.Invoke` through `grpcInvokerOk`, `context.ErrAny`).
 
+## D37b: the k8s driver's `clientErr_other` proved (2026-10-26 · asked by the user)
+
+**Why.** `k8setcd3_safe` rested on the marked `sorry` `k8setcd3.clientErr_other` (D30n): an error
+of the client the store returns unchanged is `errOut`'s `EOther`. D37 gave the sentinel half for
+the client's own results, but three things were missing: the store's specs dropped D37's fact
+(`clientErr ∗ statusErrOk`, not `kvErr`); `EOther` also needs the error not to be a
+`*storage.StorageError` (`errOut` type-asserts `err.(*storage.StorageError)` first); and an
+`*errorString` error's value must be a pointer (`err == errDeleteRejected` compares pointers),
+which `errCellOk` did not say (it spoke only of values `#x`).
+
+**What changed** (each a true statement about Go):
+- `errCellOk` (`cache/v3/Base.lean`) is stronger: an `*errors.errorString` error *is* a pointer
+  `#x` whose cell holds one of `clientErrMsgs` (`errCellOk_ptr`). Its sources still give it:
+  `io.EOF` and `context.Canceled` are `errors.New` pointers. The lemmas' statements
+  (`errCellOk_nil`, `_of_ty`, `_of_cell`, `_ne`) are unchanged; grpc's `grpcInvokerOk` (a
+  trust-boundary contract that mentions it) is stronger, and still what grpc-go does.
+- `context.ErrAny` (the trust boundary) is stronger: `DeadlineExceeded`'s dynamic type is not
+  `*errorString` (was: it is no `*errorString` at a pointer). Go: `deadlineExceededError{}`.
+- The kubernetes client's `Get`/`OptimisticPut`/`OptimisticDelete` end their error case with
+  `errCellOk err` (their proofs had it from `kvErr` and dropped it); the store's `unkErr` carries
+  it in its client case (`unkErr_client`).
+- The driver's `errVarOk x msg` carries its variable's message cell (`errStrCell`, from
+  `wp_New_errorString_cell` in the generated `Init.lean`, `etc/gen-init.py`).
+- **A new premise, `storageErrTyOk`** (`ObjSpec.lean`): `*storage.StorageError`'s method set has
+  `Unwrap() error` (`errors.go`: `func (e *StorageError) Unwrap() error`). `methodSet` is
+  uninterpreted, so this is a premise of `call`/`Apply`/`Check`/`Main` and of `k8setcd3_safe`, as
+  `objTyOk` and `errors.AsTarget` are. With `clientErr`'s leaf fact (no `Unwrap() error`) it rules
+  out a client error of that type. The alternative, the client proof listing its errors' dynamic
+  types, would change every layer of the client's error specs for a fact this premise states
+  exactly.
+
+`clientErr_other` (`Calls.lean`) is now a theorem; `k8setcd3_safe` rests on three `sorry`s
+(`revRoom`, `client_ctx_field`, `kvIs_ne_null`) and gains the hypothesis `storageErrTyOk`. No axiom
+added or removed (two stronger: `context.ErrAny.wp_proof`, and grpc's invoke through
+`grpcInvokerOk`).
+
 ## D22 the backend over every bucket carried out (2026-10-23)
 
 "D22c decided" (the user, 2026-10-22) carried out on branch `worktree-agent-abc119190b6e832f9`: the
@@ -22819,6 +22856,194 @@ changes.
   replaces the compaction's bound by `γs.cap ≥ 2^61`, L3) and drops `applyAll.spec`'s premise
   `uint.Z ai ≤ w` there.
 
+## D22 J7b: the image's KV log facts from the sender; `specSnap` at the image's stored term (2026-10-26 · decided by the orchestrator while the user was away (J7b))
+
+The two premises of `applySnapshot.specSnap` that J7 could not derive from `srvImage` ("D22 J7"),
+`hRok` and `hmeta`. No axiom, no `sorry`.
+
+- **`hRok` (`restoreLogOk R`)**, three conjuncts, split by who knows them:
+  - *the store's well-formedness* (`IdxWf ([[], []] ++ R) []`: `LogWf'`, fewer than `2 ^ 63`
+    revisions, changes per revision): not a function of the raft log the receiver can compute
+    (deletes of present keys through nested transactions; the length bound needs the sender's
+    budget, `|A'| < 2 ^ 64` only). **`imageAt` gains `mvcc.IdxWf (kvModel γk A) []`** (its last
+    conjunct), which the sender has where it calls `imageAt_of_snap` (new premise `hwf`): the apply
+    thread's sole writer at the applied log (`kvOwn`'s `kvWriter`), `soleWriter_idxWf`
+    (`SnapSendBranch.lean`: `idxSealed_pure` of its certificate, `soleWriter_small'`'s
+    `< 2 ^ 48 + 2` revisions, `LogWf'.append_nil`).
+  - *revisions non-empty, puts lease-free*: pure facts of the KV model of a plain log
+    (`KVModelRestore.lean`: `kvEntry_growsOk`, `kvRaftOf_restorable`, `restoreLogOk_kvRaftOf`; a
+    plain put's lease is `0` or the previous key-value's, a plain transaction's `opPlain`), so the
+    receiver derives them (`kv_log_plain` of the committed `A'`) and the certificate does not carry
+    them (the brief listed "non-empty revisions" among the sealed facts; deriving them is the
+    smaller certificate).
+  - `SnapImageFacts` gains `hRok : restoreLogOk R` and `hlen : |kvModel γr.kv A'| < 2 ^ 63`
+    (`kvModel_len_of_rok`, `snapRecv_kv_jump`'s premise).
+- **`hmeta`: deviation from the brief** (which had `imageAt`'s term clause become "the term of
+  `A`'s last entry", set by the sender, plus raft's `Ready` fact that `Metadata.Term` is that
+  entry's term, J6a). Not done: the sender cannot set it. The consistent index's protocol tracks no
+  term (`InvCindex.lean`'s header: `SetConsistentIndex` stores the index, then the term, two
+  atomic steps, so the specs say nothing of the term; `ApplyState` has none), so the window's
+  observation (`snapObs_window`'s `ciObs`) knows only *some* term. In Go the window's stored term is
+  `ep.appliedt` on a fresh cluster (every applied entry above the consistent index sets it), but
+  proving it would thread a term through `consInv`, `ciInv` and every `cindex` spec. And the
+  receiver does not need it: restore reads no term, and the term in `π0.m0` only names the new
+  backend's consistent-index protocol (`snapSt_*` hold at any `(i, t)`). So **`specSnap` is
+  generalized**: a new binder `tI : w64` before `hmeta`, `hmeta : metaIs D (Index, tI)` (was
+  `(Index, Metadata.Term)`) and the meta-backend premise `□ (∀ π b, ⌜π.m0 = (Index, tI)⌝ → …)`
+  (was at `Metadata.Term`). The old statement is the instance `tI := Metadata.Term`, so no closed
+  theorem proves less. J8a passes `tI := t` from `hmetaI : ∃ t, metaIs D (i, t)`; raft's `Ready`
+  fact about `Metadata.Term` is not needed for it (J6a may still add it for other uses).
+- **Statement changes** (all proved, none weaker): `imageAt` (+ the `IdxWf` conjunct; so
+  `dbImage`, `srvImage` say more); `imageAt_of_snap` (+ premise `hwf`; no caller yet: the sender's
+  `□ (∀ D, ⌜Qd D⌝ -∗ srvImage γ ai D)` of `snapBranch_send` is still S-l's to discharge, and now
+  needs `soleWriter_idxWf` at the applied log); `SnapImageFacts` (+ `hRok`, `hlen`);
+  `snapRecv_image` (same premises, more in its post); `EtcdServer.applySnapshot.specSnap`,
+  `applySnapshot_walk`, `srvSnapApplied_of_walk` (+ `tI`, as above); `snapWalkPost` (internal):
+  `π0.m0 = (Index, π0.m0.2)` (was `(Index, Metadata.Term)`). New: `soleWriter_idxWf`,
+  `KVModelRestore.lean`'s lemmas.
+
+## D22 J1a: the snapshot path's persistent bundle threaded from `NewServer`; the bootstrap contract (2026-10-26 · decided by the orchestrator while the user was away (J1a/J6a))
+
+Stage J1a of `notes/snapshot-sj-plan.md` (with J0's amendments). New module
+`Proof/go_etcd_io/etcd/server/v3/etcdserver/SnapRO.lean`, imported by `InvRun`.
+
+**What is threaded.** `srvSnapBoot s ci E γr := ∃ γt, srvSnapRO s ci E γr γt ∗ monoNatAuthOwn γt
+1 0 ∗ srvSnapStock s E`, one conjunct (`"Hsnapb"`) of `srvBuilt` (so `NewServer`'s post),
+`isServerBuilt` and `isServerRun` (`isServerBuilt_of_gap` and `start` pass it on; `run` does not use
+it yet: J1b puts it in `applyStart`/`applyRes`, J8a reads it). `srvSnapRO` (persistent) holds:
+- the configuration's fields the snapshot path reads (`Logger`, `DataDir`, `ServerFeatureGate`
+  with `isFeatureGate`, `QuotaBackendBytes`, `WarningApplyDuration`), the logger non-nil;
+- the snapshotter (`snapshotter ↦□ ss`, `isSnapshotter`), the backend hooks (`beHooks ↦□ hk`,
+  `storage.isBackendHooks hk ⟨*consistentIndex, ci⟩ lgh`), the raft storage
+  (`rnStorageAddr ↦□ *storage stp`, `storage.storageSnap stp ss`);
+- the member's snapshot directory: `srvMemberIDAddr s ↦□ idm`, `⌜γr.raft.raft.reSnapLoc idm = some
+  γd⌝` (D22 J2's note: next to the invariant) and `inv snapDirN (snapDirInv ss γd (srvImage
+  γr.raft.raft) (srvSnapRm γt γr))` with **J0 item 3's removal fact**
+  `srvSnapRm γt γr j := snapTakenLb γt j ∨ monoNatLbOwn γr.applied (uint.nat j + 1)` (as a natural
+  number: `appliedAtLeast γr (j + 1)` in `w64` wraps at `2^64 - 1`, where it would be `True`).
+  `NewServer` allocates `γt` (at `0`) before `snapDir_init`, and the transport's `Start` takes the
+  invariant at this `Rm` (its spec is generic in `Rm`). `specSnap` and the walk still say
+  `snapTakenLb γt` (J4's restatement, with `Release`, J0's amendment);
+- the stores and their contracts on whichever backend: the fields (`alarmStore`, `authStore`,
+  `lessor`, `cluster`), `isAlarmStore`, `alarmApplyOk`, `authApplyOkM E.authMode`, `□ (⌜E.authMode =
+  .off⌝ → authRecoverOk ast)`, `lessorApplyOk`, `lessorCfg`, `lessorLookupOk`, `isRaftCluster`,
+  `clusterApplyOk`, the `versionChanged` field; `srvMembersDir cl ps dir` (`bootOk`'s `Hmembers`)
+  with the directory's members raft's peers;
+- `□ ∀ γB b, keySized γB d.P b` at the boot parameters (`E.γ.kb = some d`); `dbOpensOk` and
+  `backendUnderQuota` (`NewServer.spec`'s premises).
+`srvSnapStock`: the `E.RD` copies and `lgMu` reader slots `NewServer` dropped until now (at least
+`2^28` each: `actualMaxReaders - 66` and what is left of `lgMu`'s after the transport's, the request
+path's and the monitors'), for the snapshots' `NewUberApplier` and `AddPeer`s (J0 item 5).
+
+**Statement changes** (all inside closed theorems' premises, through `bootstrapContract` and
+`NewServer.spec`'s trust-boundary premises; no closed theorem's conclusion changes, and each new
+clause is true of the Go code at the pin):
+1. `bootOk`'s `"#Hsz"`: `keySized d.γB d.P d.be` → `□ ∀ γB b, keySized γB d.P b` (the Key bucket's
+   size bound for every backend at the boot parameters: no bbolt file holds `2^62` keys).
+2. `bootOk` gains `"#Hbh"`: `∃ lgh, storage.isBackendHooks bk.beHooks' ⟨*consistentIndex, cil⟩ lgh`
+   (`bootstrapBackend`'s `NewBackendHooks(cfg.Logger, ci)` over the consistent index the record
+   names).
+3. `isRNWal` (the WAL contract `rnNewStorageOk` gives, a `NewServer.spec` premise) gains
+   `SaveSnap` (`{{ sn.Metadata ↦{dq} mp ∗ smPts mp dq' md }} SaveSnap(sn) {{ err, same }}`: at the
+   pin it only writes the WAL snapshot record, `storage.go`, and needs the metadata pointer set)
+   and `Sync` (`{{ True }} Sync() {{ err, True }}`). This is J0's "`bootOk`'s storage contract
+   gains `SaveSnap`/`Sync`": `bootOk`'s storage is made by `NewStorage`, whose contract is
+   `rnNewStorageOk`, a premise (not an axiom): restated there.
+4. `rnNewStorageOk`'s post gains `⌜rnStorageOf st ss⌝` (a `*storage` with `storageSnap p ss`:
+   `NewStorage` returns `&storage{lg, w, s}`); `bootstrappedRaft.newRaftNode.spec` and
+   `NodeStartSpec` carry it to `NewServer` (their posts gain the conjunct; proved).
+5. `auth.NewAuthStore.spec` (an axiom) restated, its post gaining `authRecoverOk stl` (S8d's
+   `srvAuthRecoverOk`, renamed and moved to `SnapRO.lean` beside the stores' contracts: J0 item 8;
+   the docstring has S8c's argument: auth off for the store's life, `Recover` disabled again).
+   `authStoreKit` (the auth track's E2i, a definition) gains `□ (⌜M = .off⌝ → authRecoverOk stl)`;
+   `authStoreKit_off` gives it from the axiom, `authStoreKit_on` vacuously (minimal; dated note in
+   `notes/auth-plan.md`). The auth track's `NewServer.specM` statement is unchanged.
+Not changed: `NewServer.spec`/`specM`'s text (their posts' `srvBuilt` gained the conjunct), `start`,
+`run`, `Start`'s specs' text (`isServerBuilt`/`isServerRun` gained it).
+
+**Two items of J0's list not done, because they are false or not provable as stated**:
+- **The `isMetaBackend` family** (`specSnap`'s `□ ∀ π b, π.m0 = (i, t) → isMetaBackend b … (readView
+  (γ.withPh π))`, which J0 planned to take from `bootOk`'s `Hmeta` generalized): false of the Go
+  code as stated, so not added to `bootOk` (where it would make every closed theorem vacuous). Its
+  view `readView γ m = ghostVar γ.wr 1 false ∗ ⌜m = γ.m0⌝` can be met for physical names `π` no
+  backend was opened with (fresh `wr`, any `m0`), and for any backend `b`: the read would have to
+  return `π.m0`, whatever `b` holds. `bootOk`'s `Hmeta` is true because its names `γA` are the
+  protocol's own (its invariant holds `wr`). A true form must tie `π` to how `b` was opened (its
+  hooks at `batchLockInv (γ.withPh π)`, which `isBackend` pins) and to the opened data's meta keys
+  (`metaIs D π.m0`): J8a's to state, with the walk's `HnB` and `hmeta`; or to prove from the
+  backend's `ReadTx` (the backend is verified) and the protocol, which would remove the premise.
+- **The whole configuration read-only** (`specSnap`'s `srvCfgAddr s ↦□ cfg`): `applySnapshot`
+  copies `s.Cfg` (`OpenSnapshotBackend(s.Cfg, …)`), while the serving path owns
+  `WatchProgressNotifyInterval` (`srvServeBuilt`), which `v3rpc.NewWatchServer` writes: a data race
+  in Go with a sub-100ms interval (`issues/etcd-cfg-watch-progress-interval-race.md`). `srvSnapRO`
+  has the fields the snapshot path's callees read; J8a either restates `specSnap` over them (if the
+  struct copy can be stated field-wise) or the fork fixes `NewWatchServer`.
+Also not done (J4's, the other agent's): the storage token into J0 item 2's invariant at the end of
+`NewServer` (`srvSnapState`'s restatement owns it).
+
+No axiom added or removed (`NewAuthStore`'s restated), no `sorry`.
+
+## D22 J4: the storage's token shared, `compactRaftLog` over it, `Release` over any `Rm`; `snapshot` not provable yet (2026-10-26 · decided by the orchestrator while the user was away (J5/J4))
+
+J0's items 2 and 3 for the apply thread (`notes/snapshot-sj-plan.md`, J4). No axiom added or
+removed; one axiom restated (weaker premise), one restated through its predicate's body.
+
+- **`srvSnapState`** (`InvApplyAll.lean`) holds the storage's persistent part (`memSnapRO`), the
+  application's key (`memKey γs.ak`, `CreateSnapshot`'s for its critical section, J3) and
+  `∃ γss, inv srvStorTokN (memTokShared γs γss) ∗ monoNatLbOwn γss sl`: the token's ghost part in
+  an invariant (J3's `memTokShared`, the snapshot index counted by `γss`, `prev ≤ ss`), a lower
+  bound `sl` of the counter. Until J4 the whole token (`memSnapTok`) with `prev ≤ ai`, false once
+  raft's goroutine installs a snapshot (J0, gap 2). `srvStorTokN` is disjoint from `memSnapN`
+  (`srvStorTokN_disj`).
+- **Allocated in `run`** (`srvStorTok_alloc`), right after its `s.r.raftStorage.Snapshot()`, not at
+  the end of `NewServer` as J0's item 2 had it: `Snapshot()` takes the whole token
+  (`MemoryStorage.Snapshot.spec` is not atomic), and `rnSnapOnce` hands it back to `run` after the
+  call. `rnSnapOnce`'s returned token now comes with `prev ≤ ss` (what the invariant keeps; until
+  J4 `prev ≤ ai₀`, which nothing reads any more); `rnSnapOnce_of_tok` (the empty storage) proves it
+  unchanged. **For J1a/J6b**: the raft goroutine's `raftNode.start` (J6b) gets the invariant from
+  `run`, which allocates it before `s.r.start(rh)`.
+- **The ceiling `γsc` deferred to J6b** (J0's item 2 had it in J4's invariant): it bounds the
+  storage's snapshot index by raft's delivered log, to refute `ApplySnapshot`'s out-of-date branch,
+  which only J6b's call meets; its authority is raft's goroutine's and its lower bound reaches the
+  apply thread through the `toApply` payload (J6a/J6b). J6b adds `monoNatLbOwn γsc σt.ss.index'` to
+  `memTokShared`'s body (a server copy of it) and `∃ c, monoNatLbOwn γsc c ∗ ⌜ai ≤ c⌝` to
+  `srvSnapState`, and `CreateSnapshot.wp_shared` a ceiling variant.
+- **`compactRaftLog.spec`** takes the shared token (`memSnapRO`, the invariant, a lower bound `sl ≥
+  snapi` of the counter) and returns only the logger's slot (until J4 the token in hand, its
+  boundary at most `snapi` after); proved by J3's `Compact.wp_shared` (whose `[StorageModel GF]`,
+  unused, is omitted now, as is `memSnapTok_split`'s raft `Assumptions`). `snapshotIfNeededAndCompactRaftLog`
+  passes it the lower bound at `ai` that `snapshot` returns.
+- **`storage.storage.Release.spec`** (axiom, restated with a weaker premise, J0's item 3): over any
+  `Rm`, given `□ ∀ j < md.Index, Rm j` (until J4 `Rm := snapTakenLb γt` and `snapTakenLb γt
+  md.Index`). `applySnapshot`'s walk passes `snapTakenLb γt` and the facts below from its
+  `snapTakenLb γt i`. The `tcb` baseline's text is unchanged (an axiom's name), the statement weaker.
+- **`EtcdServer.snapshot` stays an axiom**, its statement changed only through `srvSnapState`'s
+  body (it returns the counter's lower bound at `ai`, which `CreateSnapshot.wp_shared` gives on
+  both branches: true of the code). **Why it is not proved in J4** (found here; J0's item 3 missed
+  it): its `CreateSnapshot(ep.appliedi, ep.confState, nil)` needs, at the linearization point, the
+  created snapshot's certificate in the storage's registry (`□ ∀ t, memStorCert γs (…)`,
+  `CreateSnapshot.spec`'s premise since D22 S-b′2). The server has no registry authority:
+  `NewMemoryStorage` runs inside the names-only `bootstrap`, whose contract (`bootOk`) does not
+  hand over `memCertAuth γs`, so no certificate can be made. And `Release`'s premises (the
+  directory's invariant at the server's `Rm`, J1a's `srvSnapRm`) and `SaveSnap`'s contract
+  (J1a's `bootOk` clause) do not reach the apply thread yet (J1a's `srvSnapRO`, then J1b's
+  threading). **J4b, after J1a** (the brief): (1) `bootOk`'s storage clause gains
+  `memCertAuth γs` (true: `NewMemoryStorage.spec` gives it); `NewServer` puts it in a registry
+  invariant at the mode (`γ.reNoSnap = true ∨ [∗list] e ∈ L, certElemOk γ e`, as `certLink`), the
+  apply thread registers the snapshot it creates (`memCert_registerAny`'s argument, free in the
+  no-snapshot mode); (2) `srvSnapRO`'s directory invariant, `storageSnap`, the storage interface
+  and `SaveSnap`'s contract reach `applyAll` (J1b, or `isServerApplyAll`); `Rm j` for `j < ai` from
+  `appliedAtLeast γr ai` (the `srvSnapRm` disjunct); (3) translate `EtcdServer.snapshot` and
+  `verifyConsistentIndexIsLatest` (its `verify.Verify` condition `ci ≥ ai`: from `loopOk`/`ciJ`,
+  to check), prove it: `KV().Commit()` by `srvKVCommitOk_of_kv` (a `storeReq` that saves the
+  consistent index, as `SnapSendBranch.lean`'s, without the freeze) with a write token from
+  `srvWTPool_take_extra` (a Go step's receipt), `CreateSnapshot.wp_shared` generalized to
+  `memCsArg` (`ep.confState` may be `nil`), `errors.Is` as in `compactRaftLog`. **L3** must then
+  give the registry real certificates: `ep.confState`'s content certified as the applied prefix's
+  configuration (`raftSnapCert`: static, the boot configuration; dynamic, the fold of the prefix)
+  and the data's (`snapDataOk`, trivial for the servers): a new obligation on `applyConfChange`'s
+  and `run`'s `ep.confState`, not in the plan until now.
+
 ## E3j of the auth plan: the cache's permissions in the tie, the read wrappers at the lower bound, the admin path's errors (2026-10-27 · `notes/auth-plan.md`)
 
 E3h's "Left" (the stronger tie, the read wrappers) and E3i's first "Left" item (an admin entry's
@@ -23366,4 +23591,145 @@ over `kvInvOn`, the discharge over both), a stage of its own; `start.specOn`'s a
 bound `authPublishT` at the apply thread's admin steps; the admin proposers over `raftRequest.specM
 true`, the Auth handlers, `setupAuthOk`; `examples/authkv` and the closed theorem. `srvLessorNil` is
 a premise from `applyEntryNormal.specOn` up to `run.specOn`.
+
+## D22 J6a: the raft node's payload with a snapshot; J7b's raft part (2026-10-26 · decided by the orchestrator while the user was away (J1a/J6a))
+
+Stage J6a of `notes/snapshot-sj-plan.md`, with J7b's raft part ("D22 J7": raft's `Ready` ties the
+snapshot's term to its last entry's). Parametric in raft's mode: every new case is proved without
+`rnEnvOk`'s no-snapshot clause, which refutes it today (L3 drops the clause, nothing to redo).
+
+- **Raft (J7b)**: `readySnapData` (`InvNode.lean`) gains `⌜plogLast base0 l.dlv = snapId l.snap⌝`:
+  the committed log up to the lent snapshot ends at the snapshot's id, so its last entry's term is
+  the snapshot's `Metadata.Term`. Proved by `ownRawNodeReady_loanLast` (`InvRawnodeReady.lean`): the
+  node's log is at the pending snapshot (`LogStoreOk`: `prev` is its id), the node's full prefix
+  ends at its base (`FullOk`) and is committed through the commit index (`ownRaftGhost_cmt`), and
+  the loan's committed log has the snapshot's length, so it is that prefix (`isCommitted_agree`).
+  `node.run` supplies it (as J2's `snapLocal`); `examples/kv`'s `readyDataL_split` skips it. No
+  axiom. For J8a: with `snapId sv = ⟨Term, Index⟩`, `plogLast base0 L = snapId sv` gives the term of
+  the entry at the snapshot's index (what `hmeta` needs once `imageAt` states the image's term as its
+  last entry's: J8a's sender side, "D22 J7").
+- **The server's `Ready` receive** (`InvRaftNode.lean`): `rnReadySnap` (raft's `readySnapData` as
+  the server's data: the half of the snapshot `ApplySnapshot` takes, the committed log up to it as
+  the server's log `A'` with `E.C A'`, `snapLocal`, the last-id fact, `rnFits` of the entries, the
+  storage lent) and `rnBusyS` (the driver busy at the loan); `rn_ready_recvL` gives `rn_ready_recv`'s
+  result or the snapshot case. `raftNode.start` still uses `rn_ready_recv` (J6b switches).
+- **The payload** (`rnApP`): now `rnApN ∨ rnApSnap`; `rnApN` is the old body (entries); `rnApSnap`
+  is a snapshot batch: `cum[i+1] = A'` extending `cum[i]` strictly, `|pre ++ A'|` the snapshot's
+  index, no entries, the apply thread's own clone read-only (`ownSnapM … DFrac.discard`: the fork's
+  `raftNode.start` clones `rd.Snapshot` for `ap.snapshot`), `E.C A'`, `snapLocal`, the last-id fact,
+  `notifyc`, `raftAdvancedC`, `committedAtLeast` the snapshot's index, the raft term.
+  `rnApP_rtOk` covers both. `rnApplyTok_recv` takes the no-snapshot mode (`hns`; `run` gets it from
+  `isRaftNode_noSnap`); `rnApplyTok_recvS` is the snapshot receive (for J8a).
+- **`updateCommittedIndex.spec`** generalized: `ap.snapshot ↦□ sn` with `sn = nil` or a read-only
+  snapshot (no committed entries, a committed log reaching its index); post the committed index at
+  least the snapshot's. Proved (+ the hypothesis `SnapshotMetadata.GetIndex.spec`).
+- **For J6b and J8a**: `notifyc` in the snapshot case is stated as the entries' (`isNotify … True`,
+  one receive), but Go sends twice and `applyAll` receives twice (`applySnapshot`'s `<-notifyc`, then
+  `applyAll`'s): `NotifyC.lean` needs a two-receive variant, whose second send carries J0 item 2's
+  ceiling (`monoNatLbOwn γsc i`); J6b changes `rnApSnap`'s notify clause with it. J6b also builds
+  `rnApSnap` from `rnReadySnap` (the clone: `proto.Clone`'s spec) and calls `rn_ready_recvL`.
+
+Statement changes: `readySnapData` (raft's `Ready` payload, more facts; consumers only), the internal
+`rnApP`, `rnApplyTok_recv` (a premise), `updateCommittedIndex.spec` (more general). No closed
+theorem's statement changes. No axiom, no `sorry`.
+
+## D22 integration 2: J1a, J6a, J4a, J7b and `lean` joined (2026-10-27 · decided by the orchestrator while the user was away (integration 2))
+
+Merged into `snapshot-j7b`, in order: `snapshot-j1a` (`e036a153f3`), `snapshot-j6a` (`b4d795e9eb`,
+off J1a), `snapshot-j4` (`400a81fbcf`), `lean`. Every conflict was a union of the two sides; no
+statement was weakened, none was dropped.
+
+- `SnapApplyWalk.lean` (J1a × J7b): J1a's rename `srvAuthRecoverOk` → `authRecoverOk` on J7b's
+  generalized premise (`tI`, the meta-backend at `(Index, tI)`).
+- `AuthSrv.lean`'s `authStoreKit` (J1a × lean's auth E3l): lean's `authStoreLatestM` and
+  `authApplyResB … d.be` (replacing `authApplyResAt`), then J1a's `□ (⌜M = off⌝ → authRecoverOk
+  stl)`; `authStoreKit_off`/`_on` prove all three.
+- `ServerOn.lean`'s `srvBuiltG`/`StartOn.lean` (J1a × lean): lean's `"Hua" ∷ srvUberRowM on s E x₀`
+  with J1a's `"Hsnapb" ∷ srvSnapBoot s ci E γr`.
+- `NewServer.lean` (J1a × lean): J1a's `keySized` derived from the every-backend `Hsz`, with lean's
+  `Hro` and extra binder of `server_kv_watchable_of`; `NewAuthStore`'s post with lean's `HstL` and
+  J1a's `HauR`; the transport's `Start` at J1a's `Rm := srvSnapRm γt ρ.rd` (lean had `True`)
+  with lean's (D43 M5c) `L = []` and `Hlsf`.
+- `EtcdServer__applySnapshot.lean` (J7b × lean): the walk's arguments with J7b's `tI` and lean's
+  `hDel`. `EtcdServer__run.lean` (J4 × lean): `applyRes` from lean's `HAR` and J4's `Hak0` (the
+  application's key, J4 replacing the whole token `Htok0`). `InvApplyAll.lean`: both imports.
+- Notes: every side's sections kept.
+- After the merge, against lean's changes (statements unchanged): `KVModelRestore.lean` (J7b) over
+  lean's leases T3/L3a, which fold a lease table beside the log (`backendLog lt`, `kvRaftOf` through
+  `kvRaftSt`): the growth lemmas take any table (the put's lease-missing branch and the revoke
+  branch, the latter excluded by `plainCover`), `kvRaftOf_restorable` the instance of a new
+  `kvRaftSt_restorable`; `InvRaftNode.lean` (J6a) against raft's signature, stage 1 (`readyP`,
+  `nodeDriver`, `nodeDriverBusy` sealed): `rn_ready_recvL` takes the payload by `readyP_take`, its
+  no-snapshot case by `rn_ready_recv_of` (new: `rn_ready_recv`'s body after the take, which
+  `rn_ready_recv` now calls); `updateCommittedIndex.lean` imports `SnapshotMetadata.GetIndex`'s spec.
+- No axiom or `sorry` added or removed by the integration (724 axioms; 4 `sorry`s, lean having removed one); every collection matches its baseline. Built against Perennial f73703285 (the pin lean moved to during the integration; `SnapRO.lean`'s binders converted).
+
+## Raft's node API over an abstract log (2026-10-27 · the user's decisions; draft statements)
+
+**Why:** locality. Raft's specs are sound (proved) and complete enough (kv and etcd are built on
+them); what is slow is evolving proofs on top, because clients depend on raft's internals: they open
+`raftLogInv`/`raftRegInv`, unfold `propDataIs`, `rLog`, `propArg`, track minted data, and avoid
+`raftN` in their masks.
+
+**Decisions (the user's, 2026-10-27):**
+- The abstract state is the committed log as clients see it, `List Ent` with `Ent = (term, type,
+  data)`: what clients observe (`Ready.CommittedEntries`' fields) and cannot derive. The index is the
+  position, not stored; the term is raft's choice, stored (updates give raft the choice, `∀∀ t`).
+- `ownCommitted γ L` (exclusive, the client's; was `rLog`) and `isCommittedLb γ l` (persistent; was
+  `isCommitted`), an authority and a fragment of one log; plain laws relate them (no invariant, no
+  mask): `ownCommitted_lb_prefix`, `ownCommitted_get_lb`, `isCommittedLb_mono`, `isCommittedLb_agree`.
+- Proposals are atomic updates only, `COMM True`: no registry of the client's operations (`propIs`,
+  `propFresh`, `deposited`, `prop_register`, `prop_collect`), no `entDataIs`, no `committed_data`, no
+  `reCCOk`. Whatever the client needs, its update puts into its own invariant. `Propose` appends
+  `⟨t, normal, data⟩` (no `data ≠ []` premise); `ProposeConfChange` appends `⟨t, ccEntryType o, bs⟩`
+  with `CCData o bs`, or the empty normal entry a leader puts in place of a conf change it refuses
+  (`raft.go:1341`); the client authorizes raft's own entries once (`ownEntsAu`: the leader's empty
+  entry, `raft.go:961`; the auto-leave `ConfChangeV2`, `raft.go:742`).
+- The namespace is the caller's: the cluster is allocated in `N`, every mask is `⊤ \ ↑N`, raft divides
+  `N` privately. One allocation law (`cluster_alloc`) replaces the six variants.
+- `propErr` (used by one public spec) is inlined into `Propose`'s postcondition; `nodeCtx` (general,
+  kept so) and `nodeErr` stay named (shared by 6 and 5 public specs).
+
+**Draft:** `Proof/go_etcd_io/raft/v3/NodeApiDraft.lean` (namespace `Draft`): the statements, with the
+predicates' bodies and the laws' proofs `sorry` until step 2; nothing imports it. Open, carried over
+unchanged: `ReadIndex`, the rest of a `Ready`, `Step`/the network, `Tick`/the term budget,
+`Advance`/the storage contract, `ApplyConfChange`'s modes.
+
+---
+
+## Method-set facts are theorems of goose's method sets
+
+**2026-10-27 · accepted** (supersedes "Method sets are premises", item 8 above, and the method-set
+premises of D19r)
+
+Perennial `8ef540a62` (at the pin `6b58510f9`) has goose emit each named type's method sets
+(`T.TypeAssumptions.method_set`/`ptr_method_set`, `go.MethodSetIs`, from `go/types`) and decides
+`go.typeSetContains` with them (`go_type_set`). Every method-set fact this repository assumed
+about a translated type is now proved from the package `Assumptions`, which the results already
+take:
+
+- The classes stay, as names for the facts, each with an instance from `Assumptions`
+  (`errorStringLeaf_inst`, `errorStringNoGRPCStatus_inst`, `rpctypesEtcdErrorMethods_inst`,
+  `errorStringNotWriter_inst`, `peerPausable_inst`, `quotaKVServerIsKVServer_inst`,
+  `serverMethodSets_inst`). No statement takes them as binders any more.
+- The explicit premises of the closed theorems are gone: `v3rpc.ServerMethodSets` (`Hms`),
+  `errors.AsTarget rpctypes.EtcdError.ty` (`hAs`, `rpctypesEtcdError_asTarget`) and k8setcd3's
+  `objTyOk`/`storageErrTyOk` (`objTyOk_holds`, `storageErrTyOk_holds`). Specs below the
+  adequacy theorems (`Main.spec`, `Server.spec`, ...) keep them as premises: the adequacy proofs
+  discharge them. Removing them there too is a clean-up for later, not a change of what is
+  proved.
+- Perennial's `context.ErrorStringIsError` and `DeadlineExceededIsError` are theorems there now.
+- Not discharged: `ContextReadErrs` and `ContextErrsClient`. Their method-set parts are now
+  provable, but they also need the *values* of `context.Canceled`/`DeadlineExceeded`, which
+  Perennial's `context.isInit` does not keep (`notes/perennial-changes.md`, "Context: `Canceled`'s
+  message cell in `context`'s package facts").
+
+`testEmbeddedIface` names its method by Go's id, `go.etcd.io/etcd/api/v3/etcdserverpb.testEmbeddedByValue`
+(unexported, so qualified by its package), as goose now does.
+
+Why the pin is `6b58510f9` and not `lean`'s head (`7e1ddf896`): the head also brings uniform
+function results (`2b17d5f09`: every function's results are variables, every `return` stores
+into them), which changes every translated function and so every proof that symbolically executes
+one (about 2700 files here; Perennial adjusted 65 modules). `6b58510f9` is the last `lean` head
+before that merge and has method sets. Moving to the head is its own task.
 

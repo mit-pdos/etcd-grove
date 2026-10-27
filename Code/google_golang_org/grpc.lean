@@ -22,1555 +22,1555 @@ end pkg_id
 
 namespace google_golang_org.grpc
 
-noncomputable def BackoffConfig.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def BackoffConfig.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"google.golang.org/grpc.BackoffConfig" [])
 
 attribute [irreducible] BackoffConfig.ty
 
-noncomputable def ConnectParams.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def ConnectParams.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"google.golang.org/grpc.ConnectParams" [])
 
 attribute [irreducible] ConnectParams.ty
 
-noncomputable def ccBalancerWrapper.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def ccBalancerWrapper.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"google.golang.org/grpc.ccBalancerWrapper" [])
 
 attribute [irreducible] ccBalancerWrapper.ty
 
-noncomputable def acBalancerWrapper.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def acBalancerWrapper.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"google.golang.org/grpc.acBalancerWrapper" [])
 
 attribute [irreducible] acBalancerWrapper.ty
 
-noncomputable def healthData.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def healthData.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"google.golang.org/grpc.healthData" [])
 
 attribute [irreducible] healthData.ty
 
-noncomputable def refCountedProducer.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def refCountedProducer.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"google.golang.org/grpc.refCountedProducer" [])
 
 attribute [irreducible] refCountedProducer.ty
 
-noncomputable def defaultConfigSelector.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def defaultConfigSelector.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"google.golang.org/grpc.defaultConfigSelector" [])
 
 attribute [irreducible] defaultConfigSelector.ty
 
-noncomputable def idler.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def idler.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"google.golang.org/grpc.idler" [])
 
 attribute [irreducible] idler.ty
 
-noncomputable def connectivityStateManager.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def connectivityStateManager.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"google.golang.org/grpc.connectivityStateManager" [])
 
 attribute [irreducible] connectivityStateManager.ty
 
-noncomputable def ClientConnInterface.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def ClientConnInterface.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"google.golang.org/grpc.ClientConnInterface" [])
 
 attribute [irreducible] ClientConnInterface.ty
 
-noncomputable def ClientConn.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def ClientConn.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"google.golang.org/grpc.ClientConn" [])
 
 attribute [irreducible] ClientConn.ty
 
-noncomputable def addrConn.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def addrConn.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"google.golang.org/grpc.addrConn" [])
 
 attribute [irreducible] addrConn.ty
 
-noncomputable def securityLevelKey.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def securityLevelKey.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"google.golang.org/grpc.securityLevelKey" [])
 
 attribute [irreducible] securityLevelKey.ty
 
-noncomputable def retryThrottler.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def retryThrottler.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"google.golang.org/grpc.retryThrottler" [])
 
 attribute [irreducible] retryThrottler.ty
 
-noncomputable def baseCodec.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def baseCodec.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"google.golang.org/grpc.baseCodec" [])
 
 attribute [irreducible] baseCodec.ty
 
-noncomputable def codecV0Bridge.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def codecV0Bridge.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"google.golang.org/grpc.codecV0Bridge" [])
 
 attribute [irreducible] codecV0Bridge.ty
 
-noncomputable def codecV1Bridge.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def codecV1Bridge.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"google.golang.org/grpc.codecV1Bridge" [])
 
 attribute [irreducible] codecV1Bridge.ty
 
-noncomputable def Codec.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def Codec.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"google.golang.org/grpc.Codec" [])
 
 attribute [irreducible] Codec.ty
 
-noncomputable def dialOptions.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def dialOptions.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"google.golang.org/grpc.dialOptions" [])
 
 attribute [irreducible] dialOptions.ty
 
-noncomputable def DialOption.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def DialOption.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"google.golang.org/grpc.DialOption" [])
 
 attribute [irreducible] DialOption.ty
 
-noncomputable def perTargetDialOption.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def perTargetDialOption.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"google.golang.org/grpc.perTargetDialOption" [])
 
 attribute [irreducible] perTargetDialOption.ty
 
-noncomputable def EmptyDialOption.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def EmptyDialOption.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"google.golang.org/grpc.EmptyDialOption" [])
 
 attribute [irreducible] EmptyDialOption.ty
 
-noncomputable def disableGlobalDialOptions.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def disableGlobalDialOptions.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"google.golang.org/grpc.disableGlobalDialOptions" [])
 
 attribute [irreducible] disableGlobalDialOptions.ty
 
-noncomputable def funcDialOption.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def funcDialOption.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"google.golang.org/grpc.funcDialOption" [])
 
 attribute [irreducible] funcDialOption.ty
 
-noncomputable def joinDialOption.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def joinDialOption.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"google.golang.org/grpc.joinDialOption" [])
 
 attribute [irreducible] joinDialOption.ty
 
-noncomputable def MaxHeaderListSizeDialOption.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def MaxHeaderListSizeDialOption.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"google.golang.org/grpc.MaxHeaderListSizeDialOption" [])
 
 attribute [irreducible] MaxHeaderListSizeDialOption.ty
 
-noncomputable def UnaryInvoker.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def UnaryInvoker.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"google.golang.org/grpc.UnaryInvoker" [])
 
 attribute [irreducible] UnaryInvoker.ty
 
-noncomputable def UnaryClientInterceptor.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def UnaryClientInterceptor.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"google.golang.org/grpc.UnaryClientInterceptor" [])
 
 attribute [irreducible] UnaryClientInterceptor.ty
 
-noncomputable def Streamer.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def Streamer.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"google.golang.org/grpc.Streamer" [])
 
 attribute [irreducible] Streamer.ty
 
-noncomputable def StreamClientInterceptor.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def StreamClientInterceptor.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"google.golang.org/grpc.StreamClientInterceptor" [])
 
 attribute [irreducible] StreamClientInterceptor.ty
 
-noncomputable def UnaryServerInfo.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def UnaryServerInfo.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"google.golang.org/grpc.UnaryServerInfo" [])
 
 attribute [irreducible] UnaryServerInfo.ty
 
-noncomputable def UnaryHandler.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def UnaryHandler.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"google.golang.org/grpc.UnaryHandler" [])
 
 attribute [irreducible] UnaryHandler.ty
 
-noncomputable def UnaryServerInterceptor.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def UnaryServerInterceptor.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"google.golang.org/grpc.UnaryServerInterceptor" [])
 
 attribute [irreducible] UnaryServerInterceptor.ty
 
-noncomputable def StreamServerInfo.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def StreamServerInfo.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"google.golang.org/grpc.StreamServerInfo" [])
 
 attribute [irreducible] StreamServerInfo.ty
 
-noncomputable def StreamServerInterceptor.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def StreamServerInterceptor.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"google.golang.org/grpc.StreamServerInterceptor" [])
 
 attribute [irreducible] StreamServerInterceptor.ty
 
-noncomputable def pickerGeneration.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def pickerGeneration.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"google.golang.org/grpc.pickerGeneration" [])
 
 attribute [irreducible] pickerGeneration.ty
 
-noncomputable def pickerWrapper.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def pickerWrapper.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"google.golang.org/grpc.pickerWrapper" [])
 
 attribute [irreducible] pickerWrapper.ty
 
-noncomputable def pick.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def pick.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"google.golang.org/grpc.pick" [])
 
 attribute [irreducible] pick.ty
 
-noncomputable def dropError.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def dropError.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"google.golang.org/grpc.dropError" [])
 
 attribute [irreducible] dropError.ty
 
-noncomputable def PreparedMsg.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def PreparedMsg.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"google.golang.org/grpc.PreparedMsg" [])
 
 attribute [irreducible] PreparedMsg.ty
 
-noncomputable def ccResolverWrapper.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def ccResolverWrapper.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"google.golang.org/grpc.ccResolverWrapper" [])
 
 attribute [irreducible] ccResolverWrapper.ty
 
-noncomputable def Compressor.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def Compressor.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"google.golang.org/grpc.Compressor" [])
 
 attribute [irreducible] Compressor.ty
 
-noncomputable def gzipCompressor.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def gzipCompressor.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"google.golang.org/grpc.gzipCompressor" [])
 
 attribute [irreducible] gzipCompressor.ty
 
-noncomputable def Decompressor.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def Decompressor.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"google.golang.org/grpc.Decompressor" [])
 
 attribute [irreducible] Decompressor.ty
 
-noncomputable def gzipDecompressor.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def gzipDecompressor.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"google.golang.org/grpc.gzipDecompressor" [])
 
 attribute [irreducible] gzipDecompressor.ty
 
-noncomputable def callInfo.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def callInfo.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"google.golang.org/grpc.callInfo" [])
 
 attribute [irreducible] callInfo.ty
 
-noncomputable def CallOption.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def CallOption.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"google.golang.org/grpc.CallOption" [])
 
 attribute [irreducible] CallOption.ty
 
-noncomputable def EmptyCallOption.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def EmptyCallOption.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"google.golang.org/grpc.EmptyCallOption" [])
 
 attribute [irreducible] EmptyCallOption.ty
 
-noncomputable def StaticMethodCallOption.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def StaticMethodCallOption.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"google.golang.org/grpc.StaticMethodCallOption" [])
 
 attribute [irreducible] StaticMethodCallOption.ty
 
-noncomputable def HeaderCallOption.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def HeaderCallOption.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"google.golang.org/grpc.HeaderCallOption" [])
 
 attribute [irreducible] HeaderCallOption.ty
 
-noncomputable def TrailerCallOption.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def TrailerCallOption.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"google.golang.org/grpc.TrailerCallOption" [])
 
 attribute [irreducible] TrailerCallOption.ty
 
-noncomputable def PeerCallOption.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def PeerCallOption.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"google.golang.org/grpc.PeerCallOption" [])
 
 attribute [irreducible] PeerCallOption.ty
 
-noncomputable def FailFastCallOption.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def FailFastCallOption.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"google.golang.org/grpc.FailFastCallOption" [])
 
 attribute [irreducible] FailFastCallOption.ty
 
-noncomputable def OnFinishCallOption.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def OnFinishCallOption.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"google.golang.org/grpc.OnFinishCallOption" [])
 
 attribute [irreducible] OnFinishCallOption.ty
 
-noncomputable def MaxRecvMsgSizeCallOption.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def MaxRecvMsgSizeCallOption.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"google.golang.org/grpc.MaxRecvMsgSizeCallOption" [])
 
 attribute [irreducible] MaxRecvMsgSizeCallOption.ty
 
-noncomputable def AuthorityOverrideCallOption.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def AuthorityOverrideCallOption.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"google.golang.org/grpc.AuthorityOverrideCallOption" [])
 
 attribute [irreducible] AuthorityOverrideCallOption.ty
 
-noncomputable def MaxSendMsgSizeCallOption.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def MaxSendMsgSizeCallOption.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"google.golang.org/grpc.MaxSendMsgSizeCallOption" [])
 
 attribute [irreducible] MaxSendMsgSizeCallOption.ty
 
-noncomputable def PerRPCCredsCallOption.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def PerRPCCredsCallOption.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"google.golang.org/grpc.PerRPCCredsCallOption" [])
 
 attribute [irreducible] PerRPCCredsCallOption.ty
 
-noncomputable def CompressorCallOption.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def CompressorCallOption.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"google.golang.org/grpc.CompressorCallOption" [])
 
 attribute [irreducible] CompressorCallOption.ty
 
-noncomputable def acceptCompressorsCallOption.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def acceptCompressorsCallOption.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"google.golang.org/grpc.acceptCompressorsCallOption" [])
 
 attribute [irreducible] acceptCompressorsCallOption.ty
 
-noncomputable def ContentSubtypeCallOption.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def ContentSubtypeCallOption.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"google.golang.org/grpc.ContentSubtypeCallOption" [])
 
 attribute [irreducible] ContentSubtypeCallOption.ty
 
-noncomputable def ForceCodecCallOption.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def ForceCodecCallOption.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"google.golang.org/grpc.ForceCodecCallOption" [])
 
 attribute [irreducible] ForceCodecCallOption.ty
 
-noncomputable def ForceCodecV2CallOption.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def ForceCodecV2CallOption.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"google.golang.org/grpc.ForceCodecV2CallOption" [])
 
 attribute [irreducible] ForceCodecV2CallOption.ty
 
-noncomputable def CustomCodecCallOption.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def CustomCodecCallOption.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"google.golang.org/grpc.CustomCodecCallOption" [])
 
 attribute [irreducible] CustomCodecCallOption.ty
 
-noncomputable def MaxRetryRPCBufferSizeCallOption.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def MaxRetryRPCBufferSizeCallOption.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"google.golang.org/grpc.MaxRetryRPCBufferSizeCallOption" [])
 
 attribute [irreducible] MaxRetryRPCBufferSizeCallOption.ty
 
-noncomputable def payloadFormat.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def payloadFormat.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"google.golang.org/grpc.payloadFormat" [])
 
 attribute [irreducible] payloadFormat.ty
 
-noncomputable def streamReader.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def streamReader.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"google.golang.org/grpc.streamReader" [])
 
 attribute [irreducible] streamReader.ty
 
-noncomputable def noCopy.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def noCopy.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"google.golang.org/grpc.noCopy" [])
 
 attribute [irreducible] noCopy.ty
 
-noncomputable def parser.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def parser.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"google.golang.org/grpc.parser" [])
 
 attribute [irreducible] parser.ty
 
-noncomputable def payloadInfo.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def payloadInfo.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"google.golang.org/grpc.payloadInfo" [])
 
 attribute [irreducible] payloadInfo.ty
 
-noncomputable def recvCompressor.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def recvCompressor.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"google.golang.org/grpc.recvCompressor" [])
 
 attribute [irreducible] recvCompressor.ty
 
-noncomputable def rpcInfo.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def rpcInfo.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"google.golang.org/grpc.rpcInfo" [])
 
 attribute [irreducible] rpcInfo.ty
 
-noncomputable def compressorInfo.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def compressorInfo.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"google.golang.org/grpc.compressorInfo" [])
 
 attribute [irreducible] compressorInfo.ty
 
-noncomputable def rpcInfoContextKey.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def rpcInfoContextKey.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"google.golang.org/grpc.rpcInfoContextKey" [])
 
 attribute [irreducible] rpcInfoContextKey.ty
 
-noncomputable def MethodHandler.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def MethodHandler.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"google.golang.org/grpc.MethodHandler" [])
 
 attribute [irreducible] MethodHandler.ty
 
-noncomputable def MethodDesc.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def MethodDesc.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"google.golang.org/grpc.MethodDesc" [])
 
 attribute [irreducible] MethodDesc.ty
 
-noncomputable def ServiceDesc.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def ServiceDesc.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"google.golang.org/grpc.ServiceDesc" [])
 
 attribute [irreducible] ServiceDesc.ty
 
-noncomputable def serviceInfo.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def serviceInfo.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"google.golang.org/grpc.serviceInfo" [])
 
 attribute [irreducible] serviceInfo.ty
 
-noncomputable def Server.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def Server.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"google.golang.org/grpc.Server" [])
 
 attribute [irreducible] Server.ty
 
-noncomputable def serverOptions.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def serverOptions.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"google.golang.org/grpc.serverOptions" [])
 
 attribute [irreducible] serverOptions.ty
 
-noncomputable def ServerOption.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def ServerOption.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"google.golang.org/grpc.ServerOption" [])
 
 attribute [irreducible] ServerOption.ty
 
-noncomputable def EmptyServerOption.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def EmptyServerOption.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"google.golang.org/grpc.EmptyServerOption" [])
 
 attribute [irreducible] EmptyServerOption.ty
 
-noncomputable def funcServerOption.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def funcServerOption.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"google.golang.org/grpc.funcServerOption" [])
 
 attribute [irreducible] funcServerOption.ty
 
-noncomputable def joinServerOption.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def joinServerOption.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"google.golang.org/grpc.joinServerOption" [])
 
 attribute [irreducible] joinServerOption.ty
 
-noncomputable def MaxHeaderListSizeServerOption.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def MaxHeaderListSizeServerOption.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"google.golang.org/grpc.MaxHeaderListSizeServerOption" [])
 
 attribute [irreducible] MaxHeaderListSizeServerOption.ty
 
-noncomputable def ServiceRegistrar.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def ServiceRegistrar.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"google.golang.org/grpc.ServiceRegistrar" [])
 
 attribute [irreducible] ServiceRegistrar.ty
 
-noncomputable def MethodInfo.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def MethodInfo.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"google.golang.org/grpc.MethodInfo" [])
 
 attribute [irreducible] MethodInfo.ty
 
-noncomputable def ServiceInfo.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def ServiceInfo.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"google.golang.org/grpc.ServiceInfo" [])
 
 attribute [irreducible] ServiceInfo.ty
 
-noncomputable def listenSocket.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def listenSocket.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"google.golang.org/grpc.listenSocket" [])
 
 attribute [irreducible] listenSocket.ty
 
-noncomputable def streamKey.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def streamKey.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"google.golang.org/grpc.streamKey" [])
 
 attribute [irreducible] streamKey.ty
 
-noncomputable def ServerTransportStream.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def ServerTransportStream.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"google.golang.org/grpc.ServerTransportStream" [])
 
 attribute [irreducible] ServerTransportStream.ty
 
-noncomputable def serverKey.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def serverKey.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"google.golang.org/grpc.serverKey" [])
 
 attribute [irreducible] serverKey.ty
 
-noncomputable def atomicSemaphore.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def atomicSemaphore.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"google.golang.org/grpc.atomicSemaphore" [])
 
 attribute [irreducible] atomicSemaphore.ty
 
-noncomputable def ServiceConfig.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def ServiceConfig.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"google.golang.org/grpc.ServiceConfig" [])
 
 attribute [irreducible] ServiceConfig.ty
 
-noncomputable def healthCheckConfig.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def healthCheckConfig.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"google.golang.org/grpc.healthCheckConfig" [])
 
 attribute [irreducible] healthCheckConfig.ty
 
-noncomputable def jsonRetryPolicy.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def jsonRetryPolicy.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"google.golang.org/grpc.jsonRetryPolicy" [])
 
 attribute [irreducible] jsonRetryPolicy.ty
 
-noncomputable def retryThrottlingPolicy.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def retryThrottlingPolicy.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"google.golang.org/grpc.retryThrottlingPolicy" [])
 
 attribute [irreducible] retryThrottlingPolicy.ty
 
-noncomputable def jsonName.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def jsonName.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"google.golang.org/grpc.jsonName" [])
 
 attribute [irreducible] jsonName.ty
 
-noncomputable def jsonMC.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def jsonMC.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"google.golang.org/grpc.jsonMC" [])
 
 attribute [irreducible] jsonMC.ty
 
-noncomputable def jsonSC.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def jsonSC.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"google.golang.org/grpc.jsonSC" [])
 
 attribute [irreducible] jsonSC.ty
 
-noncomputable def StreamHandler.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def StreamHandler.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"google.golang.org/grpc.StreamHandler" [])
 
 attribute [irreducible] StreamHandler.ty
 
-noncomputable def StreamDesc.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def StreamDesc.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"google.golang.org/grpc.StreamDesc" [])
 
 attribute [irreducible] StreamDesc.ty
 
-noncomputable def Stream.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def Stream.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"google.golang.org/grpc.Stream" [])
 
 attribute [irreducible] Stream.ty
 
-noncomputable def ClientStream.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def ClientStream.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"google.golang.org/grpc.ClientStream" [])
 
 attribute [irreducible] ClientStream.ty
 
-noncomputable def clientStreamWrapper.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def clientStreamWrapper.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"google.golang.org/grpc.clientStreamWrapper" [])
 
 attribute [irreducible] clientStreamWrapper.ty
 
-noncomputable def clientInterceptor.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def clientInterceptor.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"google.golang.org/grpc.clientInterceptor" [])
 
 attribute [irreducible] clientInterceptor.ty
 
-noncomputable def clientStream.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def clientStream.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"google.golang.org/grpc.clientStream" [])
 
 attribute [irreducible] clientStream.ty
 
-noncomputable def replayOp.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def replayOp.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"google.golang.org/grpc.replayOp" [])
 
 attribute [irreducible] replayOp.ty
 
-noncomputable def csAttempt.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def csAttempt.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"google.golang.org/grpc.csAttempt" [])
 
 attribute [irreducible] csAttempt.ty
 
-noncomputable def addrConnStream.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def addrConnStream.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"google.golang.org/grpc.addrConnStream" [])
 
 attribute [irreducible] addrConnStream.ty
 
-noncomputable def ServerStream.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def ServerStream.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"google.golang.org/grpc.ServerStream" [])
 
 attribute [irreducible] ServerStream.ty
 
-noncomputable def serverStream.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def serverStream.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"google.golang.org/grpc.serverStream" [])
 
 attribute [irreducible] serverStream.ty
 
-noncomputable def ServerStreamingClient.ty [FfiSyntax] [GoGlobalContext] (Res : go.GoType) : go.GoType :=
+noncomputable def ServerStreamingClient.ty [GooseExts] [GoGlobalContext] (Res : go.GoType) : go.GoType :=
   (go.GoType.Named go!"google.golang.org/grpc.ServerStreamingClient" [Res])
 
 attribute [irreducible] ServerStreamingClient.ty
 
-noncomputable def ServerStreamingServer.ty [FfiSyntax] [GoGlobalContext] (Res : go.GoType) : go.GoType :=
+noncomputable def ServerStreamingServer.ty [GooseExts] [GoGlobalContext] (Res : go.GoType) : go.GoType :=
   (go.GoType.Named go!"google.golang.org/grpc.ServerStreamingServer" [Res])
 
 attribute [irreducible] ServerStreamingServer.ty
 
-noncomputable def ClientStreamingClient.ty [FfiSyntax] [GoGlobalContext] (Req : go.GoType) (Res : go.GoType) : go.GoType :=
+noncomputable def ClientStreamingClient.ty [GooseExts] [GoGlobalContext] (Req : go.GoType) (Res : go.GoType) : go.GoType :=
   (go.GoType.Named go!"google.golang.org/grpc.ClientStreamingClient" [Req, Res])
 
 attribute [irreducible] ClientStreamingClient.ty
 
-noncomputable def ClientStreamingServer.ty [FfiSyntax] [GoGlobalContext] (Req : go.GoType) (Res : go.GoType) : go.GoType :=
+noncomputable def ClientStreamingServer.ty [GooseExts] [GoGlobalContext] (Req : go.GoType) (Res : go.GoType) : go.GoType :=
   (go.GoType.Named go!"google.golang.org/grpc.ClientStreamingServer" [Req, Res])
 
 attribute [irreducible] ClientStreamingServer.ty
 
-noncomputable def BidiStreamingClient.ty [FfiSyntax] [GoGlobalContext] (Req : go.GoType) (Res : go.GoType) : go.GoType :=
+noncomputable def BidiStreamingClient.ty [GooseExts] [GoGlobalContext] (Req : go.GoType) (Res : go.GoType) : go.GoType :=
   (go.GoType.Named go!"google.golang.org/grpc.BidiStreamingClient" [Req, Res])
 
 attribute [irreducible] BidiStreamingClient.ty
 
-noncomputable def BidiStreamingServer.ty [FfiSyntax] [GoGlobalContext] (Req : go.GoType) (Res : go.GoType) : go.GoType :=
+noncomputable def BidiStreamingServer.ty [GooseExts] [GoGlobalContext] (Req : go.GoType) (Res : go.GoType) : go.GoType :=
   (go.GoType.Named go!"google.golang.org/grpc.BidiStreamingServer" [Req, Res])
 
 attribute [irreducible] BidiStreamingServer.ty
 
-noncomputable def GenericClientStream.ty [FfiSyntax] [GoGlobalContext] (Req : go.GoType) (Res : go.GoType) : go.GoType :=
+noncomputable def GenericClientStream.ty [GooseExts] [GoGlobalContext] (Req : go.GoType) (Res : go.GoType) : go.GoType :=
   (go.GoType.Named go!"google.golang.org/grpc.GenericClientStream" [Req, Res])
 
 attribute [irreducible] GenericClientStream.ty
 
-noncomputable def GenericServerStream.ty [FfiSyntax] [GoGlobalContext] (Req : go.GoType) (Res : go.GoType) : go.GoType :=
+noncomputable def GenericServerStream.ty [GooseExts] [GoGlobalContext] (Req : go.GoType) (Res : go.GoType) : go.GoType :=
   (go.GoType.Named go!"google.golang.org/grpc.GenericServerStream" [Req, Res])
 
 attribute [irreducible] GenericServerStream.ty
 
-noncomputable def traceEventLog.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def traceEventLog.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"google.golang.org/grpc.traceEventLog" [])
 
 attribute [irreducible] traceEventLog.ty
 
-noncomputable def traceLog.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def traceLog.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"google.golang.org/grpc.traceLog" [])
 
 attribute [irreducible] traceLog.ty
 
-noncomputable def traceInfo.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def traceInfo.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"google.golang.org/grpc.traceInfo" [])
 
 attribute [irreducible] traceInfo.ty
 
-noncomputable def firstLine.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def firstLine.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"google.golang.org/grpc.firstLine" [])
 
 attribute [irreducible] firstLine.ty
 
-noncomputable def payload.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def payload.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"google.golang.org/grpc.payload" [])
 
 attribute [irreducible] payload.ty
 
-noncomputable def fmtStringer.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def fmtStringer.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"google.golang.org/grpc.fmtStringer" [])
 
 attribute [irreducible] fmtStringer.ty
 
-noncomputable def stringer.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def stringer.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"google.golang.org/grpc.stringer" [])
 
 attribute [irreducible] stringer.ty
 
-axiom BackoffConfig.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom BackoffConfig.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom ConnectParams.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom ConnectParams.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom ccBalancerWrapper.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom ccBalancerWrapper.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom acBalancerWrapper.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom acBalancerWrapper.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom healthData.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom healthData.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom refCountedProducer.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom refCountedProducer.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom healthProducerRegisterFn [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom healthProducerRegisterFn [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom connectivityStateManager.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom connectivityStateManager.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom ClientConn.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom ClientConn.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom addrConn.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom addrConn.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom retryThrottler.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom retryThrottler.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom baseCodec.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom baseCodec.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom dialOptions.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom dialOptions.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom perTargetDialOption.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom perTargetDialOption.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom pickerGeneration.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom pickerGeneration.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom pickerWrapper.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom pickerWrapper.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom pick.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom pick.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom PreparedMsg.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom PreparedMsg.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom ccResolverWrapper.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom ccResolverWrapper.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom Compressor.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom Compressor.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom gzipCompressor.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom gzipCompressor.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom Decompressor.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom Decompressor.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom gzipDecompressor.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom gzipDecompressor.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom callInfo.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom callInfo.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom PeerCallOption.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom PeerCallOption.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom PerRPCCredsCallOption.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom PerRPCCredsCallOption.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom ForceCodecCallOption.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom ForceCodecCallOption.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom ForceCodecV2CallOption.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom ForceCodecV2CallOption.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom streamReader.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom streamReader.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom parser.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom parser.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom payloadInfo.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom payloadInfo.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom compressorInfo.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom compressorInfo.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom Server.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom Server.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom serverOptions.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom serverOptions.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom listenSocket.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom listenSocket.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom atomicSemaphore.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom atomicSemaphore.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom MethodConfig [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom MethodConfig [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom ServiceConfig.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom ServiceConfig.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom jsonRetryPolicy.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom jsonRetryPolicy.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom jsonMC.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom jsonMC.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom jsonSC.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom jsonSC.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom clientStreamWrapper.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom clientStreamWrapper.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom clientInterceptor.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom clientInterceptor.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom clientStream.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom clientStream.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom csAttempt.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom csAttempt.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom addrConnStream.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom addrConnStream.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom serverStream.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom serverStream.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom traceLog.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom traceLog.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom firstLine.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom firstLine.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom minConnectTimeout [FfiSyntax] [GoGlobalContext] : val
+axiom minConnectTimeout [GooseExts] [GoGlobalContext] : val
 
-axiom defaultClientMaxReceiveMessageSize [FfiSyntax] [GoGlobalContext] : val
+axiom defaultClientMaxReceiveMessageSize [GooseExts] [GoGlobalContext] : val
 
-axiom defaultClientMaxSendMessageSize [FfiSyntax] [GoGlobalContext] : val
+axiom defaultClientMaxSendMessageSize [GooseExts] [GoGlobalContext] : val
 
-axiom defaultWriteBufSize [FfiSyntax] [GoGlobalContext] : val
+axiom defaultWriteBufSize [GooseExts] [GoGlobalContext] : val
 
-axiom defaultReadBufSize [FfiSyntax] [GoGlobalContext] : val
+axiom defaultReadBufSize [GooseExts] [GoGlobalContext] : val
 
-axiom defaultMaxCallAttempts [FfiSyntax] [GoGlobalContext] : val
+axiom defaultMaxCallAttempts [GooseExts] [GoGlobalContext] : val
 
-axiom compressionNone [FfiSyntax] [GoGlobalContext] : val
+axiom compressionNone [GooseExts] [GoGlobalContext] : val
 
-axiom compressionMade [FfiSyntax] [GoGlobalContext] : val
+axiom compressionMade [GooseExts] [GoGlobalContext] : val
 
-axiom payloadLen [FfiSyntax] [GoGlobalContext] : val
+axiom payloadLen [GooseExts] [GoGlobalContext] : val
 
-axiom sizeLen [FfiSyntax] [GoGlobalContext] : val
+axiom sizeLen [GooseExts] [GoGlobalContext] : val
 
-axiom headerLen [FfiSyntax] [GoGlobalContext] : val
+axiom headerLen [GooseExts] [GoGlobalContext] : val
 
-axiom SupportPackageIsVersion3 [FfiSyntax] [GoGlobalContext] : val
+axiom SupportPackageIsVersion3 [GooseExts] [GoGlobalContext] : val
 
-axiom SupportPackageIsVersion4 [FfiSyntax] [GoGlobalContext] : val
+axiom SupportPackageIsVersion4 [GooseExts] [GoGlobalContext] : val
 
-axiom SupportPackageIsVersion5 [FfiSyntax] [GoGlobalContext] : val
+axiom SupportPackageIsVersion5 [GooseExts] [GoGlobalContext] : val
 
-axiom SupportPackageIsVersion6 [FfiSyntax] [GoGlobalContext] : val
+axiom SupportPackageIsVersion6 [GooseExts] [GoGlobalContext] : val
 
-axiom SupportPackageIsVersion7 [FfiSyntax] [GoGlobalContext] : val
+axiom SupportPackageIsVersion7 [GooseExts] [GoGlobalContext] : val
 
-axiom SupportPackageIsVersion8 [FfiSyntax] [GoGlobalContext] : val
+axiom SupportPackageIsVersion8 [GooseExts] [GoGlobalContext] : val
 
-axiom SupportPackageIsVersion9 [FfiSyntax] [GoGlobalContext] : val
+axiom SupportPackageIsVersion9 [GooseExts] [GoGlobalContext] : val
 
-axiom grpcUA [FfiSyntax] [GoGlobalContext] : val
+axiom grpcUA [GooseExts] [GoGlobalContext] : val
 
-axiom defaultServerMaxReceiveMessageSize [FfiSyntax] [GoGlobalContext] : val
+axiom defaultServerMaxReceiveMessageSize [GooseExts] [GoGlobalContext] : val
 
-axiom defaultServerMaxSendMessageSize [FfiSyntax] [GoGlobalContext] : val
+axiom defaultServerMaxSendMessageSize [GooseExts] [GoGlobalContext] : val
 
-axiom listenerAddressForServeHTTP [FfiSyntax] [GoGlobalContext] : val
+axiom listenerAddressForServeHTTP [GooseExts] [GoGlobalContext] : val
 
-axiom serverWorkerResetThreshold [FfiSyntax] [GoGlobalContext] : val
+axiom serverWorkerResetThreshold [GooseExts] [GoGlobalContext] : val
 
-axiom maxInt [FfiSyntax] [GoGlobalContext] : val
+axiom maxInt [GooseExts] [GoGlobalContext] : val
 
-axiom truncateSize [FfiSyntax] [GoGlobalContext] : val
+axiom truncateSize [GooseExts] [GoGlobalContext] : val
 
-axiom Version [FfiSyntax] [GoGlobalContext] : val
+axiom Version [GooseExts] [GoGlobalContext] : val
 
-noncomputable def DefaultBackoffConfig [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def DefaultBackoffConfig [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/grpc.DefaultBackoffConfig"
 
-axiom DefaultBackoffConfig.init [FfiSyntax] [GoGlobalContext] : val
+axiom DefaultBackoffConfig.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def noOpRegisterHealthListenerFn [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def noOpRegisterHealthListenerFn [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/grpc.noOpRegisterHealthListenerFn"
 
-axiom noOpRegisterHealthListenerFn.init [FfiSyntax] [GoGlobalContext] : val
+axiom noOpRegisterHealthListenerFn.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def unaryStreamDesc [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def unaryStreamDesc [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/grpc.unaryStreamDesc"
 
-axiom unaryStreamDesc.init [FfiSyntax] [GoGlobalContext] : val
+axiom unaryStreamDesc.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def ErrClientConnClosing [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ErrClientConnClosing [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/grpc.ErrClientConnClosing"
 
-axiom ErrClientConnClosing.init [FfiSyntax] [GoGlobalContext] : val
+axiom ErrClientConnClosing.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def errConnDrain [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def errConnDrain [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/grpc.errConnDrain"
 
-axiom errConnDrain.init [FfiSyntax] [GoGlobalContext] : val
+axiom errConnDrain.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def errConnClosing [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def errConnClosing [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/grpc.errConnClosing"
 
-axiom errConnClosing.init [FfiSyntax] [GoGlobalContext] : val
+axiom errConnClosing.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def errConnIdling [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def errConnIdling [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/grpc.errConnIdling"
 
-axiom errConnIdling.init [FfiSyntax] [GoGlobalContext] : val
+axiom errConnIdling.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def invalidDefaultServiceConfigErrPrefix [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def invalidDefaultServiceConfigErrPrefix [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/grpc.invalidDefaultServiceConfigErrPrefix"
 
-axiom invalidDefaultServiceConfigErrPrefix.init [FfiSyntax] [GoGlobalContext] : val
+axiom invalidDefaultServiceConfigErrPrefix.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def PickFirstBalancerName [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def PickFirstBalancerName [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/grpc.PickFirstBalancerName"
 
-axiom PickFirstBalancerName.init [FfiSyntax] [GoGlobalContext] : val
+axiom PickFirstBalancerName.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def errNoTransportSecurity [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def errNoTransportSecurity [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/grpc.errNoTransportSecurity"
 
-axiom errNoTransportSecurity.init [FfiSyntax] [GoGlobalContext] : val
+axiom errNoTransportSecurity.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def errTransportCredsAndBundle [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def errTransportCredsAndBundle [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/grpc.errTransportCredsAndBundle"
 
-axiom errTransportCredsAndBundle.init [FfiSyntax] [GoGlobalContext] : val
+axiom errTransportCredsAndBundle.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def errNoTransportCredsInBundle [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def errNoTransportCredsInBundle [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/grpc.errNoTransportCredsInBundle"
 
-axiom errNoTransportCredsInBundle.init [FfiSyntax] [GoGlobalContext] : val
+axiom errNoTransportCredsInBundle.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def errTransportCredentialsMissing [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def errTransportCredentialsMissing [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/grpc.errTransportCredentialsMissing"
 
-axiom errTransportCredentialsMissing.init [FfiSyntax] [GoGlobalContext] : val
+axiom errTransportCredentialsMissing.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def disconnectionsMetric [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def disconnectionsMetric [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/grpc.disconnectionsMetric"
 
-axiom disconnectionsMetric.init [FfiSyntax] [GoGlobalContext] : val
+axiom disconnectionsMetric.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def connectionAttemptsSucceededMetric [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def connectionAttemptsSucceededMetric [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/grpc.connectionAttemptsSucceededMetric"
 
-axiom connectionAttemptsSucceededMetric.init [FfiSyntax] [GoGlobalContext] : val
+axiom connectionAttemptsSucceededMetric.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def connectionAttemptsFailedMetric [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def connectionAttemptsFailedMetric [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/grpc.connectionAttemptsFailedMetric"
 
-axiom connectionAttemptsFailedMetric.init [FfiSyntax] [GoGlobalContext] : val
+axiom connectionAttemptsFailedMetric.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def openConnectionsMetric [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def openConnectionsMetric [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/grpc.openConnectionsMetric"
 
-axiom openConnectionsMetric.init [FfiSyntax] [GoGlobalContext] : val
+axiom openConnectionsMetric.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def emptyServiceConfig [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def emptyServiceConfig [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/grpc.emptyServiceConfig"
 
-noncomputable def ErrClientConnTimeout [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ErrClientConnTimeout [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/grpc.ErrClientConnTimeout"
 
-axiom ErrClientConnTimeout.init [FfiSyntax] [GoGlobalContext] : val
+axiom ErrClientConnTimeout.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def globalDialOptions [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def globalDialOptions [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/grpc.globalDialOptions"
 
-noncomputable def globalPerTargetDialOptions [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def globalPerTargetDialOptions [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/grpc.globalPerTargetDialOptions"
 
-noncomputable def errContextCanceled [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def errContextCanceled [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/grpc.errContextCanceled"
 
-axiom errContextCanceled.init [FfiSyntax] [GoGlobalContext] : val
+axiom errContextCanceled.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def errContextDeadline [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def errContextDeadline [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/grpc.errContextDeadline"
 
-axiom errContextDeadline.init [FfiSyntax] [GoGlobalContext] : val
+axiom errContextDeadline.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def statusOK [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def statusOK [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/grpc.statusOK"
 
-axiom statusOK.init [FfiSyntax] [GoGlobalContext] : val
+axiom statusOK.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def logger [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def logger [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/grpc.logger"
 
-axiom logger.init [FfiSyntax] [GoGlobalContext] : val
+axiom logger.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def defaultServerOptions [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def defaultServerOptions [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/grpc.defaultServerOptions"
 
-axiom defaultServerOptions.init [FfiSyntax] [GoGlobalContext] : val
+axiom defaultServerOptions.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def globalServerOptions [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def globalServerOptions [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/grpc.globalServerOptions"
 
-noncomputable def ErrServerStopped [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ErrServerStopped [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/grpc.ErrServerStopped"
 
-axiom ErrServerStopped.init [FfiSyntax] [GoGlobalContext] : val
+axiom ErrServerStopped.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def errDuplicatedName [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def errDuplicatedName [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/grpc.errDuplicatedName"
 
-axiom errDuplicatedName.init [FfiSyntax] [GoGlobalContext] : val
+axiom errDuplicatedName.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def errEmptyServiceNonEmptyMethod [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def errEmptyServiceNonEmptyMethod [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/grpc.errEmptyServiceNonEmptyMethod"
 
-axiom errEmptyServiceNonEmptyMethod.init [FfiSyntax] [GoGlobalContext] : val
+axiom errEmptyServiceNonEmptyMethod.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def metadataFromOutgoingContextRaw [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def metadataFromOutgoingContextRaw [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/grpc.metadataFromOutgoingContextRaw"
 
-axiom metadataFromOutgoingContextRaw.init [FfiSyntax] [GoGlobalContext] : val
+axiom metadataFromOutgoingContextRaw.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def emptyMethodConfig [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def emptyMethodConfig [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/grpc.emptyMethodConfig"
 
-axiom emptyMethodConfig.init [FfiSyntax] [GoGlobalContext] : val
+axiom emptyMethodConfig.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def EnableTracing [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def EnableTracing [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/grpc.EnableTracing"
 
-noncomputable def newCCBalancerWrapper [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def newCCBalancerWrapper [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/grpc.newCCBalancerWrapper"
 
-noncomputable def newHealthData [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def newHealthData [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/grpc.newHealthData"
 
-noncomputable def combine [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def combine [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/grpc.combine"
 
-noncomputable def Invoke [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def Invoke [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/grpc.Invoke"
 
-noncomputable def invoke [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def invoke [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/grpc.invoke"
 
-noncomputable def NewClient [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def NewClient [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/grpc.NewClient"
 
-noncomputable def Dial [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def Dial [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/grpc.Dial"
 
-noncomputable def DialContext [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def DialContext [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/grpc.DialContext"
 
-noncomputable def chainUnaryClientInterceptors [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def chainUnaryClientInterceptors [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/grpc.chainUnaryClientInterceptors"
 
-noncomputable def getChainUnaryInvoker [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def getChainUnaryInvoker [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/grpc.getChainUnaryInvoker"
 
-noncomputable def chainStreamClientInterceptors [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def chainStreamClientInterceptors [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/grpc.chainStreamClientInterceptors"
 
-noncomputable def getChainStreamer [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def getChainStreamer [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/grpc.getChainStreamer"
 
-noncomputable def newConnectivityStateManager [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def newConnectivityStateManager [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/grpc.newConnectivityStateManager"
 
-noncomputable def init.«0» [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def init.«0» [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/grpc.init.0"
 
-noncomputable def copyAddresses [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def copyAddresses [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/grpc.copyAddresses"
 
-noncomputable def equalAddressIgnoringBalAttributes [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def equalAddressIgnoringBalAttributes [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/grpc.equalAddressIgnoringBalAttributes"
 
-noncomputable def equalAddressesIgnoringBalAttributes [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def equalAddressesIgnoringBalAttributes [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/grpc.equalAddressesIgnoringBalAttributes"
 
-noncomputable def getMethodConfig [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def getMethodConfig [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/grpc.getMethodConfig"
 
-noncomputable def disconnectErrorString [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def disconnectErrorString [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/grpc.disconnectErrorString"
 
-noncomputable def parseTarget [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def parseTarget [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/grpc.parseTarget"
 
-noncomputable def encodeAuthority [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def encodeAuthority [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/grpc.encodeAuthority"
 
-noncomputable def disconnectErrorLabel [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def disconnectErrorLabel [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/grpc.disconnectErrorLabel"
 
-noncomputable def getCodec [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def getCodec [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/grpc.getCodec"
 
-noncomputable def newCodecV0Bridge [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def newCodecV0Bridge [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/grpc.newCodecV0Bridge"
 
-noncomputable def newCodecV1Bridge [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def newCodecV1Bridge [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/grpc.newCodecV1Bridge"
 
-noncomputable def init.«1» [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def init.«1» [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/grpc.init.1"
 
-noncomputable def newDisableGlobalDialOptions [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def newDisableGlobalDialOptions [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/grpc.newDisableGlobalDialOptions"
 
-noncomputable def newFuncDialOption [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def newFuncDialOption [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/grpc.newFuncDialOption"
 
-noncomputable def newJoinDialOption [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def newJoinDialOption [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/grpc.newJoinDialOption"
 
-noncomputable def WithSharedWriteBuffer [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def WithSharedWriteBuffer [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/grpc.WithSharedWriteBuffer"
 
-noncomputable def WithWriteBufferSize [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def WithWriteBufferSize [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/grpc.WithWriteBufferSize"
 
-noncomputable def WithReadBufferSize [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def WithReadBufferSize [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/grpc.WithReadBufferSize"
 
-noncomputable def WithInitialWindowSize [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def WithInitialWindowSize [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/grpc.WithInitialWindowSize"
 
-noncomputable def WithInitialConnWindowSize [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def WithInitialConnWindowSize [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/grpc.WithInitialConnWindowSize"
 
-noncomputable def WithStaticStreamWindowSize [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def WithStaticStreamWindowSize [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/grpc.WithStaticStreamWindowSize"
 
-noncomputable def WithStaticConnWindowSize [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def WithStaticConnWindowSize [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/grpc.WithStaticConnWindowSize"
 
-noncomputable def WithMaxMsgSize [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def WithMaxMsgSize [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/grpc.WithMaxMsgSize"
 
-noncomputable def WithDefaultCallOptions [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def WithDefaultCallOptions [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/grpc.WithDefaultCallOptions"
 
-noncomputable def WithCodec [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def WithCodec [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/grpc.WithCodec"
 
-noncomputable def WithCompressor [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def WithCompressor [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/grpc.WithCompressor"
 
-noncomputable def WithDecompressor [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def WithDecompressor [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/grpc.WithDecompressor"
 
-noncomputable def WithConnectParams [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def WithConnectParams [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/grpc.WithConnectParams"
 
-noncomputable def WithBackoffMaxDelay [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def WithBackoffMaxDelay [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/grpc.WithBackoffMaxDelay"
 
-noncomputable def WithBackoffConfig [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def WithBackoffConfig [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/grpc.WithBackoffConfig"
 
-noncomputable def withBackoff [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def withBackoff [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/grpc.withBackoff"
 
-noncomputable def WithBlock [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def WithBlock [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/grpc.WithBlock"
 
-noncomputable def WithReturnConnectionError [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def WithReturnConnectionError [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/grpc.WithReturnConnectionError"
 
-noncomputable def WithInsecure [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def WithInsecure [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/grpc.WithInsecure"
 
-noncomputable def WithNoProxy [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def WithNoProxy [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/grpc.WithNoProxy"
 
-noncomputable def WithLocalDNSResolution [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def WithLocalDNSResolution [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/grpc.WithLocalDNSResolution"
 
-noncomputable def WithTransportCredentials [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def WithTransportCredentials [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/grpc.WithTransportCredentials"
 
-noncomputable def WithPerRPCCredentials [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def WithPerRPCCredentials [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/grpc.WithPerRPCCredentials"
 
-noncomputable def WithCredentialsBundle [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def WithCredentialsBundle [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/grpc.WithCredentialsBundle"
 
-noncomputable def WithTimeout [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def WithTimeout [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/grpc.WithTimeout"
 
-noncomputable def WithContextDialer [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def WithContextDialer [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/grpc.WithContextDialer"
 
-noncomputable def WithDialer [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def WithDialer [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/grpc.WithDialer"
 
-noncomputable def WithStatsHandler [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def WithStatsHandler [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/grpc.WithStatsHandler"
 
-noncomputable def withBinaryLogger [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def withBinaryLogger [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/grpc.withBinaryLogger"
 
-noncomputable def FailOnNonTempDialError [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def FailOnNonTempDialError [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/grpc.FailOnNonTempDialError"
 
-noncomputable def WithUserAgent [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def WithUserAgent [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/grpc.WithUserAgent"
 
-noncomputable def WithKeepaliveParams [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def WithKeepaliveParams [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/grpc.WithKeepaliveParams"
 
-noncomputable def WithUnaryInterceptor [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def WithUnaryInterceptor [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/grpc.WithUnaryInterceptor"
 
-noncomputable def WithChainUnaryInterceptor [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def WithChainUnaryInterceptor [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/grpc.WithChainUnaryInterceptor"
 
-noncomputable def WithStreamInterceptor [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def WithStreamInterceptor [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/grpc.WithStreamInterceptor"
 
-noncomputable def WithChainStreamInterceptor [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def WithChainStreamInterceptor [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/grpc.WithChainStreamInterceptor"
 
-noncomputable def WithAuthority [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def WithAuthority [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/grpc.WithAuthority"
 
-noncomputable def WithChannelzParentID [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def WithChannelzParentID [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/grpc.WithChannelzParentID"
 
-noncomputable def WithDisableServiceConfig [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def WithDisableServiceConfig [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/grpc.WithDisableServiceConfig"
 
-noncomputable def WithDefaultServiceConfig [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def WithDefaultServiceConfig [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/grpc.WithDefaultServiceConfig"
 
-noncomputable def WithDisableRetry [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def WithDisableRetry [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/grpc.WithDisableRetry"
 
-noncomputable def WithMaxHeaderListSize [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def WithMaxHeaderListSize [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/grpc.WithMaxHeaderListSize"
 
-noncomputable def WithDisableHealthCheck [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def WithDisableHealthCheck [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/grpc.WithDisableHealthCheck"
 
-noncomputable def defaultDialOptions [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def defaultDialOptions [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/grpc.defaultDialOptions"
 
-noncomputable def withMinConnectDeadline [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def withMinConnectDeadline [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/grpc.withMinConnectDeadline"
 
-noncomputable def withDefaultScheme [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def withDefaultScheme [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/grpc.withDefaultScheme"
 
-noncomputable def WithResolvers [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def WithResolvers [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/grpc.WithResolvers"
 
-noncomputable def WithIdleTimeout [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def WithIdleTimeout [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/grpc.WithIdleTimeout"
 
-noncomputable def WithMaxCallAttempts [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def WithMaxCallAttempts [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/grpc.WithMaxCallAttempts"
 
-noncomputable def withBufferPool [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def withBufferPool [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/grpc.withBufferPool"
 
-noncomputable def newPickerWrapper [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def newPickerWrapper [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/grpc.newPickerWrapper"
 
-noncomputable def doneChannelzWrapper [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def doneChannelzWrapper [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/grpc.doneChannelzWrapper"
 
-noncomputable def newCCResolverWrapper [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def newCCResolverWrapper [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/grpc.newCCResolverWrapper"
 
-noncomputable def addressesToEndpoints [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def addressesToEndpoints [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/grpc.addressesToEndpoints"
 
-noncomputable def init.«2» [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def init.«2» [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/grpc.init.2"
 
-noncomputable def NewGZIPCompressor [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def NewGZIPCompressor [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/grpc.NewGZIPCompressor"
 
-noncomputable def NewGZIPCompressorWithLevel [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def NewGZIPCompressorWithLevel [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/grpc.NewGZIPCompressorWithLevel"
 
-noncomputable def NewGZIPDecompressor [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def NewGZIPDecompressor [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/grpc.NewGZIPDecompressor"
 
-noncomputable def acceptedCompressorAllows [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def acceptedCompressorAllows [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/grpc.acceptedCompressorAllows"
 
-noncomputable def defaultCallInfo [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def defaultCallInfo [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/grpc.defaultCallInfo"
 
-noncomputable def newAcceptedCompressionConfig [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def newAcceptedCompressionConfig [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/grpc.newAcceptedCompressionConfig"
 
-noncomputable def StaticMethod [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def StaticMethod [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/grpc.StaticMethod"
 
-noncomputable def Header [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def Header [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/grpc.Header"
 
-noncomputable def Trailer [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def Trailer [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/grpc.Trailer"
 
-noncomputable def Peer [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def Peer [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/grpc.Peer"
 
-noncomputable def WaitForReady [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def WaitForReady [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/grpc.WaitForReady"
 
-noncomputable def FailFast [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def FailFast [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/grpc.FailFast"
 
-noncomputable def OnFinish [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def OnFinish [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/grpc.OnFinish"
 
-noncomputable def MaxCallRecvMsgSize [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def MaxCallRecvMsgSize [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/grpc.MaxCallRecvMsgSize"
 
-noncomputable def CallAuthority [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def CallAuthority [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/grpc.CallAuthority"
 
-noncomputable def MaxCallSendMsgSize [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def MaxCallSendMsgSize [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/grpc.MaxCallSendMsgSize"
 
-noncomputable def PerRPCCredentials [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def PerRPCCredentials [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/grpc.PerRPCCredentials"
 
-noncomputable def UseCompressor [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def UseCompressor [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/grpc.UseCompressor"
 
-noncomputable def acceptCompressors [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def acceptCompressors [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/grpc.acceptCompressors"
 
-noncomputable def CallContentSubtype [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def CallContentSubtype [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/grpc.CallContentSubtype"
 
-noncomputable def ForceCodec [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ForceCodec [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/grpc.ForceCodec"
 
-noncomputable def ForceCodecV2 [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ForceCodecV2 [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/grpc.ForceCodecV2"
 
-noncomputable def CallCustomCodec [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def CallCustomCodec [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/grpc.CallCustomCodec"
 
-noncomputable def MaxRetryRPCBufferSize [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def MaxRetryRPCBufferSize [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/grpc.MaxRetryRPCBufferSize"
 
-noncomputable def encode [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def encode [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/grpc.encode"
 
-noncomputable def compress [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def compress [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/grpc.compress"
 
-noncomputable def msgHeader [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def msgHeader [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/grpc.msgHeader"
 
-noncomputable def outPayload [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def outPayload [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/grpc.outPayload"
 
-noncomputable def checkRecvPayload [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def checkRecvPayload [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/grpc.checkRecvPayload"
 
-noncomputable def recvAndDecompress [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def recvAndDecompress [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/grpc.recvAndDecompress"
 
-noncomputable def decompress [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def decompress [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/grpc.decompress"
 
-noncomputable def recv [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def recv [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/grpc.recv"
 
-noncomputable def newContextWithRPCInfo [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def newContextWithRPCInfo [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/grpc.newContextWithRPCInfo"
 
-noncomputable def rpcInfoFromContext [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def rpcInfoFromContext [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/grpc.rpcInfoFromContext"
 
-noncomputable def Code [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def Code [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/grpc.Code"
 
-noncomputable def ErrorDesc [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ErrorDesc [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/grpc.ErrorDesc"
 
-noncomputable def Errorf [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def Errorf [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/grpc.Errorf"
 
-noncomputable def toRPCErr [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def toRPCErr [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/grpc.toRPCErr"
 
-noncomputable def setCallInfoCodec [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def setCallInfoCodec [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/grpc.setCallInfoCodec"
 
-noncomputable def init.«3» [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def init.«3» [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/grpc.init.3"
 
-noncomputable def newFuncServerOption [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def newFuncServerOption [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/grpc.newFuncServerOption"
 
-noncomputable def newJoinServerOption [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def newJoinServerOption [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/grpc.newJoinServerOption"
 
-noncomputable def SharedWriteBuffer [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def SharedWriteBuffer [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/grpc.SharedWriteBuffer"
 
-noncomputable def WriteBufferSize [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def WriteBufferSize [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/grpc.WriteBufferSize"
 
-noncomputable def ReadBufferSize [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ReadBufferSize [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/grpc.ReadBufferSize"
 
-noncomputable def InitialWindowSize [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def InitialWindowSize [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/grpc.InitialWindowSize"
 
-noncomputable def InitialConnWindowSize [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def InitialConnWindowSize [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/grpc.InitialConnWindowSize"
 
-noncomputable def StaticStreamWindowSize [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def StaticStreamWindowSize [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/grpc.StaticStreamWindowSize"
 
-noncomputable def StaticConnWindowSize [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def StaticConnWindowSize [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/grpc.StaticConnWindowSize"
 
-noncomputable def KeepaliveParams [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def KeepaliveParams [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/grpc.KeepaliveParams"
 
-noncomputable def KeepaliveEnforcementPolicy [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def KeepaliveEnforcementPolicy [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/grpc.KeepaliveEnforcementPolicy"
 
-noncomputable def CustomCodec [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def CustomCodec [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/grpc.CustomCodec"
 
-noncomputable def ForceServerCodec [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ForceServerCodec [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/grpc.ForceServerCodec"
 
-noncomputable def ForceServerCodecV2 [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ForceServerCodecV2 [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/grpc.ForceServerCodecV2"
 
-noncomputable def RPCCompressor [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def RPCCompressor [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/grpc.RPCCompressor"
 
-noncomputable def RPCDecompressor [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def RPCDecompressor [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/grpc.RPCDecompressor"
 
-noncomputable def MaxMsgSize [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def MaxMsgSize [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/grpc.MaxMsgSize"
 
-noncomputable def MaxRecvMsgSize [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def MaxRecvMsgSize [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/grpc.MaxRecvMsgSize"
 
-noncomputable def MaxSendMsgSize [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def MaxSendMsgSize [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/grpc.MaxSendMsgSize"
 
-noncomputable def MaxConcurrentStreams [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def MaxConcurrentStreams [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/grpc.MaxConcurrentStreams"
 
-noncomputable def Creds [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def Creds [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/grpc.Creds"
 
-noncomputable def UnaryInterceptor [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def UnaryInterceptor [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/grpc.UnaryInterceptor"
 
-noncomputable def ChainUnaryInterceptor [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ChainUnaryInterceptor [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/grpc.ChainUnaryInterceptor"
 
-noncomputable def StreamInterceptor [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def StreamInterceptor [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/grpc.StreamInterceptor"
 
-noncomputable def ChainStreamInterceptor [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ChainStreamInterceptor [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/grpc.ChainStreamInterceptor"
 
-noncomputable def InTapHandle [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def InTapHandle [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/grpc.InTapHandle"
 
-noncomputable def StatsHandler [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def StatsHandler [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/grpc.StatsHandler"
 
-noncomputable def binaryLogger [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def binaryLogger [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/grpc.binaryLogger"
 
-noncomputable def UnknownServiceHandler [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def UnknownServiceHandler [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/grpc.UnknownServiceHandler"
 
-noncomputable def ConnectionTimeout [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ConnectionTimeout [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/grpc.ConnectionTimeout"
 
-noncomputable def MaxHeaderListSize [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def MaxHeaderListSize [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/grpc.MaxHeaderListSize"
 
-noncomputable def HeaderTableSize [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def HeaderTableSize [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/grpc.HeaderTableSize"
 
-noncomputable def NumStreamWorkers [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def NumStreamWorkers [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/grpc.NumStreamWorkers"
 
-noncomputable def WaitForHandlers [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def WaitForHandlers [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/grpc.WaitForHandlers"
 
-noncomputable def bufferPool [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def bufferPool [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/grpc.bufferPool"
 
-noncomputable def xdsFilterWrapperOption [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def xdsFilterWrapperOption [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/grpc.xdsFilterWrapperOption"
 
-noncomputable def NewServer [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def NewServer [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/grpc.NewServer"
 
-noncomputable def chainUnaryServerInterceptors [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def chainUnaryServerInterceptors [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/grpc.chainUnaryServerInterceptors"
 
-noncomputable def chainUnaryInterceptors [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def chainUnaryInterceptors [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/grpc.chainUnaryInterceptors"
 
-noncomputable def getChainUnaryHandler [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def getChainUnaryHandler [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/grpc.getChainUnaryHandler"
 
-noncomputable def chainStreamServerInterceptors [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def chainStreamServerInterceptors [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/grpc.chainStreamServerInterceptors"
 
-noncomputable def chainStreamInterceptors [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def chainStreamInterceptors [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/grpc.chainStreamInterceptors"
 
-noncomputable def getChainStreamHandler [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def getChainStreamHandler [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/grpc.getChainStreamHandler"
 
-noncomputable def NewContextWithServerTransportStream [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def NewContextWithServerTransportStream [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/grpc.NewContextWithServerTransportStream"
 
-noncomputable def ServerTransportStreamFromContext [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ServerTransportStreamFromContext [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/grpc.ServerTransportStreamFromContext"
 
-noncomputable def serverFromContext [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def serverFromContext [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/grpc.serverFromContext"
 
-noncomputable def contextWithServer [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def contextWithServer [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/grpc.contextWithServer"
 
-noncomputable def SetHeader [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def SetHeader [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/grpc.SetHeader"
 
-noncomputable def SendHeader [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def SendHeader [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/grpc.SendHeader"
 
-noncomputable def SetSendCompressor [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def SetSendCompressor [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/grpc.SetSendCompressor"
 
-noncomputable def ClientSupportedCompressors [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ClientSupportedCompressors [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/grpc.ClientSupportedCompressors"
 
-noncomputable def SetTrailer [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def SetTrailer [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/grpc.SetTrailer"
 
-noncomputable def Method [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def Method [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/grpc.Method"
 
-noncomputable def validateSendCompressor [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def validateSendCompressor [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/grpc.validateSendCompressor"
 
-noncomputable def newHandlerQuota [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def newHandlerQuota [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/grpc.newHandlerQuota"
 
-noncomputable def init.«4» [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def init.«4» [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/grpc.init.4"
 
-noncomputable def parseServiceConfig [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def parseServiceConfig [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/grpc.parseServiceConfig"
 
-noncomputable def isValidRetryPolicy [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def isValidRetryPolicy [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/grpc.isValidRetryPolicy"
 
-noncomputable def convertRetryPolicy [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def convertRetryPolicy [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/grpc.convertRetryPolicy"
 
-noncomputable def minPointers [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def minPointers [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/grpc.minPointers"
 
-noncomputable def getMaxSize [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def getMaxSize [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/grpc.getMaxSize"
 
-noncomputable def newInt [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def newInt [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/grpc.newInt"
 
-noncomputable def init.«5» [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def init.«5» [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/grpc.init.5"
 
-noncomputable def equalServiceConfig [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def equalServiceConfig [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/grpc.equalServiceConfig"
 
-noncomputable def defaultStreamInterceptor [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def defaultStreamInterceptor [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/grpc.defaultStreamInterceptor"
 
-noncomputable def NewClientStream [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def NewClientStream [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/grpc.NewClientStream"
 
-noncomputable def endOfClientStream [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def endOfClientStream [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/grpc.endOfClientStream"
 
-noncomputable def newClientStream [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def newClientStream [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/grpc.newClientStream"
 
-noncomputable def newClientStreamWithParams [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def newClientStreamWithParams [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/grpc.newClientStreamWithParams"
 
-noncomputable def newNonRetryClientStream [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def newNonRetryClientStream [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/grpc.newNonRetryClientStream"
 
-noncomputable def MethodFromServerStream [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def MethodFromServerStream [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/grpc.MethodFromServerStream"
 
-noncomputable def prepareMsg [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def prepareMsg [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/grpc.prepareMsg"
 
-noncomputable def methodFamily [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def methodFamily [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/grpc.methodFamily"
 
-noncomputable def truncate [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def truncate [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/grpc.truncate"
 
-noncomputable def newTrace [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def newTrace [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/grpc.newTrace"
 
-noncomputable def newTraceContext [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def newTraceContext [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/grpc.newTraceContext"
 
-noncomputable def newTraceEventLog [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def newTraceEventLog [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/grpc.newTraceEventLog"
 
 noncomputable instance info' : PkgInfo pkg_id.google_golang_org.grpc where
   pkgImportedPkgs := [pkg_id.context, pkg_id.google_golang_org.grpc.metadata]
 
-axiom «_».init [FfiSyntax] [GoGlobalContext] : val
+axiom «_».init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (App (Val (package.init pkg_id.google_golang_org.grpc)) (Lam BAnon
   (App (Val exceptionDo)
@@ -1716,282 +1716,348 @@ axiom BackoffConfig : Type
 axiom BackoffConfig.zero_val : ZeroVal BackoffConfig
 attribute [instance] BackoffConfig.zero_val
 
-class BackoffConfig.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class BackoffConfig.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying BackoffConfig.underlying BackoffConfig
   underlying : go.UnderlyingDirectedEq BackoffConfig.ty BackoffConfig.underlying
   isUnderlying : go.IsUnderlying BackoffConfig.underlying BackoffConfig.underlying
+  method_set : go.MethodSetIs BackoffConfig.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType BackoffConfig.ty) []
 
 attribute [instance] BackoffConfig.TypeAssumptions.type_repr
   BackoffConfig.TypeAssumptions.underlying
   BackoffConfig.TypeAssumptions.isUnderlying
+  BackoffConfig.TypeAssumptions.method_set
+  BackoffConfig.TypeAssumptions.ptr_method_set
 
 axiom ConnectParams : Type
 axiom ConnectParams.zero_val : ZeroVal ConnectParams
 attribute [instance] ConnectParams.zero_val
 
-class ConnectParams.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class ConnectParams.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying ConnectParams.underlying ConnectParams
   underlying : go.UnderlyingDirectedEq ConnectParams.ty ConnectParams.underlying
   isUnderlying : go.IsUnderlying ConnectParams.underlying ConnectParams.underlying
+  method_set : go.MethodSetIs ConnectParams.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType ConnectParams.ty) []
 
 attribute [instance] ConnectParams.TypeAssumptions.type_repr
   ConnectParams.TypeAssumptions.underlying
   ConnectParams.TypeAssumptions.isUnderlying
+  ConnectParams.TypeAssumptions.method_set
+  ConnectParams.TypeAssumptions.ptr_method_set
 
 axiom ccBalancerWrapper : Type
 axiom ccBalancerWrapper.zero_val : ZeroVal ccBalancerWrapper
 attribute [instance] ccBalancerWrapper.zero_val
 
-class ccBalancerWrapper.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class ccBalancerWrapper.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying ccBalancerWrapper.underlying ccBalancerWrapper
   underlying : go.UnderlyingDirectedEq ccBalancerWrapper.ty ccBalancerWrapper.underlying
   isUnderlying : go.IsUnderlying ccBalancerWrapper.underlying ccBalancerWrapper.underlying
+  method_set : go.MethodSetIs ccBalancerWrapper.ty [(go!"google.golang.org/grpc/internal.enforceClientConnEmbedding", (some (go.signature.Signature [] false [])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType ccBalancerWrapper.ty) [(go!"MetricsRecorder", (some (go.signature.Signature [] false [(go.GoType.Named go!"google.golang.org/grpc/experimental/stats.MetricsRecorder" [])]))), (go!"NewSubConn", (some (go.signature.Signature [(go.GoType.SliceType (go.GoType.Named go!"google.golang.org/grpc/resolver.Address" [])), (go.GoType.Named go!"google.golang.org/grpc/balancer.NewSubConnOptions" [])] false [(go.GoType.Named go!"google.golang.org/grpc/balancer.SubConn" []), go.error]))), (go!"RemoveSubConn", (some (go.signature.Signature [(go.GoType.Named go!"google.golang.org/grpc/balancer.SubConn" [])] false []))), (go!"ResolveNow", (some (go.signature.Signature [(go.GoType.Named go!"google.golang.org/grpc/resolver.ResolveNowOptions" [])] false []))), (go!"Target", (some (go.signature.Signature [] false [go.string]))), (go!"UpdateAddresses", (some (go.signature.Signature [(go.GoType.Named go!"google.golang.org/grpc/balancer.SubConn" []), (go.GoType.SliceType (go.GoType.Named go!"google.golang.org/grpc/resolver.Address" []))] false []))), (go!"UpdateState", (some (go.signature.Signature [(go.GoType.Named go!"google.golang.org/grpc/balancer.State" [])] false []))), (go!"google.golang.org/grpc.close", (some (go.signature.Signature [] false []))), (go!"google.golang.org/grpc.exitIdle", (some (go.signature.Signature [] false []))), (go!"google.golang.org/grpc.resolverError", (some (go.signature.Signature [go.error] false []))), (go!"google.golang.org/grpc.updateClientConnState", (some (go.signature.Signature [(go.GoType.PointerType (go.GoType.Named go!"google.golang.org/grpc/balancer.ClientConnState" []))] false [go.error]))), (go!"google.golang.org/grpc/internal.enforceClientConnEmbedding", (some (go.signature.Signature [] false [])))]
 
 attribute [instance] ccBalancerWrapper.TypeAssumptions.type_repr
   ccBalancerWrapper.TypeAssumptions.underlying
   ccBalancerWrapper.TypeAssumptions.isUnderlying
+  ccBalancerWrapper.TypeAssumptions.method_set
+  ccBalancerWrapper.TypeAssumptions.ptr_method_set
 
 axiom acBalancerWrapper : Type
 axiom acBalancerWrapper.zero_val : ZeroVal acBalancerWrapper
 attribute [instance] acBalancerWrapper.zero_val
 
-class acBalancerWrapper.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class acBalancerWrapper.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying acBalancerWrapper.underlying acBalancerWrapper
   underlying : go.UnderlyingDirectedEq acBalancerWrapper.ty acBalancerWrapper.underlying
   isUnderlying : go.IsUnderlying acBalancerWrapper.underlying acBalancerWrapper.underlying
+  method_set : go.MethodSetIs acBalancerWrapper.ty [(go!"google.golang.org/grpc/internal.enforceSubConnEmbedding", (some (go.signature.Signature [] false [])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType acBalancerWrapper.ty) [(go!"Connect", (some (go.signature.Signature [] false []))), (go!"GetOrBuildProducer", (some (go.signature.Signature [(go.GoType.Named go!"google.golang.org/grpc/balancer.ProducerBuilder" [])] false [(go.GoType.Named go!"google.golang.org/grpc/balancer.Producer" []), (go.GoType.FunctionType (go.signature.Signature [] false []))]))), (go!"Invoke", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.string, go.any, go.any, (go.GoType.SliceType CallOption.ty)] true [go.error]))), (go!"NewStream", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType StreamDesc.ty), go.string, (go.GoType.SliceType CallOption.ty)] true [ClientStream.ty, go.error]))), (go!"RegisterHealthListener", (some (go.signature.Signature [(go.GoType.FunctionType (go.signature.Signature [(go.GoType.Named go!"google.golang.org/grpc/balancer.SubConnState" [])] false []))] false []))), (go!"Shutdown", (some (go.signature.Signature [] false []))), (go!"String", (some (go.signature.Signature [] false [go.string]))), (go!"UpdateAddresses", (some (go.signature.Signature [(go.GoType.SliceType (go.GoType.Named go!"google.golang.org/grpc/resolver.Address" []))] false []))), (go!"google.golang.org/grpc.closeProducers", (some (go.signature.Signature [] false []))), (go!"google.golang.org/grpc.healthListenerRegFn", (some (go.signature.Signature [] false [(go.GoType.FunctionType (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.FunctionType (go.signature.Signature [(go.GoType.Named go!"google.golang.org/grpc/balancer.SubConnState" [])] false []))] false [(go.GoType.FunctionType (go.signature.Signature [] false []))]))]))), (go!"google.golang.org/grpc.updateState", (some (go.signature.Signature [(go.GoType.Named go!"google.golang.org/grpc/connectivity.State" []), go.error] false []))), (go!"google.golang.org/grpc/internal.enforceSubConnEmbedding", (some (go.signature.Signature [] false [])))]
 
 attribute [instance] acBalancerWrapper.TypeAssumptions.type_repr
   acBalancerWrapper.TypeAssumptions.underlying
   acBalancerWrapper.TypeAssumptions.isUnderlying
+  acBalancerWrapper.TypeAssumptions.method_set
+  acBalancerWrapper.TypeAssumptions.ptr_method_set
 
 axiom healthData : Type
 axiom healthData.zero_val : ZeroVal healthData
 attribute [instance] healthData.zero_val
 
-class healthData.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class healthData.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying healthData.underlying healthData
   underlying : go.UnderlyingDirectedEq healthData.ty healthData.underlying
   isUnderlying : go.IsUnderlying healthData.underlying healthData.underlying
+  method_set : go.MethodSetIs healthData.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType healthData.ty) []
 
 attribute [instance] healthData.TypeAssumptions.type_repr
   healthData.TypeAssumptions.underlying
   healthData.TypeAssumptions.isUnderlying
+  healthData.TypeAssumptions.method_set
+  healthData.TypeAssumptions.ptr_method_set
 
 axiom refCountedProducer : Type
 axiom refCountedProducer.zero_val : ZeroVal refCountedProducer
 attribute [instance] refCountedProducer.zero_val
 
-class refCountedProducer.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class refCountedProducer.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying refCountedProducer.underlying refCountedProducer
   underlying : go.UnderlyingDirectedEq refCountedProducer.ty refCountedProducer.underlying
   isUnderlying : go.IsUnderlying refCountedProducer.underlying refCountedProducer.underlying
+  method_set : go.MethodSetIs refCountedProducer.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType refCountedProducer.ty) []
 
 attribute [instance] refCountedProducer.TypeAssumptions.type_repr
   refCountedProducer.TypeAssumptions.underlying
   refCountedProducer.TypeAssumptions.isUnderlying
+  refCountedProducer.TypeAssumptions.method_set
+  refCountedProducer.TypeAssumptions.ptr_method_set
 
-structure defaultConfigSelector [FfiSyntax] where
+structure defaultConfigSelector [GooseExts] where
   mk ::
   sc' : Loc
 
-noncomputable instance defaultConfigSelector.zero_val [FfiSyntax] : ZeroVal defaultConfigSelector :=
+noncomputable instance defaultConfigSelector.zero_val [GooseExts] : ZeroVal defaultConfigSelector :=
   ⟨defaultConfigSelector.mk zeroValDef⟩
 
-@[reducible] noncomputable def defaultConfigSelector.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def defaultConfigSelector.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"sc" (go.GoType.PointerType ServiceConfig.ty))]
 
-@[irreducible] noncomputable def defaultConfigSelector.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def defaultConfigSelector.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   defaultConfigSelector.fieldsUnsealed
 
-noncomputable instance equals_unfold_defaultConfigSelector [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_defaultConfigSelector [GooseExts] [GoGlobalContext] :
     EqualsUnfold defaultConfigSelector.fields defaultConfigSelector.fieldsUnsealed :=
   ⟨by unfold defaultConfigSelector.fields; rfl⟩
 
-@[reducible] noncomputable def defaultConfigSelector.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def defaultConfigSelector.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType defaultConfigSelector.fields)
 
-class defaultConfigSelector.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class defaultConfigSelector.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying defaultConfigSelector.underlying defaultConfigSelector
   underlying : go.UnderlyingDirectedEq defaultConfigSelector.ty defaultConfigSelector.underlying
   get_sc : ∀ (x : defaultConfigSelector), go.IsGoStepPureDetTagged under (StructFieldGet defaultConfigSelector.underlying go!"sc") #x (Val #(x.sc'))
   set_sc : ∀ (x : defaultConfigSelector) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet defaultConfigSelector.underlying go!"sc") (PairV #x #y) (Val #(({ x with sc' := y } : defaultConfigSelector)))
+  method_set : go.MethodSetIs defaultConfigSelector.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType defaultConfigSelector.ty) [(go!"SelectConfig", (some (go.signature.Signature [(go.GoType.Named go!"google.golang.org/grpc/internal/resolver.RPCInfo" [])] false [(go.GoType.PointerType (go.GoType.Named go!"google.golang.org/grpc/internal/resolver.RPCConfig" [])), go.error])))]
 
 attribute [instance] defaultConfigSelector.TypeAssumptions.type_repr
   defaultConfigSelector.TypeAssumptions.underlying
   defaultConfigSelector.TypeAssumptions.get_sc
   defaultConfigSelector.TypeAssumptions.set_sc
+  defaultConfigSelector.TypeAssumptions.method_set
+  defaultConfigSelector.TypeAssumptions.ptr_method_set
 
 axiom ClientConn : Type
 axiom ClientConn.zero_val : ZeroVal ClientConn
 attribute [instance] ClientConn.zero_val
 
-class ClientConn.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class ClientConn.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying ClientConn.underlying ClientConn
   underlying : go.UnderlyingDirectedEq ClientConn.ty ClientConn.underlying
   isUnderlying : go.IsUnderlying ClientConn.underlying ClientConn.underlying
+  method_set : go.MethodSetIs ClientConn.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType ClientConn.ty) [(go!"CanonicalTarget", (some (go.signature.Signature [] false [go.string]))), (go!"Close", (some (go.signature.Signature [] false [go.error]))), (go!"Connect", (some (go.signature.Signature [] false []))), (go!"GetMethodConfig", (some (go.signature.Signature [go.string] false [(go.GoType.Named go!"google.golang.org/grpc/internal/serviceconfig.MethodConfig" [])]))), (go!"GetState", (some (go.signature.Signature [] false [(go.GoType.Named go!"google.golang.org/grpc/connectivity.State" [])]))), (go!"Invoke", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.string, go.any, go.any, (go.GoType.SliceType CallOption.ty)] true [go.error]))), (go!"NewStream", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType StreamDesc.ty), go.string, (go.GoType.SliceType CallOption.ty)] true [ClientStream.ty, go.error]))), (go!"ResetConnectBackoff", (some (go.signature.Signature [] false []))), (go!"Target", (some (go.signature.Signature [] false [go.string]))), (go!"WaitForStateChange", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.Named go!"google.golang.org/grpc/connectivity.State" [])] false [go.bool]))), (go!"google.golang.org/grpc.addTraceEvent", (some (go.signature.Signature [go.string] false []))), (go!"google.golang.org/grpc.applyFailingLBLocked", (some (go.signature.Signature [(go.GoType.PointerType (go.GoType.Named go!"google.golang.org/grpc/serviceconfig.ParseResult" []))] false []))), (go!"google.golang.org/grpc.applyServiceConfigAndBalancer", (some (go.signature.Signature [(go.GoType.PointerType ServiceConfig.ty), (go.GoType.Named go!"google.golang.org/grpc/internal/resolver.ConfigSelector" [])] false []))), (go!"google.golang.org/grpc.channelzRegistration", (some (go.signature.Signature [go.string] false []))), (go!"google.golang.org/grpc.connectionError", (some (go.signature.Signature [] false [go.error]))), (go!"google.golang.org/grpc.enterIdleMode", (some (go.signature.Signature [] false []))), (go!"google.golang.org/grpc.exitIdleMode", (some (go.signature.Signature [] false [go.error]))), (go!"google.golang.org/grpc.getResolver", (some (go.signature.Signature [go.string] false [(go.GoType.Named go!"google.golang.org/grpc/resolver.Builder" [])]))), (go!"google.golang.org/grpc.getServerName", (some (go.signature.Signature [(go.GoType.Named go!"google.golang.org/grpc/resolver.Address" [])] false [go.string]))), (go!"google.golang.org/grpc.healthCheckConfig", (some (go.signature.Signature [] false [(go.GoType.PointerType healthCheckConfig.ty)]))), (go!"google.golang.org/grpc.incrCallsFailed", (some (go.signature.Signature [] false []))), (go!"google.golang.org/grpc.incrCallsStarted", (some (go.signature.Signature [] false []))), (go!"google.golang.org/grpc.incrCallsSucceeded", (some (go.signature.Signature [] false []))), (go!"google.golang.org/grpc.initAuthority", (some (go.signature.Signature [] false [go.error]))), (go!"google.golang.org/grpc.initIdleStateLocked", (some (go.signature.Signature [] false []))), (go!"google.golang.org/grpc.initParsedTargetAndResolverBuilder", (some (go.signature.Signature [] false [go.error]))), (go!"google.golang.org/grpc.maybeApplyDefaultServiceConfig", (some (go.signature.Signature [] false []))), (go!"google.golang.org/grpc.newAddrConnLocked", (some (go.signature.Signature [(go.GoType.SliceType (go.GoType.Named go!"google.golang.org/grpc/resolver.Address" [])), (go.GoType.Named go!"google.golang.org/grpc/balancer.NewSubConnOptions" [])] false [(go.GoType.PointerType addrConn.ty), go.error]))), (go!"google.golang.org/grpc.removeAddrConn", (some (go.signature.Signature [(go.GoType.PointerType addrConn.ty), go.error] false []))), (go!"google.golang.org/grpc.resolveNow", (some (go.signature.Signature [(go.GoType.Named go!"google.golang.org/grpc/resolver.ResolveNowOptions" [])] false []))), (go!"google.golang.org/grpc.resolveNowLocked", (some (go.signature.Signature [(go.GoType.Named go!"google.golang.org/grpc/resolver.ResolveNowOptions" [])] false []))), (go!"google.golang.org/grpc.updateConnectionError", (some (go.signature.Signature [go.error] false []))), (go!"google.golang.org/grpc.updateResolverStateAndUnlock", (some (go.signature.Signature [(go.GoType.Named go!"google.golang.org/grpc/resolver.State" []), go.error] false [go.error]))), (go!"google.golang.org/grpc.validateTransportCredentials", (some (go.signature.Signature [] false [go.error]))), (go!"google.golang.org/grpc.waitForResolvedAddrs", (some (go.signature.Signature [_root_.Perennial.context.Context.ty] false [go.bool, go.error])))]
 
 attribute [instance] ClientConn.TypeAssumptions.type_repr
   ClientConn.TypeAssumptions.underlying
   ClientConn.TypeAssumptions.isUnderlying
+  ClientConn.TypeAssumptions.method_set
+  ClientConn.TypeAssumptions.ptr_method_set
 
-abbrev idler [FfiSyntax] : Type := ClientConn
+abbrev idler [GooseExts] : Type := ClientConn
 
-@[reducible] noncomputable def idler.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def idler.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   ClientConn.ty
 
-class idler.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class idler.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq idler.ty idler.underlying
+  method_set : go.MethodSetIs idler.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType idler.ty) [(go!"EnterIdleMode", (some (go.signature.Signature [] false []))), (go!"ExitIdleMode", (some (go.signature.Signature [] false [])))]
 
 attribute [instance] idler.TypeAssumptions.underlying
+  idler.TypeAssumptions.method_set
+  idler.TypeAssumptions.ptr_method_set
 
 axiom connectivityStateManager : Type
 axiom connectivityStateManager.zero_val : ZeroVal connectivityStateManager
 attribute [instance] connectivityStateManager.zero_val
 
-class connectivityStateManager.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class connectivityStateManager.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying connectivityStateManager.underlying connectivityStateManager
   underlying : go.UnderlyingDirectedEq connectivityStateManager.ty connectivityStateManager.underlying
   isUnderlying : go.IsUnderlying connectivityStateManager.underlying connectivityStateManager.underlying
+  method_set : go.MethodSetIs connectivityStateManager.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType connectivityStateManager.ty) [(go!"google.golang.org/grpc.getNotifyChan", (some (go.signature.Signature [] false [(go.GoType.ChannelType go.ChanDir.recvonly (go.GoType.StructType []))]))), (go!"google.golang.org/grpc.getState", (some (go.signature.Signature [] false [(go.GoType.Named go!"google.golang.org/grpc/connectivity.State" [])]))), (go!"google.golang.org/grpc.updateState", (some (go.signature.Signature [(go.GoType.Named go!"google.golang.org/grpc/connectivity.State" [])] false [])))]
 
 attribute [instance] connectivityStateManager.TypeAssumptions.type_repr
   connectivityStateManager.TypeAssumptions.underlying
   connectivityStateManager.TypeAssumptions.isUnderlying
+  connectivityStateManager.TypeAssumptions.method_set
+  connectivityStateManager.TypeAssumptions.ptr_method_set
 
-abbrev ClientConnInterface [FfiSyntax] : Type := GoInterface
+abbrev ClientConnInterface [GooseExts] : Type := GoInterface
 
-@[reducible] noncomputable def ClientConnInterface.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def ClientConnInterface.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"Invoke" (go.signature.Signature [_root_.Perennial.context.Context.ty, go.string, go.any, go.any, (go.GoType.SliceType CallOption.ty)] true [go.error])), (go.InterfaceElem.MethodElem go!"NewStream" (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType StreamDesc.ty), go.string, (go.GoType.SliceType CallOption.ty)] true [ClientStream.ty, go.error]))])
 
-class ClientConnInterface.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class ClientConnInterface.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq ClientConnInterface.ty ClientConnInterface.underlying
+  method_set : go.MethodSetIs ClientConnInterface.ty [(go!"Invoke", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.string, go.any, go.any, (go.GoType.SliceType CallOption.ty)] true [go.error]))), (go!"NewStream", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType StreamDesc.ty), go.string, (go.GoType.SliceType CallOption.ty)] true [ClientStream.ty, go.error])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType ClientConnInterface.ty) []
 
 attribute [instance] ClientConnInterface.TypeAssumptions.underlying
+  ClientConnInterface.TypeAssumptions.method_set
+  ClientConnInterface.TypeAssumptions.ptr_method_set
 
 axiom addrConn : Type
 axiom addrConn.zero_val : ZeroVal addrConn
 attribute [instance] addrConn.zero_val
 
-class addrConn.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class addrConn.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying addrConn.underlying addrConn
   underlying : go.UnderlyingDirectedEq addrConn.ty addrConn.underlying
   isUnderlying : go.IsUnderlying addrConn.underlying addrConn.underlying
+  method_set : go.MethodSetIs addrConn.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType addrConn.ty) [(go!"google.golang.org/grpc.adjustParams", (some (go.signature.Signature [(go.GoType.Named go!"google.golang.org/grpc/internal/transport.GoAwayReason" [])] false []))), (go!"google.golang.org/grpc.connect", (some (go.signature.Signature [] false []))), (go!"google.golang.org/grpc.createTransport", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.Named go!"google.golang.org/grpc/resolver.Address" []), (go.GoType.Named go!"google.golang.org/grpc/internal/transport.ConnectOptions" []), (go.GoType.Named go!"time.Time" [])] false [go.error]))), (go!"google.golang.org/grpc.getReadyTransport", (some (go.signature.Signature [] false [(go.GoType.Named go!"google.golang.org/grpc/internal/transport.ClientTransport" [])]))), (go!"google.golang.org/grpc.incrCallsFailed", (some (go.signature.Signature [] false []))), (go!"google.golang.org/grpc.incrCallsStarted", (some (go.signature.Signature [] false []))), (go!"google.golang.org/grpc.incrCallsSucceeded", (some (go.signature.Signature [] false []))), (go!"google.golang.org/grpc.resetConnectBackoff", (some (go.signature.Signature [] false []))), (go!"google.golang.org/grpc.resetTransportAndUnlock", (some (go.signature.Signature [] false []))), (go!"google.golang.org/grpc.securityLevelLocked", (some (go.signature.Signature [] false [go.string]))), (go!"google.golang.org/grpc.startHealthCheck", (some (go.signature.Signature [_root_.Perennial.context.Context.ty] false []))), (go!"google.golang.org/grpc.tearDown", (some (go.signature.Signature [go.error] false []))), (go!"google.golang.org/grpc.tryAllAddrs", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.SliceType (go.GoType.Named go!"google.golang.org/grpc/resolver.Address" [])), (go.GoType.Named go!"time.Time" [])] false [go.error]))), (go!"google.golang.org/grpc.updateAddrs", (some (go.signature.Signature [(go.GoType.SliceType (go.GoType.Named go!"google.golang.org/grpc/resolver.Address" []))] false []))), (go!"google.golang.org/grpc.updateConnectivityState", (some (go.signature.Signature [(go.GoType.Named go!"google.golang.org/grpc/connectivity.State" []), go.error] false []))), (go!"google.golang.org/grpc.updateTelemetryLabelsLocked", (some (go.signature.Signature [] false [])))]
 
 attribute [instance] addrConn.TypeAssumptions.type_repr
   addrConn.TypeAssumptions.underlying
   addrConn.TypeAssumptions.isUnderlying
+  addrConn.TypeAssumptions.method_set
+  addrConn.TypeAssumptions.ptr_method_set
 
-structure securityLevelKey [FfiSyntax] where
+structure securityLevelKey [GooseExts] where
   mk ::
 
-noncomputable instance securityLevelKey.zero_val [FfiSyntax] : ZeroVal securityLevelKey :=
+noncomputable instance securityLevelKey.zero_val [GooseExts] : ZeroVal securityLevelKey :=
   ⟨securityLevelKey.mk⟩
 
-@[reducible] noncomputable def securityLevelKey.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def securityLevelKey.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   []
 
-@[irreducible] noncomputable def securityLevelKey.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def securityLevelKey.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   securityLevelKey.fieldsUnsealed
 
-noncomputable instance equals_unfold_securityLevelKey [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_securityLevelKey [GooseExts] [GoGlobalContext] :
     EqualsUnfold securityLevelKey.fields securityLevelKey.fieldsUnsealed :=
   ⟨by unfold securityLevelKey.fields; rfl⟩
 
-@[reducible] noncomputable def securityLevelKey.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def securityLevelKey.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType securityLevelKey.fields)
 
-class securityLevelKey.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class securityLevelKey.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying securityLevelKey.underlying securityLevelKey
   underlying : go.UnderlyingDirectedEq securityLevelKey.ty securityLevelKey.underlying
+  method_set : go.MethodSetIs securityLevelKey.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType securityLevelKey.ty) []
 
 attribute [instance] securityLevelKey.TypeAssumptions.type_repr
   securityLevelKey.TypeAssumptions.underlying
+  securityLevelKey.TypeAssumptions.method_set
+  securityLevelKey.TypeAssumptions.ptr_method_set
 
 axiom retryThrottler : Type
 axiom retryThrottler.zero_val : ZeroVal retryThrottler
 attribute [instance] retryThrottler.zero_val
 
-class retryThrottler.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class retryThrottler.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying retryThrottler.underlying retryThrottler
   underlying : go.UnderlyingDirectedEq retryThrottler.ty retryThrottler.underlying
   isUnderlying : go.IsUnderlying retryThrottler.underlying retryThrottler.underlying
+  method_set : go.MethodSetIs retryThrottler.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType retryThrottler.ty) [(go!"google.golang.org/grpc.successfulRPC", (some (go.signature.Signature [] false []))), (go!"google.golang.org/grpc.throttle", (some (go.signature.Signature [] false [go.bool])))]
 
 attribute [instance] retryThrottler.TypeAssumptions.type_repr
   retryThrottler.TypeAssumptions.underlying
   retryThrottler.TypeAssumptions.isUnderlying
+  retryThrottler.TypeAssumptions.method_set
+  retryThrottler.TypeAssumptions.ptr_method_set
 
 axiom baseCodec : Type
 axiom baseCodec.zero_val : ZeroVal baseCodec
 attribute [instance] baseCodec.zero_val
 
-class baseCodec.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class baseCodec.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying baseCodec.underlying baseCodec
   underlying : go.UnderlyingDirectedEq baseCodec.ty baseCodec.underlying
   isUnderlying : go.IsUnderlying baseCodec.underlying baseCodec.underlying
+  method_set : go.MethodSetIs baseCodec.ty [(go!"Marshal", (some (go.signature.Signature [go.any] false [(go.GoType.Named go!"google.golang.org/grpc/mem.BufferSlice" []), go.error]))), (go!"Unmarshal", (some (go.signature.Signature [(go.GoType.Named go!"google.golang.org/grpc/mem.BufferSlice" []), go.any] false [go.error])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType baseCodec.ty) []
 
 attribute [instance] baseCodec.TypeAssumptions.type_repr
   baseCodec.TypeAssumptions.underlying
   baseCodec.TypeAssumptions.isUnderlying
+  baseCodec.TypeAssumptions.method_set
+  baseCodec.TypeAssumptions.ptr_method_set
 
-structure codecV0Bridge [FfiSyntax] where
+structure codecV0Bridge [GooseExts] where
   mk ::
   codec' : GoInterface
 
-noncomputable instance codecV0Bridge.zero_val [FfiSyntax] : ZeroVal codecV0Bridge :=
+noncomputable instance codecV0Bridge.zero_val [GooseExts] : ZeroVal codecV0Bridge :=
   ⟨codecV0Bridge.mk zeroValDef⟩
 
-@[reducible] noncomputable def codecV0Bridge.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def codecV0Bridge.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"codec" (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"Marshal" (go.signature.Signature [go.any] false [(go.GoType.SliceType go.byte), go.error])), (go.InterfaceElem.MethodElem go!"Unmarshal" (go.signature.Signature [(go.GoType.SliceType go.byte), go.any] false [go.error]))]))]
 
-@[irreducible] noncomputable def codecV0Bridge.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def codecV0Bridge.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   codecV0Bridge.fieldsUnsealed
 
-noncomputable instance equals_unfold_codecV0Bridge [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_codecV0Bridge [GooseExts] [GoGlobalContext] :
     EqualsUnfold codecV0Bridge.fields codecV0Bridge.fieldsUnsealed :=
   ⟨by unfold codecV0Bridge.fields; rfl⟩
 
-@[reducible] noncomputable def codecV0Bridge.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def codecV0Bridge.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType codecV0Bridge.fields)
 
-class codecV0Bridge.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class codecV0Bridge.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying codecV0Bridge.underlying codecV0Bridge
   underlying : go.UnderlyingDirectedEq codecV0Bridge.ty codecV0Bridge.underlying
   get_codec : ∀ (x : codecV0Bridge), go.IsGoStepPureDetTagged under (StructFieldGet codecV0Bridge.underlying go!"codec") #x (Val #(x.codec'))
   set_codec : ∀ (x : codecV0Bridge) (y : GoInterface), go.IsGoStepPureDetTagged under (StructFieldSet codecV0Bridge.underlying go!"codec") (PairV #x #y) (Val #(({ x with codec' := y } : codecV0Bridge)))
+  method_set : go.MethodSetIs codecV0Bridge.ty [(go!"Marshal", (some (go.signature.Signature [go.any] false [(go.GoType.Named go!"google.golang.org/grpc/mem.BufferSlice" []), go.error]))), (go!"Unmarshal", (some (go.signature.Signature [(go.GoType.Named go!"google.golang.org/grpc/mem.BufferSlice" []), go.any] false [go.error])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType codecV0Bridge.ty) [(go!"Marshal", (some (go.signature.Signature [go.any] false [(go.GoType.Named go!"google.golang.org/grpc/mem.BufferSlice" []), go.error]))), (go!"Unmarshal", (some (go.signature.Signature [(go.GoType.Named go!"google.golang.org/grpc/mem.BufferSlice" []), go.any] false [go.error])))]
 
 attribute [instance] codecV0Bridge.TypeAssumptions.type_repr
   codecV0Bridge.TypeAssumptions.underlying
   codecV0Bridge.TypeAssumptions.get_codec
   codecV0Bridge.TypeAssumptions.set_codec
+  codecV0Bridge.TypeAssumptions.method_set
+  codecV0Bridge.TypeAssumptions.ptr_method_set
 
-structure codecV1Bridge [FfiSyntax] where
+structure codecV1Bridge [GooseExts] where
   mk ::
   codecV0Bridge' : codecV0Bridge
   name' : GoString
 
-noncomputable instance codecV1Bridge.zero_val [FfiSyntax] : ZeroVal codecV1Bridge :=
+noncomputable instance codecV1Bridge.zero_val [GooseExts] : ZeroVal codecV1Bridge :=
   ⟨codecV1Bridge.mk zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def codecV1Bridge.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def codecV1Bridge.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.EmbeddedField go!"codecV0Bridge" codecV0Bridge.ty),
 (go.field_decl.FieldDecl go!"name" go.string)]
 
-@[irreducible] noncomputable def codecV1Bridge.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def codecV1Bridge.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   codecV1Bridge.fieldsUnsealed
 
-noncomputable instance equals_unfold_codecV1Bridge [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_codecV1Bridge [GooseExts] [GoGlobalContext] :
     EqualsUnfold codecV1Bridge.fields codecV1Bridge.fieldsUnsealed :=
   ⟨by unfold codecV1Bridge.fields; rfl⟩
 
-@[reducible] noncomputable def codecV1Bridge.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def codecV1Bridge.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType codecV1Bridge.fields)
 
-class codecV1Bridge.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class codecV1Bridge.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying codecV1Bridge.underlying codecV1Bridge
   underlying : go.UnderlyingDirectedEq codecV1Bridge.ty codecV1Bridge.underlying
   get_codecV0Bridge : ∀ (x : codecV1Bridge), go.IsGoStepPureDetTagged under (StructFieldGet codecV1Bridge.underlying go!"codecV0Bridge") #x (Val #(x.codecV0Bridge'))
   set_codecV0Bridge : ∀ (x : codecV1Bridge) (y : codecV0Bridge), go.IsGoStepPureDetTagged under (StructFieldSet codecV1Bridge.underlying go!"codecV0Bridge") (PairV #x #y) (Val #(({ x with codecV0Bridge' := y } : codecV1Bridge)))
   get_name : ∀ (x : codecV1Bridge), go.IsGoStepPureDetTagged under (StructFieldGet codecV1Bridge.underlying go!"name") #x (Val #(x.name'))
   set_name : ∀ (x : codecV1Bridge) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet codecV1Bridge.underlying go!"name") (PairV #x #y) (Val #(({ x with name' := y } : codecV1Bridge)))
+  method_set : go.MethodSetIs codecV1Bridge.ty [(go!"Marshal", (some (go.signature.Signature [go.any] false [(go.GoType.Named go!"google.golang.org/grpc/mem.BufferSlice" []), go.error]))), (go!"Name", (some (go.signature.Signature [] false [go.string]))), (go!"Unmarshal", (some (go.signature.Signature [(go.GoType.Named go!"google.golang.org/grpc/mem.BufferSlice" []), go.any] false [go.error])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType codecV1Bridge.ty) [(go!"Marshal", (some (go.signature.Signature [go.any] false [(go.GoType.Named go!"google.golang.org/grpc/mem.BufferSlice" []), go.error]))), (go!"Name", (some (go.signature.Signature [] false [go.string]))), (go!"Unmarshal", (some (go.signature.Signature [(go.GoType.Named go!"google.golang.org/grpc/mem.BufferSlice" []), go.any] false [go.error])))]
 
 attribute [instance] codecV1Bridge.TypeAssumptions.type_repr
   codecV1Bridge.TypeAssumptions.underlying
@@ -1999,267 +2065,323 @@ attribute [instance] codecV1Bridge.TypeAssumptions.type_repr
   codecV1Bridge.TypeAssumptions.set_codecV0Bridge
   codecV1Bridge.TypeAssumptions.get_name
   codecV1Bridge.TypeAssumptions.set_name
+  codecV1Bridge.TypeAssumptions.method_set
+  codecV1Bridge.TypeAssumptions.ptr_method_set
 
-abbrev Codec [FfiSyntax] : Type := GoInterface
+abbrev Codec [GooseExts] : Type := GoInterface
 
-@[reducible] noncomputable def Codec.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def Codec.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"Marshal" (go.signature.Signature [go.any] false [(go.GoType.SliceType go.byte), go.error])), (go.InterfaceElem.MethodElem go!"String" (go.signature.Signature [] false [go.string])), (go.InterfaceElem.MethodElem go!"Unmarshal" (go.signature.Signature [(go.GoType.SliceType go.byte), go.any] false [go.error]))])
 
-class Codec.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class Codec.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq Codec.ty Codec.underlying
+  method_set : go.MethodSetIs Codec.ty [(go!"Marshal", (some (go.signature.Signature [go.any] false [(go.GoType.SliceType go.byte), go.error]))), (go!"String", (some (go.signature.Signature [] false [go.string]))), (go!"Unmarshal", (some (go.signature.Signature [(go.GoType.SliceType go.byte), go.any] false [go.error])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType Codec.ty) []
 
 attribute [instance] Codec.TypeAssumptions.underlying
+  Codec.TypeAssumptions.method_set
+  Codec.TypeAssumptions.ptr_method_set
 
 axiom dialOptions : Type
 axiom dialOptions.zero_val : ZeroVal dialOptions
 attribute [instance] dialOptions.zero_val
 
-class dialOptions.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class dialOptions.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying dialOptions.underlying dialOptions
   underlying : go.UnderlyingDirectedEq dialOptions.ty dialOptions.underlying
   isUnderlying : go.IsUnderlying dialOptions.underlying dialOptions.underlying
+  method_set : go.MethodSetIs dialOptions.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType dialOptions.ty) []
 
 attribute [instance] dialOptions.TypeAssumptions.type_repr
   dialOptions.TypeAssumptions.underlying
   dialOptions.TypeAssumptions.isUnderlying
+  dialOptions.TypeAssumptions.method_set
+  dialOptions.TypeAssumptions.ptr_method_set
 
-abbrev DialOption [FfiSyntax] : Type := GoInterface
+abbrev DialOption [GooseExts] : Type := GoInterface
 
-@[reducible] noncomputable def DialOption.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
-  (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"apply" (go.signature.Signature [(go.GoType.PointerType dialOptions.ty)] false []))])
+@[reducible] noncomputable def DialOption.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
+  (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"google.golang.org/grpc.apply" (go.signature.Signature [(go.GoType.PointerType dialOptions.ty)] false []))])
 
-class DialOption.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class DialOption.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq DialOption.ty DialOption.underlying
+  method_set : go.MethodSetIs DialOption.ty [(go!"google.golang.org/grpc.apply", (some (go.signature.Signature [(go.GoType.PointerType dialOptions.ty)] false [])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType DialOption.ty) []
 
 attribute [instance] DialOption.TypeAssumptions.underlying
+  DialOption.TypeAssumptions.method_set
+  DialOption.TypeAssumptions.ptr_method_set
 
 axiom perTargetDialOption : Type
 axiom perTargetDialOption.zero_val : ZeroVal perTargetDialOption
 attribute [instance] perTargetDialOption.zero_val
 
-class perTargetDialOption.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class perTargetDialOption.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying perTargetDialOption.underlying perTargetDialOption
   underlying : go.UnderlyingDirectedEq perTargetDialOption.ty perTargetDialOption.underlying
   isUnderlying : go.IsUnderlying perTargetDialOption.underlying perTargetDialOption.underlying
+  method_set : go.MethodSetIs perTargetDialOption.ty [(go!"DialOptionForTarget", (some (go.signature.Signature [(go.GoType.Named go!"net/url.URL" [])] false [DialOption.ty])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType perTargetDialOption.ty) []
 
 attribute [instance] perTargetDialOption.TypeAssumptions.type_repr
   perTargetDialOption.TypeAssumptions.underlying
   perTargetDialOption.TypeAssumptions.isUnderlying
+  perTargetDialOption.TypeAssumptions.method_set
+  perTargetDialOption.TypeAssumptions.ptr_method_set
 
-structure EmptyDialOption [FfiSyntax] where
+structure EmptyDialOption [GooseExts] where
   mk ::
 
-noncomputable instance EmptyDialOption.zero_val [FfiSyntax] : ZeroVal EmptyDialOption :=
+noncomputable instance EmptyDialOption.zero_val [GooseExts] : ZeroVal EmptyDialOption :=
   ⟨EmptyDialOption.mk⟩
 
-@[reducible] noncomputable def EmptyDialOption.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def EmptyDialOption.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   []
 
-@[irreducible] noncomputable def EmptyDialOption.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def EmptyDialOption.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   EmptyDialOption.fieldsUnsealed
 
-noncomputable instance equals_unfold_EmptyDialOption [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_EmptyDialOption [GooseExts] [GoGlobalContext] :
     EqualsUnfold EmptyDialOption.fields EmptyDialOption.fieldsUnsealed :=
   ⟨by unfold EmptyDialOption.fields; rfl⟩
 
-@[reducible] noncomputable def EmptyDialOption.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def EmptyDialOption.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType EmptyDialOption.fields)
 
-class EmptyDialOption.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class EmptyDialOption.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying EmptyDialOption.underlying EmptyDialOption
   underlying : go.UnderlyingDirectedEq EmptyDialOption.ty EmptyDialOption.underlying
+  method_set : go.MethodSetIs EmptyDialOption.ty [(go!"google.golang.org/grpc.apply", (some (go.signature.Signature [(go.GoType.PointerType dialOptions.ty)] false [])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType EmptyDialOption.ty) [(go!"google.golang.org/grpc.apply", (some (go.signature.Signature [(go.GoType.PointerType dialOptions.ty)] false [])))]
 
 attribute [instance] EmptyDialOption.TypeAssumptions.type_repr
   EmptyDialOption.TypeAssumptions.underlying
+  EmptyDialOption.TypeAssumptions.method_set
+  EmptyDialOption.TypeAssumptions.ptr_method_set
 
-structure disableGlobalDialOptions [FfiSyntax] where
+structure disableGlobalDialOptions [GooseExts] where
   mk ::
 
-noncomputable instance disableGlobalDialOptions.zero_val [FfiSyntax] : ZeroVal disableGlobalDialOptions :=
+noncomputable instance disableGlobalDialOptions.zero_val [GooseExts] : ZeroVal disableGlobalDialOptions :=
   ⟨disableGlobalDialOptions.mk⟩
 
-@[reducible] noncomputable def disableGlobalDialOptions.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def disableGlobalDialOptions.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   []
 
-@[irreducible] noncomputable def disableGlobalDialOptions.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def disableGlobalDialOptions.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   disableGlobalDialOptions.fieldsUnsealed
 
-noncomputable instance equals_unfold_disableGlobalDialOptions [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_disableGlobalDialOptions [GooseExts] [GoGlobalContext] :
     EqualsUnfold disableGlobalDialOptions.fields disableGlobalDialOptions.fieldsUnsealed :=
   ⟨by unfold disableGlobalDialOptions.fields; rfl⟩
 
-@[reducible] noncomputable def disableGlobalDialOptions.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def disableGlobalDialOptions.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType disableGlobalDialOptions.fields)
 
-class disableGlobalDialOptions.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class disableGlobalDialOptions.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying disableGlobalDialOptions.underlying disableGlobalDialOptions
   underlying : go.UnderlyingDirectedEq disableGlobalDialOptions.ty disableGlobalDialOptions.underlying
+  method_set : go.MethodSetIs disableGlobalDialOptions.ty [(go!"google.golang.org/grpc.apply", (some (go.signature.Signature [(go.GoType.PointerType dialOptions.ty)] false [])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType disableGlobalDialOptions.ty) [(go!"google.golang.org/grpc.apply", (some (go.signature.Signature [(go.GoType.PointerType dialOptions.ty)] false [])))]
 
 attribute [instance] disableGlobalDialOptions.TypeAssumptions.type_repr
   disableGlobalDialOptions.TypeAssumptions.underlying
+  disableGlobalDialOptions.TypeAssumptions.method_set
+  disableGlobalDialOptions.TypeAssumptions.ptr_method_set
 
-structure funcDialOption [FfiSyntax] where
+structure funcDialOption [GooseExts] where
   mk ::
   f' : GoFunc
 
-noncomputable instance funcDialOption.zero_val [FfiSyntax] : ZeroVal funcDialOption :=
+noncomputable instance funcDialOption.zero_val [GooseExts] : ZeroVal funcDialOption :=
   ⟨funcDialOption.mk zeroValDef⟩
 
-@[reducible] noncomputable def funcDialOption.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def funcDialOption.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"f" (go.GoType.FunctionType (go.signature.Signature [(go.GoType.PointerType dialOptions.ty)] false [])))]
 
-@[irreducible] noncomputable def funcDialOption.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def funcDialOption.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   funcDialOption.fieldsUnsealed
 
-noncomputable instance equals_unfold_funcDialOption [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_funcDialOption [GooseExts] [GoGlobalContext] :
     EqualsUnfold funcDialOption.fields funcDialOption.fieldsUnsealed :=
   ⟨by unfold funcDialOption.fields; rfl⟩
 
-@[reducible] noncomputable def funcDialOption.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def funcDialOption.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType funcDialOption.fields)
 
-class funcDialOption.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class funcDialOption.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying funcDialOption.underlying funcDialOption
   underlying : go.UnderlyingDirectedEq funcDialOption.ty funcDialOption.underlying
   get_f : ∀ (x : funcDialOption), go.IsGoStepPureDetTagged under (StructFieldGet funcDialOption.underlying go!"f") #x (Val #(x.f'))
   set_f : ∀ (x : funcDialOption) (y : GoFunc), go.IsGoStepPureDetTagged under (StructFieldSet funcDialOption.underlying go!"f") (PairV #x #y) (Val #(({ x with f' := y } : funcDialOption)))
+  method_set : go.MethodSetIs funcDialOption.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType funcDialOption.ty) [(go!"google.golang.org/grpc.apply", (some (go.signature.Signature [(go.GoType.PointerType dialOptions.ty)] false [])))]
 
 attribute [instance] funcDialOption.TypeAssumptions.type_repr
   funcDialOption.TypeAssumptions.underlying
   funcDialOption.TypeAssumptions.get_f
   funcDialOption.TypeAssumptions.set_f
+  funcDialOption.TypeAssumptions.method_set
+  funcDialOption.TypeAssumptions.ptr_method_set
 
-structure joinDialOption [FfiSyntax] where
+structure joinDialOption [GooseExts] where
   mk ::
   opts' : GoSlice
 
-noncomputable instance joinDialOption.zero_val [FfiSyntax] : ZeroVal joinDialOption :=
+noncomputable instance joinDialOption.zero_val [GooseExts] : ZeroVal joinDialOption :=
   ⟨joinDialOption.mk zeroValDef⟩
 
-@[reducible] noncomputable def joinDialOption.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def joinDialOption.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"opts" (go.GoType.SliceType DialOption.ty))]
 
-@[irreducible] noncomputable def joinDialOption.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def joinDialOption.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   joinDialOption.fieldsUnsealed
 
-noncomputable instance equals_unfold_joinDialOption [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_joinDialOption [GooseExts] [GoGlobalContext] :
     EqualsUnfold joinDialOption.fields joinDialOption.fieldsUnsealed :=
   ⟨by unfold joinDialOption.fields; rfl⟩
 
-@[reducible] noncomputable def joinDialOption.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def joinDialOption.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType joinDialOption.fields)
 
-class joinDialOption.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class joinDialOption.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying joinDialOption.underlying joinDialOption
   underlying : go.UnderlyingDirectedEq joinDialOption.ty joinDialOption.underlying
   get_opts : ∀ (x : joinDialOption), go.IsGoStepPureDetTagged under (StructFieldGet joinDialOption.underlying go!"opts") #x (Val #(x.opts'))
   set_opts : ∀ (x : joinDialOption) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet joinDialOption.underlying go!"opts") (PairV #x #y) (Val #(({ x with opts' := y } : joinDialOption)))
+  method_set : go.MethodSetIs joinDialOption.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType joinDialOption.ty) [(go!"google.golang.org/grpc.apply", (some (go.signature.Signature [(go.GoType.PointerType dialOptions.ty)] false [])))]
 
 attribute [instance] joinDialOption.TypeAssumptions.type_repr
   joinDialOption.TypeAssumptions.underlying
   joinDialOption.TypeAssumptions.get_opts
   joinDialOption.TypeAssumptions.set_opts
+  joinDialOption.TypeAssumptions.method_set
+  joinDialOption.TypeAssumptions.ptr_method_set
 
-structure MaxHeaderListSizeDialOption [FfiSyntax] where
+structure MaxHeaderListSizeDialOption [GooseExts] where
   mk ::
   MaxHeaderListSize' : w32
 
-noncomputable instance MaxHeaderListSizeDialOption.zero_val [FfiSyntax] : ZeroVal MaxHeaderListSizeDialOption :=
+noncomputable instance MaxHeaderListSizeDialOption.zero_val [GooseExts] : ZeroVal MaxHeaderListSizeDialOption :=
   ⟨MaxHeaderListSizeDialOption.mk zeroValDef⟩
 
-@[reducible] noncomputable def MaxHeaderListSizeDialOption.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def MaxHeaderListSizeDialOption.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"MaxHeaderListSize" go.uint32)]
 
-@[irreducible] noncomputable def MaxHeaderListSizeDialOption.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def MaxHeaderListSizeDialOption.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   MaxHeaderListSizeDialOption.fieldsUnsealed
 
-noncomputable instance equals_unfold_MaxHeaderListSizeDialOption [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_MaxHeaderListSizeDialOption [GooseExts] [GoGlobalContext] :
     EqualsUnfold MaxHeaderListSizeDialOption.fields MaxHeaderListSizeDialOption.fieldsUnsealed :=
   ⟨by unfold MaxHeaderListSizeDialOption.fields; rfl⟩
 
-@[reducible] noncomputable def MaxHeaderListSizeDialOption.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def MaxHeaderListSizeDialOption.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType MaxHeaderListSizeDialOption.fields)
 
-class MaxHeaderListSizeDialOption.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class MaxHeaderListSizeDialOption.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying MaxHeaderListSizeDialOption.underlying MaxHeaderListSizeDialOption
   underlying : go.UnderlyingDirectedEq MaxHeaderListSizeDialOption.ty MaxHeaderListSizeDialOption.underlying
   get_MaxHeaderListSize : ∀ (x : MaxHeaderListSizeDialOption), go.IsGoStepPureDetTagged under (StructFieldGet MaxHeaderListSizeDialOption.underlying go!"MaxHeaderListSize") #x (Val #(x.MaxHeaderListSize'))
   set_MaxHeaderListSize : ∀ (x : MaxHeaderListSizeDialOption) (y : w32), go.IsGoStepPureDetTagged under (StructFieldSet MaxHeaderListSizeDialOption.underlying go!"MaxHeaderListSize") (PairV #x #y) (Val #(({ x with MaxHeaderListSize' := y } : MaxHeaderListSizeDialOption)))
+  method_set : go.MethodSetIs MaxHeaderListSizeDialOption.ty [(go!"google.golang.org/grpc.apply", (some (go.signature.Signature [(go.GoType.PointerType dialOptions.ty)] false [])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType MaxHeaderListSizeDialOption.ty) [(go!"google.golang.org/grpc.apply", (some (go.signature.Signature [(go.GoType.PointerType dialOptions.ty)] false [])))]
 
 attribute [instance] MaxHeaderListSizeDialOption.TypeAssumptions.type_repr
   MaxHeaderListSizeDialOption.TypeAssumptions.underlying
   MaxHeaderListSizeDialOption.TypeAssumptions.get_MaxHeaderListSize
   MaxHeaderListSizeDialOption.TypeAssumptions.set_MaxHeaderListSize
+  MaxHeaderListSizeDialOption.TypeAssumptions.method_set
+  MaxHeaderListSizeDialOption.TypeAssumptions.ptr_method_set
 
-abbrev UnaryInvoker [FfiSyntax] : Type := GoFunc
+abbrev UnaryInvoker [GooseExts] : Type := GoFunc
 
-@[reducible] noncomputable def UnaryInvoker.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def UnaryInvoker.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.FunctionType (go.signature.Signature [_root_.Perennial.context.Context.ty, go.string, go.any, go.any, (go.GoType.PointerType ClientConn.ty), (go.GoType.SliceType CallOption.ty)] true [go.error]))
 
-class UnaryInvoker.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class UnaryInvoker.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq UnaryInvoker.ty UnaryInvoker.underlying
+  method_set : go.MethodSetIs UnaryInvoker.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType UnaryInvoker.ty) []
 
 attribute [instance] UnaryInvoker.TypeAssumptions.underlying
+  UnaryInvoker.TypeAssumptions.method_set
+  UnaryInvoker.TypeAssumptions.ptr_method_set
 
-abbrev UnaryClientInterceptor [FfiSyntax] : Type := GoFunc
+abbrev UnaryClientInterceptor [GooseExts] : Type := GoFunc
 
-@[reducible] noncomputable def UnaryClientInterceptor.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def UnaryClientInterceptor.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.FunctionType (go.signature.Signature [_root_.Perennial.context.Context.ty, go.string, go.any, go.any, (go.GoType.PointerType ClientConn.ty), UnaryInvoker.ty, (go.GoType.SliceType CallOption.ty)] true [go.error]))
 
-class UnaryClientInterceptor.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class UnaryClientInterceptor.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq UnaryClientInterceptor.ty UnaryClientInterceptor.underlying
+  method_set : go.MethodSetIs UnaryClientInterceptor.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType UnaryClientInterceptor.ty) []
 
 attribute [instance] UnaryClientInterceptor.TypeAssumptions.underlying
+  UnaryClientInterceptor.TypeAssumptions.method_set
+  UnaryClientInterceptor.TypeAssumptions.ptr_method_set
 
-abbrev Streamer [FfiSyntax] : Type := GoFunc
+abbrev Streamer [GooseExts] : Type := GoFunc
 
-@[reducible] noncomputable def Streamer.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def Streamer.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.FunctionType (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType StreamDesc.ty), (go.GoType.PointerType ClientConn.ty), go.string, (go.GoType.SliceType CallOption.ty)] true [ClientStream.ty, go.error]))
 
-class Streamer.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class Streamer.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq Streamer.ty Streamer.underlying
+  method_set : go.MethodSetIs Streamer.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType Streamer.ty) []
 
 attribute [instance] Streamer.TypeAssumptions.underlying
+  Streamer.TypeAssumptions.method_set
+  Streamer.TypeAssumptions.ptr_method_set
 
-abbrev StreamClientInterceptor [FfiSyntax] : Type := GoFunc
+abbrev StreamClientInterceptor [GooseExts] : Type := GoFunc
 
-@[reducible] noncomputable def StreamClientInterceptor.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def StreamClientInterceptor.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.FunctionType (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType StreamDesc.ty), (go.GoType.PointerType ClientConn.ty), go.string, Streamer.ty, (go.GoType.SliceType CallOption.ty)] true [ClientStream.ty, go.error]))
 
-class StreamClientInterceptor.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class StreamClientInterceptor.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq StreamClientInterceptor.ty StreamClientInterceptor.underlying
+  method_set : go.MethodSetIs StreamClientInterceptor.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType StreamClientInterceptor.ty) []
 
 attribute [instance] StreamClientInterceptor.TypeAssumptions.underlying
+  StreamClientInterceptor.TypeAssumptions.method_set
+  StreamClientInterceptor.TypeAssumptions.ptr_method_set
 
-structure UnaryServerInfo [FfiSyntax] where
+structure UnaryServerInfo [GooseExts] where
   mk ::
   Server' : GoInterface
   FullMethod' : GoString
 
-noncomputable instance UnaryServerInfo.zero_val [FfiSyntax] : ZeroVal UnaryServerInfo :=
+noncomputable instance UnaryServerInfo.zero_val [GooseExts] : ZeroVal UnaryServerInfo :=
   ⟨UnaryServerInfo.mk zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def UnaryServerInfo.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def UnaryServerInfo.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"Server" go.any),
 (go.field_decl.FieldDecl go!"FullMethod" go.string)]
 
-@[irreducible] noncomputable def UnaryServerInfo.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def UnaryServerInfo.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   UnaryServerInfo.fieldsUnsealed
 
-noncomputable instance equals_unfold_UnaryServerInfo [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_UnaryServerInfo [GooseExts] [GoGlobalContext] :
     EqualsUnfold UnaryServerInfo.fields UnaryServerInfo.fieldsUnsealed :=
   ⟨by unfold UnaryServerInfo.fields; rfl⟩
 
-@[reducible] noncomputable def UnaryServerInfo.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def UnaryServerInfo.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType UnaryServerInfo.fields)
 
-class UnaryServerInfo.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class UnaryServerInfo.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying UnaryServerInfo.underlying UnaryServerInfo
   underlying : go.UnderlyingDirectedEq UnaryServerInfo.ty UnaryServerInfo.underlying
   get_Server : ∀ (x : UnaryServerInfo), go.IsGoStepPureDetTagged under (StructFieldGet UnaryServerInfo.underlying go!"Server") #x (Val #(x.Server'))
   set_Server : ∀ (x : UnaryServerInfo) (y : GoInterface), go.IsGoStepPureDetTagged under (StructFieldSet UnaryServerInfo.underlying go!"Server") (PairV #x #y) (Val #(({ x with Server' := y } : UnaryServerInfo)))
   get_FullMethod : ∀ (x : UnaryServerInfo), go.IsGoStepPureDetTagged under (StructFieldGet UnaryServerInfo.underlying go!"FullMethod") #x (Val #(x.FullMethod'))
   set_FullMethod : ∀ (x : UnaryServerInfo) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet UnaryServerInfo.underlying go!"FullMethod") (PairV #x #y) (Val #(({ x with FullMethod' := y } : UnaryServerInfo)))
+  method_set : go.MethodSetIs UnaryServerInfo.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType UnaryServerInfo.ty) []
 
 attribute [instance] UnaryServerInfo.TypeAssumptions.type_repr
   UnaryServerInfo.TypeAssumptions.underlying
@@ -2267,52 +2389,62 @@ attribute [instance] UnaryServerInfo.TypeAssumptions.type_repr
   UnaryServerInfo.TypeAssumptions.set_Server
   UnaryServerInfo.TypeAssumptions.get_FullMethod
   UnaryServerInfo.TypeAssumptions.set_FullMethod
+  UnaryServerInfo.TypeAssumptions.method_set
+  UnaryServerInfo.TypeAssumptions.ptr_method_set
 
-abbrev UnaryHandler [FfiSyntax] : Type := GoFunc
+abbrev UnaryHandler [GooseExts] : Type := GoFunc
 
-@[reducible] noncomputable def UnaryHandler.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def UnaryHandler.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.FunctionType (go.signature.Signature [_root_.Perennial.context.Context.ty, go.any] false [go.any, go.error]))
 
-class UnaryHandler.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class UnaryHandler.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq UnaryHandler.ty UnaryHandler.underlying
+  method_set : go.MethodSetIs UnaryHandler.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType UnaryHandler.ty) []
 
 attribute [instance] UnaryHandler.TypeAssumptions.underlying
+  UnaryHandler.TypeAssumptions.method_set
+  UnaryHandler.TypeAssumptions.ptr_method_set
 
-abbrev UnaryServerInterceptor [FfiSyntax] : Type := GoFunc
+abbrev UnaryServerInterceptor [GooseExts] : Type := GoFunc
 
-@[reducible] noncomputable def UnaryServerInterceptor.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def UnaryServerInterceptor.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.FunctionType (go.signature.Signature [_root_.Perennial.context.Context.ty, go.any, (go.GoType.PointerType UnaryServerInfo.ty), UnaryHandler.ty] false [go.any, go.error]))
 
-class UnaryServerInterceptor.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class UnaryServerInterceptor.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq UnaryServerInterceptor.ty UnaryServerInterceptor.underlying
+  method_set : go.MethodSetIs UnaryServerInterceptor.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType UnaryServerInterceptor.ty) []
 
 attribute [instance] UnaryServerInterceptor.TypeAssumptions.underlying
+  UnaryServerInterceptor.TypeAssumptions.method_set
+  UnaryServerInterceptor.TypeAssumptions.ptr_method_set
 
-structure StreamServerInfo [FfiSyntax] where
+structure StreamServerInfo [GooseExts] where
   mk ::
   FullMethod' : GoString
   IsClientStream' : Bool
   IsServerStream' : Bool
 
-noncomputable instance StreamServerInfo.zero_val [FfiSyntax] : ZeroVal StreamServerInfo :=
+noncomputable instance StreamServerInfo.zero_val [GooseExts] : ZeroVal StreamServerInfo :=
   ⟨StreamServerInfo.mk zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def StreamServerInfo.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def StreamServerInfo.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"FullMethod" go.string),
 (go.field_decl.FieldDecl go!"IsClientStream" go.bool),
 (go.field_decl.FieldDecl go!"IsServerStream" go.bool)]
 
-@[irreducible] noncomputable def StreamServerInfo.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def StreamServerInfo.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   StreamServerInfo.fieldsUnsealed
 
-noncomputable instance equals_unfold_StreamServerInfo [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_StreamServerInfo [GooseExts] [GoGlobalContext] :
     EqualsUnfold StreamServerInfo.fields StreamServerInfo.fieldsUnsealed :=
   ⟨by unfold StreamServerInfo.fields; rfl⟩
 
-@[reducible] noncomputable def StreamServerInfo.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def StreamServerInfo.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType StreamServerInfo.fields)
 
-class StreamServerInfo.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class StreamServerInfo.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying StreamServerInfo.underlying StreamServerInfo
   underlying : go.UnderlyingDirectedEq StreamServerInfo.ty StreamServerInfo.underlying
   get_FullMethod : ∀ (x : StreamServerInfo), go.IsGoStepPureDetTagged under (StructFieldGet StreamServerInfo.underlying go!"FullMethod") #x (Val #(x.FullMethod'))
@@ -2321,6 +2453,8 @@ class StreamServerInfo.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalCon
   set_IsClientStream : ∀ (x : StreamServerInfo) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet StreamServerInfo.underlying go!"IsClientStream") (PairV #x #y) (Val #(({ x with IsClientStream' := y } : StreamServerInfo)))
   get_IsServerStream : ∀ (x : StreamServerInfo), go.IsGoStepPureDetTagged under (StructFieldGet StreamServerInfo.underlying go!"IsServerStream") #x (Val #(x.IsServerStream'))
   set_IsServerStream : ∀ (x : StreamServerInfo) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet StreamServerInfo.underlying go!"IsServerStream") (PairV #x #y) (Val #(({ x with IsServerStream' := y } : StreamServerInfo)))
+  method_set : go.MethodSetIs StreamServerInfo.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType StreamServerInfo.ty) []
 
 attribute [instance] StreamServerInfo.TypeAssumptions.type_repr
   StreamServerInfo.TypeAssumptions.underlying
@@ -2330,796 +2464,952 @@ attribute [instance] StreamServerInfo.TypeAssumptions.type_repr
   StreamServerInfo.TypeAssumptions.set_IsClientStream
   StreamServerInfo.TypeAssumptions.get_IsServerStream
   StreamServerInfo.TypeAssumptions.set_IsServerStream
+  StreamServerInfo.TypeAssumptions.method_set
+  StreamServerInfo.TypeAssumptions.ptr_method_set
 
-abbrev StreamServerInterceptor [FfiSyntax] : Type := GoFunc
+abbrev StreamServerInterceptor [GooseExts] : Type := GoFunc
 
-@[reducible] noncomputable def StreamServerInterceptor.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def StreamServerInterceptor.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.FunctionType (go.signature.Signature [go.any, ServerStream.ty, (go.GoType.PointerType StreamServerInfo.ty), StreamHandler.ty] false [go.error]))
 
-class StreamServerInterceptor.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class StreamServerInterceptor.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq StreamServerInterceptor.ty StreamServerInterceptor.underlying
+  method_set : go.MethodSetIs StreamServerInterceptor.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType StreamServerInterceptor.ty) []
 
 attribute [instance] StreamServerInterceptor.TypeAssumptions.underlying
+  StreamServerInterceptor.TypeAssumptions.method_set
+  StreamServerInterceptor.TypeAssumptions.ptr_method_set
 
 axiom pickerGeneration : Type
 axiom pickerGeneration.zero_val : ZeroVal pickerGeneration
 attribute [instance] pickerGeneration.zero_val
 
-class pickerGeneration.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class pickerGeneration.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying pickerGeneration.underlying pickerGeneration
   underlying : go.UnderlyingDirectedEq pickerGeneration.ty pickerGeneration.underlying
   isUnderlying : go.IsUnderlying pickerGeneration.underlying pickerGeneration.underlying
+  method_set : go.MethodSetIs pickerGeneration.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType pickerGeneration.ty) []
 
 attribute [instance] pickerGeneration.TypeAssumptions.type_repr
   pickerGeneration.TypeAssumptions.underlying
   pickerGeneration.TypeAssumptions.isUnderlying
+  pickerGeneration.TypeAssumptions.method_set
+  pickerGeneration.TypeAssumptions.ptr_method_set
 
 axiom pickerWrapper : Type
 axiom pickerWrapper.zero_val : ZeroVal pickerWrapper
 attribute [instance] pickerWrapper.zero_val
 
-class pickerWrapper.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class pickerWrapper.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying pickerWrapper.underlying pickerWrapper
   underlying : go.UnderlyingDirectedEq pickerWrapper.ty pickerWrapper.underlying
   isUnderlying : go.IsUnderlying pickerWrapper.underlying pickerWrapper.underlying
+  method_set : go.MethodSetIs pickerWrapper.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType pickerWrapper.ty) [(go!"google.golang.org/grpc.close", (some (go.signature.Signature [] false []))), (go!"google.golang.org/grpc.pick", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.bool, (go.GoType.Named go!"google.golang.org/grpc/balancer.PickInfo" [])] false [pick.ty, go.error]))), (go!"google.golang.org/grpc.reset", (some (go.signature.Signature [] false []))), (go!"google.golang.org/grpc.updatePicker", (some (go.signature.Signature [(go.GoType.Named go!"google.golang.org/grpc/balancer.Picker" [])] false [])))]
 
 attribute [instance] pickerWrapper.TypeAssumptions.type_repr
   pickerWrapper.TypeAssumptions.underlying
   pickerWrapper.TypeAssumptions.isUnderlying
+  pickerWrapper.TypeAssumptions.method_set
+  pickerWrapper.TypeAssumptions.ptr_method_set
 
 axiom pick : Type
 axiom pick.zero_val : ZeroVal pick
 attribute [instance] pick.zero_val
 
-class pick.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class pick.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying pick.underlying pick
   underlying : go.UnderlyingDirectedEq pick.ty pick.underlying
   isUnderlying : go.IsUnderlying pick.underlying pick.underlying
+  method_set : go.MethodSetIs pick.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType pick.ty) []
 
 attribute [instance] pick.TypeAssumptions.type_repr
   pick.TypeAssumptions.underlying
   pick.TypeAssumptions.isUnderlying
+  pick.TypeAssumptions.method_set
+  pick.TypeAssumptions.ptr_method_set
 
-structure dropError [FfiSyntax] where
+structure dropError [GooseExts] where
   mk ::
   error' : GoError
 
-noncomputable instance dropError.zero_val [FfiSyntax] : ZeroVal dropError :=
+noncomputable instance dropError.zero_val [GooseExts] : ZeroVal dropError :=
   ⟨dropError.mk zeroValDef⟩
 
-@[reducible] noncomputable def dropError.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def dropError.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.EmbeddedField go!"error" go.error)]
 
-@[irreducible] noncomputable def dropError.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def dropError.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   dropError.fieldsUnsealed
 
-noncomputable instance equals_unfold_dropError [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_dropError [GooseExts] [GoGlobalContext] :
     EqualsUnfold dropError.fields dropError.fieldsUnsealed :=
   ⟨by unfold dropError.fields; rfl⟩
 
-@[reducible] noncomputable def dropError.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def dropError.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType dropError.fields)
 
-class dropError.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class dropError.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying dropError.underlying dropError
   underlying : go.UnderlyingDirectedEq dropError.ty dropError.underlying
   get_error : ∀ (x : dropError), go.IsGoStepPureDetTagged under (StructFieldGet dropError.underlying go!"error") #x (Val #(x.error'))
   set_error : ∀ (x : dropError) (y : GoError), go.IsGoStepPureDetTagged under (StructFieldSet dropError.underlying go!"error") (PairV #x #y) (Val #(({ x with error' := y } : dropError)))
+  method_set : go.MethodSetIs dropError.ty [(go!"Error", (some (go.signature.Signature [] false [go.string])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType dropError.ty) [(go!"Error", (some (go.signature.Signature [] false [go.string])))]
 
 attribute [instance] dropError.TypeAssumptions.type_repr
   dropError.TypeAssumptions.underlying
   dropError.TypeAssumptions.get_error
   dropError.TypeAssumptions.set_error
+  dropError.TypeAssumptions.method_set
+  dropError.TypeAssumptions.ptr_method_set
 
 axiom PreparedMsg : Type
 axiom PreparedMsg.zero_val : ZeroVal PreparedMsg
 attribute [instance] PreparedMsg.zero_val
 
-class PreparedMsg.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class PreparedMsg.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying PreparedMsg.underlying PreparedMsg
   underlying : go.UnderlyingDirectedEq PreparedMsg.ty PreparedMsg.underlying
   isUnderlying : go.IsUnderlying PreparedMsg.underlying PreparedMsg.underlying
+  method_set : go.MethodSetIs PreparedMsg.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType PreparedMsg.ty) [(go!"Encode", (some (go.signature.Signature [Stream.ty, go.any] false [go.error])))]
 
 attribute [instance] PreparedMsg.TypeAssumptions.type_repr
   PreparedMsg.TypeAssumptions.underlying
   PreparedMsg.TypeAssumptions.isUnderlying
+  PreparedMsg.TypeAssumptions.method_set
+  PreparedMsg.TypeAssumptions.ptr_method_set
 
 axiom ccResolverWrapper : Type
 axiom ccResolverWrapper.zero_val : ZeroVal ccResolverWrapper
 attribute [instance] ccResolverWrapper.zero_val
 
-class ccResolverWrapper.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class ccResolverWrapper.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying ccResolverWrapper.underlying ccResolverWrapper
   underlying : go.UnderlyingDirectedEq ccResolverWrapper.ty ccResolverWrapper.underlying
   isUnderlying : go.IsUnderlying ccResolverWrapper.underlying ccResolverWrapper.underlying
+  method_set : go.MethodSetIs ccResolverWrapper.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType ccResolverWrapper.ty) [(go!"NewAddress", (some (go.signature.Signature [(go.GoType.SliceType (go.GoType.Named go!"google.golang.org/grpc/resolver.Address" []))] false []))), (go!"ParseServiceConfig", (some (go.signature.Signature [go.string] false [(go.GoType.PointerType (go.GoType.Named go!"google.golang.org/grpc/serviceconfig.ParseResult" []))]))), (go!"ReportError", (some (go.signature.Signature [go.error] false []))), (go!"UpdateState", (some (go.signature.Signature [(go.GoType.Named go!"google.golang.org/grpc/resolver.State" [])] false [go.error]))), (go!"google.golang.org/grpc.addChannelzTraceEvent", (some (go.signature.Signature [(go.GoType.Named go!"google.golang.org/grpc/resolver.State" [])] false []))), (go!"google.golang.org/grpc.close", (some (go.signature.Signature [] false []))), (go!"google.golang.org/grpc.resolveNow", (some (go.signature.Signature [(go.GoType.Named go!"google.golang.org/grpc/resolver.ResolveNowOptions" [])] false []))), (go!"google.golang.org/grpc.start", (some (go.signature.Signature [] false [go.error])))]
 
 attribute [instance] ccResolverWrapper.TypeAssumptions.type_repr
   ccResolverWrapper.TypeAssumptions.underlying
   ccResolverWrapper.TypeAssumptions.isUnderlying
+  ccResolverWrapper.TypeAssumptions.method_set
+  ccResolverWrapper.TypeAssumptions.ptr_method_set
 
 axiom Compressor : Type
 axiom Compressor.zero_val : ZeroVal Compressor
 attribute [instance] Compressor.zero_val
 
-class Compressor.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class Compressor.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying Compressor.underlying Compressor
   underlying : go.UnderlyingDirectedEq Compressor.ty Compressor.underlying
   isUnderlying : go.IsUnderlying Compressor.underlying Compressor.underlying
+  method_set : go.MethodSetIs Compressor.ty [(go!"Do", (some (go.signature.Signature [(go.GoType.Named go!"io.Writer" []), (go.GoType.SliceType go.byte)] false [go.error]))), (go!"Type", (some (go.signature.Signature [] false [go.string])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType Compressor.ty) []
 
 attribute [instance] Compressor.TypeAssumptions.type_repr
   Compressor.TypeAssumptions.underlying
   Compressor.TypeAssumptions.isUnderlying
+  Compressor.TypeAssumptions.method_set
+  Compressor.TypeAssumptions.ptr_method_set
 
 axiom gzipCompressor : Type
 axiom gzipCompressor.zero_val : ZeroVal gzipCompressor
 attribute [instance] gzipCompressor.zero_val
 
-class gzipCompressor.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class gzipCompressor.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying gzipCompressor.underlying gzipCompressor
   underlying : go.UnderlyingDirectedEq gzipCompressor.ty gzipCompressor.underlying
   isUnderlying : go.IsUnderlying gzipCompressor.underlying gzipCompressor.underlying
+  method_set : go.MethodSetIs gzipCompressor.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType gzipCompressor.ty) [(go!"Do", (some (go.signature.Signature [(go.GoType.Named go!"io.Writer" []), (go.GoType.SliceType go.byte)] false [go.error]))), (go!"Type", (some (go.signature.Signature [] false [go.string])))]
 
 attribute [instance] gzipCompressor.TypeAssumptions.type_repr
   gzipCompressor.TypeAssumptions.underlying
   gzipCompressor.TypeAssumptions.isUnderlying
+  gzipCompressor.TypeAssumptions.method_set
+  gzipCompressor.TypeAssumptions.ptr_method_set
 
 axiom Decompressor : Type
 axiom Decompressor.zero_val : ZeroVal Decompressor
 attribute [instance] Decompressor.zero_val
 
-class Decompressor.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class Decompressor.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying Decompressor.underlying Decompressor
   underlying : go.UnderlyingDirectedEq Decompressor.ty Decompressor.underlying
   isUnderlying : go.IsUnderlying Decompressor.underlying Decompressor.underlying
+  method_set : go.MethodSetIs Decompressor.ty [(go!"Do", (some (go.signature.Signature [(go.GoType.Named go!"io.Reader" [])] false [(go.GoType.SliceType go.byte), go.error]))), (go!"Type", (some (go.signature.Signature [] false [go.string])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType Decompressor.ty) []
 
 attribute [instance] Decompressor.TypeAssumptions.type_repr
   Decompressor.TypeAssumptions.underlying
   Decompressor.TypeAssumptions.isUnderlying
+  Decompressor.TypeAssumptions.method_set
+  Decompressor.TypeAssumptions.ptr_method_set
 
 axiom gzipDecompressor : Type
 axiom gzipDecompressor.zero_val : ZeroVal gzipDecompressor
 attribute [instance] gzipDecompressor.zero_val
 
-class gzipDecompressor.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class gzipDecompressor.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying gzipDecompressor.underlying gzipDecompressor
   underlying : go.UnderlyingDirectedEq gzipDecompressor.ty gzipDecompressor.underlying
   isUnderlying : go.IsUnderlying gzipDecompressor.underlying gzipDecompressor.underlying
+  method_set : go.MethodSetIs gzipDecompressor.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType gzipDecompressor.ty) [(go!"Do", (some (go.signature.Signature [(go.GoType.Named go!"io.Reader" [])] false [(go.GoType.SliceType go.byte), go.error]))), (go!"Type", (some (go.signature.Signature [] false [go.string]))), (go!"google.golang.org/grpc.doWithMaxSize", (some (go.signature.Signature [(go.GoType.Named go!"io.Reader" []), go.int64] false [(go.GoType.SliceType go.byte), go.error])))]
 
 attribute [instance] gzipDecompressor.TypeAssumptions.type_repr
   gzipDecompressor.TypeAssumptions.underlying
   gzipDecompressor.TypeAssumptions.isUnderlying
+  gzipDecompressor.TypeAssumptions.method_set
+  gzipDecompressor.TypeAssumptions.ptr_method_set
 
 axiom callInfo : Type
 axiom callInfo.zero_val : ZeroVal callInfo
 attribute [instance] callInfo.zero_val
 
-class callInfo.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class callInfo.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying callInfo.underlying callInfo
   underlying : go.UnderlyingDirectedEq callInfo.ty callInfo.underlying
   isUnderlying : go.IsUnderlying callInfo.underlying callInfo.underlying
+  method_set : go.MethodSetIs callInfo.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType callInfo.ty) []
 
 attribute [instance] callInfo.TypeAssumptions.type_repr
   callInfo.TypeAssumptions.underlying
   callInfo.TypeAssumptions.isUnderlying
+  callInfo.TypeAssumptions.method_set
+  callInfo.TypeAssumptions.ptr_method_set
 
-abbrev CallOption [FfiSyntax] : Type := GoInterface
+abbrev CallOption [GooseExts] : Type := GoInterface
 
-@[reducible] noncomputable def CallOption.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
-  (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"after" (go.signature.Signature [(go.GoType.PointerType callInfo.ty), (go.GoType.PointerType csAttempt.ty)] false [])), (go.InterfaceElem.MethodElem go!"before" (go.signature.Signature [(go.GoType.PointerType callInfo.ty)] false [go.error]))])
+@[reducible] noncomputable def CallOption.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
+  (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"google.golang.org/grpc.after" (go.signature.Signature [(go.GoType.PointerType callInfo.ty), (go.GoType.PointerType csAttempt.ty)] false [])), (go.InterfaceElem.MethodElem go!"google.golang.org/grpc.before" (go.signature.Signature [(go.GoType.PointerType callInfo.ty)] false [go.error]))])
 
-class CallOption.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class CallOption.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq CallOption.ty CallOption.underlying
+  method_set : go.MethodSetIs CallOption.ty [(go!"google.golang.org/grpc.after", (some (go.signature.Signature [(go.GoType.PointerType callInfo.ty), (go.GoType.PointerType csAttempt.ty)] false []))), (go!"google.golang.org/grpc.before", (some (go.signature.Signature [(go.GoType.PointerType callInfo.ty)] false [go.error])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType CallOption.ty) []
 
 attribute [instance] CallOption.TypeAssumptions.underlying
+  CallOption.TypeAssumptions.method_set
+  CallOption.TypeAssumptions.ptr_method_set
 
-structure EmptyCallOption [FfiSyntax] where
+structure EmptyCallOption [GooseExts] where
   mk ::
 
-noncomputable instance EmptyCallOption.zero_val [FfiSyntax] : ZeroVal EmptyCallOption :=
+noncomputable instance EmptyCallOption.zero_val [GooseExts] : ZeroVal EmptyCallOption :=
   ⟨EmptyCallOption.mk⟩
 
-@[reducible] noncomputable def EmptyCallOption.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def EmptyCallOption.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   []
 
-@[irreducible] noncomputable def EmptyCallOption.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def EmptyCallOption.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   EmptyCallOption.fieldsUnsealed
 
-noncomputable instance equals_unfold_EmptyCallOption [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_EmptyCallOption [GooseExts] [GoGlobalContext] :
     EqualsUnfold EmptyCallOption.fields EmptyCallOption.fieldsUnsealed :=
   ⟨by unfold EmptyCallOption.fields; rfl⟩
 
-@[reducible] noncomputable def EmptyCallOption.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def EmptyCallOption.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType EmptyCallOption.fields)
 
-class EmptyCallOption.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class EmptyCallOption.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying EmptyCallOption.underlying EmptyCallOption
   underlying : go.UnderlyingDirectedEq EmptyCallOption.ty EmptyCallOption.underlying
+  method_set : go.MethodSetIs EmptyCallOption.ty [(go!"google.golang.org/grpc.after", (some (go.signature.Signature [(go.GoType.PointerType callInfo.ty), (go.GoType.PointerType csAttempt.ty)] false []))), (go!"google.golang.org/grpc.before", (some (go.signature.Signature [(go.GoType.PointerType callInfo.ty)] false [go.error])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType EmptyCallOption.ty) [(go!"google.golang.org/grpc.after", (some (go.signature.Signature [(go.GoType.PointerType callInfo.ty), (go.GoType.PointerType csAttempt.ty)] false []))), (go!"google.golang.org/grpc.before", (some (go.signature.Signature [(go.GoType.PointerType callInfo.ty)] false [go.error])))]
 
 attribute [instance] EmptyCallOption.TypeAssumptions.type_repr
   EmptyCallOption.TypeAssumptions.underlying
+  EmptyCallOption.TypeAssumptions.method_set
+  EmptyCallOption.TypeAssumptions.ptr_method_set
 
-structure StaticMethodCallOption [FfiSyntax] where
+structure StaticMethodCallOption [GooseExts] where
   mk ::
   EmptyCallOption' : EmptyCallOption
 
-noncomputable instance StaticMethodCallOption.zero_val [FfiSyntax] : ZeroVal StaticMethodCallOption :=
+noncomputable instance StaticMethodCallOption.zero_val [GooseExts] : ZeroVal StaticMethodCallOption :=
   ⟨StaticMethodCallOption.mk zeroValDef⟩
 
-@[reducible] noncomputable def StaticMethodCallOption.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def StaticMethodCallOption.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.EmbeddedField go!"EmptyCallOption" EmptyCallOption.ty)]
 
-@[irreducible] noncomputable def StaticMethodCallOption.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def StaticMethodCallOption.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   StaticMethodCallOption.fieldsUnsealed
 
-noncomputable instance equals_unfold_StaticMethodCallOption [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_StaticMethodCallOption [GooseExts] [GoGlobalContext] :
     EqualsUnfold StaticMethodCallOption.fields StaticMethodCallOption.fieldsUnsealed :=
   ⟨by unfold StaticMethodCallOption.fields; rfl⟩
 
-@[reducible] noncomputable def StaticMethodCallOption.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def StaticMethodCallOption.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType StaticMethodCallOption.fields)
 
-class StaticMethodCallOption.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class StaticMethodCallOption.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying StaticMethodCallOption.underlying StaticMethodCallOption
   underlying : go.UnderlyingDirectedEq StaticMethodCallOption.ty StaticMethodCallOption.underlying
   get_EmptyCallOption : ∀ (x : StaticMethodCallOption), go.IsGoStepPureDetTagged under (StructFieldGet StaticMethodCallOption.underlying go!"EmptyCallOption") #x (Val #(x.EmptyCallOption'))
   set_EmptyCallOption : ∀ (x : StaticMethodCallOption) (y : EmptyCallOption), go.IsGoStepPureDetTagged under (StructFieldSet StaticMethodCallOption.underlying go!"EmptyCallOption") (PairV #x #y) (Val #(({ x with EmptyCallOption' := y } : StaticMethodCallOption)))
+  method_set : go.MethodSetIs StaticMethodCallOption.ty [(go!"google.golang.org/grpc.after", (some (go.signature.Signature [(go.GoType.PointerType callInfo.ty), (go.GoType.PointerType csAttempt.ty)] false []))), (go!"google.golang.org/grpc.before", (some (go.signature.Signature [(go.GoType.PointerType callInfo.ty)] false [go.error])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType StaticMethodCallOption.ty) [(go!"google.golang.org/grpc.after", (some (go.signature.Signature [(go.GoType.PointerType callInfo.ty), (go.GoType.PointerType csAttempt.ty)] false []))), (go!"google.golang.org/grpc.before", (some (go.signature.Signature [(go.GoType.PointerType callInfo.ty)] false [go.error])))]
 
 attribute [instance] StaticMethodCallOption.TypeAssumptions.type_repr
   StaticMethodCallOption.TypeAssumptions.underlying
   StaticMethodCallOption.TypeAssumptions.get_EmptyCallOption
   StaticMethodCallOption.TypeAssumptions.set_EmptyCallOption
+  StaticMethodCallOption.TypeAssumptions.method_set
+  StaticMethodCallOption.TypeAssumptions.ptr_method_set
 
-structure HeaderCallOption [FfiSyntax] where
+structure HeaderCallOption [GooseExts] where
   mk ::
   HeaderAddr' : Loc
 
-noncomputable instance HeaderCallOption.zero_val [FfiSyntax] : ZeroVal HeaderCallOption :=
+noncomputable instance HeaderCallOption.zero_val [GooseExts] : ZeroVal HeaderCallOption :=
   ⟨HeaderCallOption.mk zeroValDef⟩
 
-@[reducible] noncomputable def HeaderCallOption.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def HeaderCallOption.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"HeaderAddr" (go.GoType.PointerType _root_.Perennial.google_golang_org.grpc.metadata.MD.ty))]
 
-@[irreducible] noncomputable def HeaderCallOption.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def HeaderCallOption.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   HeaderCallOption.fieldsUnsealed
 
-noncomputable instance equals_unfold_HeaderCallOption [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_HeaderCallOption [GooseExts] [GoGlobalContext] :
     EqualsUnfold HeaderCallOption.fields HeaderCallOption.fieldsUnsealed :=
   ⟨by unfold HeaderCallOption.fields; rfl⟩
 
-@[reducible] noncomputable def HeaderCallOption.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def HeaderCallOption.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType HeaderCallOption.fields)
 
-class HeaderCallOption.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class HeaderCallOption.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying HeaderCallOption.underlying HeaderCallOption
   underlying : go.UnderlyingDirectedEq HeaderCallOption.ty HeaderCallOption.underlying
   get_HeaderAddr : ∀ (x : HeaderCallOption), go.IsGoStepPureDetTagged under (StructFieldGet HeaderCallOption.underlying go!"HeaderAddr") #x (Val #(x.HeaderAddr'))
   set_HeaderAddr : ∀ (x : HeaderCallOption) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet HeaderCallOption.underlying go!"HeaderAddr") (PairV #x #y) (Val #(({ x with HeaderAddr' := y } : HeaderCallOption)))
+  method_set : go.MethodSetIs HeaderCallOption.ty [(go!"google.golang.org/grpc.after", (some (go.signature.Signature [(go.GoType.PointerType callInfo.ty), (go.GoType.PointerType csAttempt.ty)] false []))), (go!"google.golang.org/grpc.before", (some (go.signature.Signature [(go.GoType.PointerType callInfo.ty)] false [go.error])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType HeaderCallOption.ty) [(go!"google.golang.org/grpc.after", (some (go.signature.Signature [(go.GoType.PointerType callInfo.ty), (go.GoType.PointerType csAttempt.ty)] false []))), (go!"google.golang.org/grpc.before", (some (go.signature.Signature [(go.GoType.PointerType callInfo.ty)] false [go.error])))]
 
 attribute [instance] HeaderCallOption.TypeAssumptions.type_repr
   HeaderCallOption.TypeAssumptions.underlying
   HeaderCallOption.TypeAssumptions.get_HeaderAddr
   HeaderCallOption.TypeAssumptions.set_HeaderAddr
+  HeaderCallOption.TypeAssumptions.method_set
+  HeaderCallOption.TypeAssumptions.ptr_method_set
 
-structure TrailerCallOption [FfiSyntax] where
+structure TrailerCallOption [GooseExts] where
   mk ::
   TrailerAddr' : Loc
 
-noncomputable instance TrailerCallOption.zero_val [FfiSyntax] : ZeroVal TrailerCallOption :=
+noncomputable instance TrailerCallOption.zero_val [GooseExts] : ZeroVal TrailerCallOption :=
   ⟨TrailerCallOption.mk zeroValDef⟩
 
-@[reducible] noncomputable def TrailerCallOption.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def TrailerCallOption.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"TrailerAddr" (go.GoType.PointerType _root_.Perennial.google_golang_org.grpc.metadata.MD.ty))]
 
-@[irreducible] noncomputable def TrailerCallOption.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def TrailerCallOption.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   TrailerCallOption.fieldsUnsealed
 
-noncomputable instance equals_unfold_TrailerCallOption [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_TrailerCallOption [GooseExts] [GoGlobalContext] :
     EqualsUnfold TrailerCallOption.fields TrailerCallOption.fieldsUnsealed :=
   ⟨by unfold TrailerCallOption.fields; rfl⟩
 
-@[reducible] noncomputable def TrailerCallOption.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def TrailerCallOption.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType TrailerCallOption.fields)
 
-class TrailerCallOption.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class TrailerCallOption.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying TrailerCallOption.underlying TrailerCallOption
   underlying : go.UnderlyingDirectedEq TrailerCallOption.ty TrailerCallOption.underlying
   get_TrailerAddr : ∀ (x : TrailerCallOption), go.IsGoStepPureDetTagged under (StructFieldGet TrailerCallOption.underlying go!"TrailerAddr") #x (Val #(x.TrailerAddr'))
   set_TrailerAddr : ∀ (x : TrailerCallOption) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet TrailerCallOption.underlying go!"TrailerAddr") (PairV #x #y) (Val #(({ x with TrailerAddr' := y } : TrailerCallOption)))
+  method_set : go.MethodSetIs TrailerCallOption.ty [(go!"google.golang.org/grpc.after", (some (go.signature.Signature [(go.GoType.PointerType callInfo.ty), (go.GoType.PointerType csAttempt.ty)] false []))), (go!"google.golang.org/grpc.before", (some (go.signature.Signature [(go.GoType.PointerType callInfo.ty)] false [go.error])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType TrailerCallOption.ty) [(go!"google.golang.org/grpc.after", (some (go.signature.Signature [(go.GoType.PointerType callInfo.ty), (go.GoType.PointerType csAttempt.ty)] false []))), (go!"google.golang.org/grpc.before", (some (go.signature.Signature [(go.GoType.PointerType callInfo.ty)] false [go.error])))]
 
 attribute [instance] TrailerCallOption.TypeAssumptions.type_repr
   TrailerCallOption.TypeAssumptions.underlying
   TrailerCallOption.TypeAssumptions.get_TrailerAddr
   TrailerCallOption.TypeAssumptions.set_TrailerAddr
+  TrailerCallOption.TypeAssumptions.method_set
+  TrailerCallOption.TypeAssumptions.ptr_method_set
 
 axiom PeerCallOption : Type
 axiom PeerCallOption.zero_val : ZeroVal PeerCallOption
 attribute [instance] PeerCallOption.zero_val
 
-class PeerCallOption.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class PeerCallOption.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying PeerCallOption.underlying PeerCallOption
   underlying : go.UnderlyingDirectedEq PeerCallOption.ty PeerCallOption.underlying
   isUnderlying : go.IsUnderlying PeerCallOption.underlying PeerCallOption.underlying
+  method_set : go.MethodSetIs PeerCallOption.ty [(go!"google.golang.org/grpc.after", (some (go.signature.Signature [(go.GoType.PointerType callInfo.ty), (go.GoType.PointerType csAttempt.ty)] false []))), (go!"google.golang.org/grpc.before", (some (go.signature.Signature [(go.GoType.PointerType callInfo.ty)] false [go.error])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType PeerCallOption.ty) [(go!"google.golang.org/grpc.after", (some (go.signature.Signature [(go.GoType.PointerType callInfo.ty), (go.GoType.PointerType csAttempt.ty)] false []))), (go!"google.golang.org/grpc.before", (some (go.signature.Signature [(go.GoType.PointerType callInfo.ty)] false [go.error])))]
 
 attribute [instance] PeerCallOption.TypeAssumptions.type_repr
   PeerCallOption.TypeAssumptions.underlying
   PeerCallOption.TypeAssumptions.isUnderlying
+  PeerCallOption.TypeAssumptions.method_set
+  PeerCallOption.TypeAssumptions.ptr_method_set
 
-structure FailFastCallOption [FfiSyntax] where
+structure FailFastCallOption [GooseExts] where
   mk ::
   FailFast' : Bool
 
-noncomputable instance FailFastCallOption.zero_val [FfiSyntax] : ZeroVal FailFastCallOption :=
+noncomputable instance FailFastCallOption.zero_val [GooseExts] : ZeroVal FailFastCallOption :=
   ⟨FailFastCallOption.mk zeroValDef⟩
 
-@[reducible] noncomputable def FailFastCallOption.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def FailFastCallOption.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"FailFast" go.bool)]
 
-@[irreducible] noncomputable def FailFastCallOption.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def FailFastCallOption.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   FailFastCallOption.fieldsUnsealed
 
-noncomputable instance equals_unfold_FailFastCallOption [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_FailFastCallOption [GooseExts] [GoGlobalContext] :
     EqualsUnfold FailFastCallOption.fields FailFastCallOption.fieldsUnsealed :=
   ⟨by unfold FailFastCallOption.fields; rfl⟩
 
-@[reducible] noncomputable def FailFastCallOption.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def FailFastCallOption.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType FailFastCallOption.fields)
 
-class FailFastCallOption.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class FailFastCallOption.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying FailFastCallOption.underlying FailFastCallOption
   underlying : go.UnderlyingDirectedEq FailFastCallOption.ty FailFastCallOption.underlying
   get_FailFast : ∀ (x : FailFastCallOption), go.IsGoStepPureDetTagged under (StructFieldGet FailFastCallOption.underlying go!"FailFast") #x (Val #(x.FailFast'))
   set_FailFast : ∀ (x : FailFastCallOption) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet FailFastCallOption.underlying go!"FailFast") (PairV #x #y) (Val #(({ x with FailFast' := y } : FailFastCallOption)))
+  method_set : go.MethodSetIs FailFastCallOption.ty [(go!"google.golang.org/grpc.after", (some (go.signature.Signature [(go.GoType.PointerType callInfo.ty), (go.GoType.PointerType csAttempt.ty)] false []))), (go!"google.golang.org/grpc.before", (some (go.signature.Signature [(go.GoType.PointerType callInfo.ty)] false [go.error])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType FailFastCallOption.ty) [(go!"google.golang.org/grpc.after", (some (go.signature.Signature [(go.GoType.PointerType callInfo.ty), (go.GoType.PointerType csAttempt.ty)] false []))), (go!"google.golang.org/grpc.before", (some (go.signature.Signature [(go.GoType.PointerType callInfo.ty)] false [go.error])))]
 
 attribute [instance] FailFastCallOption.TypeAssumptions.type_repr
   FailFastCallOption.TypeAssumptions.underlying
   FailFastCallOption.TypeAssumptions.get_FailFast
   FailFastCallOption.TypeAssumptions.set_FailFast
+  FailFastCallOption.TypeAssumptions.method_set
+  FailFastCallOption.TypeAssumptions.ptr_method_set
 
-structure OnFinishCallOption [FfiSyntax] where
+structure OnFinishCallOption [GooseExts] where
   mk ::
   OnFinish' : GoFunc
 
-noncomputable instance OnFinishCallOption.zero_val [FfiSyntax] : ZeroVal OnFinishCallOption :=
+noncomputable instance OnFinishCallOption.zero_val [GooseExts] : ZeroVal OnFinishCallOption :=
   ⟨OnFinishCallOption.mk zeroValDef⟩
 
-@[reducible] noncomputable def OnFinishCallOption.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def OnFinishCallOption.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"OnFinish" (go.GoType.FunctionType (go.signature.Signature [go.error] false [])))]
 
-@[irreducible] noncomputable def OnFinishCallOption.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def OnFinishCallOption.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   OnFinishCallOption.fieldsUnsealed
 
-noncomputable instance equals_unfold_OnFinishCallOption [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_OnFinishCallOption [GooseExts] [GoGlobalContext] :
     EqualsUnfold OnFinishCallOption.fields OnFinishCallOption.fieldsUnsealed :=
   ⟨by unfold OnFinishCallOption.fields; rfl⟩
 
-@[reducible] noncomputable def OnFinishCallOption.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def OnFinishCallOption.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType OnFinishCallOption.fields)
 
-class OnFinishCallOption.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class OnFinishCallOption.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying OnFinishCallOption.underlying OnFinishCallOption
   underlying : go.UnderlyingDirectedEq OnFinishCallOption.ty OnFinishCallOption.underlying
   get_OnFinish : ∀ (x : OnFinishCallOption), go.IsGoStepPureDetTagged under (StructFieldGet OnFinishCallOption.underlying go!"OnFinish") #x (Val #(x.OnFinish'))
   set_OnFinish : ∀ (x : OnFinishCallOption) (y : GoFunc), go.IsGoStepPureDetTagged under (StructFieldSet OnFinishCallOption.underlying go!"OnFinish") (PairV #x #y) (Val #(({ x with OnFinish' := y } : OnFinishCallOption)))
+  method_set : go.MethodSetIs OnFinishCallOption.ty [(go!"google.golang.org/grpc.after", (some (go.signature.Signature [(go.GoType.PointerType callInfo.ty), (go.GoType.PointerType csAttempt.ty)] false []))), (go!"google.golang.org/grpc.before", (some (go.signature.Signature [(go.GoType.PointerType callInfo.ty)] false [go.error])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType OnFinishCallOption.ty) [(go!"google.golang.org/grpc.after", (some (go.signature.Signature [(go.GoType.PointerType callInfo.ty), (go.GoType.PointerType csAttempt.ty)] false []))), (go!"google.golang.org/grpc.before", (some (go.signature.Signature [(go.GoType.PointerType callInfo.ty)] false [go.error])))]
 
 attribute [instance] OnFinishCallOption.TypeAssumptions.type_repr
   OnFinishCallOption.TypeAssumptions.underlying
   OnFinishCallOption.TypeAssumptions.get_OnFinish
   OnFinishCallOption.TypeAssumptions.set_OnFinish
+  OnFinishCallOption.TypeAssumptions.method_set
+  OnFinishCallOption.TypeAssumptions.ptr_method_set
 
-structure MaxRecvMsgSizeCallOption [FfiSyntax] where
+structure MaxRecvMsgSizeCallOption [GooseExts] where
   mk ::
   MaxRecvMsgSize' : w64
 
-noncomputable instance MaxRecvMsgSizeCallOption.zero_val [FfiSyntax] : ZeroVal MaxRecvMsgSizeCallOption :=
+noncomputable instance MaxRecvMsgSizeCallOption.zero_val [GooseExts] : ZeroVal MaxRecvMsgSizeCallOption :=
   ⟨MaxRecvMsgSizeCallOption.mk zeroValDef⟩
 
-@[reducible] noncomputable def MaxRecvMsgSizeCallOption.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def MaxRecvMsgSizeCallOption.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"MaxRecvMsgSize" go.int)]
 
-@[irreducible] noncomputable def MaxRecvMsgSizeCallOption.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def MaxRecvMsgSizeCallOption.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   MaxRecvMsgSizeCallOption.fieldsUnsealed
 
-noncomputable instance equals_unfold_MaxRecvMsgSizeCallOption [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_MaxRecvMsgSizeCallOption [GooseExts] [GoGlobalContext] :
     EqualsUnfold MaxRecvMsgSizeCallOption.fields MaxRecvMsgSizeCallOption.fieldsUnsealed :=
   ⟨by unfold MaxRecvMsgSizeCallOption.fields; rfl⟩
 
-@[reducible] noncomputable def MaxRecvMsgSizeCallOption.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def MaxRecvMsgSizeCallOption.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType MaxRecvMsgSizeCallOption.fields)
 
-class MaxRecvMsgSizeCallOption.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class MaxRecvMsgSizeCallOption.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying MaxRecvMsgSizeCallOption.underlying MaxRecvMsgSizeCallOption
   underlying : go.UnderlyingDirectedEq MaxRecvMsgSizeCallOption.ty MaxRecvMsgSizeCallOption.underlying
   get_MaxRecvMsgSize : ∀ (x : MaxRecvMsgSizeCallOption), go.IsGoStepPureDetTagged under (StructFieldGet MaxRecvMsgSizeCallOption.underlying go!"MaxRecvMsgSize") #x (Val #(x.MaxRecvMsgSize'))
   set_MaxRecvMsgSize : ∀ (x : MaxRecvMsgSizeCallOption) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet MaxRecvMsgSizeCallOption.underlying go!"MaxRecvMsgSize") (PairV #x #y) (Val #(({ x with MaxRecvMsgSize' := y } : MaxRecvMsgSizeCallOption)))
+  method_set : go.MethodSetIs MaxRecvMsgSizeCallOption.ty [(go!"google.golang.org/grpc.after", (some (go.signature.Signature [(go.GoType.PointerType callInfo.ty), (go.GoType.PointerType csAttempt.ty)] false []))), (go!"google.golang.org/grpc.before", (some (go.signature.Signature [(go.GoType.PointerType callInfo.ty)] false [go.error])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType MaxRecvMsgSizeCallOption.ty) [(go!"google.golang.org/grpc.after", (some (go.signature.Signature [(go.GoType.PointerType callInfo.ty), (go.GoType.PointerType csAttempt.ty)] false []))), (go!"google.golang.org/grpc.before", (some (go.signature.Signature [(go.GoType.PointerType callInfo.ty)] false [go.error])))]
 
 attribute [instance] MaxRecvMsgSizeCallOption.TypeAssumptions.type_repr
   MaxRecvMsgSizeCallOption.TypeAssumptions.underlying
   MaxRecvMsgSizeCallOption.TypeAssumptions.get_MaxRecvMsgSize
   MaxRecvMsgSizeCallOption.TypeAssumptions.set_MaxRecvMsgSize
+  MaxRecvMsgSizeCallOption.TypeAssumptions.method_set
+  MaxRecvMsgSizeCallOption.TypeAssumptions.ptr_method_set
 
-structure AuthorityOverrideCallOption [FfiSyntax] where
+structure AuthorityOverrideCallOption [GooseExts] where
   mk ::
   Authority' : GoString
 
-noncomputable instance AuthorityOverrideCallOption.zero_val [FfiSyntax] : ZeroVal AuthorityOverrideCallOption :=
+noncomputable instance AuthorityOverrideCallOption.zero_val [GooseExts] : ZeroVal AuthorityOverrideCallOption :=
   ⟨AuthorityOverrideCallOption.mk zeroValDef⟩
 
-@[reducible] noncomputable def AuthorityOverrideCallOption.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def AuthorityOverrideCallOption.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"Authority" go.string)]
 
-@[irreducible] noncomputable def AuthorityOverrideCallOption.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def AuthorityOverrideCallOption.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   AuthorityOverrideCallOption.fieldsUnsealed
 
-noncomputable instance equals_unfold_AuthorityOverrideCallOption [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_AuthorityOverrideCallOption [GooseExts] [GoGlobalContext] :
     EqualsUnfold AuthorityOverrideCallOption.fields AuthorityOverrideCallOption.fieldsUnsealed :=
   ⟨by unfold AuthorityOverrideCallOption.fields; rfl⟩
 
-@[reducible] noncomputable def AuthorityOverrideCallOption.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def AuthorityOverrideCallOption.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType AuthorityOverrideCallOption.fields)
 
-class AuthorityOverrideCallOption.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class AuthorityOverrideCallOption.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying AuthorityOverrideCallOption.underlying AuthorityOverrideCallOption
   underlying : go.UnderlyingDirectedEq AuthorityOverrideCallOption.ty AuthorityOverrideCallOption.underlying
   get_Authority : ∀ (x : AuthorityOverrideCallOption), go.IsGoStepPureDetTagged under (StructFieldGet AuthorityOverrideCallOption.underlying go!"Authority") #x (Val #(x.Authority'))
   set_Authority : ∀ (x : AuthorityOverrideCallOption) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet AuthorityOverrideCallOption.underlying go!"Authority") (PairV #x #y) (Val #(({ x with Authority' := y } : AuthorityOverrideCallOption)))
+  method_set : go.MethodSetIs AuthorityOverrideCallOption.ty [(go!"google.golang.org/grpc.after", (some (go.signature.Signature [(go.GoType.PointerType callInfo.ty), (go.GoType.PointerType csAttempt.ty)] false []))), (go!"google.golang.org/grpc.before", (some (go.signature.Signature [(go.GoType.PointerType callInfo.ty)] false [go.error])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType AuthorityOverrideCallOption.ty) [(go!"google.golang.org/grpc.after", (some (go.signature.Signature [(go.GoType.PointerType callInfo.ty), (go.GoType.PointerType csAttempt.ty)] false []))), (go!"google.golang.org/grpc.before", (some (go.signature.Signature [(go.GoType.PointerType callInfo.ty)] false [go.error])))]
 
 attribute [instance] AuthorityOverrideCallOption.TypeAssumptions.type_repr
   AuthorityOverrideCallOption.TypeAssumptions.underlying
   AuthorityOverrideCallOption.TypeAssumptions.get_Authority
   AuthorityOverrideCallOption.TypeAssumptions.set_Authority
+  AuthorityOverrideCallOption.TypeAssumptions.method_set
+  AuthorityOverrideCallOption.TypeAssumptions.ptr_method_set
 
-structure MaxSendMsgSizeCallOption [FfiSyntax] where
+structure MaxSendMsgSizeCallOption [GooseExts] where
   mk ::
   MaxSendMsgSize' : w64
 
-noncomputable instance MaxSendMsgSizeCallOption.zero_val [FfiSyntax] : ZeroVal MaxSendMsgSizeCallOption :=
+noncomputable instance MaxSendMsgSizeCallOption.zero_val [GooseExts] : ZeroVal MaxSendMsgSizeCallOption :=
   ⟨MaxSendMsgSizeCallOption.mk zeroValDef⟩
 
-@[reducible] noncomputable def MaxSendMsgSizeCallOption.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def MaxSendMsgSizeCallOption.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"MaxSendMsgSize" go.int)]
 
-@[irreducible] noncomputable def MaxSendMsgSizeCallOption.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def MaxSendMsgSizeCallOption.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   MaxSendMsgSizeCallOption.fieldsUnsealed
 
-noncomputable instance equals_unfold_MaxSendMsgSizeCallOption [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_MaxSendMsgSizeCallOption [GooseExts] [GoGlobalContext] :
     EqualsUnfold MaxSendMsgSizeCallOption.fields MaxSendMsgSizeCallOption.fieldsUnsealed :=
   ⟨by unfold MaxSendMsgSizeCallOption.fields; rfl⟩
 
-@[reducible] noncomputable def MaxSendMsgSizeCallOption.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def MaxSendMsgSizeCallOption.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType MaxSendMsgSizeCallOption.fields)
 
-class MaxSendMsgSizeCallOption.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class MaxSendMsgSizeCallOption.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying MaxSendMsgSizeCallOption.underlying MaxSendMsgSizeCallOption
   underlying : go.UnderlyingDirectedEq MaxSendMsgSizeCallOption.ty MaxSendMsgSizeCallOption.underlying
   get_MaxSendMsgSize : ∀ (x : MaxSendMsgSizeCallOption), go.IsGoStepPureDetTagged under (StructFieldGet MaxSendMsgSizeCallOption.underlying go!"MaxSendMsgSize") #x (Val #(x.MaxSendMsgSize'))
   set_MaxSendMsgSize : ∀ (x : MaxSendMsgSizeCallOption) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet MaxSendMsgSizeCallOption.underlying go!"MaxSendMsgSize") (PairV #x #y) (Val #(({ x with MaxSendMsgSize' := y } : MaxSendMsgSizeCallOption)))
+  method_set : go.MethodSetIs MaxSendMsgSizeCallOption.ty [(go!"google.golang.org/grpc.after", (some (go.signature.Signature [(go.GoType.PointerType callInfo.ty), (go.GoType.PointerType csAttempt.ty)] false []))), (go!"google.golang.org/grpc.before", (some (go.signature.Signature [(go.GoType.PointerType callInfo.ty)] false [go.error])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType MaxSendMsgSizeCallOption.ty) [(go!"google.golang.org/grpc.after", (some (go.signature.Signature [(go.GoType.PointerType callInfo.ty), (go.GoType.PointerType csAttempt.ty)] false []))), (go!"google.golang.org/grpc.before", (some (go.signature.Signature [(go.GoType.PointerType callInfo.ty)] false [go.error])))]
 
 attribute [instance] MaxSendMsgSizeCallOption.TypeAssumptions.type_repr
   MaxSendMsgSizeCallOption.TypeAssumptions.underlying
   MaxSendMsgSizeCallOption.TypeAssumptions.get_MaxSendMsgSize
   MaxSendMsgSizeCallOption.TypeAssumptions.set_MaxSendMsgSize
+  MaxSendMsgSizeCallOption.TypeAssumptions.method_set
+  MaxSendMsgSizeCallOption.TypeAssumptions.ptr_method_set
 
 axiom PerRPCCredsCallOption : Type
 axiom PerRPCCredsCallOption.zero_val : ZeroVal PerRPCCredsCallOption
 attribute [instance] PerRPCCredsCallOption.zero_val
 
-class PerRPCCredsCallOption.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class PerRPCCredsCallOption.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying PerRPCCredsCallOption.underlying PerRPCCredsCallOption
   underlying : go.UnderlyingDirectedEq PerRPCCredsCallOption.ty PerRPCCredsCallOption.underlying
   isUnderlying : go.IsUnderlying PerRPCCredsCallOption.underlying PerRPCCredsCallOption.underlying
+  method_set : go.MethodSetIs PerRPCCredsCallOption.ty [(go!"google.golang.org/grpc.after", (some (go.signature.Signature [(go.GoType.PointerType callInfo.ty), (go.GoType.PointerType csAttempt.ty)] false []))), (go!"google.golang.org/grpc.before", (some (go.signature.Signature [(go.GoType.PointerType callInfo.ty)] false [go.error])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType PerRPCCredsCallOption.ty) [(go!"google.golang.org/grpc.after", (some (go.signature.Signature [(go.GoType.PointerType callInfo.ty), (go.GoType.PointerType csAttempt.ty)] false []))), (go!"google.golang.org/grpc.before", (some (go.signature.Signature [(go.GoType.PointerType callInfo.ty)] false [go.error])))]
 
 attribute [instance] PerRPCCredsCallOption.TypeAssumptions.type_repr
   PerRPCCredsCallOption.TypeAssumptions.underlying
   PerRPCCredsCallOption.TypeAssumptions.isUnderlying
+  PerRPCCredsCallOption.TypeAssumptions.method_set
+  PerRPCCredsCallOption.TypeAssumptions.ptr_method_set
 
-structure CompressorCallOption [FfiSyntax] where
+structure CompressorCallOption [GooseExts] where
   mk ::
   CompressorType' : GoString
 
-noncomputable instance CompressorCallOption.zero_val [FfiSyntax] : ZeroVal CompressorCallOption :=
+noncomputable instance CompressorCallOption.zero_val [GooseExts] : ZeroVal CompressorCallOption :=
   ⟨CompressorCallOption.mk zeroValDef⟩
 
-@[reducible] noncomputable def CompressorCallOption.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def CompressorCallOption.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"CompressorType" go.string)]
 
-@[irreducible] noncomputable def CompressorCallOption.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def CompressorCallOption.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   CompressorCallOption.fieldsUnsealed
 
-noncomputable instance equals_unfold_CompressorCallOption [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_CompressorCallOption [GooseExts] [GoGlobalContext] :
     EqualsUnfold CompressorCallOption.fields CompressorCallOption.fieldsUnsealed :=
   ⟨by unfold CompressorCallOption.fields; rfl⟩
 
-@[reducible] noncomputable def CompressorCallOption.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def CompressorCallOption.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType CompressorCallOption.fields)
 
-class CompressorCallOption.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class CompressorCallOption.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying CompressorCallOption.underlying CompressorCallOption
   underlying : go.UnderlyingDirectedEq CompressorCallOption.ty CompressorCallOption.underlying
   get_CompressorType : ∀ (x : CompressorCallOption), go.IsGoStepPureDetTagged under (StructFieldGet CompressorCallOption.underlying go!"CompressorType") #x (Val #(x.CompressorType'))
   set_CompressorType : ∀ (x : CompressorCallOption) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet CompressorCallOption.underlying go!"CompressorType") (PairV #x #y) (Val #(({ x with CompressorType' := y } : CompressorCallOption)))
+  method_set : go.MethodSetIs CompressorCallOption.ty [(go!"google.golang.org/grpc.after", (some (go.signature.Signature [(go.GoType.PointerType callInfo.ty), (go.GoType.PointerType csAttempt.ty)] false []))), (go!"google.golang.org/grpc.before", (some (go.signature.Signature [(go.GoType.PointerType callInfo.ty)] false [go.error])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType CompressorCallOption.ty) [(go!"google.golang.org/grpc.after", (some (go.signature.Signature [(go.GoType.PointerType callInfo.ty), (go.GoType.PointerType csAttempt.ty)] false []))), (go!"google.golang.org/grpc.before", (some (go.signature.Signature [(go.GoType.PointerType callInfo.ty)] false [go.error])))]
 
 attribute [instance] CompressorCallOption.TypeAssumptions.type_repr
   CompressorCallOption.TypeAssumptions.underlying
   CompressorCallOption.TypeAssumptions.get_CompressorType
   CompressorCallOption.TypeAssumptions.set_CompressorType
+  CompressorCallOption.TypeAssumptions.method_set
+  CompressorCallOption.TypeAssumptions.ptr_method_set
 
-structure acceptCompressorsCallOption [FfiSyntax] where
+structure acceptCompressorsCallOption [GooseExts] where
   mk ::
   names' : GoSlice
 
-noncomputable instance acceptCompressorsCallOption.zero_val [FfiSyntax] : ZeroVal acceptCompressorsCallOption :=
+noncomputable instance acceptCompressorsCallOption.zero_val [GooseExts] : ZeroVal acceptCompressorsCallOption :=
   ⟨acceptCompressorsCallOption.mk zeroValDef⟩
 
-@[reducible] noncomputable def acceptCompressorsCallOption.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def acceptCompressorsCallOption.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"names" (go.GoType.SliceType go.string))]
 
-@[irreducible] noncomputable def acceptCompressorsCallOption.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def acceptCompressorsCallOption.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   acceptCompressorsCallOption.fieldsUnsealed
 
-noncomputable instance equals_unfold_acceptCompressorsCallOption [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_acceptCompressorsCallOption [GooseExts] [GoGlobalContext] :
     EqualsUnfold acceptCompressorsCallOption.fields acceptCompressorsCallOption.fieldsUnsealed :=
   ⟨by unfold acceptCompressorsCallOption.fields; rfl⟩
 
-@[reducible] noncomputable def acceptCompressorsCallOption.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def acceptCompressorsCallOption.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType acceptCompressorsCallOption.fields)
 
-class acceptCompressorsCallOption.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class acceptCompressorsCallOption.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying acceptCompressorsCallOption.underlying acceptCompressorsCallOption
   underlying : go.UnderlyingDirectedEq acceptCompressorsCallOption.ty acceptCompressorsCallOption.underlying
   get_names : ∀ (x : acceptCompressorsCallOption), go.IsGoStepPureDetTagged under (StructFieldGet acceptCompressorsCallOption.underlying go!"names") #x (Val #(x.names'))
   set_names : ∀ (x : acceptCompressorsCallOption) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet acceptCompressorsCallOption.underlying go!"names") (PairV #x #y) (Val #(({ x with names' := y } : acceptCompressorsCallOption)))
+  method_set : go.MethodSetIs acceptCompressorsCallOption.ty [(go!"google.golang.org/grpc.after", (some (go.signature.Signature [(go.GoType.PointerType callInfo.ty), (go.GoType.PointerType csAttempt.ty)] false []))), (go!"google.golang.org/grpc.before", (some (go.signature.Signature [(go.GoType.PointerType callInfo.ty)] false [go.error])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType acceptCompressorsCallOption.ty) [(go!"google.golang.org/grpc.after", (some (go.signature.Signature [(go.GoType.PointerType callInfo.ty), (go.GoType.PointerType csAttempt.ty)] false []))), (go!"google.golang.org/grpc.before", (some (go.signature.Signature [(go.GoType.PointerType callInfo.ty)] false [go.error])))]
 
 attribute [instance] acceptCompressorsCallOption.TypeAssumptions.type_repr
   acceptCompressorsCallOption.TypeAssumptions.underlying
   acceptCompressorsCallOption.TypeAssumptions.get_names
   acceptCompressorsCallOption.TypeAssumptions.set_names
+  acceptCompressorsCallOption.TypeAssumptions.method_set
+  acceptCompressorsCallOption.TypeAssumptions.ptr_method_set
 
-structure ContentSubtypeCallOption [FfiSyntax] where
+structure ContentSubtypeCallOption [GooseExts] where
   mk ::
   ContentSubtype' : GoString
 
-noncomputable instance ContentSubtypeCallOption.zero_val [FfiSyntax] : ZeroVal ContentSubtypeCallOption :=
+noncomputable instance ContentSubtypeCallOption.zero_val [GooseExts] : ZeroVal ContentSubtypeCallOption :=
   ⟨ContentSubtypeCallOption.mk zeroValDef⟩
 
-@[reducible] noncomputable def ContentSubtypeCallOption.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def ContentSubtypeCallOption.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"ContentSubtype" go.string)]
 
-@[irreducible] noncomputable def ContentSubtypeCallOption.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def ContentSubtypeCallOption.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   ContentSubtypeCallOption.fieldsUnsealed
 
-noncomputable instance equals_unfold_ContentSubtypeCallOption [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_ContentSubtypeCallOption [GooseExts] [GoGlobalContext] :
     EqualsUnfold ContentSubtypeCallOption.fields ContentSubtypeCallOption.fieldsUnsealed :=
   ⟨by unfold ContentSubtypeCallOption.fields; rfl⟩
 
-@[reducible] noncomputable def ContentSubtypeCallOption.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def ContentSubtypeCallOption.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType ContentSubtypeCallOption.fields)
 
-class ContentSubtypeCallOption.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class ContentSubtypeCallOption.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying ContentSubtypeCallOption.underlying ContentSubtypeCallOption
   underlying : go.UnderlyingDirectedEq ContentSubtypeCallOption.ty ContentSubtypeCallOption.underlying
   get_ContentSubtype : ∀ (x : ContentSubtypeCallOption), go.IsGoStepPureDetTagged under (StructFieldGet ContentSubtypeCallOption.underlying go!"ContentSubtype") #x (Val #(x.ContentSubtype'))
   set_ContentSubtype : ∀ (x : ContentSubtypeCallOption) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet ContentSubtypeCallOption.underlying go!"ContentSubtype") (PairV #x #y) (Val #(({ x with ContentSubtype' := y } : ContentSubtypeCallOption)))
+  method_set : go.MethodSetIs ContentSubtypeCallOption.ty [(go!"google.golang.org/grpc.after", (some (go.signature.Signature [(go.GoType.PointerType callInfo.ty), (go.GoType.PointerType csAttempt.ty)] false []))), (go!"google.golang.org/grpc.before", (some (go.signature.Signature [(go.GoType.PointerType callInfo.ty)] false [go.error])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType ContentSubtypeCallOption.ty) [(go!"google.golang.org/grpc.after", (some (go.signature.Signature [(go.GoType.PointerType callInfo.ty), (go.GoType.PointerType csAttempt.ty)] false []))), (go!"google.golang.org/grpc.before", (some (go.signature.Signature [(go.GoType.PointerType callInfo.ty)] false [go.error])))]
 
 attribute [instance] ContentSubtypeCallOption.TypeAssumptions.type_repr
   ContentSubtypeCallOption.TypeAssumptions.underlying
   ContentSubtypeCallOption.TypeAssumptions.get_ContentSubtype
   ContentSubtypeCallOption.TypeAssumptions.set_ContentSubtype
+  ContentSubtypeCallOption.TypeAssumptions.method_set
+  ContentSubtypeCallOption.TypeAssumptions.ptr_method_set
 
 axiom ForceCodecCallOption : Type
 axiom ForceCodecCallOption.zero_val : ZeroVal ForceCodecCallOption
 attribute [instance] ForceCodecCallOption.zero_val
 
-class ForceCodecCallOption.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class ForceCodecCallOption.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying ForceCodecCallOption.underlying ForceCodecCallOption
   underlying : go.UnderlyingDirectedEq ForceCodecCallOption.ty ForceCodecCallOption.underlying
   isUnderlying : go.IsUnderlying ForceCodecCallOption.underlying ForceCodecCallOption.underlying
+  method_set : go.MethodSetIs ForceCodecCallOption.ty [(go!"google.golang.org/grpc.after", (some (go.signature.Signature [(go.GoType.PointerType callInfo.ty), (go.GoType.PointerType csAttempt.ty)] false []))), (go!"google.golang.org/grpc.before", (some (go.signature.Signature [(go.GoType.PointerType callInfo.ty)] false [go.error])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType ForceCodecCallOption.ty) [(go!"google.golang.org/grpc.after", (some (go.signature.Signature [(go.GoType.PointerType callInfo.ty), (go.GoType.PointerType csAttempt.ty)] false []))), (go!"google.golang.org/grpc.before", (some (go.signature.Signature [(go.GoType.PointerType callInfo.ty)] false [go.error])))]
 
 attribute [instance] ForceCodecCallOption.TypeAssumptions.type_repr
   ForceCodecCallOption.TypeAssumptions.underlying
   ForceCodecCallOption.TypeAssumptions.isUnderlying
+  ForceCodecCallOption.TypeAssumptions.method_set
+  ForceCodecCallOption.TypeAssumptions.ptr_method_set
 
 axiom ForceCodecV2CallOption : Type
 axiom ForceCodecV2CallOption.zero_val : ZeroVal ForceCodecV2CallOption
 attribute [instance] ForceCodecV2CallOption.zero_val
 
-class ForceCodecV2CallOption.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class ForceCodecV2CallOption.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying ForceCodecV2CallOption.underlying ForceCodecV2CallOption
   underlying : go.UnderlyingDirectedEq ForceCodecV2CallOption.ty ForceCodecV2CallOption.underlying
   isUnderlying : go.IsUnderlying ForceCodecV2CallOption.underlying ForceCodecV2CallOption.underlying
+  method_set : go.MethodSetIs ForceCodecV2CallOption.ty [(go!"google.golang.org/grpc.after", (some (go.signature.Signature [(go.GoType.PointerType callInfo.ty), (go.GoType.PointerType csAttempt.ty)] false []))), (go!"google.golang.org/grpc.before", (some (go.signature.Signature [(go.GoType.PointerType callInfo.ty)] false [go.error])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType ForceCodecV2CallOption.ty) [(go!"google.golang.org/grpc.after", (some (go.signature.Signature [(go.GoType.PointerType callInfo.ty), (go.GoType.PointerType csAttempt.ty)] false []))), (go!"google.golang.org/grpc.before", (some (go.signature.Signature [(go.GoType.PointerType callInfo.ty)] false [go.error])))]
 
 attribute [instance] ForceCodecV2CallOption.TypeAssumptions.type_repr
   ForceCodecV2CallOption.TypeAssumptions.underlying
   ForceCodecV2CallOption.TypeAssumptions.isUnderlying
+  ForceCodecV2CallOption.TypeAssumptions.method_set
+  ForceCodecV2CallOption.TypeAssumptions.ptr_method_set
 
-structure CustomCodecCallOption [FfiSyntax] where
+structure CustomCodecCallOption [GooseExts] where
   mk ::
   Codec' : Codec
 
-noncomputable instance CustomCodecCallOption.zero_val [FfiSyntax] : ZeroVal CustomCodecCallOption :=
+noncomputable instance CustomCodecCallOption.zero_val [GooseExts] : ZeroVal CustomCodecCallOption :=
   ⟨CustomCodecCallOption.mk zeroValDef⟩
 
-@[reducible] noncomputable def CustomCodecCallOption.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def CustomCodecCallOption.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"Codec" Codec.ty)]
 
-@[irreducible] noncomputable def CustomCodecCallOption.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def CustomCodecCallOption.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   CustomCodecCallOption.fieldsUnsealed
 
-noncomputable instance equals_unfold_CustomCodecCallOption [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_CustomCodecCallOption [GooseExts] [GoGlobalContext] :
     EqualsUnfold CustomCodecCallOption.fields CustomCodecCallOption.fieldsUnsealed :=
   ⟨by unfold CustomCodecCallOption.fields; rfl⟩
 
-@[reducible] noncomputable def CustomCodecCallOption.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def CustomCodecCallOption.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType CustomCodecCallOption.fields)
 
-class CustomCodecCallOption.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class CustomCodecCallOption.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying CustomCodecCallOption.underlying CustomCodecCallOption
   underlying : go.UnderlyingDirectedEq CustomCodecCallOption.ty CustomCodecCallOption.underlying
   get_Codec : ∀ (x : CustomCodecCallOption), go.IsGoStepPureDetTagged under (StructFieldGet CustomCodecCallOption.underlying go!"Codec") #x (Val #(x.Codec'))
   set_Codec : ∀ (x : CustomCodecCallOption) (y : Codec), go.IsGoStepPureDetTagged under (StructFieldSet CustomCodecCallOption.underlying go!"Codec") (PairV #x #y) (Val #(({ x with Codec' := y } : CustomCodecCallOption)))
+  method_set : go.MethodSetIs CustomCodecCallOption.ty [(go!"google.golang.org/grpc.after", (some (go.signature.Signature [(go.GoType.PointerType callInfo.ty), (go.GoType.PointerType csAttempt.ty)] false []))), (go!"google.golang.org/grpc.before", (some (go.signature.Signature [(go.GoType.PointerType callInfo.ty)] false [go.error])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType CustomCodecCallOption.ty) [(go!"google.golang.org/grpc.after", (some (go.signature.Signature [(go.GoType.PointerType callInfo.ty), (go.GoType.PointerType csAttempt.ty)] false []))), (go!"google.golang.org/grpc.before", (some (go.signature.Signature [(go.GoType.PointerType callInfo.ty)] false [go.error])))]
 
 attribute [instance] CustomCodecCallOption.TypeAssumptions.type_repr
   CustomCodecCallOption.TypeAssumptions.underlying
   CustomCodecCallOption.TypeAssumptions.get_Codec
   CustomCodecCallOption.TypeAssumptions.set_Codec
+  CustomCodecCallOption.TypeAssumptions.method_set
+  CustomCodecCallOption.TypeAssumptions.ptr_method_set
 
-structure MaxRetryRPCBufferSizeCallOption [FfiSyntax] where
+structure MaxRetryRPCBufferSizeCallOption [GooseExts] where
   mk ::
   MaxRetryRPCBufferSize' : w64
 
-noncomputable instance MaxRetryRPCBufferSizeCallOption.zero_val [FfiSyntax] : ZeroVal MaxRetryRPCBufferSizeCallOption :=
+noncomputable instance MaxRetryRPCBufferSizeCallOption.zero_val [GooseExts] : ZeroVal MaxRetryRPCBufferSizeCallOption :=
   ⟨MaxRetryRPCBufferSizeCallOption.mk zeroValDef⟩
 
-@[reducible] noncomputable def MaxRetryRPCBufferSizeCallOption.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def MaxRetryRPCBufferSizeCallOption.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"MaxRetryRPCBufferSize" go.int)]
 
-@[irreducible] noncomputable def MaxRetryRPCBufferSizeCallOption.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def MaxRetryRPCBufferSizeCallOption.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   MaxRetryRPCBufferSizeCallOption.fieldsUnsealed
 
-noncomputable instance equals_unfold_MaxRetryRPCBufferSizeCallOption [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_MaxRetryRPCBufferSizeCallOption [GooseExts] [GoGlobalContext] :
     EqualsUnfold MaxRetryRPCBufferSizeCallOption.fields MaxRetryRPCBufferSizeCallOption.fieldsUnsealed :=
   ⟨by unfold MaxRetryRPCBufferSizeCallOption.fields; rfl⟩
 
-@[reducible] noncomputable def MaxRetryRPCBufferSizeCallOption.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def MaxRetryRPCBufferSizeCallOption.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType MaxRetryRPCBufferSizeCallOption.fields)
 
-class MaxRetryRPCBufferSizeCallOption.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class MaxRetryRPCBufferSizeCallOption.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying MaxRetryRPCBufferSizeCallOption.underlying MaxRetryRPCBufferSizeCallOption
   underlying : go.UnderlyingDirectedEq MaxRetryRPCBufferSizeCallOption.ty MaxRetryRPCBufferSizeCallOption.underlying
   get_MaxRetryRPCBufferSize : ∀ (x : MaxRetryRPCBufferSizeCallOption), go.IsGoStepPureDetTagged under (StructFieldGet MaxRetryRPCBufferSizeCallOption.underlying go!"MaxRetryRPCBufferSize") #x (Val #(x.MaxRetryRPCBufferSize'))
   set_MaxRetryRPCBufferSize : ∀ (x : MaxRetryRPCBufferSizeCallOption) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet MaxRetryRPCBufferSizeCallOption.underlying go!"MaxRetryRPCBufferSize") (PairV #x #y) (Val #(({ x with MaxRetryRPCBufferSize' := y } : MaxRetryRPCBufferSizeCallOption)))
+  method_set : go.MethodSetIs MaxRetryRPCBufferSizeCallOption.ty [(go!"google.golang.org/grpc.after", (some (go.signature.Signature [(go.GoType.PointerType callInfo.ty), (go.GoType.PointerType csAttempt.ty)] false []))), (go!"google.golang.org/grpc.before", (some (go.signature.Signature [(go.GoType.PointerType callInfo.ty)] false [go.error])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType MaxRetryRPCBufferSizeCallOption.ty) [(go!"google.golang.org/grpc.after", (some (go.signature.Signature [(go.GoType.PointerType callInfo.ty), (go.GoType.PointerType csAttempt.ty)] false []))), (go!"google.golang.org/grpc.before", (some (go.signature.Signature [(go.GoType.PointerType callInfo.ty)] false [go.error])))]
 
 attribute [instance] MaxRetryRPCBufferSizeCallOption.TypeAssumptions.type_repr
   MaxRetryRPCBufferSizeCallOption.TypeAssumptions.underlying
   MaxRetryRPCBufferSizeCallOption.TypeAssumptions.get_MaxRetryRPCBufferSize
   MaxRetryRPCBufferSizeCallOption.TypeAssumptions.set_MaxRetryRPCBufferSize
+  MaxRetryRPCBufferSizeCallOption.TypeAssumptions.method_set
+  MaxRetryRPCBufferSizeCallOption.TypeAssumptions.ptr_method_set
 
-abbrev payloadFormat [FfiSyntax] : Type := w8
+abbrev payloadFormat [GooseExts] : Type := w8
 
-@[reducible] noncomputable def payloadFormat.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def payloadFormat.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   go.uint8
 
-class payloadFormat.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class payloadFormat.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq payloadFormat.ty payloadFormat.underlying
+  method_set : go.MethodSetIs payloadFormat.ty [(go!"google.golang.org/grpc.isCompressed", (some (go.signature.Signature [] false [go.bool])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType payloadFormat.ty) [(go!"google.golang.org/grpc.isCompressed", (some (go.signature.Signature [] false [go.bool])))]
 
 attribute [instance] payloadFormat.TypeAssumptions.underlying
+  payloadFormat.TypeAssumptions.method_set
+  payloadFormat.TypeAssumptions.ptr_method_set
 
 axiom streamReader : Type
 axiom streamReader.zero_val : ZeroVal streamReader
 attribute [instance] streamReader.zero_val
 
-class streamReader.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class streamReader.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying streamReader.underlying streamReader
   underlying : go.UnderlyingDirectedEq streamReader.ty streamReader.underlying
   isUnderlying : go.IsUnderlying streamReader.underlying streamReader.underlying
+  method_set : go.MethodSetIs streamReader.ty [(go!"Read", (some (go.signature.Signature [go.int] false [(go.GoType.Named go!"google.golang.org/grpc/mem.BufferSlice" []), go.error]))), (go!"ReadMessageHeader", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.error])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType streamReader.ty) []
 
 attribute [instance] streamReader.TypeAssumptions.type_repr
   streamReader.TypeAssumptions.underlying
   streamReader.TypeAssumptions.isUnderlying
+  streamReader.TypeAssumptions.method_set
+  streamReader.TypeAssumptions.ptr_method_set
 
-structure noCopy [FfiSyntax] where
+structure noCopy [GooseExts] where
   mk ::
 
-noncomputable instance noCopy.zero_val [FfiSyntax] : ZeroVal noCopy :=
+noncomputable instance noCopy.zero_val [GooseExts] : ZeroVal noCopy :=
   ⟨noCopy.mk⟩
 
-@[reducible] noncomputable def noCopy.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def noCopy.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   []
 
-@[irreducible] noncomputable def noCopy.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def noCopy.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   noCopy.fieldsUnsealed
 
-noncomputable instance equals_unfold_noCopy [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_noCopy [GooseExts] [GoGlobalContext] :
     EqualsUnfold noCopy.fields noCopy.fieldsUnsealed :=
   ⟨by unfold noCopy.fields; rfl⟩
 
-@[reducible] noncomputable def noCopy.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def noCopy.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType noCopy.fields)
 
-class noCopy.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class noCopy.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying noCopy.underlying noCopy
   underlying : go.UnderlyingDirectedEq noCopy.ty noCopy.underlying
+  method_set : go.MethodSetIs noCopy.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType noCopy.ty) [(go!"Lock", (some (go.signature.Signature [] false []))), (go!"Unlock", (some (go.signature.Signature [] false [])))]
 
 attribute [instance] noCopy.TypeAssumptions.type_repr
   noCopy.TypeAssumptions.underlying
+  noCopy.TypeAssumptions.method_set
+  noCopy.TypeAssumptions.ptr_method_set
 
 axiom parser : Type
 axiom parser.zero_val : ZeroVal parser
 attribute [instance] parser.zero_val
 
-class parser.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class parser.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying parser.underlying parser
   underlying : go.UnderlyingDirectedEq parser.ty parser.underlying
   isUnderlying : go.IsUnderlying parser.underlying parser.underlying
+  method_set : go.MethodSetIs parser.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType parser.ty) [(go!"google.golang.org/grpc.recvMsg", (some (go.signature.Signature [go.int] false [payloadFormat.ty, (go.GoType.Named go!"google.golang.org/grpc/mem.BufferSlice" []), go.error])))]
 
 attribute [instance] parser.TypeAssumptions.type_repr
   parser.TypeAssumptions.underlying
   parser.TypeAssumptions.isUnderlying
+  parser.TypeAssumptions.method_set
+  parser.TypeAssumptions.ptr_method_set
 
 axiom payloadInfo : Type
 axiom payloadInfo.zero_val : ZeroVal payloadInfo
 attribute [instance] payloadInfo.zero_val
 
-class payloadInfo.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class payloadInfo.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying payloadInfo.underlying payloadInfo
   underlying : go.UnderlyingDirectedEq payloadInfo.ty payloadInfo.underlying
   isUnderlying : go.IsUnderlying payloadInfo.underlying payloadInfo.underlying
+  method_set : go.MethodSetIs payloadInfo.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType payloadInfo.ty) [(go!"google.golang.org/grpc.free", (some (go.signature.Signature [] false [])))]
 
 attribute [instance] payloadInfo.TypeAssumptions.type_repr
   payloadInfo.TypeAssumptions.underlying
   payloadInfo.TypeAssumptions.isUnderlying
+  payloadInfo.TypeAssumptions.method_set
+  payloadInfo.TypeAssumptions.ptr_method_set
 
-abbrev recvCompressor [FfiSyntax] : Type := GoInterface
+abbrev recvCompressor [GooseExts] : Type := GoInterface
 
-@[reducible] noncomputable def recvCompressor.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def recvCompressor.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"RecvCompress" (go.signature.Signature [] false [go.string]))])
 
-class recvCompressor.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class recvCompressor.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq recvCompressor.ty recvCompressor.underlying
+  method_set : go.MethodSetIs recvCompressor.ty [(go!"RecvCompress", (some (go.signature.Signature [] false [go.string])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType recvCompressor.ty) []
 
 attribute [instance] recvCompressor.TypeAssumptions.underlying
+  recvCompressor.TypeAssumptions.method_set
+  recvCompressor.TypeAssumptions.ptr_method_set
 
 axiom compressorInfo : Type
 axiom compressorInfo.zero_val : ZeroVal compressorInfo
 attribute [instance] compressorInfo.zero_val
 
-class compressorInfo.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class compressorInfo.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying compressorInfo.underlying compressorInfo
   underlying : go.UnderlyingDirectedEq compressorInfo.ty compressorInfo.underlying
   isUnderlying : go.IsUnderlying compressorInfo.underlying compressorInfo.underlying
+  method_set : go.MethodSetIs compressorInfo.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType compressorInfo.ty) []
 
 attribute [instance] compressorInfo.TypeAssumptions.type_repr
   compressorInfo.TypeAssumptions.underlying
   compressorInfo.TypeAssumptions.isUnderlying
+  compressorInfo.TypeAssumptions.method_set
+  compressorInfo.TypeAssumptions.ptr_method_set
 
-structure rpcInfo [FfiSyntax] where
+structure rpcInfo [GooseExts] where
   mk ::
   failfast' : Bool
   preloaderInfo' : compressorInfo
 
-noncomputable instance rpcInfo.zero_val [FfiSyntax] : ZeroVal rpcInfo :=
+noncomputable instance rpcInfo.zero_val [GooseExts] : ZeroVal rpcInfo :=
   ⟨rpcInfo.mk zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def rpcInfo.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def rpcInfo.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"failfast" go.bool),
 (go.field_decl.FieldDecl go!"preloaderInfo" compressorInfo.ty)]
 
-@[irreducible] noncomputable def rpcInfo.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def rpcInfo.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   rpcInfo.fieldsUnsealed
 
-noncomputable instance equals_unfold_rpcInfo [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_rpcInfo [GooseExts] [GoGlobalContext] :
     EqualsUnfold rpcInfo.fields rpcInfo.fieldsUnsealed :=
   ⟨by unfold rpcInfo.fields; rfl⟩
 
-@[reducible] noncomputable def rpcInfo.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def rpcInfo.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType rpcInfo.fields)
 
-class rpcInfo.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class rpcInfo.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying rpcInfo.underlying rpcInfo
   underlying : go.UnderlyingDirectedEq rpcInfo.ty rpcInfo.underlying
   get_failfast : ∀ (x : rpcInfo), go.IsGoStepPureDetTagged under (StructFieldGet rpcInfo.underlying go!"failfast") #x (Val #(x.failfast'))
   set_failfast : ∀ (x : rpcInfo) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet rpcInfo.underlying go!"failfast") (PairV #x #y) (Val #(({ x with failfast' := y } : rpcInfo)))
   get_preloaderInfo : ∀ (x : rpcInfo), go.IsGoStepPureDetTagged under (StructFieldGet rpcInfo.underlying go!"preloaderInfo") #x (Val #(x.preloaderInfo'))
   set_preloaderInfo : ∀ (x : rpcInfo) (y : compressorInfo), go.IsGoStepPureDetTagged under (StructFieldSet rpcInfo.underlying go!"preloaderInfo") (PairV #x #y) (Val #(({ x with preloaderInfo' := y } : rpcInfo)))
+  method_set : go.MethodSetIs rpcInfo.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType rpcInfo.ty) []
 
 attribute [instance] rpcInfo.TypeAssumptions.type_repr
   rpcInfo.TypeAssumptions.underlying
@@ -3127,72 +3417,84 @@ attribute [instance] rpcInfo.TypeAssumptions.type_repr
   rpcInfo.TypeAssumptions.set_failfast
   rpcInfo.TypeAssumptions.get_preloaderInfo
   rpcInfo.TypeAssumptions.set_preloaderInfo
+  rpcInfo.TypeAssumptions.method_set
+  rpcInfo.TypeAssumptions.ptr_method_set
 
-structure rpcInfoContextKey [FfiSyntax] where
+structure rpcInfoContextKey [GooseExts] where
   mk ::
 
-noncomputable instance rpcInfoContextKey.zero_val [FfiSyntax] : ZeroVal rpcInfoContextKey :=
+noncomputable instance rpcInfoContextKey.zero_val [GooseExts] : ZeroVal rpcInfoContextKey :=
   ⟨rpcInfoContextKey.mk⟩
 
-@[reducible] noncomputable def rpcInfoContextKey.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def rpcInfoContextKey.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   []
 
-@[irreducible] noncomputable def rpcInfoContextKey.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def rpcInfoContextKey.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   rpcInfoContextKey.fieldsUnsealed
 
-noncomputable instance equals_unfold_rpcInfoContextKey [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_rpcInfoContextKey [GooseExts] [GoGlobalContext] :
     EqualsUnfold rpcInfoContextKey.fields rpcInfoContextKey.fieldsUnsealed :=
   ⟨by unfold rpcInfoContextKey.fields; rfl⟩
 
-@[reducible] noncomputable def rpcInfoContextKey.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def rpcInfoContextKey.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType rpcInfoContextKey.fields)
 
-class rpcInfoContextKey.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class rpcInfoContextKey.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying rpcInfoContextKey.underlying rpcInfoContextKey
   underlying : go.UnderlyingDirectedEq rpcInfoContextKey.ty rpcInfoContextKey.underlying
+  method_set : go.MethodSetIs rpcInfoContextKey.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType rpcInfoContextKey.ty) []
 
 attribute [instance] rpcInfoContextKey.TypeAssumptions.type_repr
   rpcInfoContextKey.TypeAssumptions.underlying
+  rpcInfoContextKey.TypeAssumptions.method_set
+  rpcInfoContextKey.TypeAssumptions.ptr_method_set
 
-abbrev MethodHandler [FfiSyntax] : Type := GoFunc
+abbrev MethodHandler [GooseExts] : Type := GoFunc
 
-@[reducible] noncomputable def MethodHandler.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def MethodHandler.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.FunctionType (go.signature.Signature [go.any, _root_.Perennial.context.Context.ty, (go.GoType.FunctionType (go.signature.Signature [go.any] false [go.error])), UnaryServerInterceptor.ty] false [go.any, go.error]))
 
-class MethodHandler.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class MethodHandler.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq MethodHandler.ty MethodHandler.underlying
+  method_set : go.MethodSetIs MethodHandler.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType MethodHandler.ty) []
 
 attribute [instance] MethodHandler.TypeAssumptions.underlying
+  MethodHandler.TypeAssumptions.method_set
+  MethodHandler.TypeAssumptions.ptr_method_set
 
-structure MethodDesc [FfiSyntax] where
+structure MethodDesc [GooseExts] where
   mk ::
   MethodName' : GoString
   Handler' : MethodHandler
 
-noncomputable instance MethodDesc.zero_val [FfiSyntax] : ZeroVal MethodDesc :=
+noncomputable instance MethodDesc.zero_val [GooseExts] : ZeroVal MethodDesc :=
   ⟨MethodDesc.mk zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def MethodDesc.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def MethodDesc.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"MethodName" go.string),
 (go.field_decl.FieldDecl go!"Handler" MethodHandler.ty)]
 
-@[irreducible] noncomputable def MethodDesc.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def MethodDesc.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   MethodDesc.fieldsUnsealed
 
-noncomputable instance equals_unfold_MethodDesc [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_MethodDesc [GooseExts] [GoGlobalContext] :
     EqualsUnfold MethodDesc.fields MethodDesc.fieldsUnsealed :=
   ⟨by unfold MethodDesc.fields; rfl⟩
 
-@[reducible] noncomputable def MethodDesc.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def MethodDesc.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType MethodDesc.fields)
 
-class MethodDesc.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class MethodDesc.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying MethodDesc.underlying MethodDesc
   underlying : go.UnderlyingDirectedEq MethodDesc.ty MethodDesc.underlying
   get_MethodName : ∀ (x : MethodDesc), go.IsGoStepPureDetTagged under (StructFieldGet MethodDesc.underlying go!"MethodName") #x (Val #(x.MethodName'))
   set_MethodName : ∀ (x : MethodDesc) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet MethodDesc.underlying go!"MethodName") (PairV #x #y) (Val #(({ x with MethodName' := y } : MethodDesc)))
   get_Handler : ∀ (x : MethodDesc), go.IsGoStepPureDetTagged under (StructFieldGet MethodDesc.underlying go!"Handler") #x (Val #(x.Handler'))
   set_Handler : ∀ (x : MethodDesc) (y : MethodHandler), go.IsGoStepPureDetTagged under (StructFieldSet MethodDesc.underlying go!"Handler") (PairV #x #y) (Val #(({ x with Handler' := y } : MethodDesc)))
+  method_set : go.MethodSetIs MethodDesc.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType MethodDesc.ty) []
 
 attribute [instance] MethodDesc.TypeAssumptions.type_repr
   MethodDesc.TypeAssumptions.underlying
@@ -3200,8 +3502,10 @@ attribute [instance] MethodDesc.TypeAssumptions.type_repr
   MethodDesc.TypeAssumptions.set_MethodName
   MethodDesc.TypeAssumptions.get_Handler
   MethodDesc.TypeAssumptions.set_Handler
+  MethodDesc.TypeAssumptions.method_set
+  MethodDesc.TypeAssumptions.ptr_method_set
 
-structure ServiceDesc [FfiSyntax] where
+structure ServiceDesc [GooseExts] where
   mk ::
   ServiceName' : GoString
   HandlerType' : GoInterface
@@ -3209,27 +3513,27 @@ structure ServiceDesc [FfiSyntax] where
   Streams' : GoSlice
   Metadata' : GoInterface
 
-noncomputable instance ServiceDesc.zero_val [FfiSyntax] : ZeroVal ServiceDesc :=
+noncomputable instance ServiceDesc.zero_val [GooseExts] : ZeroVal ServiceDesc :=
   ⟨ServiceDesc.mk zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def ServiceDesc.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def ServiceDesc.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"ServiceName" go.string),
 (go.field_decl.FieldDecl go!"HandlerType" go.any),
 (go.field_decl.FieldDecl go!"Methods" (go.GoType.SliceType MethodDesc.ty)),
 (go.field_decl.FieldDecl go!"Streams" (go.GoType.SliceType StreamDesc.ty)),
 (go.field_decl.FieldDecl go!"Metadata" go.any)]
 
-@[irreducible] noncomputable def ServiceDesc.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def ServiceDesc.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   ServiceDesc.fieldsUnsealed
 
-noncomputable instance equals_unfold_ServiceDesc [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_ServiceDesc [GooseExts] [GoGlobalContext] :
     EqualsUnfold ServiceDesc.fields ServiceDesc.fieldsUnsealed :=
   ⟨by unfold ServiceDesc.fields; rfl⟩
 
-@[reducible] noncomputable def ServiceDesc.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def ServiceDesc.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType ServiceDesc.fields)
 
-class ServiceDesc.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class ServiceDesc.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying ServiceDesc.underlying ServiceDesc
   underlying : go.UnderlyingDirectedEq ServiceDesc.ty ServiceDesc.underlying
   get_ServiceName : ∀ (x : ServiceDesc), go.IsGoStepPureDetTagged under (StructFieldGet ServiceDesc.underlying go!"ServiceName") #x (Val #(x.ServiceName'))
@@ -3242,6 +3546,8 @@ class ServiceDesc.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext]
   set_Streams : ∀ (x : ServiceDesc) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet ServiceDesc.underlying go!"Streams") (PairV #x #y) (Val #(({ x with Streams' := y } : ServiceDesc)))
   get_Metadata : ∀ (x : ServiceDesc), go.IsGoStepPureDetTagged under (StructFieldGet ServiceDesc.underlying go!"Metadata") #x (Val #(x.Metadata'))
   set_Metadata : ∀ (x : ServiceDesc) (y : GoInterface), go.IsGoStepPureDetTagged under (StructFieldSet ServiceDesc.underlying go!"Metadata") (PairV #x #y) (Val #(({ x with Metadata' := y } : ServiceDesc)))
+  method_set : go.MethodSetIs ServiceDesc.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType ServiceDesc.ty) []
 
 attribute [instance] ServiceDesc.TypeAssumptions.type_repr
   ServiceDesc.TypeAssumptions.underlying
@@ -3255,32 +3561,34 @@ attribute [instance] ServiceDesc.TypeAssumptions.type_repr
   ServiceDesc.TypeAssumptions.set_Streams
   ServiceDesc.TypeAssumptions.get_Metadata
   ServiceDesc.TypeAssumptions.set_Metadata
+  ServiceDesc.TypeAssumptions.method_set
+  ServiceDesc.TypeAssumptions.ptr_method_set
 
-structure serviceInfo [FfiSyntax] where
+structure serviceInfo [GooseExts] where
   mk ::
   serviceImpl' : GoInterface
   streams' : GoMap
   mdata' : GoInterface
 
-noncomputable instance serviceInfo.zero_val [FfiSyntax] : ZeroVal serviceInfo :=
+noncomputable instance serviceInfo.zero_val [GooseExts] : ZeroVal serviceInfo :=
   ⟨serviceInfo.mk zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def serviceInfo.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def serviceInfo.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"serviceImpl" go.any),
 (go.field_decl.FieldDecl go!"streams" (go.GoType.MapType go.string (go.GoType.PointerType StreamDesc.ty))),
 (go.field_decl.FieldDecl go!"mdata" go.any)]
 
-@[irreducible] noncomputable def serviceInfo.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def serviceInfo.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   serviceInfo.fieldsUnsealed
 
-noncomputable instance equals_unfold_serviceInfo [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_serviceInfo [GooseExts] [GoGlobalContext] :
     EqualsUnfold serviceInfo.fields serviceInfo.fieldsUnsealed :=
   ⟨by unfold serviceInfo.fields; rfl⟩
 
-@[reducible] noncomputable def serviceInfo.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def serviceInfo.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType serviceInfo.fields)
 
-class serviceInfo.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class serviceInfo.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying serviceInfo.underlying serviceInfo
   underlying : go.UnderlyingDirectedEq serviceInfo.ty serviceInfo.underlying
   get_serviceImpl : ∀ (x : serviceInfo), go.IsGoStepPureDetTagged under (StructFieldGet serviceInfo.underlying go!"serviceImpl") #x (Val #(x.serviceImpl'))
@@ -3289,6 +3597,8 @@ class serviceInfo.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext]
   set_streams : ∀ (x : serviceInfo) (y : GoMap), go.IsGoStepPureDetTagged under (StructFieldSet serviceInfo.underlying go!"streams") (PairV #x #y) (Val #(({ x with streams' := y } : serviceInfo)))
   get_mdata : ∀ (x : serviceInfo), go.IsGoStepPureDetTagged under (StructFieldGet serviceInfo.underlying go!"mdata") #x (Val #(x.mdata'))
   set_mdata : ∀ (x : serviceInfo) (y : GoInterface), go.IsGoStepPureDetTagged under (StructFieldSet serviceInfo.underlying go!"mdata") (PairV #x #y) (Val #(({ x with mdata' := y } : serviceInfo)))
+  method_set : go.MethodSetIs serviceInfo.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType serviceInfo.ty) []
 
 attribute [instance] serviceInfo.TypeAssumptions.type_repr
   serviceInfo.TypeAssumptions.underlying
@@ -3298,197 +3608,231 @@ attribute [instance] serviceInfo.TypeAssumptions.type_repr
   serviceInfo.TypeAssumptions.set_streams
   serviceInfo.TypeAssumptions.get_mdata
   serviceInfo.TypeAssumptions.set_mdata
+  serviceInfo.TypeAssumptions.method_set
+  serviceInfo.TypeAssumptions.ptr_method_set
 
 axiom Server : Type
 axiom Server.zero_val : ZeroVal Server
 attribute [instance] Server.zero_val
 
-class Server.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class Server.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying Server.underlying Server
   underlying : go.UnderlyingDirectedEq Server.ty Server.underlying
   isUnderlying : go.IsUnderlying Server.underlying Server.underlying
+  method_set : go.MethodSetIs Server.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType Server.ty) [(go!"GetServiceInfo", (some (go.signature.Signature [] false [(go.GoType.MapType go.string ServiceInfo.ty)]))), (go!"GracefulStop", (some (go.signature.Signature [] false []))), (go!"RegisterService", (some (go.signature.Signature [(go.GoType.PointerType ServiceDesc.ty), go.any] false []))), (go!"Serve", (some (go.signature.Signature [(go.GoType.Named go!"net.Listener" [])] false [go.error]))), (go!"ServeHTTP", (some (go.signature.Signature [(go.GoType.Named go!"net/http.ResponseWriter" []), (go.GoType.PointerType (go.GoType.Named go!"net/http.Request" []))] false []))), (go!"Stop", (some (go.signature.Signature [] false []))), (go!"google.golang.org/grpc.addConn", (some (go.signature.Signature [go.string, (go.GoType.Named go!"google.golang.org/grpc/internal/transport.ServerTransport" [])] false [go.bool]))), (go!"google.golang.org/grpc.closeListenersLocked", (some (go.signature.Signature [] false []))), (go!"google.golang.org/grpc.closeServerTransportsLocked", (some (go.signature.Signature [] false []))), (go!"google.golang.org/grpc.drainAllServerTransportsLocked", (some (go.signature.Signature [] false []))), (go!"google.golang.org/grpc.errorf", (some (go.signature.Signature [go.string, (go.GoType.SliceType go.any)] true []))), (go!"google.golang.org/grpc.getCodec", (some (go.signature.Signature [go.string] false [baseCodec.ty]))), (go!"google.golang.org/grpc.handleMalformedMethodName", (some (go.signature.Signature [(go.GoType.PointerType (go.GoType.Named go!"google.golang.org/grpc/internal/transport.ServerStream" [])), (go.GoType.PointerType traceInfo.ty)] false []))), (go!"google.golang.org/grpc.handleRawConn", (some (go.signature.Signature [go.string, (go.GoType.Named go!"net.Conn" [])] false []))), (go!"google.golang.org/grpc.handleStream", (some (go.signature.Signature [(go.GoType.Named go!"google.golang.org/grpc/internal/transport.ServerTransport" []), (go.GoType.PointerType (go.GoType.Named go!"google.golang.org/grpc/internal/transport.ServerStream" []))] false []))), (go!"google.golang.org/grpc.incrCallsFailed", (some (go.signature.Signature [] false []))), (go!"google.golang.org/grpc.incrCallsStarted", (some (go.signature.Signature [] false []))), (go!"google.golang.org/grpc.incrCallsSucceeded", (some (go.signature.Signature [] false []))), (go!"google.golang.org/grpc.initServerWorkers", (some (go.signature.Signature [] false []))), (go!"google.golang.org/grpc.isRegisteredMethod", (some (go.signature.Signature [go.string] false [go.bool]))), (go!"google.golang.org/grpc.newHTTP2Transport", (some (go.signature.Signature [(go.GoType.Named go!"net.Conn" [])] false [(go.GoType.Named go!"google.golang.org/grpc/internal/transport.ServerTransport" [])]))), (go!"google.golang.org/grpc.printf", (some (go.signature.Signature [go.string, (go.GoType.SliceType go.any)] true []))), (go!"google.golang.org/grpc.processRPC", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType (go.GoType.Named go!"google.golang.org/grpc/internal/transport.ServerStream" [])), (go.GoType.PointerType serviceInfo.ty), (go.GoType.PointerType StreamDesc.ty), (go.GoType.PointerType traceInfo.ty)] false [go.error]))), (go!"google.golang.org/grpc.register", (some (go.signature.Signature [(go.GoType.PointerType ServiceDesc.ty), go.any] false []))), (go!"google.golang.org/grpc.removeConn", (some (go.signature.Signature [go.string, (go.GoType.Named go!"google.golang.org/grpc/internal/transport.ServerTransport" [])] false []))), (go!"google.golang.org/grpc.serveStreams", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.Named go!"google.golang.org/grpc/internal/transport.ServerTransport" []), (go.GoType.Named go!"net.Conn" [])] false []))), (go!"google.golang.org/grpc.serverWorker", (some (go.signature.Signature [] false []))), (go!"google.golang.org/grpc.stop", (some (go.signature.Signature [go.bool] false []))), (go!"google.golang.org/grpc.wrapUnaryHandler", (some (go.signature.Signature [(go.GoType.PointerType MethodDesc.ty)] false [StreamHandler.ty])))]
 
 attribute [instance] Server.TypeAssumptions.type_repr
   Server.TypeAssumptions.underlying
   Server.TypeAssumptions.isUnderlying
+  Server.TypeAssumptions.method_set
+  Server.TypeAssumptions.ptr_method_set
 
 axiom serverOptions : Type
 axiom serverOptions.zero_val : ZeroVal serverOptions
 attribute [instance] serverOptions.zero_val
 
-class serverOptions.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class serverOptions.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying serverOptions.underlying serverOptions
   underlying : go.UnderlyingDirectedEq serverOptions.ty serverOptions.underlying
   isUnderlying : go.IsUnderlying serverOptions.underlying serverOptions.underlying
+  method_set : go.MethodSetIs serverOptions.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType serverOptions.ty) []
 
 attribute [instance] serverOptions.TypeAssumptions.type_repr
   serverOptions.TypeAssumptions.underlying
   serverOptions.TypeAssumptions.isUnderlying
+  serverOptions.TypeAssumptions.method_set
+  serverOptions.TypeAssumptions.ptr_method_set
 
-abbrev ServerOption [FfiSyntax] : Type := GoInterface
+abbrev ServerOption [GooseExts] : Type := GoInterface
 
-@[reducible] noncomputable def ServerOption.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
-  (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"apply" (go.signature.Signature [(go.GoType.PointerType serverOptions.ty)] false []))])
+@[reducible] noncomputable def ServerOption.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
+  (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"google.golang.org/grpc.apply" (go.signature.Signature [(go.GoType.PointerType serverOptions.ty)] false []))])
 
-class ServerOption.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class ServerOption.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq ServerOption.ty ServerOption.underlying
+  method_set : go.MethodSetIs ServerOption.ty [(go!"google.golang.org/grpc.apply", (some (go.signature.Signature [(go.GoType.PointerType serverOptions.ty)] false [])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType ServerOption.ty) []
 
 attribute [instance] ServerOption.TypeAssumptions.underlying
+  ServerOption.TypeAssumptions.method_set
+  ServerOption.TypeAssumptions.ptr_method_set
 
-structure EmptyServerOption [FfiSyntax] where
+structure EmptyServerOption [GooseExts] where
   mk ::
 
-noncomputable instance EmptyServerOption.zero_val [FfiSyntax] : ZeroVal EmptyServerOption :=
+noncomputable instance EmptyServerOption.zero_val [GooseExts] : ZeroVal EmptyServerOption :=
   ⟨EmptyServerOption.mk⟩
 
-@[reducible] noncomputable def EmptyServerOption.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def EmptyServerOption.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   []
 
-@[irreducible] noncomputable def EmptyServerOption.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def EmptyServerOption.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   EmptyServerOption.fieldsUnsealed
 
-noncomputable instance equals_unfold_EmptyServerOption [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_EmptyServerOption [GooseExts] [GoGlobalContext] :
     EqualsUnfold EmptyServerOption.fields EmptyServerOption.fieldsUnsealed :=
   ⟨by unfold EmptyServerOption.fields; rfl⟩
 
-@[reducible] noncomputable def EmptyServerOption.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def EmptyServerOption.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType EmptyServerOption.fields)
 
-class EmptyServerOption.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class EmptyServerOption.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying EmptyServerOption.underlying EmptyServerOption
   underlying : go.UnderlyingDirectedEq EmptyServerOption.ty EmptyServerOption.underlying
+  method_set : go.MethodSetIs EmptyServerOption.ty [(go!"google.golang.org/grpc.apply", (some (go.signature.Signature [(go.GoType.PointerType serverOptions.ty)] false [])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType EmptyServerOption.ty) [(go!"google.golang.org/grpc.apply", (some (go.signature.Signature [(go.GoType.PointerType serverOptions.ty)] false [])))]
 
 attribute [instance] EmptyServerOption.TypeAssumptions.type_repr
   EmptyServerOption.TypeAssumptions.underlying
+  EmptyServerOption.TypeAssumptions.method_set
+  EmptyServerOption.TypeAssumptions.ptr_method_set
 
-structure funcServerOption [FfiSyntax] where
+structure funcServerOption [GooseExts] where
   mk ::
   f' : GoFunc
 
-noncomputable instance funcServerOption.zero_val [FfiSyntax] : ZeroVal funcServerOption :=
+noncomputable instance funcServerOption.zero_val [GooseExts] : ZeroVal funcServerOption :=
   ⟨funcServerOption.mk zeroValDef⟩
 
-@[reducible] noncomputable def funcServerOption.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def funcServerOption.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"f" (go.GoType.FunctionType (go.signature.Signature [(go.GoType.PointerType serverOptions.ty)] false [])))]
 
-@[irreducible] noncomputable def funcServerOption.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def funcServerOption.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   funcServerOption.fieldsUnsealed
 
-noncomputable instance equals_unfold_funcServerOption [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_funcServerOption [GooseExts] [GoGlobalContext] :
     EqualsUnfold funcServerOption.fields funcServerOption.fieldsUnsealed :=
   ⟨by unfold funcServerOption.fields; rfl⟩
 
-@[reducible] noncomputable def funcServerOption.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def funcServerOption.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType funcServerOption.fields)
 
-class funcServerOption.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class funcServerOption.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying funcServerOption.underlying funcServerOption
   underlying : go.UnderlyingDirectedEq funcServerOption.ty funcServerOption.underlying
   get_f : ∀ (x : funcServerOption), go.IsGoStepPureDetTagged under (StructFieldGet funcServerOption.underlying go!"f") #x (Val #(x.f'))
   set_f : ∀ (x : funcServerOption) (y : GoFunc), go.IsGoStepPureDetTagged under (StructFieldSet funcServerOption.underlying go!"f") (PairV #x #y) (Val #(({ x with f' := y } : funcServerOption)))
+  method_set : go.MethodSetIs funcServerOption.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType funcServerOption.ty) [(go!"google.golang.org/grpc.apply", (some (go.signature.Signature [(go.GoType.PointerType serverOptions.ty)] false [])))]
 
 attribute [instance] funcServerOption.TypeAssumptions.type_repr
   funcServerOption.TypeAssumptions.underlying
   funcServerOption.TypeAssumptions.get_f
   funcServerOption.TypeAssumptions.set_f
+  funcServerOption.TypeAssumptions.method_set
+  funcServerOption.TypeAssumptions.ptr_method_set
 
-structure joinServerOption [FfiSyntax] where
+structure joinServerOption [GooseExts] where
   mk ::
   opts' : GoSlice
 
-noncomputable instance joinServerOption.zero_val [FfiSyntax] : ZeroVal joinServerOption :=
+noncomputable instance joinServerOption.zero_val [GooseExts] : ZeroVal joinServerOption :=
   ⟨joinServerOption.mk zeroValDef⟩
 
-@[reducible] noncomputable def joinServerOption.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def joinServerOption.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"opts" (go.GoType.SliceType ServerOption.ty))]
 
-@[irreducible] noncomputable def joinServerOption.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def joinServerOption.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   joinServerOption.fieldsUnsealed
 
-noncomputable instance equals_unfold_joinServerOption [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_joinServerOption [GooseExts] [GoGlobalContext] :
     EqualsUnfold joinServerOption.fields joinServerOption.fieldsUnsealed :=
   ⟨by unfold joinServerOption.fields; rfl⟩
 
-@[reducible] noncomputable def joinServerOption.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def joinServerOption.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType joinServerOption.fields)
 
-class joinServerOption.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class joinServerOption.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying joinServerOption.underlying joinServerOption
   underlying : go.UnderlyingDirectedEq joinServerOption.ty joinServerOption.underlying
   get_opts : ∀ (x : joinServerOption), go.IsGoStepPureDetTagged under (StructFieldGet joinServerOption.underlying go!"opts") #x (Val #(x.opts'))
   set_opts : ∀ (x : joinServerOption) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet joinServerOption.underlying go!"opts") (PairV #x #y) (Val #(({ x with opts' := y } : joinServerOption)))
+  method_set : go.MethodSetIs joinServerOption.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType joinServerOption.ty) [(go!"google.golang.org/grpc.apply", (some (go.signature.Signature [(go.GoType.PointerType serverOptions.ty)] false [])))]
 
 attribute [instance] joinServerOption.TypeAssumptions.type_repr
   joinServerOption.TypeAssumptions.underlying
   joinServerOption.TypeAssumptions.get_opts
   joinServerOption.TypeAssumptions.set_opts
+  joinServerOption.TypeAssumptions.method_set
+  joinServerOption.TypeAssumptions.ptr_method_set
 
-structure MaxHeaderListSizeServerOption [FfiSyntax] where
+structure MaxHeaderListSizeServerOption [GooseExts] where
   mk ::
   MaxHeaderListSize' : w32
 
-noncomputable instance MaxHeaderListSizeServerOption.zero_val [FfiSyntax] : ZeroVal MaxHeaderListSizeServerOption :=
+noncomputable instance MaxHeaderListSizeServerOption.zero_val [GooseExts] : ZeroVal MaxHeaderListSizeServerOption :=
   ⟨MaxHeaderListSizeServerOption.mk zeroValDef⟩
 
-@[reducible] noncomputable def MaxHeaderListSizeServerOption.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def MaxHeaderListSizeServerOption.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"MaxHeaderListSize" go.uint32)]
 
-@[irreducible] noncomputable def MaxHeaderListSizeServerOption.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def MaxHeaderListSizeServerOption.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   MaxHeaderListSizeServerOption.fieldsUnsealed
 
-noncomputable instance equals_unfold_MaxHeaderListSizeServerOption [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_MaxHeaderListSizeServerOption [GooseExts] [GoGlobalContext] :
     EqualsUnfold MaxHeaderListSizeServerOption.fields MaxHeaderListSizeServerOption.fieldsUnsealed :=
   ⟨by unfold MaxHeaderListSizeServerOption.fields; rfl⟩
 
-@[reducible] noncomputable def MaxHeaderListSizeServerOption.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def MaxHeaderListSizeServerOption.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType MaxHeaderListSizeServerOption.fields)
 
-class MaxHeaderListSizeServerOption.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class MaxHeaderListSizeServerOption.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying MaxHeaderListSizeServerOption.underlying MaxHeaderListSizeServerOption
   underlying : go.UnderlyingDirectedEq MaxHeaderListSizeServerOption.ty MaxHeaderListSizeServerOption.underlying
   get_MaxHeaderListSize : ∀ (x : MaxHeaderListSizeServerOption), go.IsGoStepPureDetTagged under (StructFieldGet MaxHeaderListSizeServerOption.underlying go!"MaxHeaderListSize") #x (Val #(x.MaxHeaderListSize'))
   set_MaxHeaderListSize : ∀ (x : MaxHeaderListSizeServerOption) (y : w32), go.IsGoStepPureDetTagged under (StructFieldSet MaxHeaderListSizeServerOption.underlying go!"MaxHeaderListSize") (PairV #x #y) (Val #(({ x with MaxHeaderListSize' := y } : MaxHeaderListSizeServerOption)))
+  method_set : go.MethodSetIs MaxHeaderListSizeServerOption.ty [(go!"google.golang.org/grpc.apply", (some (go.signature.Signature [(go.GoType.PointerType serverOptions.ty)] false [])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType MaxHeaderListSizeServerOption.ty) [(go!"google.golang.org/grpc.apply", (some (go.signature.Signature [(go.GoType.PointerType serverOptions.ty)] false [])))]
 
 attribute [instance] MaxHeaderListSizeServerOption.TypeAssumptions.type_repr
   MaxHeaderListSizeServerOption.TypeAssumptions.underlying
   MaxHeaderListSizeServerOption.TypeAssumptions.get_MaxHeaderListSize
   MaxHeaderListSizeServerOption.TypeAssumptions.set_MaxHeaderListSize
+  MaxHeaderListSizeServerOption.TypeAssumptions.method_set
+  MaxHeaderListSizeServerOption.TypeAssumptions.ptr_method_set
 
-abbrev ServiceRegistrar [FfiSyntax] : Type := GoInterface
+abbrev ServiceRegistrar [GooseExts] : Type := GoInterface
 
-@[reducible] noncomputable def ServiceRegistrar.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def ServiceRegistrar.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"RegisterService" (go.signature.Signature [(go.GoType.PointerType ServiceDesc.ty), go.any] false []))])
 
-class ServiceRegistrar.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class ServiceRegistrar.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq ServiceRegistrar.ty ServiceRegistrar.underlying
+  method_set : go.MethodSetIs ServiceRegistrar.ty [(go!"RegisterService", (some (go.signature.Signature [(go.GoType.PointerType ServiceDesc.ty), go.any] false [])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType ServiceRegistrar.ty) []
 
 attribute [instance] ServiceRegistrar.TypeAssumptions.underlying
+  ServiceRegistrar.TypeAssumptions.method_set
+  ServiceRegistrar.TypeAssumptions.ptr_method_set
 
-structure MethodInfo [FfiSyntax] where
+structure MethodInfo [GooseExts] where
   mk ::
   Name' : GoString
   IsClientStream' : Bool
   IsServerStream' : Bool
 
-noncomputable instance MethodInfo.zero_val [FfiSyntax] : ZeroVal MethodInfo :=
+noncomputable instance MethodInfo.zero_val [GooseExts] : ZeroVal MethodInfo :=
   ⟨MethodInfo.mk zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def MethodInfo.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def MethodInfo.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"Name" go.string),
 (go.field_decl.FieldDecl go!"IsClientStream" go.bool),
 (go.field_decl.FieldDecl go!"IsServerStream" go.bool)]
 
-@[irreducible] noncomputable def MethodInfo.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def MethodInfo.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   MethodInfo.fieldsUnsealed
 
-noncomputable instance equals_unfold_MethodInfo [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_MethodInfo [GooseExts] [GoGlobalContext] :
     EqualsUnfold MethodInfo.fields MethodInfo.fieldsUnsealed :=
   ⟨by unfold MethodInfo.fields; rfl⟩
 
-@[reducible] noncomputable def MethodInfo.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def MethodInfo.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType MethodInfo.fields)
 
-class MethodInfo.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class MethodInfo.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying MethodInfo.underlying MethodInfo
   underlying : go.UnderlyingDirectedEq MethodInfo.ty MethodInfo.underlying
   get_Name : ∀ (x : MethodInfo), go.IsGoStepPureDetTagged under (StructFieldGet MethodInfo.underlying go!"Name") #x (Val #(x.Name'))
@@ -3497,6 +3841,8 @@ class MethodInfo.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] 
   set_IsClientStream : ∀ (x : MethodInfo) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet MethodInfo.underlying go!"IsClientStream") (PairV #x #y) (Val #(({ x with IsClientStream' := y } : MethodInfo)))
   get_IsServerStream : ∀ (x : MethodInfo), go.IsGoStepPureDetTagged under (StructFieldGet MethodInfo.underlying go!"IsServerStream") #x (Val #(x.IsServerStream'))
   set_IsServerStream : ∀ (x : MethodInfo) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet MethodInfo.underlying go!"IsServerStream") (PairV #x #y) (Val #(({ x with IsServerStream' := y } : MethodInfo)))
+  method_set : go.MethodSetIs MethodInfo.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType MethodInfo.ty) []
 
 attribute [instance] MethodInfo.TypeAssumptions.type_repr
   MethodInfo.TypeAssumptions.underlying
@@ -3506,36 +3852,40 @@ attribute [instance] MethodInfo.TypeAssumptions.type_repr
   MethodInfo.TypeAssumptions.set_IsClientStream
   MethodInfo.TypeAssumptions.get_IsServerStream
   MethodInfo.TypeAssumptions.set_IsServerStream
+  MethodInfo.TypeAssumptions.method_set
+  MethodInfo.TypeAssumptions.ptr_method_set
 
-structure ServiceInfo [FfiSyntax] where
+structure ServiceInfo [GooseExts] where
   mk ::
   Methods' : GoSlice
   Metadata' : GoInterface
 
-noncomputable instance ServiceInfo.zero_val [FfiSyntax] : ZeroVal ServiceInfo :=
+noncomputable instance ServiceInfo.zero_val [GooseExts] : ZeroVal ServiceInfo :=
   ⟨ServiceInfo.mk zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def ServiceInfo.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def ServiceInfo.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"Methods" (go.GoType.SliceType MethodInfo.ty)),
 (go.field_decl.FieldDecl go!"Metadata" go.any)]
 
-@[irreducible] noncomputable def ServiceInfo.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def ServiceInfo.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   ServiceInfo.fieldsUnsealed
 
-noncomputable instance equals_unfold_ServiceInfo [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_ServiceInfo [GooseExts] [GoGlobalContext] :
     EqualsUnfold ServiceInfo.fields ServiceInfo.fieldsUnsealed :=
   ⟨by unfold ServiceInfo.fields; rfl⟩
 
-@[reducible] noncomputable def ServiceInfo.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def ServiceInfo.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType ServiceInfo.fields)
 
-class ServiceInfo.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class ServiceInfo.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying ServiceInfo.underlying ServiceInfo
   underlying : go.UnderlyingDirectedEq ServiceInfo.ty ServiceInfo.underlying
   get_Methods : ∀ (x : ServiceInfo), go.IsGoStepPureDetTagged under (StructFieldGet ServiceInfo.underlying go!"Methods") #x (Val #(x.Methods'))
   set_Methods : ∀ (x : ServiceInfo) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet ServiceInfo.underlying go!"Methods") (PairV #x #y) (Val #(({ x with Methods' := y } : ServiceInfo)))
   get_Metadata : ∀ (x : ServiceInfo), go.IsGoStepPureDetTagged under (StructFieldGet ServiceInfo.underlying go!"Metadata") #x (Val #(x.Metadata'))
   set_Metadata : ∀ (x : ServiceInfo) (y : GoInterface), go.IsGoStepPureDetTagged under (StructFieldSet ServiceInfo.underlying go!"Metadata") (PairV #x #y) (Val #(({ x with Metadata' := y } : ServiceInfo)))
+  method_set : go.MethodSetIs ServiceInfo.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType ServiceInfo.ty) []
 
 attribute [instance] ServiceInfo.TypeAssumptions.type_repr
   ServiceInfo.TypeAssumptions.underlying
@@ -3543,181 +3893,217 @@ attribute [instance] ServiceInfo.TypeAssumptions.type_repr
   ServiceInfo.TypeAssumptions.set_Methods
   ServiceInfo.TypeAssumptions.get_Metadata
   ServiceInfo.TypeAssumptions.set_Metadata
+  ServiceInfo.TypeAssumptions.method_set
+  ServiceInfo.TypeAssumptions.ptr_method_set
 
 axiom listenSocket : Type
 axiom listenSocket.zero_val : ZeroVal listenSocket
 attribute [instance] listenSocket.zero_val
 
-class listenSocket.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class listenSocket.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying listenSocket.underlying listenSocket
   underlying : go.UnderlyingDirectedEq listenSocket.ty listenSocket.underlying
   isUnderlying : go.IsUnderlying listenSocket.underlying listenSocket.underlying
+  method_set : go.MethodSetIs listenSocket.ty [(go!"Accept", (some (go.signature.Signature [] false [(go.GoType.Named go!"net.Conn" []), go.error]))), (go!"Addr", (some (go.signature.Signature [] false [(go.GoType.Named go!"net.Addr" [])])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType listenSocket.ty) [(go!"Accept", (some (go.signature.Signature [] false [(go.GoType.Named go!"net.Conn" []), go.error]))), (go!"Addr", (some (go.signature.Signature [] false [(go.GoType.Named go!"net.Addr" [])]))), (go!"Close", (some (go.signature.Signature [] false [go.error])))]
 
 attribute [instance] listenSocket.TypeAssumptions.type_repr
   listenSocket.TypeAssumptions.underlying
   listenSocket.TypeAssumptions.isUnderlying
+  listenSocket.TypeAssumptions.method_set
+  listenSocket.TypeAssumptions.ptr_method_set
 
-structure streamKey [FfiSyntax] where
+structure streamKey [GooseExts] where
   mk ::
 
-noncomputable instance streamKey.zero_val [FfiSyntax] : ZeroVal streamKey :=
+noncomputable instance streamKey.zero_val [GooseExts] : ZeroVal streamKey :=
   ⟨streamKey.mk⟩
 
-@[reducible] noncomputable def streamKey.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def streamKey.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   []
 
-@[irreducible] noncomputable def streamKey.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def streamKey.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   streamKey.fieldsUnsealed
 
-noncomputable instance equals_unfold_streamKey [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_streamKey [GooseExts] [GoGlobalContext] :
     EqualsUnfold streamKey.fields streamKey.fieldsUnsealed :=
   ⟨by unfold streamKey.fields; rfl⟩
 
-@[reducible] noncomputable def streamKey.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def streamKey.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType streamKey.fields)
 
-class streamKey.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class streamKey.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying streamKey.underlying streamKey
   underlying : go.UnderlyingDirectedEq streamKey.ty streamKey.underlying
+  method_set : go.MethodSetIs streamKey.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType streamKey.ty) []
 
 attribute [instance] streamKey.TypeAssumptions.type_repr
   streamKey.TypeAssumptions.underlying
+  streamKey.TypeAssumptions.method_set
+  streamKey.TypeAssumptions.ptr_method_set
 
-abbrev ServerTransportStream [FfiSyntax] : Type := GoInterface
+abbrev ServerTransportStream [GooseExts] : Type := GoInterface
 
-@[reducible] noncomputable def ServerTransportStream.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def ServerTransportStream.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"Method" (go.signature.Signature [] false [go.string])), (go.InterfaceElem.MethodElem go!"SendHeader" (go.signature.Signature [_root_.Perennial.google_golang_org.grpc.metadata.MD.ty] false [go.error])), (go.InterfaceElem.MethodElem go!"SetHeader" (go.signature.Signature [_root_.Perennial.google_golang_org.grpc.metadata.MD.ty] false [go.error])), (go.InterfaceElem.MethodElem go!"SetTrailer" (go.signature.Signature [_root_.Perennial.google_golang_org.grpc.metadata.MD.ty] false [go.error]))])
 
-class ServerTransportStream.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class ServerTransportStream.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq ServerTransportStream.ty ServerTransportStream.underlying
+  method_set : go.MethodSetIs ServerTransportStream.ty [(go!"Method", (some (go.signature.Signature [] false [go.string]))), (go!"SendHeader", (some (go.signature.Signature [_root_.Perennial.google_golang_org.grpc.metadata.MD.ty] false [go.error]))), (go!"SetHeader", (some (go.signature.Signature [_root_.Perennial.google_golang_org.grpc.metadata.MD.ty] false [go.error]))), (go!"SetTrailer", (some (go.signature.Signature [_root_.Perennial.google_golang_org.grpc.metadata.MD.ty] false [go.error])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType ServerTransportStream.ty) []
 
 attribute [instance] ServerTransportStream.TypeAssumptions.underlying
+  ServerTransportStream.TypeAssumptions.method_set
+  ServerTransportStream.TypeAssumptions.ptr_method_set
 
-structure serverKey [FfiSyntax] where
+structure serverKey [GooseExts] where
   mk ::
 
-noncomputable instance serverKey.zero_val [FfiSyntax] : ZeroVal serverKey :=
+noncomputable instance serverKey.zero_val [GooseExts] : ZeroVal serverKey :=
   ⟨serverKey.mk⟩
 
-@[reducible] noncomputable def serverKey.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def serverKey.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   []
 
-@[irreducible] noncomputable def serverKey.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def serverKey.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   serverKey.fieldsUnsealed
 
-noncomputable instance equals_unfold_serverKey [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_serverKey [GooseExts] [GoGlobalContext] :
     EqualsUnfold serverKey.fields serverKey.fieldsUnsealed :=
   ⟨by unfold serverKey.fields; rfl⟩
 
-@[reducible] noncomputable def serverKey.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def serverKey.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType serverKey.fields)
 
-class serverKey.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class serverKey.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying serverKey.underlying serverKey
   underlying : go.UnderlyingDirectedEq serverKey.ty serverKey.underlying
+  method_set : go.MethodSetIs serverKey.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType serverKey.ty) []
 
 attribute [instance] serverKey.TypeAssumptions.type_repr
   serverKey.TypeAssumptions.underlying
+  serverKey.TypeAssumptions.method_set
+  serverKey.TypeAssumptions.ptr_method_set
 
 axiom atomicSemaphore : Type
 axiom atomicSemaphore.zero_val : ZeroVal atomicSemaphore
 attribute [instance] atomicSemaphore.zero_val
 
-class atomicSemaphore.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class atomicSemaphore.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying atomicSemaphore.underlying atomicSemaphore
   underlying : go.UnderlyingDirectedEq atomicSemaphore.ty atomicSemaphore.underlying
   isUnderlying : go.IsUnderlying atomicSemaphore.underlying atomicSemaphore.underlying
+  method_set : go.MethodSetIs atomicSemaphore.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType atomicSemaphore.ty) [(go!"google.golang.org/grpc.acquire", (some (go.signature.Signature [] false []))), (go!"google.golang.org/grpc.release", (some (go.signature.Signature [] false [])))]
 
 attribute [instance] atomicSemaphore.TypeAssumptions.type_repr
   atomicSemaphore.TypeAssumptions.underlying
   atomicSemaphore.TypeAssumptions.isUnderlying
+  atomicSemaphore.TypeAssumptions.method_set
+  atomicSemaphore.TypeAssumptions.ptr_method_set
 
 axiom ServiceConfig : Type
 axiom ServiceConfig.zero_val : ZeroVal ServiceConfig
 attribute [instance] ServiceConfig.zero_val
 
-class ServiceConfig.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class ServiceConfig.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying ServiceConfig.underlying ServiceConfig
   underlying : go.UnderlyingDirectedEq ServiceConfig.ty ServiceConfig.underlying
   isUnderlying : go.IsUnderlying ServiceConfig.underlying ServiceConfig.underlying
+  method_set : go.MethodSetIs ServiceConfig.ty [(go!"google.golang.org/grpc/serviceconfig.isServiceConfig", (some (go.signature.Signature [] false [])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType ServiceConfig.ty) [(go!"google.golang.org/grpc/serviceconfig.isServiceConfig", (some (go.signature.Signature [] false [])))]
 
 attribute [instance] ServiceConfig.TypeAssumptions.type_repr
   ServiceConfig.TypeAssumptions.underlying
   ServiceConfig.TypeAssumptions.isUnderlying
+  ServiceConfig.TypeAssumptions.method_set
+  ServiceConfig.TypeAssumptions.ptr_method_set
 
-structure healthCheckConfig [FfiSyntax] where
+structure healthCheckConfig [GooseExts] where
   mk ::
   ServiceName' : GoString
 
-noncomputable instance healthCheckConfig.zero_val [FfiSyntax] : ZeroVal healthCheckConfig :=
+noncomputable instance healthCheckConfig.zero_val [GooseExts] : ZeroVal healthCheckConfig :=
   ⟨healthCheckConfig.mk zeroValDef⟩
 
-@[reducible] noncomputable def healthCheckConfig.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def healthCheckConfig.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"ServiceName" go.string)]
 
-@[irreducible] noncomputable def healthCheckConfig.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def healthCheckConfig.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   healthCheckConfig.fieldsUnsealed
 
-noncomputable instance equals_unfold_healthCheckConfig [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_healthCheckConfig [GooseExts] [GoGlobalContext] :
     EqualsUnfold healthCheckConfig.fields healthCheckConfig.fieldsUnsealed :=
   ⟨by unfold healthCheckConfig.fields; rfl⟩
 
-@[reducible] noncomputable def healthCheckConfig.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def healthCheckConfig.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType healthCheckConfig.fields)
 
-class healthCheckConfig.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class healthCheckConfig.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying healthCheckConfig.underlying healthCheckConfig
   underlying : go.UnderlyingDirectedEq healthCheckConfig.ty healthCheckConfig.underlying
   get_ServiceName : ∀ (x : healthCheckConfig), go.IsGoStepPureDetTagged under (StructFieldGet healthCheckConfig.underlying go!"ServiceName") #x (Val #(x.ServiceName'))
   set_ServiceName : ∀ (x : healthCheckConfig) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet healthCheckConfig.underlying go!"ServiceName") (PairV #x #y) (Val #(({ x with ServiceName' := y } : healthCheckConfig)))
+  method_set : go.MethodSetIs healthCheckConfig.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType healthCheckConfig.ty) []
 
 attribute [instance] healthCheckConfig.TypeAssumptions.type_repr
   healthCheckConfig.TypeAssumptions.underlying
   healthCheckConfig.TypeAssumptions.get_ServiceName
   healthCheckConfig.TypeAssumptions.set_ServiceName
+  healthCheckConfig.TypeAssumptions.method_set
+  healthCheckConfig.TypeAssumptions.ptr_method_set
 
 axiom jsonRetryPolicy : Type
 axiom jsonRetryPolicy.zero_val : ZeroVal jsonRetryPolicy
 attribute [instance] jsonRetryPolicy.zero_val
 
-class jsonRetryPolicy.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class jsonRetryPolicy.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying jsonRetryPolicy.underlying jsonRetryPolicy
   underlying : go.UnderlyingDirectedEq jsonRetryPolicy.ty jsonRetryPolicy.underlying
   isUnderlying : go.IsUnderlying jsonRetryPolicy.underlying jsonRetryPolicy.underlying
+  method_set : go.MethodSetIs jsonRetryPolicy.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType jsonRetryPolicy.ty) []
 
 attribute [instance] jsonRetryPolicy.TypeAssumptions.type_repr
   jsonRetryPolicy.TypeAssumptions.underlying
   jsonRetryPolicy.TypeAssumptions.isUnderlying
+  jsonRetryPolicy.TypeAssumptions.method_set
+  jsonRetryPolicy.TypeAssumptions.ptr_method_set
 
-structure retryThrottlingPolicy [FfiSyntax] where
+structure retryThrottlingPolicy [GooseExts] where
   mk ::
   MaxTokens' : w64
   TokenRatio' : w64
 
-noncomputable instance retryThrottlingPolicy.zero_val [FfiSyntax] : ZeroVal retryThrottlingPolicy :=
+noncomputable instance retryThrottlingPolicy.zero_val [GooseExts] : ZeroVal retryThrottlingPolicy :=
   ⟨retryThrottlingPolicy.mk zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def retryThrottlingPolicy.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def retryThrottlingPolicy.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"MaxTokens" go.float64),
 (go.field_decl.FieldDecl go!"TokenRatio" go.float64)]
 
-@[irreducible] noncomputable def retryThrottlingPolicy.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def retryThrottlingPolicy.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   retryThrottlingPolicy.fieldsUnsealed
 
-noncomputable instance equals_unfold_retryThrottlingPolicy [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_retryThrottlingPolicy [GooseExts] [GoGlobalContext] :
     EqualsUnfold retryThrottlingPolicy.fields retryThrottlingPolicy.fieldsUnsealed :=
   ⟨by unfold retryThrottlingPolicy.fields; rfl⟩
 
-@[reducible] noncomputable def retryThrottlingPolicy.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def retryThrottlingPolicy.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType retryThrottlingPolicy.fields)
 
-class retryThrottlingPolicy.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class retryThrottlingPolicy.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying retryThrottlingPolicy.underlying retryThrottlingPolicy
   underlying : go.UnderlyingDirectedEq retryThrottlingPolicy.ty retryThrottlingPolicy.underlying
   get_MaxTokens : ∀ (x : retryThrottlingPolicy), go.IsGoStepPureDetTagged under (StructFieldGet retryThrottlingPolicy.underlying go!"MaxTokens") #x (Val #(x.MaxTokens'))
   set_MaxTokens : ∀ (x : retryThrottlingPolicy) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet retryThrottlingPolicy.underlying go!"MaxTokens") (PairV #x #y) (Val #(({ x with MaxTokens' := y } : retryThrottlingPolicy)))
   get_TokenRatio : ∀ (x : retryThrottlingPolicy), go.IsGoStepPureDetTagged under (StructFieldGet retryThrottlingPolicy.underlying go!"TokenRatio") #x (Val #(x.TokenRatio'))
   set_TokenRatio : ∀ (x : retryThrottlingPolicy) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet retryThrottlingPolicy.underlying go!"TokenRatio") (PairV #x #y) (Val #(({ x with TokenRatio' := y } : retryThrottlingPolicy)))
+  method_set : go.MethodSetIs retryThrottlingPolicy.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType retryThrottlingPolicy.ty) []
 
 attribute [instance] retryThrottlingPolicy.TypeAssumptions.type_repr
   retryThrottlingPolicy.TypeAssumptions.underlying
@@ -3725,36 +4111,40 @@ attribute [instance] retryThrottlingPolicy.TypeAssumptions.type_repr
   retryThrottlingPolicy.TypeAssumptions.set_MaxTokens
   retryThrottlingPolicy.TypeAssumptions.get_TokenRatio
   retryThrottlingPolicy.TypeAssumptions.set_TokenRatio
+  retryThrottlingPolicy.TypeAssumptions.method_set
+  retryThrottlingPolicy.TypeAssumptions.ptr_method_set
 
-structure jsonName [FfiSyntax] where
+structure jsonName [GooseExts] where
   mk ::
   Service' : GoString
   Method' : GoString
 
-noncomputable instance jsonName.zero_val [FfiSyntax] : ZeroVal jsonName :=
+noncomputable instance jsonName.zero_val [GooseExts] : ZeroVal jsonName :=
   ⟨jsonName.mk zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def jsonName.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def jsonName.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"Service" go.string),
 (go.field_decl.FieldDecl go!"Method" go.string)]
 
-@[irreducible] noncomputable def jsonName.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def jsonName.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   jsonName.fieldsUnsealed
 
-noncomputable instance equals_unfold_jsonName [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_jsonName [GooseExts] [GoGlobalContext] :
     EqualsUnfold jsonName.fields jsonName.fieldsUnsealed :=
   ⟨by unfold jsonName.fields; rfl⟩
 
-@[reducible] noncomputable def jsonName.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def jsonName.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType jsonName.fields)
 
-class jsonName.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class jsonName.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying jsonName.underlying jsonName
   underlying : go.UnderlyingDirectedEq jsonName.ty jsonName.underlying
   get_Service : ∀ (x : jsonName), go.IsGoStepPureDetTagged under (StructFieldGet jsonName.underlying go!"Service") #x (Val #(x.Service'))
   set_Service : ∀ (x : jsonName) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet jsonName.underlying go!"Service") (PairV #x #y) (Val #(({ x with Service' := y } : jsonName)))
   get_Method : ∀ (x : jsonName), go.IsGoStepPureDetTagged under (StructFieldGet jsonName.underlying go!"Method") #x (Val #(x.Method'))
   set_Method : ∀ (x : jsonName) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet jsonName.underlying go!"Method") (PairV #x #y) (Val #(({ x with Method' := y } : jsonName)))
+  method_set : go.MethodSetIs jsonName.ty [(go!"google.golang.org/grpc.generatePath", (some (go.signature.Signature [] false [go.string, go.error])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType jsonName.ty) [(go!"google.golang.org/grpc.generatePath", (some (go.signature.Signature [] false [go.string, go.error])))]
 
 attribute [instance] jsonName.TypeAssumptions.type_repr
   jsonName.TypeAssumptions.underlying
@@ -3762,70 +4152,84 @@ attribute [instance] jsonName.TypeAssumptions.type_repr
   jsonName.TypeAssumptions.set_Service
   jsonName.TypeAssumptions.get_Method
   jsonName.TypeAssumptions.set_Method
+  jsonName.TypeAssumptions.method_set
+  jsonName.TypeAssumptions.ptr_method_set
 
 axiom jsonMC : Type
 axiom jsonMC.zero_val : ZeroVal jsonMC
 attribute [instance] jsonMC.zero_val
 
-class jsonMC.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class jsonMC.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying jsonMC.underlying jsonMC
   underlying : go.UnderlyingDirectedEq jsonMC.ty jsonMC.underlying
   isUnderlying : go.IsUnderlying jsonMC.underlying jsonMC.underlying
+  method_set : go.MethodSetIs jsonMC.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType jsonMC.ty) []
 
 attribute [instance] jsonMC.TypeAssumptions.type_repr
   jsonMC.TypeAssumptions.underlying
   jsonMC.TypeAssumptions.isUnderlying
+  jsonMC.TypeAssumptions.method_set
+  jsonMC.TypeAssumptions.ptr_method_set
 
 axiom jsonSC : Type
 axiom jsonSC.zero_val : ZeroVal jsonSC
 attribute [instance] jsonSC.zero_val
 
-class jsonSC.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class jsonSC.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying jsonSC.underlying jsonSC
   underlying : go.UnderlyingDirectedEq jsonSC.ty jsonSC.underlying
   isUnderlying : go.IsUnderlying jsonSC.underlying jsonSC.underlying
+  method_set : go.MethodSetIs jsonSC.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType jsonSC.ty) []
 
 attribute [instance] jsonSC.TypeAssumptions.type_repr
   jsonSC.TypeAssumptions.underlying
   jsonSC.TypeAssumptions.isUnderlying
+  jsonSC.TypeAssumptions.method_set
+  jsonSC.TypeAssumptions.ptr_method_set
 
-abbrev StreamHandler [FfiSyntax] : Type := GoFunc
+abbrev StreamHandler [GooseExts] : Type := GoFunc
 
-@[reducible] noncomputable def StreamHandler.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def StreamHandler.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.FunctionType (go.signature.Signature [go.any, ServerStream.ty] false [go.error]))
 
-class StreamHandler.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class StreamHandler.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq StreamHandler.ty StreamHandler.underlying
+  method_set : go.MethodSetIs StreamHandler.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType StreamHandler.ty) []
 
 attribute [instance] StreamHandler.TypeAssumptions.underlying
+  StreamHandler.TypeAssumptions.method_set
+  StreamHandler.TypeAssumptions.ptr_method_set
 
-structure StreamDesc [FfiSyntax] where
+structure StreamDesc [GooseExts] where
   mk ::
   StreamName' : GoString
   Handler' : StreamHandler
   ServerStreams' : Bool
   ClientStreams' : Bool
 
-noncomputable instance StreamDesc.zero_val [FfiSyntax] : ZeroVal StreamDesc :=
+noncomputable instance StreamDesc.zero_val [GooseExts] : ZeroVal StreamDesc :=
   ⟨StreamDesc.mk zeroValDef zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def StreamDesc.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def StreamDesc.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"StreamName" go.string),
 (go.field_decl.FieldDecl go!"Handler" StreamHandler.ty),
 (go.field_decl.FieldDecl go!"ServerStreams" go.bool),
 (go.field_decl.FieldDecl go!"ClientStreams" go.bool)]
 
-@[irreducible] noncomputable def StreamDesc.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def StreamDesc.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   StreamDesc.fieldsUnsealed
 
-noncomputable instance equals_unfold_StreamDesc [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_StreamDesc [GooseExts] [GoGlobalContext] :
     EqualsUnfold StreamDesc.fields StreamDesc.fieldsUnsealed :=
   ⟨by unfold StreamDesc.fields; rfl⟩
 
-@[reducible] noncomputable def StreamDesc.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def StreamDesc.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType StreamDesc.fields)
 
-class StreamDesc.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class StreamDesc.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying StreamDesc.underlying StreamDesc
   underlying : go.UnderlyingDirectedEq StreamDesc.ty StreamDesc.underlying
   get_StreamName : ∀ (x : StreamDesc), go.IsGoStepPureDetTagged under (StructFieldGet StreamDesc.underlying go!"StreamName") #x (Val #(x.StreamName'))
@@ -3836,6 +4240,8 @@ class StreamDesc.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] 
   set_ServerStreams : ∀ (x : StreamDesc) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet StreamDesc.underlying go!"ServerStreams") (PairV #x #y) (Val #(({ x with ServerStreams' := y } : StreamDesc)))
   get_ClientStreams : ∀ (x : StreamDesc), go.IsGoStepPureDetTagged under (StructFieldGet StreamDesc.underlying go!"ClientStreams") #x (Val #(x.ClientStreams'))
   set_ClientStreams : ∀ (x : StreamDesc) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet StreamDesc.underlying go!"ClientStreams") (PairV #x #y) (Val #(({ x with ClientStreams' := y } : StreamDesc)))
+  method_set : go.MethodSetIs StreamDesc.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType StreamDesc.ty) []
 
 attribute [instance] StreamDesc.TypeAssumptions.type_repr
   StreamDesc.TypeAssumptions.underlying
@@ -3847,95 +4253,119 @@ attribute [instance] StreamDesc.TypeAssumptions.type_repr
   StreamDesc.TypeAssumptions.set_ServerStreams
   StreamDesc.TypeAssumptions.get_ClientStreams
   StreamDesc.TypeAssumptions.set_ClientStreams
+  StreamDesc.TypeAssumptions.method_set
+  StreamDesc.TypeAssumptions.ptr_method_set
 
-abbrev Stream [FfiSyntax] : Type := GoInterface
+abbrev Stream [GooseExts] : Type := GoInterface
 
-@[reducible] noncomputable def Stream.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def Stream.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"Context" (go.signature.Signature [] false [_root_.Perennial.context.Context.ty])), (go.InterfaceElem.MethodElem go!"RecvMsg" (go.signature.Signature [go.any] false [go.error])), (go.InterfaceElem.MethodElem go!"SendMsg" (go.signature.Signature [go.any] false [go.error]))])
 
-class Stream.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class Stream.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq Stream.ty Stream.underlying
+  method_set : go.MethodSetIs Stream.ty [(go!"Context", (some (go.signature.Signature [] false [_root_.Perennial.context.Context.ty]))), (go!"RecvMsg", (some (go.signature.Signature [go.any] false [go.error]))), (go!"SendMsg", (some (go.signature.Signature [go.any] false [go.error])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType Stream.ty) []
 
 attribute [instance] Stream.TypeAssumptions.underlying
+  Stream.TypeAssumptions.method_set
+  Stream.TypeAssumptions.ptr_method_set
 
-abbrev ClientStream [FfiSyntax] : Type := GoInterface
+abbrev ClientStream [GooseExts] : Type := GoInterface
 
-@[reducible] noncomputable def ClientStream.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def ClientStream.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"CloseSend" (go.signature.Signature [] false [go.error])), (go.InterfaceElem.MethodElem go!"Context" (go.signature.Signature [] false [_root_.Perennial.context.Context.ty])), (go.InterfaceElem.MethodElem go!"Header" (go.signature.Signature [] false [_root_.Perennial.google_golang_org.grpc.metadata.MD.ty, go.error])), (go.InterfaceElem.MethodElem go!"RecvMsg" (go.signature.Signature [go.any] false [go.error])), (go.InterfaceElem.MethodElem go!"SendMsg" (go.signature.Signature [go.any] false [go.error])), (go.InterfaceElem.MethodElem go!"Trailer" (go.signature.Signature [] false [_root_.Perennial.google_golang_org.grpc.metadata.MD.ty]))])
 
-class ClientStream.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class ClientStream.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq ClientStream.ty ClientStream.underlying
+  method_set : go.MethodSetIs ClientStream.ty [(go!"CloseSend", (some (go.signature.Signature [] false [go.error]))), (go!"Context", (some (go.signature.Signature [] false [_root_.Perennial.context.Context.ty]))), (go!"Header", (some (go.signature.Signature [] false [_root_.Perennial.google_golang_org.grpc.metadata.MD.ty, go.error]))), (go!"RecvMsg", (some (go.signature.Signature [go.any] false [go.error]))), (go!"SendMsg", (some (go.signature.Signature [go.any] false [go.error]))), (go!"Trailer", (some (go.signature.Signature [] false [_root_.Perennial.google_golang_org.grpc.metadata.MD.ty])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType ClientStream.ty) []
 
 attribute [instance] ClientStream.TypeAssumptions.underlying
+  ClientStream.TypeAssumptions.method_set
+  ClientStream.TypeAssumptions.ptr_method_set
 
 axiom clientStreamWrapper : Type
 axiom clientStreamWrapper.zero_val : ZeroVal clientStreamWrapper
 attribute [instance] clientStreamWrapper.zero_val
 
-class clientStreamWrapper.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class clientStreamWrapper.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying clientStreamWrapper.underlying clientStreamWrapper
   underlying : go.UnderlyingDirectedEq clientStreamWrapper.ty clientStreamWrapper.underlying
   isUnderlying : go.IsUnderlying clientStreamWrapper.underlying clientStreamWrapper.underlying
+  method_set : go.MethodSetIs clientStreamWrapper.ty [(go!"Context", (some (go.signature.Signature [] false [_root_.Perennial.context.Context.ty]))), (go!"Header", (some (go.signature.Signature [] false [_root_.Perennial.google_golang_org.grpc.metadata.MD.ty, go.error]))), (go!"Trailer", (some (go.signature.Signature [] false [_root_.Perennial.google_golang_org.grpc.metadata.MD.ty])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType clientStreamWrapper.ty) [(go!"CloseSend", (some (go.signature.Signature [] false [go.error]))), (go!"Context", (some (go.signature.Signature [] false [_root_.Perennial.context.Context.ty]))), (go!"Header", (some (go.signature.Signature [] false [_root_.Perennial.google_golang_org.grpc.metadata.MD.ty, go.error]))), (go!"RecvMsg", (some (go.signature.Signature [go.any] false [go.error]))), (go!"SendMsg", (some (go.signature.Signature [go.any] false [go.error]))), (go!"Trailer", (some (go.signature.Signature [] false [_root_.Perennial.google_golang_org.grpc.metadata.MD.ty])))]
 
 attribute [instance] clientStreamWrapper.TypeAssumptions.type_repr
   clientStreamWrapper.TypeAssumptions.underlying
   clientStreamWrapper.TypeAssumptions.isUnderlying
+  clientStreamWrapper.TypeAssumptions.method_set
+  clientStreamWrapper.TypeAssumptions.ptr_method_set
 
 axiom clientInterceptor : Type
 axiom clientInterceptor.zero_val : ZeroVal clientInterceptor
 attribute [instance] clientInterceptor.zero_val
 
-class clientInterceptor.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class clientInterceptor.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying clientInterceptor.underlying clientInterceptor
   underlying : go.UnderlyingDirectedEq clientInterceptor.ty clientInterceptor.underlying
   isUnderlying : go.IsUnderlying clientInterceptor.underlying clientInterceptor.underlying
+  method_set : go.MethodSetIs clientInterceptor.ty [(go!"Close", (some (go.signature.Signature [] false []))), (go!"NewStream", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.Named go!"google.golang.org/grpc/internal/resolver.RPCInfo" []), (go.GoType.FunctionType (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.SliceType CallOption.ty)] true [ClientStream.ty, go.error])), (go.GoType.SliceType CallOption.ty)] true [ClientStream.ty, go.error])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType clientInterceptor.ty) []
 
 attribute [instance] clientInterceptor.TypeAssumptions.type_repr
   clientInterceptor.TypeAssumptions.underlying
   clientInterceptor.TypeAssumptions.isUnderlying
+  clientInterceptor.TypeAssumptions.method_set
+  clientInterceptor.TypeAssumptions.ptr_method_set
 
 axiom clientStream : Type
 axiom clientStream.zero_val : ZeroVal clientStream
 attribute [instance] clientStream.zero_val
 
-class clientStream.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class clientStream.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying clientStream.underlying clientStream
   underlying : go.UnderlyingDirectedEq clientStream.ty clientStream.underlying
   isUnderlying : go.IsUnderlying clientStream.underlying clientStream.underlying
+  method_set : go.MethodSetIs clientStream.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType clientStream.ty) [(go!"CloseSend", (some (go.signature.Signature [] false [go.error]))), (go!"Context", (some (go.signature.Signature [] false [_root_.Perennial.context.Context.ty]))), (go!"Header", (some (go.signature.Signature [] false [_root_.Perennial.google_golang_org.grpc.metadata.MD.ty, go.error]))), (go!"RecvMsg", (some (go.signature.Signature [go.any] false [go.error]))), (go!"SendMsg", (some (go.signature.Signature [go.any] false [go.error]))), (go!"Trailer", (some (go.signature.Signature [] false [_root_.Perennial.google_golang_org.grpc.metadata.MD.ty]))), (go!"google.golang.org/grpc.bufferForRetryLocked", (some (go.signature.Signature [go.int, (go.GoType.FunctionType (go.signature.Signature [(go.GoType.PointerType csAttempt.ty)] false [go.error])), (go.GoType.FunctionType (go.signature.Signature [] false []))] false []))), (go!"google.golang.org/grpc.commitAttempt", (some (go.signature.Signature [] false []))), (go!"google.golang.org/grpc.commitAttemptLocked", (some (go.signature.Signature [] false []))), (go!"google.golang.org/grpc.finish", (some (go.signature.Signature [go.error] false []))), (go!"google.golang.org/grpc.newAttemptLocked", (some (go.signature.Signature [go.bool] false [(go.GoType.PointerType csAttempt.ty), go.error]))), (go!"google.golang.org/grpc.replayBufferLocked", (some (go.signature.Signature [(go.GoType.PointerType csAttempt.ty)] false [go.error]))), (go!"google.golang.org/grpc.retryLocked", (some (go.signature.Signature [(go.GoType.PointerType csAttempt.ty), go.error] false [go.error]))), (go!"google.golang.org/grpc.withRetry", (some (go.signature.Signature [(go.GoType.FunctionType (go.signature.Signature [(go.GoType.PointerType csAttempt.ty)] false [go.error])), (go.GoType.FunctionType (go.signature.Signature [] false []))] false [go.error])))]
 
 attribute [instance] clientStream.TypeAssumptions.type_repr
   clientStream.TypeAssumptions.underlying
   clientStream.TypeAssumptions.isUnderlying
+  clientStream.TypeAssumptions.method_set
+  clientStream.TypeAssumptions.ptr_method_set
 
-structure replayOp [FfiSyntax] where
+structure replayOp [GooseExts] where
   mk ::
   op' : GoFunc
   cleanup' : GoFunc
 
-noncomputable instance replayOp.zero_val [FfiSyntax] : ZeroVal replayOp :=
+noncomputable instance replayOp.zero_val [GooseExts] : ZeroVal replayOp :=
   ⟨replayOp.mk zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def replayOp.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def replayOp.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"op" (go.GoType.FunctionType (go.signature.Signature [(go.GoType.PointerType csAttempt.ty)] false [go.error]))),
 (go.field_decl.FieldDecl go!"cleanup" (go.GoType.FunctionType (go.signature.Signature [] false [])))]
 
-@[irreducible] noncomputable def replayOp.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def replayOp.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   replayOp.fieldsUnsealed
 
-noncomputable instance equals_unfold_replayOp [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_replayOp [GooseExts] [GoGlobalContext] :
     EqualsUnfold replayOp.fields replayOp.fieldsUnsealed :=
   ⟨by unfold replayOp.fields; rfl⟩
 
-@[reducible] noncomputable def replayOp.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def replayOp.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType replayOp.fields)
 
-class replayOp.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class replayOp.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying replayOp.underlying replayOp
   underlying : go.UnderlyingDirectedEq replayOp.ty replayOp.underlying
   get_op : ∀ (x : replayOp), go.IsGoStepPureDetTagged under (StructFieldGet replayOp.underlying go!"op") #x (Val #(x.op'))
   set_op : ∀ (x : replayOp) (y : GoFunc), go.IsGoStepPureDetTagged under (StructFieldSet replayOp.underlying go!"op") (PairV #x #y) (Val #(({ x with op' := y } : replayOp)))
   get_cleanup : ∀ (x : replayOp), go.IsGoStepPureDetTagged under (StructFieldGet replayOp.underlying go!"cleanup") #x (Val #(x.cleanup'))
   set_cleanup : ∀ (x : replayOp) (y : GoFunc), go.IsGoStepPureDetTagged under (StructFieldSet replayOp.underlying go!"cleanup") (PairV #x #y) (Val #(({ x with cleanup' := y } : replayOp)))
+  method_set : go.MethodSetIs replayOp.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType replayOp.ty) []
 
 attribute [instance] replayOp.TypeAssumptions.type_repr
   replayOp.TypeAssumptions.underlying
@@ -3943,243 +4373,307 @@ attribute [instance] replayOp.TypeAssumptions.type_repr
   replayOp.TypeAssumptions.set_op
   replayOp.TypeAssumptions.get_cleanup
   replayOp.TypeAssumptions.set_cleanup
+  replayOp.TypeAssumptions.method_set
+  replayOp.TypeAssumptions.ptr_method_set
 
 axiom csAttempt : Type
 axiom csAttempt.zero_val : ZeroVal csAttempt
 attribute [instance] csAttempt.zero_val
 
-class csAttempt.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class csAttempt.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying csAttempt.underlying csAttempt
   underlying : go.UnderlyingDirectedEq csAttempt.ty csAttempt.underlying
   isUnderlying : go.IsUnderlying csAttempt.underlying csAttempt.underlying
+  method_set : go.MethodSetIs csAttempt.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType csAttempt.ty) [(go!"google.golang.org/grpc.finish", (some (go.signature.Signature [go.error] false []))), (go!"google.golang.org/grpc.getTransport", (some (go.signature.Signature [] false [go.error]))), (go!"google.golang.org/grpc.newStream", (some (go.signature.Signature [] false [go.error]))), (go!"google.golang.org/grpc.recvMsg", (some (go.signature.Signature [go.any, (go.GoType.PointerType payloadInfo.ty)] false [go.error]))), (go!"google.golang.org/grpc.sendMsg", (some (go.signature.Signature [go.any, (go.GoType.SliceType go.byte), (go.GoType.Named go!"google.golang.org/grpc/mem.BufferSlice" []), go.int, go.int] false [go.error]))), (go!"google.golang.org/grpc.shouldRetry", (some (go.signature.Signature [go.error] false [go.bool, go.error])))]
 
 attribute [instance] csAttempt.TypeAssumptions.type_repr
   csAttempt.TypeAssumptions.underlying
   csAttempt.TypeAssumptions.isUnderlying
+  csAttempt.TypeAssumptions.method_set
+  csAttempt.TypeAssumptions.ptr_method_set
 
 axiom addrConnStream : Type
 axiom addrConnStream.zero_val : ZeroVal addrConnStream
 attribute [instance] addrConnStream.zero_val
 
-class addrConnStream.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class addrConnStream.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying addrConnStream.underlying addrConnStream
   underlying : go.UnderlyingDirectedEq addrConnStream.ty addrConnStream.underlying
   isUnderlying : go.IsUnderlying addrConnStream.underlying addrConnStream.underlying
+  method_set : go.MethodSetIs addrConnStream.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType addrConnStream.ty) [(go!"CloseSend", (some (go.signature.Signature [] false [go.error]))), (go!"Context", (some (go.signature.Signature [] false [_root_.Perennial.context.Context.ty]))), (go!"Header", (some (go.signature.Signature [] false [_root_.Perennial.google_golang_org.grpc.metadata.MD.ty, go.error]))), (go!"RecvMsg", (some (go.signature.Signature [go.any] false [go.error]))), (go!"SendMsg", (some (go.signature.Signature [go.any] false [go.error]))), (go!"Trailer", (some (go.signature.Signature [] false [_root_.Perennial.google_golang_org.grpc.metadata.MD.ty]))), (go!"google.golang.org/grpc.finish", (some (go.signature.Signature [go.error] false [])))]
 
 attribute [instance] addrConnStream.TypeAssumptions.type_repr
   addrConnStream.TypeAssumptions.underlying
   addrConnStream.TypeAssumptions.isUnderlying
+  addrConnStream.TypeAssumptions.method_set
+  addrConnStream.TypeAssumptions.ptr_method_set
 
-abbrev ServerStream [FfiSyntax] : Type := GoInterface
+abbrev ServerStream [GooseExts] : Type := GoInterface
 
-@[reducible] noncomputable def ServerStream.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def ServerStream.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"Context" (go.signature.Signature [] false [_root_.Perennial.context.Context.ty])), (go.InterfaceElem.MethodElem go!"RecvMsg" (go.signature.Signature [go.any] false [go.error])), (go.InterfaceElem.MethodElem go!"SendHeader" (go.signature.Signature [_root_.Perennial.google_golang_org.grpc.metadata.MD.ty] false [go.error])), (go.InterfaceElem.MethodElem go!"SendMsg" (go.signature.Signature [go.any] false [go.error])), (go.InterfaceElem.MethodElem go!"SetHeader" (go.signature.Signature [_root_.Perennial.google_golang_org.grpc.metadata.MD.ty] false [go.error])), (go.InterfaceElem.MethodElem go!"SetTrailer" (go.signature.Signature [_root_.Perennial.google_golang_org.grpc.metadata.MD.ty] false []))])
 
-class ServerStream.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class ServerStream.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq ServerStream.ty ServerStream.underlying
+  method_set : go.MethodSetIs ServerStream.ty [(go!"Context", (some (go.signature.Signature [] false [_root_.Perennial.context.Context.ty]))), (go!"RecvMsg", (some (go.signature.Signature [go.any] false [go.error]))), (go!"SendHeader", (some (go.signature.Signature [_root_.Perennial.google_golang_org.grpc.metadata.MD.ty] false [go.error]))), (go!"SendMsg", (some (go.signature.Signature [go.any] false [go.error]))), (go!"SetHeader", (some (go.signature.Signature [_root_.Perennial.google_golang_org.grpc.metadata.MD.ty] false [go.error]))), (go!"SetTrailer", (some (go.signature.Signature [_root_.Perennial.google_golang_org.grpc.metadata.MD.ty] false [])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType ServerStream.ty) []
 
 attribute [instance] ServerStream.TypeAssumptions.underlying
+  ServerStream.TypeAssumptions.method_set
+  ServerStream.TypeAssumptions.ptr_method_set
 
 axiom serverStream : Type
 axiom serverStream.zero_val : ZeroVal serverStream
 attribute [instance] serverStream.zero_val
 
-class serverStream.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class serverStream.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying serverStream.underlying serverStream
   underlying : go.UnderlyingDirectedEq serverStream.ty serverStream.underlying
   isUnderlying : go.IsUnderlying serverStream.underlying serverStream.underlying
+  method_set : go.MethodSetIs serverStream.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType serverStream.ty) [(go!"Context", (some (go.signature.Signature [] false [_root_.Perennial.context.Context.ty]))), (go!"RecvMsg", (some (go.signature.Signature [go.any] false [go.error]))), (go!"SendHeader", (some (go.signature.Signature [_root_.Perennial.google_golang_org.grpc.metadata.MD.ty] false [go.error]))), (go!"SendMsg", (some (go.signature.Signature [go.any] false [go.error]))), (go!"SetHeader", (some (go.signature.Signature [_root_.Perennial.google_golang_org.grpc.metadata.MD.ty] false [go.error]))), (go!"SetTrailer", (some (go.signature.Signature [_root_.Perennial.google_golang_org.grpc.metadata.MD.ty] false []))), (go!"google.golang.org/grpc.writeStatus", (some (go.signature.Signature [(go.GoType.PointerType (go.GoType.Named go!"google.golang.org/grpc/internal/status.Status" []))] false [go.error])))]
 
 attribute [instance] serverStream.TypeAssumptions.type_repr
   serverStream.TypeAssumptions.underlying
   serverStream.TypeAssumptions.isUnderlying
+  serverStream.TypeAssumptions.method_set
+  serverStream.TypeAssumptions.ptr_method_set
 
-abbrev ServerStreamingClient [FfiSyntax] (Res : Type) : Type := GoInterface
+abbrev ServerStreamingClient [GooseExts] (Res : Type) : Type := GoInterface
 
-@[reducible] noncomputable def ServerStreamingClient.underlying [FfiSyntax] [GoGlobalContext] (Res : go.GoType) : go.GoType :=
-  (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"Recv" (go.signature.Signature [] false [(go.GoType.PointerType Res), go.error])), (go.InterfaceElem.TypeElem [(go.type_term.TypeTerm ClientStream.ty)])])
+@[reducible] noncomputable def ServerStreamingClient.underlying [GooseExts] [GoGlobalContext] (Res : go.GoType) : go.GoType :=
+  (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"CloseSend" (go.signature.Signature [] false [go.error])), (go.InterfaceElem.MethodElem go!"Context" (go.signature.Signature [] false [_root_.Perennial.context.Context.ty])), (go.InterfaceElem.MethodElem go!"Header" (go.signature.Signature [] false [_root_.Perennial.google_golang_org.grpc.metadata.MD.ty, go.error])), (go.InterfaceElem.MethodElem go!"Recv" (go.signature.Signature [] false [(go.GoType.PointerType Res), go.error])), (go.InterfaceElem.MethodElem go!"RecvMsg" (go.signature.Signature [go.any] false [go.error])), (go.InterfaceElem.MethodElem go!"SendMsg" (go.signature.Signature [go.any] false [go.error])), (go.InterfaceElem.MethodElem go!"Trailer" (go.signature.Signature [] false [_root_.Perennial.google_golang_org.grpc.metadata.MD.ty]))])
 
-class ServerStreamingClient.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class ServerStreamingClient.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : ∀ (Res : go.GoType), go.UnderlyingDirectedEq (ServerStreamingClient.ty Res) (ServerStreamingClient.underlying Res)
+  method_set : ∀ (Res : go.GoType), go.MethodSetIs (ServerStreamingClient.ty Res) [(go!"CloseSend", (some (go.signature.Signature [] false [go.error]))), (go!"Context", (some (go.signature.Signature [] false [_root_.Perennial.context.Context.ty]))), (go!"Header", (some (go.signature.Signature [] false [_root_.Perennial.google_golang_org.grpc.metadata.MD.ty, go.error]))), (go!"Recv", (some (go.signature.Signature [] false [(go.GoType.PointerType Res), go.error]))), (go!"RecvMsg", (some (go.signature.Signature [go.any] false [go.error]))), (go!"SendMsg", (some (go.signature.Signature [go.any] false [go.error]))), (go!"Trailer", (some (go.signature.Signature [] false [_root_.Perennial.google_golang_org.grpc.metadata.MD.ty])))]
+  ptr_method_set : ∀ (Res : go.GoType), go.MethodSetIs (go.GoType.PointerType (ServerStreamingClient.ty Res)) []
 
 attribute [instance] ServerStreamingClient.TypeAssumptions.underlying
+  ServerStreamingClient.TypeAssumptions.method_set
+  ServerStreamingClient.TypeAssumptions.ptr_method_set
 
-abbrev ServerStreamingServer [FfiSyntax] (Res : Type) : Type := GoInterface
+abbrev ServerStreamingServer [GooseExts] (Res : Type) : Type := GoInterface
 
-@[reducible] noncomputable def ServerStreamingServer.underlying [FfiSyntax] [GoGlobalContext] (Res : go.GoType) : go.GoType :=
-  (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"Send" (go.signature.Signature [(go.GoType.PointerType Res)] false [go.error])), (go.InterfaceElem.TypeElem [(go.type_term.TypeTerm ServerStream.ty)])])
+@[reducible] noncomputable def ServerStreamingServer.underlying [GooseExts] [GoGlobalContext] (Res : go.GoType) : go.GoType :=
+  (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"Context" (go.signature.Signature [] false [_root_.Perennial.context.Context.ty])), (go.InterfaceElem.MethodElem go!"RecvMsg" (go.signature.Signature [go.any] false [go.error])), (go.InterfaceElem.MethodElem go!"Send" (go.signature.Signature [(go.GoType.PointerType Res)] false [go.error])), (go.InterfaceElem.MethodElem go!"SendHeader" (go.signature.Signature [_root_.Perennial.google_golang_org.grpc.metadata.MD.ty] false [go.error])), (go.InterfaceElem.MethodElem go!"SendMsg" (go.signature.Signature [go.any] false [go.error])), (go.InterfaceElem.MethodElem go!"SetHeader" (go.signature.Signature [_root_.Perennial.google_golang_org.grpc.metadata.MD.ty] false [go.error])), (go.InterfaceElem.MethodElem go!"SetTrailer" (go.signature.Signature [_root_.Perennial.google_golang_org.grpc.metadata.MD.ty] false []))])
 
-class ServerStreamingServer.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class ServerStreamingServer.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : ∀ (Res : go.GoType), go.UnderlyingDirectedEq (ServerStreamingServer.ty Res) (ServerStreamingServer.underlying Res)
+  method_set : ∀ (Res : go.GoType), go.MethodSetIs (ServerStreamingServer.ty Res) [(go!"Context", (some (go.signature.Signature [] false [_root_.Perennial.context.Context.ty]))), (go!"RecvMsg", (some (go.signature.Signature [go.any] false [go.error]))), (go!"Send", (some (go.signature.Signature [(go.GoType.PointerType Res)] false [go.error]))), (go!"SendHeader", (some (go.signature.Signature [_root_.Perennial.google_golang_org.grpc.metadata.MD.ty] false [go.error]))), (go!"SendMsg", (some (go.signature.Signature [go.any] false [go.error]))), (go!"SetHeader", (some (go.signature.Signature [_root_.Perennial.google_golang_org.grpc.metadata.MD.ty] false [go.error]))), (go!"SetTrailer", (some (go.signature.Signature [_root_.Perennial.google_golang_org.grpc.metadata.MD.ty] false [])))]
+  ptr_method_set : ∀ (Res : go.GoType), go.MethodSetIs (go.GoType.PointerType (ServerStreamingServer.ty Res)) []
 
 attribute [instance] ServerStreamingServer.TypeAssumptions.underlying
+  ServerStreamingServer.TypeAssumptions.method_set
+  ServerStreamingServer.TypeAssumptions.ptr_method_set
 
-abbrev ClientStreamingClient [FfiSyntax] (Req Res : Type) : Type := GoInterface
+abbrev ClientStreamingClient [GooseExts] (Req Res : Type) : Type := GoInterface
 
-@[reducible] noncomputable def ClientStreamingClient.underlying [FfiSyntax] [GoGlobalContext] (Req : go.GoType) (Res : go.GoType) : go.GoType :=
-  (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"CloseAndRecv" (go.signature.Signature [] false [(go.GoType.PointerType Res), go.error])), (go.InterfaceElem.MethodElem go!"Send" (go.signature.Signature [(go.GoType.PointerType Req)] false [go.error])), (go.InterfaceElem.TypeElem [(go.type_term.TypeTerm ClientStream.ty)])])
+@[reducible] noncomputable def ClientStreamingClient.underlying [GooseExts] [GoGlobalContext] (Req : go.GoType) (Res : go.GoType) : go.GoType :=
+  (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"CloseAndRecv" (go.signature.Signature [] false [(go.GoType.PointerType Res), go.error])), (go.InterfaceElem.MethodElem go!"CloseSend" (go.signature.Signature [] false [go.error])), (go.InterfaceElem.MethodElem go!"Context" (go.signature.Signature [] false [_root_.Perennial.context.Context.ty])), (go.InterfaceElem.MethodElem go!"Header" (go.signature.Signature [] false [_root_.Perennial.google_golang_org.grpc.metadata.MD.ty, go.error])), (go.InterfaceElem.MethodElem go!"RecvMsg" (go.signature.Signature [go.any] false [go.error])), (go.InterfaceElem.MethodElem go!"Send" (go.signature.Signature [(go.GoType.PointerType Req)] false [go.error])), (go.InterfaceElem.MethodElem go!"SendMsg" (go.signature.Signature [go.any] false [go.error])), (go.InterfaceElem.MethodElem go!"Trailer" (go.signature.Signature [] false [_root_.Perennial.google_golang_org.grpc.metadata.MD.ty]))])
 
-class ClientStreamingClient.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class ClientStreamingClient.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : ∀ (Req Res : go.GoType), go.UnderlyingDirectedEq (ClientStreamingClient.ty Req Res) (ClientStreamingClient.underlying Req Res)
+  method_set : ∀ (Req Res : go.GoType), go.MethodSetIs (ClientStreamingClient.ty Req Res) [(go!"CloseAndRecv", (some (go.signature.Signature [] false [(go.GoType.PointerType Res), go.error]))), (go!"CloseSend", (some (go.signature.Signature [] false [go.error]))), (go!"Context", (some (go.signature.Signature [] false [_root_.Perennial.context.Context.ty]))), (go!"Header", (some (go.signature.Signature [] false [_root_.Perennial.google_golang_org.grpc.metadata.MD.ty, go.error]))), (go!"RecvMsg", (some (go.signature.Signature [go.any] false [go.error]))), (go!"Send", (some (go.signature.Signature [(go.GoType.PointerType Req)] false [go.error]))), (go!"SendMsg", (some (go.signature.Signature [go.any] false [go.error]))), (go!"Trailer", (some (go.signature.Signature [] false [_root_.Perennial.google_golang_org.grpc.metadata.MD.ty])))]
+  ptr_method_set : ∀ (Req Res : go.GoType), go.MethodSetIs (go.GoType.PointerType (ClientStreamingClient.ty Req Res)) []
 
 attribute [instance] ClientStreamingClient.TypeAssumptions.underlying
+  ClientStreamingClient.TypeAssumptions.method_set
+  ClientStreamingClient.TypeAssumptions.ptr_method_set
 
-abbrev ClientStreamingServer [FfiSyntax] (Req Res : Type) : Type := GoInterface
+abbrev ClientStreamingServer [GooseExts] (Req Res : Type) : Type := GoInterface
 
-@[reducible] noncomputable def ClientStreamingServer.underlying [FfiSyntax] [GoGlobalContext] (Req : go.GoType) (Res : go.GoType) : go.GoType :=
-  (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"Recv" (go.signature.Signature [] false [(go.GoType.PointerType Req), go.error])), (go.InterfaceElem.MethodElem go!"SendAndClose" (go.signature.Signature [(go.GoType.PointerType Res)] false [go.error])), (go.InterfaceElem.TypeElem [(go.type_term.TypeTerm ServerStream.ty)])])
+@[reducible] noncomputable def ClientStreamingServer.underlying [GooseExts] [GoGlobalContext] (Req : go.GoType) (Res : go.GoType) : go.GoType :=
+  (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"Context" (go.signature.Signature [] false [_root_.Perennial.context.Context.ty])), (go.InterfaceElem.MethodElem go!"Recv" (go.signature.Signature [] false [(go.GoType.PointerType Req), go.error])), (go.InterfaceElem.MethodElem go!"RecvMsg" (go.signature.Signature [go.any] false [go.error])), (go.InterfaceElem.MethodElem go!"SendAndClose" (go.signature.Signature [(go.GoType.PointerType Res)] false [go.error])), (go.InterfaceElem.MethodElem go!"SendHeader" (go.signature.Signature [_root_.Perennial.google_golang_org.grpc.metadata.MD.ty] false [go.error])), (go.InterfaceElem.MethodElem go!"SendMsg" (go.signature.Signature [go.any] false [go.error])), (go.InterfaceElem.MethodElem go!"SetHeader" (go.signature.Signature [_root_.Perennial.google_golang_org.grpc.metadata.MD.ty] false [go.error])), (go.InterfaceElem.MethodElem go!"SetTrailer" (go.signature.Signature [_root_.Perennial.google_golang_org.grpc.metadata.MD.ty] false []))])
 
-class ClientStreamingServer.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class ClientStreamingServer.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : ∀ (Req Res : go.GoType), go.UnderlyingDirectedEq (ClientStreamingServer.ty Req Res) (ClientStreamingServer.underlying Req Res)
+  method_set : ∀ (Req Res : go.GoType), go.MethodSetIs (ClientStreamingServer.ty Req Res) [(go!"Context", (some (go.signature.Signature [] false [_root_.Perennial.context.Context.ty]))), (go!"Recv", (some (go.signature.Signature [] false [(go.GoType.PointerType Req), go.error]))), (go!"RecvMsg", (some (go.signature.Signature [go.any] false [go.error]))), (go!"SendAndClose", (some (go.signature.Signature [(go.GoType.PointerType Res)] false [go.error]))), (go!"SendHeader", (some (go.signature.Signature [_root_.Perennial.google_golang_org.grpc.metadata.MD.ty] false [go.error]))), (go!"SendMsg", (some (go.signature.Signature [go.any] false [go.error]))), (go!"SetHeader", (some (go.signature.Signature [_root_.Perennial.google_golang_org.grpc.metadata.MD.ty] false [go.error]))), (go!"SetTrailer", (some (go.signature.Signature [_root_.Perennial.google_golang_org.grpc.metadata.MD.ty] false [])))]
+  ptr_method_set : ∀ (Req Res : go.GoType), go.MethodSetIs (go.GoType.PointerType (ClientStreamingServer.ty Req Res)) []
 
 attribute [instance] ClientStreamingServer.TypeAssumptions.underlying
+  ClientStreamingServer.TypeAssumptions.method_set
+  ClientStreamingServer.TypeAssumptions.ptr_method_set
 
-abbrev BidiStreamingClient [FfiSyntax] (Req Res : Type) : Type := GoInterface
+abbrev BidiStreamingClient [GooseExts] (Req Res : Type) : Type := GoInterface
 
-@[reducible] noncomputable def BidiStreamingClient.underlying [FfiSyntax] [GoGlobalContext] (Req : go.GoType) (Res : go.GoType) : go.GoType :=
-  (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"Recv" (go.signature.Signature [] false [(go.GoType.PointerType Res), go.error])), (go.InterfaceElem.MethodElem go!"Send" (go.signature.Signature [(go.GoType.PointerType Req)] false [go.error])), (go.InterfaceElem.TypeElem [(go.type_term.TypeTerm ClientStream.ty)])])
+@[reducible] noncomputable def BidiStreamingClient.underlying [GooseExts] [GoGlobalContext] (Req : go.GoType) (Res : go.GoType) : go.GoType :=
+  (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"CloseSend" (go.signature.Signature [] false [go.error])), (go.InterfaceElem.MethodElem go!"Context" (go.signature.Signature [] false [_root_.Perennial.context.Context.ty])), (go.InterfaceElem.MethodElem go!"Header" (go.signature.Signature [] false [_root_.Perennial.google_golang_org.grpc.metadata.MD.ty, go.error])), (go.InterfaceElem.MethodElem go!"Recv" (go.signature.Signature [] false [(go.GoType.PointerType Res), go.error])), (go.InterfaceElem.MethodElem go!"RecvMsg" (go.signature.Signature [go.any] false [go.error])), (go.InterfaceElem.MethodElem go!"Send" (go.signature.Signature [(go.GoType.PointerType Req)] false [go.error])), (go.InterfaceElem.MethodElem go!"SendMsg" (go.signature.Signature [go.any] false [go.error])), (go.InterfaceElem.MethodElem go!"Trailer" (go.signature.Signature [] false [_root_.Perennial.google_golang_org.grpc.metadata.MD.ty]))])
 
-class BidiStreamingClient.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class BidiStreamingClient.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : ∀ (Req Res : go.GoType), go.UnderlyingDirectedEq (BidiStreamingClient.ty Req Res) (BidiStreamingClient.underlying Req Res)
+  method_set : ∀ (Req Res : go.GoType), go.MethodSetIs (BidiStreamingClient.ty Req Res) [(go!"CloseSend", (some (go.signature.Signature [] false [go.error]))), (go!"Context", (some (go.signature.Signature [] false [_root_.Perennial.context.Context.ty]))), (go!"Header", (some (go.signature.Signature [] false [_root_.Perennial.google_golang_org.grpc.metadata.MD.ty, go.error]))), (go!"Recv", (some (go.signature.Signature [] false [(go.GoType.PointerType Res), go.error]))), (go!"RecvMsg", (some (go.signature.Signature [go.any] false [go.error]))), (go!"Send", (some (go.signature.Signature [(go.GoType.PointerType Req)] false [go.error]))), (go!"SendMsg", (some (go.signature.Signature [go.any] false [go.error]))), (go!"Trailer", (some (go.signature.Signature [] false [_root_.Perennial.google_golang_org.grpc.metadata.MD.ty])))]
+  ptr_method_set : ∀ (Req Res : go.GoType), go.MethodSetIs (go.GoType.PointerType (BidiStreamingClient.ty Req Res)) []
 
 attribute [instance] BidiStreamingClient.TypeAssumptions.underlying
+  BidiStreamingClient.TypeAssumptions.method_set
+  BidiStreamingClient.TypeAssumptions.ptr_method_set
 
-abbrev BidiStreamingServer [FfiSyntax] (Req Res : Type) : Type := GoInterface
+abbrev BidiStreamingServer [GooseExts] (Req Res : Type) : Type := GoInterface
 
-@[reducible] noncomputable def BidiStreamingServer.underlying [FfiSyntax] [GoGlobalContext] (Req : go.GoType) (Res : go.GoType) : go.GoType :=
-  (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"Recv" (go.signature.Signature [] false [(go.GoType.PointerType Req), go.error])), (go.InterfaceElem.MethodElem go!"Send" (go.signature.Signature [(go.GoType.PointerType Res)] false [go.error])), (go.InterfaceElem.TypeElem [(go.type_term.TypeTerm ServerStream.ty)])])
+@[reducible] noncomputable def BidiStreamingServer.underlying [GooseExts] [GoGlobalContext] (Req : go.GoType) (Res : go.GoType) : go.GoType :=
+  (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"Context" (go.signature.Signature [] false [_root_.Perennial.context.Context.ty])), (go.InterfaceElem.MethodElem go!"Recv" (go.signature.Signature [] false [(go.GoType.PointerType Req), go.error])), (go.InterfaceElem.MethodElem go!"RecvMsg" (go.signature.Signature [go.any] false [go.error])), (go.InterfaceElem.MethodElem go!"Send" (go.signature.Signature [(go.GoType.PointerType Res)] false [go.error])), (go.InterfaceElem.MethodElem go!"SendHeader" (go.signature.Signature [_root_.Perennial.google_golang_org.grpc.metadata.MD.ty] false [go.error])), (go.InterfaceElem.MethodElem go!"SendMsg" (go.signature.Signature [go.any] false [go.error])), (go.InterfaceElem.MethodElem go!"SetHeader" (go.signature.Signature [_root_.Perennial.google_golang_org.grpc.metadata.MD.ty] false [go.error])), (go.InterfaceElem.MethodElem go!"SetTrailer" (go.signature.Signature [_root_.Perennial.google_golang_org.grpc.metadata.MD.ty] false []))])
 
-class BidiStreamingServer.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class BidiStreamingServer.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : ∀ (Req Res : go.GoType), go.UnderlyingDirectedEq (BidiStreamingServer.ty Req Res) (BidiStreamingServer.underlying Req Res)
+  method_set : ∀ (Req Res : go.GoType), go.MethodSetIs (BidiStreamingServer.ty Req Res) [(go!"Context", (some (go.signature.Signature [] false [_root_.Perennial.context.Context.ty]))), (go!"Recv", (some (go.signature.Signature [] false [(go.GoType.PointerType Req), go.error]))), (go!"RecvMsg", (some (go.signature.Signature [go.any] false [go.error]))), (go!"Send", (some (go.signature.Signature [(go.GoType.PointerType Res)] false [go.error]))), (go!"SendHeader", (some (go.signature.Signature [_root_.Perennial.google_golang_org.grpc.metadata.MD.ty] false [go.error]))), (go!"SendMsg", (some (go.signature.Signature [go.any] false [go.error]))), (go!"SetHeader", (some (go.signature.Signature [_root_.Perennial.google_golang_org.grpc.metadata.MD.ty] false [go.error]))), (go!"SetTrailer", (some (go.signature.Signature [_root_.Perennial.google_golang_org.grpc.metadata.MD.ty] false [])))]
+  ptr_method_set : ∀ (Req Res : go.GoType), go.MethodSetIs (go.GoType.PointerType (BidiStreamingServer.ty Req Res)) []
 
 attribute [instance] BidiStreamingServer.TypeAssumptions.underlying
+  BidiStreamingServer.TypeAssumptions.method_set
+  BidiStreamingServer.TypeAssumptions.ptr_method_set
 
-structure GenericClientStream [FfiSyntax] (Req Res : Type) where
+structure GenericClientStream [GooseExts] (Req Res : Type) where
   mk ::
   ClientStream' : ClientStream
 
-noncomputable instance GenericClientStream.zero_val [FfiSyntax] {Req Res : Type} [ZeroVal Req] [ZeroVal Res] : ZeroVal (GenericClientStream Req Res) :=
+noncomputable instance GenericClientStream.zero_val [GooseExts] {Req Res : Type} [ZeroVal Req] [ZeroVal Res] : ZeroVal (GenericClientStream Req Res) :=
   ⟨GenericClientStream.mk zeroValDef⟩
 
-@[reducible] noncomputable def GenericClientStream.fieldsUnsealed [FfiSyntax] [GoGlobalContext] (Req Res : go.GoType) : List go.field_decl :=
+@[reducible] noncomputable def GenericClientStream.fieldsUnsealed [GooseExts] [GoGlobalContext] (Req Res : go.GoType) : List go.field_decl :=
   [(go.field_decl.EmbeddedField go!"ClientStream" ClientStream.ty)]
 
-@[irreducible] noncomputable def GenericClientStream.fields [FfiSyntax] [GoGlobalContext] (Req Res : go.GoType) : List go.field_decl :=
+@[irreducible] noncomputable def GenericClientStream.fields [GooseExts] [GoGlobalContext] (Req Res : go.GoType) : List go.field_decl :=
   (GenericClientStream.fieldsUnsealed Req Res)
 
-noncomputable instance equals_unfold_GenericClientStream [FfiSyntax] [GoGlobalContext] (Req Res : go.GoType) :
+noncomputable instance equals_unfold_GenericClientStream [GooseExts] [GoGlobalContext] (Req Res : go.GoType) :
     EqualsUnfold (GenericClientStream.fields Req Res) (GenericClientStream.fieldsUnsealed Req Res) :=
   ⟨by unfold GenericClientStream.fields; rfl⟩
 
-@[reducible] noncomputable def GenericClientStream.underlying [FfiSyntax] [GoGlobalContext] (Req : go.GoType) (Res : go.GoType) : go.GoType :=
+@[reducible] noncomputable def GenericClientStream.underlying [GooseExts] [GoGlobalContext] (Req : go.GoType) (Res : go.GoType) : go.GoType :=
   (go.GoType.StructType (GenericClientStream.fields Req Res))
 
-class GenericClientStream.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class GenericClientStream.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : ∀ (Req Res : go.GoType) (Req' Res' : Type) [ZeroVal Req'] [TypeRepr Req Req'] [ZeroVal Res'] [TypeRepr Res Res'], go.TypeReprUnderlying (GenericClientStream.underlying Req Res) (GenericClientStream Req' Res')
   underlying : ∀ (Req Res : go.GoType), go.UnderlyingDirectedEq (GenericClientStream.ty Req Res) (GenericClientStream.underlying Req Res)
   get_ClientStream : ∀ (Req Res : go.GoType) (Req' Res' : Type) (x : (GenericClientStream Req' Res')), go.IsGoStepPureDetTagged under (StructFieldGet (GenericClientStream.underlying Req Res) go!"ClientStream") #x (Val #(x.ClientStream'))
   set_ClientStream : ∀ (Req Res : go.GoType) (Req' Res' : Type) (x : (GenericClientStream Req' Res')) (y : ClientStream), go.IsGoStepPureDetTagged under (StructFieldSet (GenericClientStream.underlying Req Res) go!"ClientStream") (PairV #x #y) (Val #(({ x with ClientStream' := y } : (GenericClientStream Req' Res'))))
+  method_set : ∀ (Req Res : go.GoType), go.MethodSetIs (GenericClientStream.ty Req Res) [(go!"CloseSend", (some (go.signature.Signature [] false [go.error]))), (go!"Context", (some (go.signature.Signature [] false [_root_.Perennial.context.Context.ty]))), (go!"Header", (some (go.signature.Signature [] false [_root_.Perennial.google_golang_org.grpc.metadata.MD.ty, go.error]))), (go!"RecvMsg", (some (go.signature.Signature [go.any] false [go.error]))), (go!"SendMsg", (some (go.signature.Signature [go.any] false [go.error]))), (go!"Trailer", (some (go.signature.Signature [] false [_root_.Perennial.google_golang_org.grpc.metadata.MD.ty])))]
+  ptr_method_set : ∀ (Req Res : go.GoType), go.MethodSetIs (go.GoType.PointerType (GenericClientStream.ty Req Res)) [(go!"CloseAndRecv", (some (go.signature.Signature [] false [(go.GoType.PointerType Res), go.error]))), (go!"CloseSend", (some (go.signature.Signature [] false [go.error]))), (go!"Context", (some (go.signature.Signature [] false [_root_.Perennial.context.Context.ty]))), (go!"Header", (some (go.signature.Signature [] false [_root_.Perennial.google_golang_org.grpc.metadata.MD.ty, go.error]))), (go!"Recv", (some (go.signature.Signature [] false [(go.GoType.PointerType Res), go.error]))), (go!"RecvMsg", (some (go.signature.Signature [go.any] false [go.error]))), (go!"Send", (some (go.signature.Signature [(go.GoType.PointerType Req)] false [go.error]))), (go!"SendMsg", (some (go.signature.Signature [go.any] false [go.error]))), (go!"Trailer", (some (go.signature.Signature [] false [_root_.Perennial.google_golang_org.grpc.metadata.MD.ty])))]
 
 attribute [instance] GenericClientStream.TypeAssumptions.type_repr
   GenericClientStream.TypeAssumptions.underlying
   GenericClientStream.TypeAssumptions.get_ClientStream
   GenericClientStream.TypeAssumptions.set_ClientStream
+  GenericClientStream.TypeAssumptions.method_set
+  GenericClientStream.TypeAssumptions.ptr_method_set
 
-structure GenericServerStream [FfiSyntax] (Req Res : Type) where
+structure GenericServerStream [GooseExts] (Req Res : Type) where
   mk ::
   ServerStream' : ServerStream
 
-noncomputable instance GenericServerStream.zero_val [FfiSyntax] {Req Res : Type} [ZeroVal Req] [ZeroVal Res] : ZeroVal (GenericServerStream Req Res) :=
+noncomputable instance GenericServerStream.zero_val [GooseExts] {Req Res : Type} [ZeroVal Req] [ZeroVal Res] : ZeroVal (GenericServerStream Req Res) :=
   ⟨GenericServerStream.mk zeroValDef⟩
 
-@[reducible] noncomputable def GenericServerStream.fieldsUnsealed [FfiSyntax] [GoGlobalContext] (Req Res : go.GoType) : List go.field_decl :=
+@[reducible] noncomputable def GenericServerStream.fieldsUnsealed [GooseExts] [GoGlobalContext] (Req Res : go.GoType) : List go.field_decl :=
   [(go.field_decl.EmbeddedField go!"ServerStream" ServerStream.ty)]
 
-@[irreducible] noncomputable def GenericServerStream.fields [FfiSyntax] [GoGlobalContext] (Req Res : go.GoType) : List go.field_decl :=
+@[irreducible] noncomputable def GenericServerStream.fields [GooseExts] [GoGlobalContext] (Req Res : go.GoType) : List go.field_decl :=
   (GenericServerStream.fieldsUnsealed Req Res)
 
-noncomputable instance equals_unfold_GenericServerStream [FfiSyntax] [GoGlobalContext] (Req Res : go.GoType) :
+noncomputable instance equals_unfold_GenericServerStream [GooseExts] [GoGlobalContext] (Req Res : go.GoType) :
     EqualsUnfold (GenericServerStream.fields Req Res) (GenericServerStream.fieldsUnsealed Req Res) :=
   ⟨by unfold GenericServerStream.fields; rfl⟩
 
-@[reducible] noncomputable def GenericServerStream.underlying [FfiSyntax] [GoGlobalContext] (Req : go.GoType) (Res : go.GoType) : go.GoType :=
+@[reducible] noncomputable def GenericServerStream.underlying [GooseExts] [GoGlobalContext] (Req : go.GoType) (Res : go.GoType) : go.GoType :=
   (go.GoType.StructType (GenericServerStream.fields Req Res))
 
-class GenericServerStream.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class GenericServerStream.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : ∀ (Req Res : go.GoType) (Req' Res' : Type) [ZeroVal Req'] [TypeRepr Req Req'] [ZeroVal Res'] [TypeRepr Res Res'], go.TypeReprUnderlying (GenericServerStream.underlying Req Res) (GenericServerStream Req' Res')
   underlying : ∀ (Req Res : go.GoType), go.UnderlyingDirectedEq (GenericServerStream.ty Req Res) (GenericServerStream.underlying Req Res)
   get_ServerStream : ∀ (Req Res : go.GoType) (Req' Res' : Type) (x : (GenericServerStream Req' Res')), go.IsGoStepPureDetTagged under (StructFieldGet (GenericServerStream.underlying Req Res) go!"ServerStream") #x (Val #(x.ServerStream'))
   set_ServerStream : ∀ (Req Res : go.GoType) (Req' Res' : Type) (x : (GenericServerStream Req' Res')) (y : ServerStream), go.IsGoStepPureDetTagged under (StructFieldSet (GenericServerStream.underlying Req Res) go!"ServerStream") (PairV #x #y) (Val #(({ x with ServerStream' := y } : (GenericServerStream Req' Res'))))
+  method_set : ∀ (Req Res : go.GoType), go.MethodSetIs (GenericServerStream.ty Req Res) [(go!"Context", (some (go.signature.Signature [] false [_root_.Perennial.context.Context.ty]))), (go!"RecvMsg", (some (go.signature.Signature [go.any] false [go.error]))), (go!"SendHeader", (some (go.signature.Signature [_root_.Perennial.google_golang_org.grpc.metadata.MD.ty] false [go.error]))), (go!"SendMsg", (some (go.signature.Signature [go.any] false [go.error]))), (go!"SetHeader", (some (go.signature.Signature [_root_.Perennial.google_golang_org.grpc.metadata.MD.ty] false [go.error]))), (go!"SetTrailer", (some (go.signature.Signature [_root_.Perennial.google_golang_org.grpc.metadata.MD.ty] false [])))]
+  ptr_method_set : ∀ (Req Res : go.GoType), go.MethodSetIs (go.GoType.PointerType (GenericServerStream.ty Req Res)) [(go!"Context", (some (go.signature.Signature [] false [_root_.Perennial.context.Context.ty]))), (go!"Recv", (some (go.signature.Signature [] false [(go.GoType.PointerType Req), go.error]))), (go!"RecvMsg", (some (go.signature.Signature [go.any] false [go.error]))), (go!"Send", (some (go.signature.Signature [(go.GoType.PointerType Res)] false [go.error]))), (go!"SendAndClose", (some (go.signature.Signature [(go.GoType.PointerType Res)] false [go.error]))), (go!"SendHeader", (some (go.signature.Signature [_root_.Perennial.google_golang_org.grpc.metadata.MD.ty] false [go.error]))), (go!"SendMsg", (some (go.signature.Signature [go.any] false [go.error]))), (go!"SetHeader", (some (go.signature.Signature [_root_.Perennial.google_golang_org.grpc.metadata.MD.ty] false [go.error]))), (go!"SetTrailer", (some (go.signature.Signature [_root_.Perennial.google_golang_org.grpc.metadata.MD.ty] false [])))]
 
 attribute [instance] GenericServerStream.TypeAssumptions.type_repr
   GenericServerStream.TypeAssumptions.underlying
   GenericServerStream.TypeAssumptions.get_ServerStream
   GenericServerStream.TypeAssumptions.set_ServerStream
+  GenericServerStream.TypeAssumptions.method_set
+  GenericServerStream.TypeAssumptions.ptr_method_set
 
-abbrev traceEventLog [FfiSyntax] : Type := GoInterface
+abbrev traceEventLog [GooseExts] : Type := GoInterface
 
-@[reducible] noncomputable def traceEventLog.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def traceEventLog.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"Errorf" (go.signature.Signature [go.string, (go.GoType.SliceType go.any)] true [])), (go.InterfaceElem.MethodElem go!"Finish" (go.signature.Signature [] false [])), (go.InterfaceElem.MethodElem go!"Printf" (go.signature.Signature [go.string, (go.GoType.SliceType go.any)] true []))])
 
-class traceEventLog.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class traceEventLog.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq traceEventLog.ty traceEventLog.underlying
+  method_set : go.MethodSetIs traceEventLog.ty [(go!"Errorf", (some (go.signature.Signature [go.string, (go.GoType.SliceType go.any)] true []))), (go!"Finish", (some (go.signature.Signature [] false []))), (go!"Printf", (some (go.signature.Signature [go.string, (go.GoType.SliceType go.any)] true [])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType traceEventLog.ty) []
 
 attribute [instance] traceEventLog.TypeAssumptions.underlying
+  traceEventLog.TypeAssumptions.method_set
+  traceEventLog.TypeAssumptions.ptr_method_set
 
 axiom traceLog : Type
 axiom traceLog.zero_val : ZeroVal traceLog
 attribute [instance] traceLog.zero_val
 
-class traceLog.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class traceLog.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying traceLog.underlying traceLog
   underlying : go.UnderlyingDirectedEq traceLog.ty traceLog.underlying
   isUnderlying : go.IsUnderlying traceLog.underlying traceLog.underlying
+  method_set : go.MethodSetIs traceLog.ty [(go!"Finish", (some (go.signature.Signature [] false []))), (go!"LazyLog", (some (go.signature.Signature [(go.GoType.Named go!"fmt.Stringer" []), go.bool] false []))), (go!"LazyPrintf", (some (go.signature.Signature [go.string, (go.GoType.SliceType go.any)] true []))), (go!"SetError", (some (go.signature.Signature [] false []))), (go!"SetMaxEvents", (some (go.signature.Signature [go.int] false []))), (go!"SetRecycler", (some (go.signature.Signature [(go.GoType.FunctionType (go.signature.Signature [go.any] false []))] false []))), (go!"SetTraceInfo", (some (go.signature.Signature [go.uint64, go.uint64] false [])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType traceLog.ty) []
 
 attribute [instance] traceLog.TypeAssumptions.type_repr
   traceLog.TypeAssumptions.underlying
   traceLog.TypeAssumptions.isUnderlying
+  traceLog.TypeAssumptions.method_set
+  traceLog.TypeAssumptions.ptr_method_set
 
 axiom firstLine : Type
 axiom firstLine.zero_val : ZeroVal firstLine
 attribute [instance] firstLine.zero_val
 
-class firstLine.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class firstLine.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying firstLine.underlying firstLine
   underlying : go.UnderlyingDirectedEq firstLine.ty firstLine.underlying
   isUnderlying : go.IsUnderlying firstLine.underlying firstLine.underlying
+  method_set : go.MethodSetIs firstLine.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType firstLine.ty) [(go!"SetRemoteAddr", (some (go.signature.Signature [(go.GoType.Named go!"net.Addr" [])] false []))), (go!"String", (some (go.signature.Signature [] false [go.string])))]
 
 attribute [instance] firstLine.TypeAssumptions.type_repr
   firstLine.TypeAssumptions.underlying
   firstLine.TypeAssumptions.isUnderlying
+  firstLine.TypeAssumptions.method_set
+  firstLine.TypeAssumptions.ptr_method_set
 
-structure traceInfo [FfiSyntax] where
+structure traceInfo [GooseExts] where
   mk ::
   tr' : traceLog
   firstLine' : firstLine
 
-noncomputable instance traceInfo.zero_val [FfiSyntax] : ZeroVal traceInfo :=
+noncomputable instance traceInfo.zero_val [GooseExts] : ZeroVal traceInfo :=
   ⟨traceInfo.mk zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def traceInfo.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def traceInfo.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"tr" traceLog.ty),
 (go.field_decl.FieldDecl go!"firstLine" firstLine.ty)]
 
-@[irreducible] noncomputable def traceInfo.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def traceInfo.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   traceInfo.fieldsUnsealed
 
-noncomputable instance equals_unfold_traceInfo [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_traceInfo [GooseExts] [GoGlobalContext] :
     EqualsUnfold traceInfo.fields traceInfo.fieldsUnsealed :=
   ⟨by unfold traceInfo.fields; rfl⟩
 
-@[reducible] noncomputable def traceInfo.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def traceInfo.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType traceInfo.fields)
 
-class traceInfo.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class traceInfo.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying traceInfo.underlying traceInfo
   underlying : go.UnderlyingDirectedEq traceInfo.ty traceInfo.underlying
   get_tr : ∀ (x : traceInfo), go.IsGoStepPureDetTagged under (StructFieldGet traceInfo.underlying go!"tr") #x (Val #(x.tr'))
   set_tr : ∀ (x : traceInfo) (y : traceLog), go.IsGoStepPureDetTagged under (StructFieldSet traceInfo.underlying go!"tr") (PairV #x #y) (Val #(({ x with tr' := y } : traceInfo)))
   get_firstLine : ∀ (x : traceInfo), go.IsGoStepPureDetTagged under (StructFieldGet traceInfo.underlying go!"firstLine") #x (Val #(x.firstLine'))
   set_firstLine : ∀ (x : traceInfo) (y : firstLine), go.IsGoStepPureDetTagged under (StructFieldSet traceInfo.underlying go!"firstLine") (PairV #x #y) (Val #(({ x with firstLine' := y } : traceInfo)))
+  method_set : go.MethodSetIs traceInfo.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType traceInfo.ty) []
 
 attribute [instance] traceInfo.TypeAssumptions.type_repr
   traceInfo.TypeAssumptions.underlying
@@ -4187,36 +4681,40 @@ attribute [instance] traceInfo.TypeAssumptions.type_repr
   traceInfo.TypeAssumptions.set_tr
   traceInfo.TypeAssumptions.get_firstLine
   traceInfo.TypeAssumptions.set_firstLine
+  traceInfo.TypeAssumptions.method_set
+  traceInfo.TypeAssumptions.ptr_method_set
 
-structure payload [FfiSyntax] where
+structure payload [GooseExts] where
   mk ::
   sent' : Bool
   msg' : GoInterface
 
-noncomputable instance payload.zero_val [FfiSyntax] : ZeroVal payload :=
+noncomputable instance payload.zero_val [GooseExts] : ZeroVal payload :=
   ⟨payload.mk zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def payload.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def payload.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"sent" go.bool),
 (go.field_decl.FieldDecl go!"msg" go.any)]
 
-@[irreducible] noncomputable def payload.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def payload.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   payload.fieldsUnsealed
 
-noncomputable instance equals_unfold_payload [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_payload [GooseExts] [GoGlobalContext] :
     EqualsUnfold payload.fields payload.fieldsUnsealed :=
   ⟨by unfold payload.fields; rfl⟩
 
-@[reducible] noncomputable def payload.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def payload.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType payload.fields)
 
-class payload.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class payload.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying payload.underlying payload
   underlying : go.UnderlyingDirectedEq payload.ty payload.underlying
   get_sent : ∀ (x : payload), go.IsGoStepPureDetTagged under (StructFieldGet payload.underlying go!"sent") #x (Val #(x.sent'))
   set_sent : ∀ (x : payload) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet payload.underlying go!"sent") (PairV #x #y) (Val #(({ x with sent' := y } : payload)))
   get_msg : ∀ (x : payload), go.IsGoStepPureDetTagged under (StructFieldGet payload.underlying go!"msg") #x (Val #(x.msg'))
   set_msg : ∀ (x : payload) (y : GoInterface), go.IsGoStepPureDetTagged under (StructFieldSet payload.underlying go!"msg") (PairV #x #y) (Val #(({ x with msg' := y } : payload)))
+  method_set : go.MethodSetIs payload.ty [(go!"String", (some (go.signature.Signature [] false [go.string])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType payload.ty) [(go!"String", (some (go.signature.Signature [] false [go.string])))]
 
 attribute [instance] payload.TypeAssumptions.type_repr
   payload.TypeAssumptions.underlying
@@ -4224,36 +4722,40 @@ attribute [instance] payload.TypeAssumptions.type_repr
   payload.TypeAssumptions.set_sent
   payload.TypeAssumptions.get_msg
   payload.TypeAssumptions.set_msg
+  payload.TypeAssumptions.method_set
+  payload.TypeAssumptions.ptr_method_set
 
-structure fmtStringer [FfiSyntax] where
+structure fmtStringer [GooseExts] where
   mk ::
   format' : GoString
   a' : GoSlice
 
-noncomputable instance fmtStringer.zero_val [FfiSyntax] : ZeroVal fmtStringer :=
+noncomputable instance fmtStringer.zero_val [GooseExts] : ZeroVal fmtStringer :=
   ⟨fmtStringer.mk zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def fmtStringer.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def fmtStringer.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"format" go.string),
 (go.field_decl.FieldDecl go!"a" (go.GoType.SliceType go.any))]
 
-@[irreducible] noncomputable def fmtStringer.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def fmtStringer.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   fmtStringer.fieldsUnsealed
 
-noncomputable instance equals_unfold_fmtStringer [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_fmtStringer [GooseExts] [GoGlobalContext] :
     EqualsUnfold fmtStringer.fields fmtStringer.fieldsUnsealed :=
   ⟨by unfold fmtStringer.fields; rfl⟩
 
-@[reducible] noncomputable def fmtStringer.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def fmtStringer.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType fmtStringer.fields)
 
-class fmtStringer.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class fmtStringer.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying fmtStringer.underlying fmtStringer
   underlying : go.UnderlyingDirectedEq fmtStringer.ty fmtStringer.underlying
   get_format : ∀ (x : fmtStringer), go.IsGoStepPureDetTagged under (StructFieldGet fmtStringer.underlying go!"format") #x (Val #(x.format'))
   set_format : ∀ (x : fmtStringer) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet fmtStringer.underlying go!"format") (PairV #x #y) (Val #(({ x with format' := y } : fmtStringer)))
   get_a : ∀ (x : fmtStringer), go.IsGoStepPureDetTagged under (StructFieldGet fmtStringer.underlying go!"a") #x (Val #(x.a'))
   set_a : ∀ (x : fmtStringer) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet fmtStringer.underlying go!"a") (PairV #x #y) (Val #(({ x with a' := y } : fmtStringer)))
+  method_set : go.MethodSetIs fmtStringer.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType fmtStringer.ty) [(go!"String", (some (go.signature.Signature [] false [go.string])))]
 
 attribute [instance] fmtStringer.TypeAssumptions.type_repr
   fmtStringer.TypeAssumptions.underlying
@@ -4261,18 +4763,24 @@ attribute [instance] fmtStringer.TypeAssumptions.type_repr
   fmtStringer.TypeAssumptions.set_format
   fmtStringer.TypeAssumptions.get_a
   fmtStringer.TypeAssumptions.set_a
+  fmtStringer.TypeAssumptions.method_set
+  fmtStringer.TypeAssumptions.ptr_method_set
 
-abbrev stringer [FfiSyntax] : Type := GoString
+abbrev stringer [GooseExts] : Type := GoString
 
-@[reducible] noncomputable def stringer.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def stringer.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   go.string
 
-class stringer.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class stringer.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq stringer.ty stringer.underlying
+  method_set : go.MethodSetIs stringer.ty [(go!"String", (some (go.signature.Signature [] false [go.string])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType stringer.ty) [(go!"String", (some (go.signature.Signature [] false [go.string])))]
 
 attribute [instance] stringer.TypeAssumptions.underlying
+  stringer.TypeAssumptions.method_set
+  stringer.TypeAssumptions.ptr_method_set
 
-class Assumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   BackoffConfig_instance : BackoffConfig.TypeAssumptions
   ConnectParams_instance : ConnectParams.TypeAssumptions
   ccBalancerWrapper_instance : ccBalancerWrapper.TypeAssumptions

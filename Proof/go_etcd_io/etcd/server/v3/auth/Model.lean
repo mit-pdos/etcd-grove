@@ -124,7 +124,7 @@ structure AuthInfoM where
   deriving DecidableEq, Inhabited
 
 /-- The principal of a Go `AuthInfo`. -/
-def authInfoM [FfiSyntax] (info : go_etcd_io.etcd.server.v3.auth.AuthInfo) : AuthInfoM :=
+def authInfoM [GooseExts] (info : go_etcd_io.etcd.server.v3.auth.AuthInfo) : AuthInfoM :=
   ⟨info.Username', uint.nat info.Revision'⟩
 
 /-- The root role's name (`store.go`, `rootRole`). -/
@@ -367,7 +367,7 @@ theorem AuthMode.isOn_false_iff (M : AuthMode) : M.isOn = false ↔ M = .off := 
   cases M <;> simp [AuthMode.isOn]
 
 section ghost
-variable [FfiSyntax] {GF : BundledGFunctors} [AllG GF]
+variable [GooseExts] {GF : BundledGFunctors} [AllG GF]
 
 /-- The history's authority: the states so far, in order (the store's admin side holds it), each
 with valid permission keys (`permKeysOk`: what `isValidPermissionRange` enforces on grants and the

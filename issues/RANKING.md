@@ -273,6 +273,10 @@ Also [raft-reportsnapshot-finish-not-noop](raft-reportsnapshot-finish-not-noop.m
 
 ## Probably not worth their time now
 
+- **[etcd-cfg-watch-progress-interval-race](etcd-cfg-watch-progress-interval-race.md)** (2026-10-26):
+  `NewWatchServer` writes `s.Cfg.WatchProgressNotifyInterval` (a sub-100ms setting raised to the
+  minimum) while other goroutines read `s.Cfg`; a data race with a non-default setting, benign in
+  effect. A small fix (keep the adjusted value out of `s.Cfg`); no reproduction yet.
 - **[etcd-auth-readtx-getallroles-panics](etcd-auth-readtx-getallroles-panics.md)** (2026-10-23):
   `(*authReadTx).UnsafeGetAllRoles` panics whenever called (a no-limit range of a non-safe
   bucket on a read transaction); nothing in etcd calls it, so a dead interface method. A one-line

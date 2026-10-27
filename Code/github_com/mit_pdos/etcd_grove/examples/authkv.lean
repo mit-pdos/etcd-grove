@@ -33,95 +33,95 @@ end pkg_id
 
 namespace github_com.mit_pdos.etcd_grove.examples.authkv
 
-@[reducible] noncomputable def clientAddr [FfiSyntax] [GoGlobalContext] : val :=
+@[reducible] noncomputable def clientAddr [GooseExts] [GoGlobalContext] : val :=
   #(go!"127.0.0.1:23916")
 
-@[reducible] noncomputable def peerAddr [FfiSyntax] [GoGlobalContext] : val :=
+@[reducible] noncomputable def peerAddr [GooseExts] [GoGlobalContext] : val :=
   #(go!"127.0.0.1:23926")
 
-@[reducible] noncomputable def Ok [FfiSyntax] [GoGlobalContext] : val :=
+@[reducible] noncomputable def Ok [GooseExts] [GoGlobalContext] : val :=
   #(0 : Int)
 
-@[reducible] noncomputable def Failed [FfiSyntax] [GoGlobalContext] : val :=
+@[reducible] noncomputable def Failed [GooseExts] [GoGlobalContext] : val :=
   #(1 : Int)
 
-@[reducible] noncomputable def WatchEnded [FfiSyntax] [GoGlobalContext] : val :=
+@[reducible] noncomputable def WatchEnded [GooseExts] [GoGlobalContext] : val :=
   #(2 : Int)
 
-@[reducible] noncomputable def lo [FfiSyntax] [GoGlobalContext] : val :=
+@[reducible] noncomputable def lo [GooseExts] [GoGlobalContext] : val :=
   #(go!"a")
 
-@[reducible] noncomputable def hi [FfiSyntax] [GoGlobalContext] : val :=
+@[reducible] noncomputable def hi [GooseExts] [GoGlobalContext] : val :=
   #(go!"b")
 
-@[reducible] noncomputable def rootPw [FfiSyntax] [GoGlobalContext] : val :=
+@[reducible] noncomputable def rootPw [GooseExts] [GoGlobalContext] : val :=
   #(go!"root-pw")
 
-@[reducible] noncomputable def uPw [FfiSyntax] [GoGlobalContext] : val :=
+@[reducible] noncomputable def uPw [GooseExts] [GoGlobalContext] : val :=
   #(go!"u-pw")
 
-@[reducible] noncomputable def vPw [FfiSyntax] [GoGlobalContext] : val :=
+@[reducible] noncomputable def vPw [GooseExts] [GoGlobalContext] : val :=
   #(go!"v-pw")
 
-@[reducible] noncomputable def badToken [FfiSyntax] [GoGlobalContext] : val :=
+@[reducible] noncomputable def badToken [GooseExts] [GoGlobalContext] : val :=
   #(go!"badtoken")
 
-@[reducible] noncomputable def refusedWatchTimeout [FfiSyntax] [GoGlobalContext] : val :=
+@[reducible] noncomputable def refusedWatchTimeout [GooseExts] [GoGlobalContext] : val :=
   #(W64 2000000000)
 
-noncomputable def Principals [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def Principals [GooseExts] [GoGlobalContext] : GoString :=
   go!"github.com/mit-pdos/etcd-grove/examples/authkv.Principals"
 
-noncomputable def startServer [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def startServer [GooseExts] [GoGlobalContext] : GoString :=
   go!"github.com/mit-pdos/etcd-grove/examples/authkv.startServer"
 
-noncomputable def newUserClient [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def newUserClient [GooseExts] [GoGlobalContext] : GoString :=
   go!"github.com/mit-pdos/etcd-grove/examples/authkv.newUserClient"
 
-noncomputable def InRange [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def InRange [GooseExts] [GoGlobalContext] : GoString :=
   go!"github.com/mit-pdos/etcd-grove/examples/authkv.InRange"
 
-noncomputable def Permitted [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def Permitted [GooseExts] [GoGlobalContext] : GoString :=
   go!"github.com/mit-pdos/etcd-grove/examples/authkv.Permitted"
 
-noncomputable def keyOf [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def keyOf [GooseExts] [GoGlobalContext] : GoString :=
   go!"github.com/mit-pdos/etcd-grove/examples/authkv.keyOf"
 
-noncomputable def reqCtx [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def reqCtx [GooseExts] [GoGlobalContext] : GoString :=
   go!"github.com/mit-pdos/etcd-grove/examples/authkv.reqCtx"
 
-noncomputable def refused [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def refused [GooseExts] [GoGlobalContext] : GoString :=
   go!"github.com/mit-pdos/etcd-grove/examples/authkv.refused"
 
-noncomputable def checkKVs [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def checkKVs [GooseExts] [GoGlobalContext] : GoString :=
   go!"github.com/mit-pdos/etcd-grove/examples/authkv.checkKVs"
 
-noncomputable def checkTxnReads [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def checkTxnReads [GooseExts] [GoGlobalContext] : GoString :=
   go!"github.com/mit-pdos/etcd-grove/examples/authkv.checkTxnReads"
 
-noncomputable def Work [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def Work [GooseExts] [GoGlobalContext] : GoString :=
   go!"github.com/mit-pdos/etcd-grove/examples/authkv.Work"
 
-noncomputable def SetUp [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def SetUp [GooseExts] [GoGlobalContext] : GoString :=
   go!"github.com/mit-pdos/etcd-grove/examples/authkv.SetUp"
 
-noncomputable def Writer [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def Writer [GooseExts] [GoGlobalContext] : GoString :=
   go!"github.com/mit-pdos/etcd-grove/examples/authkv.Writer"
 
-noncomputable def CheckHistory [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def CheckHistory [GooseExts] [GoGlobalContext] : GoString :=
   go!"github.com/mit-pdos/etcd-grove/examples/authkv.CheckHistory"
 
-noncomputable def LastIn [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def LastIn [GooseExts] [GoGlobalContext] : GoString :=
   go!"github.com/mit-pdos/etcd-grove/examples/authkv.LastIn"
 
-noncomputable def Main [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def Main [GooseExts] [GoGlobalContext] : GoString :=
   go!"github.com/mit-pdos/etcd-grove/examples/authkv.Main"
 
 /-- Principals is the principals: the users u and v, the client with no token (anon) and the one
     with a token no provider issued (bad).
 
     go: authkv.go:84:6 -/
-noncomputable def Principals.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def Principals.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (App (Val exceptionDo)
   (App (Val doReturn)
@@ -135,7 +135,7 @@ noncomputable def Principals.impl [FfiSyntax] [GoGlobalContext] : val :=
     token provider (etcd's default, --auth-token simple; its tokens' TTL the provider's default).
 
     go: authkv.go:90:6 -/
-noncomputable def startServer.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def startServer.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "lg"
   (App (Val exceptionDo)
   (Let "lg" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)))) (Var "lg"))
@@ -203,7 +203,7 @@ noncomputable def startServer.impl [FfiSyntax] [GoGlobalContext] : val :=
     calls Authenticate when it dials, and the token is sent with every request).
 
     go: authkv.go:120:6 -/
-noncomputable def newUserClient.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def newUserClient.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "name"
   (Lam "pw"
   (Lam "lg"
@@ -229,7 +229,7 @@ noncomputable def newUserClient.impl [FfiSyntax] [GoGlobalContext] : val :=
 /-- InRange reports whether key k is in [lo, hi), the range role r is granted.
 
     go: authkv.go:133:6 -/
-noncomputable def InRange.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def InRange.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "k"
   (App (Val exceptionDo)
   (Let "k" (App (Val (GoInstruction (GoAlloc go.string))) (Var "k"))
@@ -240,7 +240,7 @@ noncomputable def InRange.impl [FfiSyntax] [GoGlobalContext] : val :=
     role r, on [lo, hi); nobody else, anywhere.
 
     go: authkv.go:139:6 -/
-noncomputable def Permitted.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def Permitted.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "who"
   (Lam "k"
   (App (Val exceptionDo)
@@ -253,7 +253,7 @@ noncomputable def Permitted.impl [FfiSyntax] [GoGlobalContext] : val :=
 /-- keyOf is the key x/<who>/<n>: once auth is on, written and deleted only by who.
 
     go: authkv.go:144:6 -/
-noncomputable def keyOf.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def keyOf.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "x"
   (Lam "who"
   (Lam "n"
@@ -267,7 +267,7 @@ noncomputable def keyOf.impl [FfiSyntax] [GoGlobalContext] : val :=
 /-- reqCtx is a request's context, with the request timeout; the bad principal's carries its token.
 
     go: authkv.go:149:6 -/
-noncomputable def reqCtx.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def reqCtx.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "who"
   (App (Val exceptionDo)
   (Let "who" (App (Val (GoInstruction (GoAlloc go.string))) (Var "who"))
@@ -302,7 +302,7 @@ noncomputable def reqCtx.impl [FfiSyntax] [GoGlobalContext] : val :=
 /-- refused panics if err is nil: a request the auth state refuses who returned no error.
 
     go: authkv.go:158:6 -/
-noncomputable def refused.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def refused.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "who"
   (Lam "what"
   (Lam "err"
@@ -323,7 +323,7 @@ noncomputable def refused.impl [FfiSyntax] [GoGlobalContext] : val :=
 /-- checkKVs panics unless every key-value of a reply who received is one who may read.
 
     go: authkv.go:165:6 -/
-noncomputable def checkKVs.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def checkKVs.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "who"
   (Lam "kvs"
   (App (Val exceptionDo)
@@ -356,7 +356,7 @@ noncomputable def checkKVs.impl [FfiSyntax] [GoGlobalContext] : val :=
     keys who may read (one level: the workload's transactions that may succeed nest none).
 
     go: authkv.go:175:6 -/
-noncomputable def checkTxnReads.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def checkTxnReads.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "who"
   (Lam "ops"
   (App (Val exceptionDo)
@@ -395,7 +395,7 @@ noncomputable def checkTxnReads.impl [FfiSyntax] [GoGlobalContext] : val :=
     timeout): only its reply, if any, is checked.
 
     go: authkv.go:188:6 -/
-noncomputable def Work.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def Work.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "cli"
   (Lam "who"
   (App (Val exceptionDo)
@@ -969,7 +969,7 @@ noncomputable def Work.impl [FfiSyntax] [GoGlobalContext] : val :=
     v with no role. It returns the last set-up write's revision, and false if a step failed.
 
     go: authkv.go:282:6 -/
-noncomputable def SetUp.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def SetUp.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "cli"
   (App (Val wrapDefer)
   (Lam "$defer"
@@ -1243,7 +1243,7 @@ noncomputable def SetUp.impl [FfiSyntax] [GoGlobalContext] : val :=
     c, "" if k has no such shape.
 
     go: authkv.go:327:6 -/
-noncomputable def Writer.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def Writer.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "k"
   (App (Val exceptionDo)
   (Let "k" (App (Val (GoInstruction (GoAlloc go.string))) (Var "k"))
@@ -1293,7 +1293,7 @@ noncomputable def Writer.impl [FfiSyntax] [GoGlobalContext] : val :=
     root's last write (key endKey) is a write its key's principal was permitted.
 
     go: authkv.go:341:6 -/
-noncomputable def CheckHistory.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def CheckHistory.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "evs"
   (Lam "setupRev"
   (Lam "endKey"
@@ -1328,7 +1328,7 @@ noncomputable def CheckHistory.impl [FfiSyntax] [GoGlobalContext] : val :=
 /-- LastIn is the revision of the last event of evs in [lo, hi) (0 if there is none).
 
     go: authkv.go:350:6 -/
-noncomputable def LastIn.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def LastIn.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "evs"
   (App (Val exceptionDo)
   (Let "evs" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.common.Event.ty)))) (Var "evs"))
@@ -1359,7 +1359,7 @@ noncomputable def LastIn.impl [FfiSyntax] [GoGlobalContext] : val :=
     then checks the history through root's watch, and u's watch of [lo, hi).
 
     go: authkv.go:362:6 -/
-noncomputable def Main.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def Main.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (App (Val exceptionDo)
   (Let "$r0" (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.go_uber_org.zap.NewNop []))) (Val #())) (Val #()))
@@ -1721,7 +1721,7 @@ noncomputable def Main.impl [FfiSyntax] [GoGlobalContext] : val :=
 noncomputable instance info' : PkgInfo pkg_id.github_com.mit_pdos.etcd_grove.examples.authkv where
   pkgImportedPkgs := [pkg_id.context, pkg_id.sync, pkg_id.time, pkg_id.go_uber_org.zap, pkg_id.google_golang_org.grpc.metadata, pkg_id.go_etcd_io.etcd.api.v3.etcdserverpb, pkg_id.go_etcd_io.etcd.api.v3.mvccpb, pkg_id.go_etcd_io.etcd.client.pkg.v3.types, pkg_id.go_etcd_io.etcd.client.v3, pkg_id.go_etcd_io.etcd.server.v3.config, pkg_id.go_etcd_io.etcd.server.v3.etcdserver, pkg_id.go_etcd_io.etcd.server.v3.features, pkg_id.github_com.mit_pdos.etcd_grove.examples.common]
 
-noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (App (Val (package.init pkg_id.github_com.mit_pdos.etcd_grove.examples.authkv)) (Lam BAnon
   (App (Val exceptionDo)
@@ -1764,7 +1764,7 @@ noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.common.initialize') (Val #()))))))))
 
-class Assumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   Principals_unfold : FuncUnfold Principals [] Principals.impl
   startServer_unfold : FuncUnfold startServer [] startServer.impl
   newUserClient_unfold : FuncUnfold newUserClient [] newUserClient.impl

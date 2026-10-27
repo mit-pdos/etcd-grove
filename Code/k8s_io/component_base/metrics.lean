@@ -20,667 +20,667 @@ end pkg_id
 
 namespace k8s_io.component_base.metrics
 
-noncomputable def StableCollector.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def StableCollector.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/component-base/metrics.StableCollector" [])
 
 attribute [irreducible] StableCollector.ty
 
-noncomputable def BaseStableCollector.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def BaseStableCollector.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/component-base/metrics.BaseStableCollector" [])
 
 attribute [irreducible] BaseStableCollector.ty
 
-noncomputable def Counter.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def Counter.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/component-base/metrics.Counter" [])
 
 attribute [irreducible] Counter.ty
 
-noncomputable def exemplarCounterMetric.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def exemplarCounterMetric.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/component-base/metrics.exemplarCounterMetric" [])
 
 attribute [irreducible] exemplarCounterMetric.ty
 
-noncomputable def CounterVec.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def CounterVec.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/component-base/metrics.CounterVec" [])
 
 attribute [irreducible] CounterVec.ty
 
-noncomputable def CounterVecWithContext.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def CounterVecWithContext.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/component-base/metrics.CounterVecWithContext" [])
 
 attribute [irreducible] CounterVecWithContext.ty
 
-noncomputable def Desc.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def Desc.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/component-base/metrics.Desc" [])
 
 attribute [irreducible] Desc.ty
 
-noncomputable def Gauge.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def Gauge.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/component-base/metrics.Gauge" [])
 
 attribute [irreducible] Gauge.ty
 
-noncomputable def GaugeVec.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def GaugeVec.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/component-base/metrics.GaugeVec" [])
 
 attribute [irreducible] GaugeVec.ty
 
-noncomputable def GaugeVecWithContext.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def GaugeVecWithContext.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/component-base/metrics.GaugeVecWithContext" [])
 
 attribute [irreducible] GaugeVecWithContext.ty
 
-noncomputable def Histogram.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def Histogram.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/component-base/metrics.Histogram" [])
 
 attribute [irreducible] Histogram.ty
 
-noncomputable def exemplarHistogramMetric.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def exemplarHistogramMetric.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/component-base/metrics.exemplarHistogramMetric" [])
 
 attribute [irreducible] exemplarHistogramMetric.ty
 
-noncomputable def exemplarHistogramVec.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def exemplarHistogramVec.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/component-base/metrics.exemplarHistogramVec" [])
 
 attribute [irreducible] exemplarHistogramVec.ty
 
-noncomputable def HistogramVec.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def HistogramVec.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/component-base/metrics.HistogramVec" [])
 
 attribute [irreducible] HistogramVec.ty
 
-noncomputable def HistogramVecWithContext.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def HistogramVecWithContext.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/component-base/metrics.HistogramVecWithContext" [])
 
 attribute [irreducible] HistogramVecWithContext.ty
 
-noncomputable def HandlerOpts.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def HandlerOpts.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/component-base/metrics.HandlerOpts" [])
 
 attribute [irreducible] HandlerOpts.ty
 
-noncomputable def Labels.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def Labels.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/component-base/metrics.Labels" [])
 
 attribute [irreducible] Labels.ty
 
-noncomputable def kubeCollector.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def kubeCollector.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/component-base/metrics.kubeCollector" [])
 
 attribute [irreducible] kubeCollector.ty
 
-noncomputable def lazyKubeMetric.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def lazyKubeMetric.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/component-base/metrics.lazyKubeMetric" [])
 
 attribute [irreducible] lazyKubeMetric.ty
 
-noncomputable def lazyMetric.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def lazyMetric.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/component-base/metrics.lazyMetric" [])
 
 attribute [irreducible] lazyMetric.ty
 
-noncomputable def selfCollector.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def selfCollector.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/component-base/metrics.selfCollector" [])
 
 attribute [irreducible] selfCollector.ty
 
-noncomputable def noopMetric.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def noopMetric.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/component-base/metrics.noopMetric" [])
 
 attribute [irreducible] noopMetric.ty
 
-noncomputable def Options.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def Options.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/component-base/metrics.Options" [])
 
 attribute [irreducible] Options.ty
 
-noncomputable def MetricLabelAllowList.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def MetricLabelAllowList.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/component-base/metrics.MetricLabelAllowList" [])
 
 attribute [irreducible] MetricLabelAllowList.ty
 
-noncomputable def KubeOpts.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def KubeOpts.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/component-base/metrics.KubeOpts" [])
 
 attribute [irreducible] KubeOpts.ty
 
-noncomputable def StabilityLevel.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def StabilityLevel.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/component-base/metrics.StabilityLevel" [])
 
 attribute [irreducible] StabilityLevel.ty
 
-noncomputable def CounterOpts.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def CounterOpts.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/component-base/metrics.CounterOpts" [])
 
 attribute [irreducible] CounterOpts.ty
 
-noncomputable def GaugeOpts.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def GaugeOpts.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/component-base/metrics.GaugeOpts" [])
 
 attribute [irreducible] GaugeOpts.ty
 
-noncomputable def HistogramOpts.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def HistogramOpts.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/component-base/metrics.HistogramOpts" [])
 
 attribute [irreducible] HistogramOpts.ty
 
-noncomputable def TimingHistogramOpts.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def TimingHistogramOpts.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/component-base/metrics.TimingHistogramOpts" [])
 
 attribute [irreducible] TimingHistogramOpts.ty
 
-noncomputable def SummaryOpts.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def SummaryOpts.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/component-base/metrics.SummaryOpts" [])
 
 attribute [irreducible] SummaryOpts.ty
 
-noncomputable def Registerable.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def Registerable.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/component-base/metrics.Registerable" [])
 
 attribute [irreducible] Registerable.ty
 
-noncomputable def resettable.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def resettable.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/component-base/metrics.resettable" [])
 
 attribute [irreducible] resettable.ty
 
-noncomputable def KubeRegistry.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def KubeRegistry.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/component-base/metrics.KubeRegistry" [])
 
 attribute [irreducible] KubeRegistry.ty
 
-noncomputable def kubeRegistry.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def kubeRegistry.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/component-base/metrics.kubeRegistry" [])
 
 attribute [irreducible] kubeRegistry.ty
 
-noncomputable def Summary.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def Summary.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/component-base/metrics.Summary" [])
 
 attribute [irreducible] Summary.ty
 
-noncomputable def SummaryVec.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def SummaryVec.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/component-base/metrics.SummaryVec" [])
 
 attribute [irreducible] SummaryVec.ty
 
-noncomputable def SummaryVecWithContext.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def SummaryVecWithContext.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/component-base/metrics.SummaryVecWithContext" [])
 
 attribute [irreducible] SummaryVecWithContext.ty
 
-noncomputable def PrometheusTimingHistogram.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def PrometheusTimingHistogram.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/component-base/metrics.PrometheusTimingHistogram" [])
 
 attribute [irreducible] PrometheusTimingHistogram.ty
 
-noncomputable def TimingHistogram.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def TimingHistogram.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/component-base/metrics.TimingHistogram" [])
 
 attribute [irreducible] TimingHistogram.ty
 
-noncomputable def TimingHistogramVec.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def TimingHistogramVec.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/component-base/metrics.TimingHistogramVec" [])
 
 attribute [irreducible] TimingHistogramVec.ty
 
-noncomputable def TimingHistogramVecWithContext.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def TimingHistogramVecWithContext.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/component-base/metrics.TimingHistogramVecWithContext" [])
 
 attribute [irreducible] TimingHistogramVecWithContext.ty
 
-noncomputable def ValueType.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def ValueType.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/component-base/metrics.ValueType" [])
 
 attribute [irreducible] ValueType.ty
 
-noncomputable def Collector.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def Collector.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/component-base/metrics.Collector" [])
 
 attribute [irreducible] Collector.ty
 
-noncomputable def Metric.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def Metric.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/component-base/metrics.Metric" [])
 
 attribute [irreducible] Metric.ty
 
-noncomputable def CounterMetric.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def CounterMetric.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/component-base/metrics.CounterMetric" [])
 
 attribute [irreducible] CounterMetric.ty
 
-noncomputable def CounterVecMetric.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def CounterVecMetric.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/component-base/metrics.CounterVecMetric" [])
 
 attribute [irreducible] CounterVecMetric.ty
 
-noncomputable def GaugeMetric.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def GaugeMetric.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/component-base/metrics.GaugeMetric" [])
 
 attribute [irreducible] GaugeMetric.ty
 
-noncomputable def GaugeVecMetric.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def GaugeVecMetric.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/component-base/metrics.GaugeVecMetric" [])
 
 attribute [irreducible] GaugeVecMetric.ty
 
-noncomputable def ObserverMetric.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def ObserverMetric.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/component-base/metrics.ObserverMetric" [])
 
 attribute [irreducible] ObserverMetric.ty
 
-noncomputable def PromRegistry.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def PromRegistry.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/component-base/metrics.PromRegistry" [])
 
 attribute [irreducible] PromRegistry.ty
 
-noncomputable def Gatherer.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def Gatherer.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/component-base/metrics.Gatherer" [])
 
 attribute [irreducible] Gatherer.ty
 
-noncomputable def Registerer.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def Registerer.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/component-base/metrics.Registerer" [])
 
 attribute [irreducible] Registerer.ty
 
-noncomputable def GaugeFunc.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def GaugeFunc.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/component-base/metrics.GaugeFunc" [])
 
 attribute [irreducible] GaugeFunc.ty
 
-axiom StableCollector.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom StableCollector.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom BaseStableCollector.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom BaseStableCollector.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom Counter.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom Counter.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom exemplarCounterMetric.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom exemplarCounterMetric.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom CounterVec.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom CounterVec.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom CounterVecWithContext.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom CounterVecWithContext.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom Desc.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom Desc.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom Gauge.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom Gauge.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom GaugeVec.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom GaugeVec.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom GaugeVecWithContext.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom GaugeVecWithContext.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom Histogram.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom Histogram.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom exemplarHistogramMetric.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom exemplarHistogramMetric.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom exemplarHistogramVec.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom exemplarHistogramVec.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom HistogramVec.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom HistogramVec.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom HistogramVecWithContext.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom HistogramVecWithContext.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom HandlerOpts.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom HandlerOpts.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom Labels.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom Labels.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom kubeCollector.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom kubeCollector.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom lazyKubeMetric.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom lazyKubeMetric.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom lazyMetric.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom lazyMetric.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom selfCollector.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom selfCollector.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom noopMetric.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom noopMetric.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom Options.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom Options.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom MetricLabelAllowList.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom MetricLabelAllowList.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom KubeOpts.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom KubeOpts.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom StabilityLevel.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom StabilityLevel.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom CounterOpts.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom CounterOpts.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom GaugeOpts.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom GaugeOpts.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom HistogramOpts.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom HistogramOpts.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom TimingHistogramOpts.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom TimingHistogramOpts.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom SummaryOpts.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom SummaryOpts.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom Registerable.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom Registerable.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom resettable.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom resettable.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom KubeRegistry.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom KubeRegistry.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom kubeRegistry.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom kubeRegistry.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom Summary.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom Summary.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom SummaryVec.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom SummaryVec.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom SummaryVecWithContext.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom SummaryVecWithContext.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom PrometheusTimingHistogram.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom PrometheusTimingHistogram.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom TimingHistogram.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom TimingHistogram.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom TimingHistogramVec.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom TimingHistogramVec.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom TimingHistogramVecWithContext.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom TimingHistogramVecWithContext.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom ValueType.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom ValueType.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom Collector.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom Collector.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom Metric.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom Metric.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom CounterMetric.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom CounterMetric.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom CounterVecMetric.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom CounterVecMetric.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom GaugeMetric.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom GaugeMetric.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom GaugeVecMetric.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom GaugeVecMetric.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom ObserverMetric.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom ObserverMetric.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom PromRegistry.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom PromRegistry.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom Gatherer.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom Gatherer.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom Registerer.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom Registerer.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom GaugeFunc.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom GaugeFunc.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom HTTPErrorOnError [FfiSyntax] [GoGlobalContext] : val
+axiom HTTPErrorOnError [GooseExts] [GoGlobalContext] : val
 
-axiom ContinueOnError [FfiSyntax] [GoGlobalContext] : val
+axiom ContinueOnError [GooseExts] [GoGlobalContext] : val
 
-axiom PanicOnError [FfiSyntax] [GoGlobalContext] : val
+axiom PanicOnError [GooseExts] [GoGlobalContext] : val
 
-axiom INTERNAL [FfiSyntax] [GoGlobalContext] : val
+axiom INTERNAL [GooseExts] [GoGlobalContext] : val
 
-axiom ALPHA [FfiSyntax] [GoGlobalContext] : val
+axiom ALPHA [GooseExts] [GoGlobalContext] : val
 
-axiom BETA [FfiSyntax] [GoGlobalContext] : val
+axiom BETA [GooseExts] [GoGlobalContext] : val
 
-axiom STABLE [FfiSyntax] [GoGlobalContext] : val
+axiom STABLE [GooseExts] [GoGlobalContext] : val
 
-axiom DefAgeBuckets [FfiSyntax] [GoGlobalContext] : val
+axiom DefAgeBuckets [GooseExts] [GoGlobalContext] : val
 
-axiom DefBufCap [FfiSyntax] [GoGlobalContext] : val
+axiom DefBufCap [GooseExts] [GoGlobalContext] : val
 
-axiom DefMaxAge [FfiSyntax] [GoGlobalContext] : val
+axiom DefMaxAge [GooseExts] [GoGlobalContext] : val
 
-axiom CounterValue [FfiSyntax] [GoGlobalContext] : val
+axiom CounterValue [GooseExts] [GoGlobalContext] : val
 
-axiom GaugeValue [FfiSyntax] [GoGlobalContext] : val
+axiom GaugeValue [GooseExts] [GoGlobalContext] : val
 
-axiom UntypedValue [FfiSyntax] [GoGlobalContext] : val
+axiom UntypedValue [GooseExts] [GoGlobalContext] : val
 
-axiom versionRegexpString [FfiSyntax] [GoGlobalContext] : val
+axiom versionRegexpString [GooseExts] [GoGlobalContext] : val
 
-noncomputable def DefBuckets [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def DefBuckets [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/component-base/metrics.DefBuckets"
 
-axiom DefBuckets.init [FfiSyntax] [GoGlobalContext] : val
+axiom DefBuckets.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def processStartedAt [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def processStartedAt [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/component-base/metrics.processStartedAt"
 
-noncomputable def noopCounterVec [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def noopCounterVec [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/component-base/metrics.noopCounterVec"
 
-axiom noopCounterVec.init [FfiSyntax] [GoGlobalContext] : val
+axiom noopCounterVec.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def noopHistogramVec [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def noopHistogramVec [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/component-base/metrics.noopHistogramVec"
 
-axiom noopHistogramVec.init [FfiSyntax] [GoGlobalContext] : val
+axiom noopHistogramVec.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def noopTimingHistogramVec [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def noopTimingHistogramVec [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/component-base/metrics.noopTimingHistogramVec"
 
-axiom noopTimingHistogramVec.init [FfiSyntax] [GoGlobalContext] : val
+axiom noopTimingHistogramVec.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def noopGaugeVec [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def noopGaugeVec [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/component-base/metrics.noopGaugeVec"
 
-axiom noopGaugeVec.init [FfiSyntax] [GoGlobalContext] : val
+axiom noopGaugeVec.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def noop [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def noop [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/component-base/metrics.noop"
 
-axiom noop.init [FfiSyntax] [GoGlobalContext] : val
+axiom noop.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def disabledMetricsLock [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def disabledMetricsLock [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/component-base/metrics.disabledMetricsLock"
 
-noncomputable def disabledMetrics [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def disabledMetrics [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/component-base/metrics.disabledMetrics"
 
-axiom disabledMetrics.init [FfiSyntax] [GoGlobalContext] : val
+axiom disabledMetrics.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def showHiddenOnce [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def showHiddenOnce [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/component-base/metrics.showHiddenOnce"
 
-noncomputable def showHidden [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def showHidden [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/component-base/metrics.showHidden"
 
-noncomputable def disabledMetricsTotal [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def disabledMetricsTotal [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/component-base/metrics.disabledMetricsTotal"
 
-axiom disabledMetricsTotal.init [FfiSyntax] [GoGlobalContext] : val
+axiom disabledMetricsTotal.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def hiddenMetricsTotal [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def hiddenMetricsTotal [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/component-base/metrics.hiddenMetricsTotal"
 
-axiom hiddenMetricsTotal.init [FfiSyntax] [GoGlobalContext] : val
+axiom hiddenMetricsTotal.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def cardinalityEnforcementUnexpectedCategorizationsTotal [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def cardinalityEnforcementUnexpectedCategorizationsTotal [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/component-base/metrics.cardinalityEnforcementUnexpectedCategorizationsTotal"
 
-axiom cardinalityEnforcementUnexpectedCategorizationsTotal.init [FfiSyntax] [GoGlobalContext] : val
+axiom cardinalityEnforcementUnexpectedCategorizationsTotal.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def labelValueAllowLists [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def labelValueAllowLists [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/component-base/metrics.labelValueAllowLists"
 
-axiom labelValueAllowLists.init [FfiSyntax] [GoGlobalContext] : val
+axiom labelValueAllowLists.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def allowListLock [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def allowListLock [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/component-base/metrics.allowListLock"
 
-noncomputable def defObjectives [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def defObjectives [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/component-base/metrics.defObjectives"
 
-axiom defObjectives.init [FfiSyntax] [GoGlobalContext] : val
+axiom defObjectives.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def processStartTime [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def processStartTime [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/component-base/metrics.processStartTime"
 
-axiom processStartTime.init [FfiSyntax] [GoGlobalContext] : val
+axiom processStartTime.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def registries [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def registries [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/component-base/metrics.registries"
 
-noncomputable def registriesLock [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def registriesLock [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/component-base/metrics.registriesLock"
 
-noncomputable def registeredMetricsTotal [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def registeredMetricsTotal [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/component-base/metrics.registeredMetricsTotal"
 
-axiom registeredMetricsTotal.init [FfiSyntax] [GoGlobalContext] : val
+axiom registeredMetricsTotal.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def BuildVersion [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def BuildVersion [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/component-base/metrics.BuildVersion"
 
-axiom BuildVersion.init [FfiSyntax] [GoGlobalContext] : val
+axiom BuildVersion.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def buildInfo [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def buildInfo [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/component-base/metrics.buildInfo"
 
-axiom buildInfo.init [FfiSyntax] [GoGlobalContext] : val
+axiom buildInfo.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def versionRe [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def versionRe [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/component-base/metrics.versionRe"
 
-axiom versionRe.init [FfiSyntax] [GoGlobalContext] : val
+axiom versionRe.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def errNotRegistered [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def errNotRegistered [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/component-base/metrics.errNotRegistered"
 
-axiom errNotRegistered.init [FfiSyntax] [GoGlobalContext] : val
+axiom errNotRegistered.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def LinearBuckets [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def LinearBuckets [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/component-base/metrics.LinearBuckets"
 
-noncomputable def ExponentialBuckets [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ExponentialBuckets [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/component-base/metrics.ExponentialBuckets"
 
-noncomputable def ExponentialBucketsRange [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ExponentialBucketsRange [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/component-base/metrics.ExponentialBucketsRange"
 
-noncomputable def MergeBuckets [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def MergeBuckets [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/component-base/metrics.MergeBuckets"
 
-noncomputable def NewCounter [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def NewCounter [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/component-base/metrics.NewCounter"
 
-noncomputable def NewCounterVec [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def NewCounterVec [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/component-base/metrics.NewCounterVec"
 
-noncomputable def NewDesc [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def NewDesc [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/component-base/metrics.NewDesc"
 
-noncomputable def NewGauge [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def NewGauge [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/component-base/metrics.NewGauge"
 
-noncomputable def NewGaugeVec [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def NewGaugeVec [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/component-base/metrics.NewGaugeVec"
 
-noncomputable def newGaugeFunc [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def newGaugeFunc [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/component-base/metrics.newGaugeFunc"
 
-noncomputable def NewGaugeFunc [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def NewGaugeFunc [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/component-base/metrics.NewGaugeFunc"
 
-noncomputable def NewHistogram [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def NewHistogram [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/component-base/metrics.NewHistogram"
 
-noncomputable def NewHistogramVec [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def NewHistogramVec [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/component-base/metrics.NewHistogramVec"
 
-noncomputable def init.«0» [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def init.«0» [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/component-base/metrics.init.0"
 
-noncomputable def HandlerFor [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def HandlerFor [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/component-base/metrics.HandlerFor"
 
-noncomputable def HandlerWithReset [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def HandlerWithReset [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/component-base/metrics.HandlerWithReset"
 
-noncomputable def NewOptions [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def NewOptions [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/component-base/metrics.NewOptions"
 
-noncomputable def SetShowHidden [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def SetShowHidden [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/component-base/metrics.SetShowHidden"
 
-noncomputable def ShouldShowHidden [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ShouldShowHidden [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/component-base/metrics.ShouldShowHidden"
 
-noncomputable def SetDisabledMetrics [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def SetDisabledMetrics [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/component-base/metrics.SetDisabledMetrics"
 
-noncomputable def SetLabelAllowList [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def SetLabelAllowList [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/component-base/metrics.SetLabelAllowList"
 
-noncomputable def SetLabelAllowListFromManifest [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def SetLabelAllowListFromManifest [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/component-base/metrics.SetLabelAllowListFromManifest"
 
-noncomputable def Apply [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def Apply [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/component-base/metrics.Apply"
 
-noncomputable def ValidateShowHiddenMetricsVersion [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ValidateShowHiddenMetricsVersion [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/component-base/metrics.ValidateShowHiddenMetricsVersion"
 
-noncomputable def ResetLabelValueAllowLists [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ResetLabelValueAllowLists [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/component-base/metrics.ResetLabelValueAllowLists"
 
-noncomputable def BuildFQName [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def BuildFQName [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/component-base/metrics.BuildFQName"
 
-noncomputable def RegisterProcessStartTime [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def RegisterProcessStartTime [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/component-base/metrics.RegisterProcessStartTime"
 
-noncomputable def GetProcessStart [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def GetProcessStart [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/component-base/metrics.GetProcessStart"
 
-noncomputable def shouldHide [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def shouldHide [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/component-base/metrics.shouldHide"
 
-noncomputable def deprecationPeriodMinorVersions [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def deprecationPeriodMinorVersions [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/component-base/metrics.deprecationPeriodMinorVersions"
 
-noncomputable def isDeprecated [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def isDeprecated [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/component-base/metrics.isDeprecated"
 
-noncomputable def newKubeRegistry [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def newKubeRegistry [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/component-base/metrics.newKubeRegistry"
 
-noncomputable def NewKubeRegistry [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def NewKubeRegistry [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/component-base/metrics.NewKubeRegistry"
 
-noncomputable def NewSummary [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def NewSummary [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/component-base/metrics.NewSummary"
 
-noncomputable def NewSummaryVec [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def NewSummaryVec [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/component-base/metrics.NewSummaryVec"
 
-noncomputable def NewTimingHistogram [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def NewTimingHistogram [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/component-base/metrics.NewTimingHistogram"
 
-noncomputable def NewTestableTimingHistogram [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def NewTestableTimingHistogram [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/component-base/metrics.NewTestableTimingHistogram"
 
-noncomputable def NewTimingHistogramVec [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def NewTimingHistogramVec [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/component-base/metrics.NewTimingHistogramVec"
 
-noncomputable def NewTestableTimingHistogramVec [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def NewTestableTimingHistogramVec [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/component-base/metrics.NewTestableTimingHistogramVec"
 
-noncomputable def NewLazyConstMetric [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def NewLazyConstMetric [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/component-base/metrics.NewLazyConstMetric"
 
-noncomputable def NewConstMetric [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def NewConstMetric [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/component-base/metrics.NewConstMetric"
 
-noncomputable def NewLazyMetricWithTimestamp [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def NewLazyMetricWithTimestamp [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/component-base/metrics.NewLazyMetricWithTimestamp"
 
-noncomputable def RegisterBuildInfo [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def RegisterBuildInfo [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/component-base/metrics.RegisterBuildInfo"
 
-noncomputable def parseSemver [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def parseSemver [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/component-base/metrics.parseSemver"
 
-noncomputable def parseVersion [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def parseVersion [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/component-base/metrics.parseVersion"
 
-noncomputable def ErrIsNotRegistered [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ErrIsNotRegistered [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/component-base/metrics.ErrIsNotRegistered"
 
 noncomputable instance info' : PkgInfo pkg_id.k8s_io.component_base.metrics where
   pkgImportedPkgs := []
 
-axiom «_».init [FfiSyntax] [GoGlobalContext] : val
+axiom «_».init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (App (Val (package.init pkg_id.k8s_io.component_base.metrics)) (Lam BAnon
   (App (Val exceptionDo)
@@ -793,705 +793,921 @@ axiom StableCollector : Type
 axiom StableCollector.zero_val : ZeroVal StableCollector
 attribute [instance] StableCollector.zero_val
 
-class StableCollector.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class StableCollector.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying StableCollector.underlying StableCollector
   underlying : go.UnderlyingDirectedEq StableCollector.ty StableCollector.underlying
   isUnderlying : go.IsUnderlying StableCollector.underlying StableCollector.underlying
+  method_set : go.MethodSetIs StableCollector.ty [(go!"ClearState", (some (go.signature.Signature [] false []))), (go!"Collect", (some (go.signature.Signature [(go.GoType.ChannelType go.ChanDir.sendonly (go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.Metric" []))] false []))), (go!"CollectWithStability", (some (go.signature.Signature [(go.GoType.ChannelType go.ChanDir.sendonly Metric.ty)] false []))), (go!"Create", (some (go.signature.Signature [(go.GoType.PointerType (go.GoType.Named go!"github.com/blang/semver/v4.Version" [])), StableCollector.ty] false [go.bool]))), (go!"Describe", (some (go.signature.Signature [(go.GoType.ChannelType go.ChanDir.sendonly (go.GoType.PointerType (go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.Desc" [])))] false []))), (go!"DescribeWithStability", (some (go.signature.Signature [(go.GoType.ChannelType go.ChanDir.sendonly (go.GoType.PointerType Desc.ty))] false []))), (go!"HiddenMetrics", (some (go.signature.Signature [] false [(go.GoType.SliceType go.string)])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType StableCollector.ty) []
 
 attribute [instance] StableCollector.TypeAssumptions.type_repr
   StableCollector.TypeAssumptions.underlying
   StableCollector.TypeAssumptions.isUnderlying
+  StableCollector.TypeAssumptions.method_set
+  StableCollector.TypeAssumptions.ptr_method_set
 
 axiom BaseStableCollector : Type
 axiom BaseStableCollector.zero_val : ZeroVal BaseStableCollector
 attribute [instance] BaseStableCollector.zero_val
 
-class BaseStableCollector.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class BaseStableCollector.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying BaseStableCollector.underlying BaseStableCollector
   underlying : go.UnderlyingDirectedEq BaseStableCollector.ty BaseStableCollector.underlying
   isUnderlying : go.IsUnderlying BaseStableCollector.underlying BaseStableCollector.underlying
+  method_set : go.MethodSetIs BaseStableCollector.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType BaseStableCollector.ty) [(go!"ClearState", (some (go.signature.Signature [] false []))), (go!"Collect", (some (go.signature.Signature [(go.GoType.ChannelType go.ChanDir.sendonly (go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.Metric" []))] false []))), (go!"CollectWithStability", (some (go.signature.Signature [(go.GoType.ChannelType go.ChanDir.sendonly Metric.ty)] false []))), (go!"Create", (some (go.signature.Signature [(go.GoType.PointerType (go.GoType.Named go!"github.com/blang/semver/v4.Version" [])), StableCollector.ty] false [go.bool]))), (go!"Describe", (some (go.signature.Signature [(go.GoType.ChannelType go.ChanDir.sendonly (go.GoType.PointerType (go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.Desc" [])))] false []))), (go!"DescribeWithStability", (some (go.signature.Signature [(go.GoType.ChannelType go.ChanDir.sendonly (go.GoType.PointerType Desc.ty))] false []))), (go!"HiddenMetrics", (some (go.signature.Signature [] false [(go.GoType.SliceType go.string)]))), (go!"k8s.io/component-base/metrics.add", (some (go.signature.Signature [(go.GoType.PointerType Desc.ty)] false []))), (go!"k8s.io/component-base/metrics.init", (some (go.signature.Signature [StableCollector.ty] false []))), (go!"k8s.io/component-base/metrics.trackHiddenDescriptor", (some (go.signature.Signature [(go.GoType.PointerType Desc.ty)] false []))), (go!"k8s.io/component-base/metrics.trackRegistrableDescriptor", (some (go.signature.Signature [(go.GoType.PointerType Desc.ty)] false [])))]
 
 attribute [instance] BaseStableCollector.TypeAssumptions.type_repr
   BaseStableCollector.TypeAssumptions.underlying
   BaseStableCollector.TypeAssumptions.isUnderlying
+  BaseStableCollector.TypeAssumptions.method_set
+  BaseStableCollector.TypeAssumptions.ptr_method_set
 
 axiom Counter : Type
 axiom Counter.zero_val : ZeroVal Counter
 attribute [instance] Counter.zero_val
 
-class Counter.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class Counter.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying Counter.underlying Counter
   underlying : go.UnderlyingDirectedEq Counter.ty Counter.underlying
   isUnderlying : go.IsUnderlying Counter.underlying Counter.underlying
+  method_set : go.MethodSetIs Counter.ty [(go!"Add", (some (go.signature.Signature [go.float64] false []))), (go!"Inc", (some (go.signature.Signature [] false []))), (go!"k8s.io/component-base/metrics.annotateStabilityLevel", (some (go.signature.Signature [] false []))), (go!"k8s.io/component-base/metrics.markDeprecated", (some (go.signature.Signature [] false []))), (go!"k8s.io/component-base/metrics.toPromCounterOpts", (some (go.signature.Signature [] false [(go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.CounterOpts" [])])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType Counter.ty) [(go!"Add", (some (go.signature.Signature [go.float64] false []))), (go!"ClearState", (some (go.signature.Signature [] false []))), (go!"Collect", (some (go.signature.Signature [(go.GoType.ChannelType go.ChanDir.sendonly (go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.Metric" []))] false []))), (go!"Create", (some (go.signature.Signature [(go.GoType.PointerType (go.GoType.Named go!"github.com/blang/semver/v4.Version" []))] false [go.bool]))), (go!"DeprecatedVersion", (some (go.signature.Signature [] false [(go.GoType.PointerType (go.GoType.Named go!"github.com/blang/semver/v4.Version" []))]))), (go!"Desc", (some (go.signature.Signature [] false [(go.GoType.PointerType (go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.Desc" []))]))), (go!"Describe", (some (go.signature.Signature [(go.GoType.ChannelType go.ChanDir.sendonly (go.GoType.PointerType (go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.Desc" [])))] false []))), (go!"FQName", (some (go.signature.Signature [] false [go.string]))), (go!"Inc", (some (go.signature.Signature [] false []))), (go!"IsCreated", (some (go.signature.Signature [] false [go.bool]))), (go!"IsDeprecated", (some (go.signature.Signature [] false [go.bool]))), (go!"IsHidden", (some (go.signature.Signature [] false [go.bool]))), (go!"Reset", (some (go.signature.Signature [] false []))), (go!"WithContext", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" [])] false [CounterMetric.ty]))), (go!"Write", (some (go.signature.Signature [(go.GoType.PointerType (go.GoType.Named go!"github.com/prometheus/client_model/go.Metric" []))] false [go.error]))), (go!"k8s.io/component-base/metrics.annotateStabilityLevel", (some (go.signature.Signature [] false []))), (go!"k8s.io/component-base/metrics.initSelfCollection", (some (go.signature.Signature [(go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.Metric" [])] false []))), (go!"k8s.io/component-base/metrics.initializeDeprecatedMetric", (some (go.signature.Signature [] false []))), (go!"k8s.io/component-base/metrics.initializeMetric", (some (go.signature.Signature [] false []))), (go!"k8s.io/component-base/metrics.lazyInit", (some (go.signature.Signature [kubeCollector.ty, go.string] false []))), (go!"k8s.io/component-base/metrics.markDeprecated", (some (go.signature.Signature [] false []))), (go!"k8s.io/component-base/metrics.preprocessMetric", (some (go.signature.Signature [(go.GoType.Named go!"github.com/blang/semver/v4.Version" [])] false []))), (go!"k8s.io/component-base/metrics.setPrometheusCounter", (some (go.signature.Signature [(go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.Counter" [])] false []))), (go!"k8s.io/component-base/metrics.toPromCounterOpts", (some (go.signature.Signature [] false [(go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.CounterOpts" [])])))]
 
 attribute [instance] Counter.TypeAssumptions.type_repr
   Counter.TypeAssumptions.underlying
   Counter.TypeAssumptions.isUnderlying
+  Counter.TypeAssumptions.method_set
+  Counter.TypeAssumptions.ptr_method_set
 
 axiom exemplarCounterMetric : Type
 axiom exemplarCounterMetric.zero_val : ZeroVal exemplarCounterMetric
 attribute [instance] exemplarCounterMetric.zero_val
 
-class exemplarCounterMetric.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class exemplarCounterMetric.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying exemplarCounterMetric.underlying exemplarCounterMetric
   underlying : go.UnderlyingDirectedEq exemplarCounterMetric.ty exemplarCounterMetric.underlying
   isUnderlying : go.IsUnderlying exemplarCounterMetric.underlying exemplarCounterMetric.underlying
+  method_set : go.MethodSetIs exemplarCounterMetric.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType exemplarCounterMetric.ty) [(go!"Add", (some (go.signature.Signature [go.float64] false []))), (go!"Inc", (some (go.signature.Signature [] false [])))]
 
 attribute [instance] exemplarCounterMetric.TypeAssumptions.type_repr
   exemplarCounterMetric.TypeAssumptions.underlying
   exemplarCounterMetric.TypeAssumptions.isUnderlying
+  exemplarCounterMetric.TypeAssumptions.method_set
+  exemplarCounterMetric.TypeAssumptions.ptr_method_set
 
 axiom CounterVec : Type
 axiom CounterVec.zero_val : ZeroVal CounterVec
 attribute [instance] CounterVec.zero_val
 
-class CounterVec.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class CounterVec.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying CounterVec.underlying CounterVec
   underlying : go.UnderlyingDirectedEq CounterVec.ty CounterVec.underlying
   isUnderlying : go.IsUnderlying CounterVec.underlying CounterVec.underlying
+  method_set : go.MethodSetIs CounterVec.ty [(go!"Collect", (some (go.signature.Signature [(go.GoType.ChannelType go.ChanDir.sendonly (go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.Metric" []))] false []))), (go!"CurryWith", (some (go.signature.Signature [(go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.Labels" [])] false [(go.GoType.PointerType (go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.CounterVec" [])), go.error]))), (go!"DeleteLabelValues", (some (go.signature.Signature [(go.GoType.SliceType go.string)] true [go.bool]))), (go!"DeletePartialMatch", (some (go.signature.Signature [(go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.Labels" [])] false [go.int]))), (go!"Describe", (some (go.signature.Signature [(go.GoType.ChannelType go.ChanDir.sendonly (go.GoType.PointerType (go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.Desc" [])))] false []))), (go!"GetMetricWith", (some (go.signature.Signature [(go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.Labels" [])] false [(go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.Counter" []), go.error]))), (go!"GetMetricWithLabelValues", (some (go.signature.Signature [(go.GoType.SliceType go.string)] true [(go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.Counter" []), go.error]))), (go!"MustCurryWith", (some (go.signature.Signature [(go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.Labels" [])] false [(go.GoType.PointerType (go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.CounterVec" []))]))), (go!"github.com/prometheus/client_golang/prometheus.deleteByHashWithLabelValues", (some (go.signature.Signature [go.uint64, (go.GoType.SliceType go.string), (go.GoType.SliceType (go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.curriedLabelValue" []))] false [go.bool]))), (go!"github.com/prometheus/client_golang/prometheus.deleteByHashWithLabels", (some (go.signature.Signature [go.uint64, (go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.Labels" []), (go.GoType.SliceType (go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.curriedLabelValue" []))] false [go.bool]))), (go!"github.com/prometheus/client_golang/prometheus.deleteByLabels", (some (go.signature.Signature [(go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.Labels" []), (go.GoType.SliceType (go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.curriedLabelValue" []))] false [go.int]))), (go!"github.com/prometheus/client_golang/prometheus.getMetricWithHashAndLabelValues", (some (go.signature.Signature [go.uint64, (go.GoType.SliceType go.string), (go.GoType.SliceType (go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.curriedLabelValue" []))] false [(go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.Metric" []), go.bool]))), (go!"github.com/prometheus/client_golang/prometheus.getMetricWithHashAndLabels", (some (go.signature.Signature [go.uint64, (go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.Labels" []), (go.GoType.SliceType (go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.curriedLabelValue" []))] false [(go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.Metric" []), go.bool]))), (go!"github.com/prometheus/client_golang/prometheus.getOrCreateMetricWithLabelValues", (some (go.signature.Signature [go.uint64, (go.GoType.SliceType go.string), (go.GoType.SliceType (go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.curriedLabelValue" []))] false [(go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.Metric" [])]))), (go!"github.com/prometheus/client_golang/prometheus.getOrCreateMetricWithLabels", (some (go.signature.Signature [go.uint64, (go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.Labels" []), (go.GoType.SliceType (go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.curriedLabelValue" []))] false [(go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.Metric" [])]))), (go!"github.com/prometheus/client_golang/prometheus.hashLabelValues", (some (go.signature.Signature [(go.GoType.SliceType go.string)] false [go.uint64, go.error]))), (go!"github.com/prometheus/client_golang/prometheus.hashLabels", (some (go.signature.Signature [(go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.Labels" [])] false [go.uint64, go.error]))), (go!"k8s.io/component-base/metrics.annotateStabilityLevel", (some (go.signature.Signature [] false []))), (go!"k8s.io/component-base/metrics.markDeprecated", (some (go.signature.Signature [] false []))), (go!"k8s.io/component-base/metrics.toPromCounterOpts", (some (go.signature.Signature [] false [(go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.CounterOpts" [])])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType CounterVec.ty) [(go!"ClearState", (some (go.signature.Signature [] false []))), (go!"Collect", (some (go.signature.Signature [(go.GoType.ChannelType go.ChanDir.sendonly (go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.Metric" []))] false []))), (go!"Create", (some (go.signature.Signature [(go.GoType.PointerType (go.GoType.Named go!"github.com/blang/semver/v4.Version" []))] false [go.bool]))), (go!"CurryWith", (some (go.signature.Signature [(go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.Labels" [])] false [(go.GoType.PointerType (go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.CounterVec" [])), go.error]))), (go!"Delete", (some (go.signature.Signature [(go.GoType.MapType go.string go.string)] false [go.bool]))), (go!"DeleteLabelValues", (some (go.signature.Signature [(go.GoType.SliceType go.string)] true [go.bool]))), (go!"DeletePartialMatch", (some (go.signature.Signature [(go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.Labels" [])] false [go.int]))), (go!"DeprecatedVersion", (some (go.signature.Signature [] false [(go.GoType.PointerType (go.GoType.Named go!"github.com/blang/semver/v4.Version" []))]))), (go!"Describe", (some (go.signature.Signature [(go.GoType.ChannelType go.ChanDir.sendonly (go.GoType.PointerType (go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.Desc" [])))] false []))), (go!"FQName", (some (go.signature.Signature [] false [go.string]))), (go!"GetMetricWith", (some (go.signature.Signature [(go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.Labels" [])] false [(go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.Counter" []), go.error]))), (go!"GetMetricWithLabelValues", (some (go.signature.Signature [(go.GoType.SliceType go.string)] true [(go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.Counter" []), go.error]))), (go!"IsCreated", (some (go.signature.Signature [] false [go.bool]))), (go!"IsDeprecated", (some (go.signature.Signature [] false [go.bool]))), (go!"IsHidden", (some (go.signature.Signature [] false [go.bool]))), (go!"MustCurryWith", (some (go.signature.Signature [(go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.Labels" [])] false [(go.GoType.PointerType (go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.CounterVec" []))]))), (go!"Reset", (some (go.signature.Signature [] false []))), (go!"ResetLabelAllowLists", (some (go.signature.Signature [] false []))), (go!"With", (some (go.signature.Signature [(go.GoType.MapType go.string go.string)] false [CounterMetric.ty]))), (go!"WithContext", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" [])] false [(go.GoType.PointerType CounterVecWithContext.ty)]))), (go!"WithLabelValues", (some (go.signature.Signature [(go.GoType.SliceType go.string)] true [CounterMetric.ty]))), (go!"github.com/prometheus/client_golang/prometheus.deleteByHashWithLabelValues", (some (go.signature.Signature [go.uint64, (go.GoType.SliceType go.string), (go.GoType.SliceType (go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.curriedLabelValue" []))] false [go.bool]))), (go!"github.com/prometheus/client_golang/prometheus.deleteByHashWithLabels", (some (go.signature.Signature [go.uint64, (go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.Labels" []), (go.GoType.SliceType (go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.curriedLabelValue" []))] false [go.bool]))), (go!"github.com/prometheus/client_golang/prometheus.deleteByLabels", (some (go.signature.Signature [(go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.Labels" []), (go.GoType.SliceType (go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.curriedLabelValue" []))] false [go.int]))), (go!"github.com/prometheus/client_golang/prometheus.getMetricWithHashAndLabelValues", (some (go.signature.Signature [go.uint64, (go.GoType.SliceType go.string), (go.GoType.SliceType (go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.curriedLabelValue" []))] false [(go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.Metric" []), go.bool]))), (go!"github.com/prometheus/client_golang/prometheus.getMetricWithHashAndLabels", (some (go.signature.Signature [go.uint64, (go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.Labels" []), (go.GoType.SliceType (go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.curriedLabelValue" []))] false [(go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.Metric" []), go.bool]))), (go!"github.com/prometheus/client_golang/prometheus.getOrCreateMetricWithLabelValues", (some (go.signature.Signature [go.uint64, (go.GoType.SliceType go.string), (go.GoType.SliceType (go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.curriedLabelValue" []))] false [(go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.Metric" [])]))), (go!"github.com/prometheus/client_golang/prometheus.getOrCreateMetricWithLabels", (some (go.signature.Signature [go.uint64, (go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.Labels" []), (go.GoType.SliceType (go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.curriedLabelValue" []))] false [(go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.Metric" [])]))), (go!"github.com/prometheus/client_golang/prometheus.hashLabelValues", (some (go.signature.Signature [(go.GoType.SliceType go.string)] false [go.uint64, go.error]))), (go!"github.com/prometheus/client_golang/prometheus.hashLabels", (some (go.signature.Signature [(go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.Labels" [])] false [go.uint64, go.error]))), (go!"k8s.io/component-base/metrics.annotateStabilityLevel", (some (go.signature.Signature [] false []))), (go!"k8s.io/component-base/metrics.initializeDeprecatedMetric", (some (go.signature.Signature [] false []))), (go!"k8s.io/component-base/metrics.initializeMetric", (some (go.signature.Signature [] false []))), (go!"k8s.io/component-base/metrics.lazyInit", (some (go.signature.Signature [kubeCollector.ty, go.string] false []))), (go!"k8s.io/component-base/metrics.markDeprecated", (some (go.signature.Signature [] false []))), (go!"k8s.io/component-base/metrics.preprocessMetric", (some (go.signature.Signature [(go.GoType.Named go!"github.com/blang/semver/v4.Version" [])] false []))), (go!"k8s.io/component-base/metrics.toPromCounterOpts", (some (go.signature.Signature [] false [(go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.CounterOpts" [])])))]
 
 attribute [instance] CounterVec.TypeAssumptions.type_repr
   CounterVec.TypeAssumptions.underlying
   CounterVec.TypeAssumptions.isUnderlying
+  CounterVec.TypeAssumptions.method_set
+  CounterVec.TypeAssumptions.ptr_method_set
 
 axiom CounterVecWithContext : Type
 axiom CounterVecWithContext.zero_val : ZeroVal CounterVecWithContext
 attribute [instance] CounterVecWithContext.zero_val
 
-class CounterVecWithContext.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class CounterVecWithContext.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying CounterVecWithContext.underlying CounterVecWithContext
   underlying : go.UnderlyingDirectedEq CounterVecWithContext.ty CounterVecWithContext.underlying
   isUnderlying : go.IsUnderlying CounterVecWithContext.underlying CounterVecWithContext.underlying
+  method_set : go.MethodSetIs CounterVecWithContext.ty [(go!"ClearState", (some (go.signature.Signature [] false []))), (go!"Collect", (some (go.signature.Signature [(go.GoType.ChannelType go.ChanDir.sendonly (go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.Metric" []))] false []))), (go!"Create", (some (go.signature.Signature [(go.GoType.PointerType (go.GoType.Named go!"github.com/blang/semver/v4.Version" []))] false [go.bool]))), (go!"CurryWith", (some (go.signature.Signature [(go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.Labels" [])] false [(go.GoType.PointerType (go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.CounterVec" [])), go.error]))), (go!"Delete", (some (go.signature.Signature [(go.GoType.MapType go.string go.string)] false [go.bool]))), (go!"DeleteLabelValues", (some (go.signature.Signature [(go.GoType.SliceType go.string)] true [go.bool]))), (go!"DeletePartialMatch", (some (go.signature.Signature [(go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.Labels" [])] false [go.int]))), (go!"DeprecatedVersion", (some (go.signature.Signature [] false [(go.GoType.PointerType (go.GoType.Named go!"github.com/blang/semver/v4.Version" []))]))), (go!"Describe", (some (go.signature.Signature [(go.GoType.ChannelType go.ChanDir.sendonly (go.GoType.PointerType (go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.Desc" [])))] false []))), (go!"FQName", (some (go.signature.Signature [] false [go.string]))), (go!"GetMetricWith", (some (go.signature.Signature [(go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.Labels" [])] false [(go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.Counter" []), go.error]))), (go!"GetMetricWithLabelValues", (some (go.signature.Signature [(go.GoType.SliceType go.string)] true [(go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.Counter" []), go.error]))), (go!"IsCreated", (some (go.signature.Signature [] false [go.bool]))), (go!"IsDeprecated", (some (go.signature.Signature [] false [go.bool]))), (go!"IsHidden", (some (go.signature.Signature [] false [go.bool]))), (go!"MustCurryWith", (some (go.signature.Signature [(go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.Labels" [])] false [(go.GoType.PointerType (go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.CounterVec" []))]))), (go!"Reset", (some (go.signature.Signature [] false []))), (go!"ResetLabelAllowLists", (some (go.signature.Signature [] false []))), (go!"WithContext", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" [])] false [(go.GoType.PointerType CounterVecWithContext.ty)]))), (go!"github.com/prometheus/client_golang/prometheus.deleteByHashWithLabelValues", (some (go.signature.Signature [go.uint64, (go.GoType.SliceType go.string), (go.GoType.SliceType (go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.curriedLabelValue" []))] false [go.bool]))), (go!"github.com/prometheus/client_golang/prometheus.deleteByHashWithLabels", (some (go.signature.Signature [go.uint64, (go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.Labels" []), (go.GoType.SliceType (go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.curriedLabelValue" []))] false [go.bool]))), (go!"github.com/prometheus/client_golang/prometheus.deleteByLabels", (some (go.signature.Signature [(go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.Labels" []), (go.GoType.SliceType (go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.curriedLabelValue" []))] false [go.int]))), (go!"github.com/prometheus/client_golang/prometheus.getMetricWithHashAndLabelValues", (some (go.signature.Signature [go.uint64, (go.GoType.SliceType go.string), (go.GoType.SliceType (go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.curriedLabelValue" []))] false [(go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.Metric" []), go.bool]))), (go!"github.com/prometheus/client_golang/prometheus.getMetricWithHashAndLabels", (some (go.signature.Signature [go.uint64, (go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.Labels" []), (go.GoType.SliceType (go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.curriedLabelValue" []))] false [(go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.Metric" []), go.bool]))), (go!"github.com/prometheus/client_golang/prometheus.getOrCreateMetricWithLabelValues", (some (go.signature.Signature [go.uint64, (go.GoType.SliceType go.string), (go.GoType.SliceType (go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.curriedLabelValue" []))] false [(go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.Metric" [])]))), (go!"github.com/prometheus/client_golang/prometheus.getOrCreateMetricWithLabels", (some (go.signature.Signature [go.uint64, (go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.Labels" []), (go.GoType.SliceType (go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.curriedLabelValue" []))] false [(go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.Metric" [])]))), (go!"github.com/prometheus/client_golang/prometheus.hashLabelValues", (some (go.signature.Signature [(go.GoType.SliceType go.string)] false [go.uint64, go.error]))), (go!"github.com/prometheus/client_golang/prometheus.hashLabels", (some (go.signature.Signature [(go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.Labels" [])] false [go.uint64, go.error]))), (go!"k8s.io/component-base/metrics.annotateStabilityLevel", (some (go.signature.Signature [] false []))), (go!"k8s.io/component-base/metrics.initializeDeprecatedMetric", (some (go.signature.Signature [] false []))), (go!"k8s.io/component-base/metrics.initializeMetric", (some (go.signature.Signature [] false []))), (go!"k8s.io/component-base/metrics.lazyInit", (some (go.signature.Signature [kubeCollector.ty, go.string] false []))), (go!"k8s.io/component-base/metrics.markDeprecated", (some (go.signature.Signature [] false []))), (go!"k8s.io/component-base/metrics.preprocessMetric", (some (go.signature.Signature [(go.GoType.Named go!"github.com/blang/semver/v4.Version" [])] false []))), (go!"k8s.io/component-base/metrics.toPromCounterOpts", (some (go.signature.Signature [] false [(go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.CounterOpts" [])])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType CounterVecWithContext.ty) [(go!"ClearState", (some (go.signature.Signature [] false []))), (go!"Collect", (some (go.signature.Signature [(go.GoType.ChannelType go.ChanDir.sendonly (go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.Metric" []))] false []))), (go!"Create", (some (go.signature.Signature [(go.GoType.PointerType (go.GoType.Named go!"github.com/blang/semver/v4.Version" []))] false [go.bool]))), (go!"CurryWith", (some (go.signature.Signature [(go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.Labels" [])] false [(go.GoType.PointerType (go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.CounterVec" [])), go.error]))), (go!"Delete", (some (go.signature.Signature [(go.GoType.MapType go.string go.string)] false [go.bool]))), (go!"DeleteLabelValues", (some (go.signature.Signature [(go.GoType.SliceType go.string)] true [go.bool]))), (go!"DeletePartialMatch", (some (go.signature.Signature [(go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.Labels" [])] false [go.int]))), (go!"DeprecatedVersion", (some (go.signature.Signature [] false [(go.GoType.PointerType (go.GoType.Named go!"github.com/blang/semver/v4.Version" []))]))), (go!"Describe", (some (go.signature.Signature [(go.GoType.ChannelType go.ChanDir.sendonly (go.GoType.PointerType (go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.Desc" [])))] false []))), (go!"FQName", (some (go.signature.Signature [] false [go.string]))), (go!"GetMetricWith", (some (go.signature.Signature [(go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.Labels" [])] false [(go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.Counter" []), go.error]))), (go!"GetMetricWithLabelValues", (some (go.signature.Signature [(go.GoType.SliceType go.string)] true [(go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.Counter" []), go.error]))), (go!"IsCreated", (some (go.signature.Signature [] false [go.bool]))), (go!"IsDeprecated", (some (go.signature.Signature [] false [go.bool]))), (go!"IsHidden", (some (go.signature.Signature [] false [go.bool]))), (go!"MustCurryWith", (some (go.signature.Signature [(go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.Labels" [])] false [(go.GoType.PointerType (go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.CounterVec" []))]))), (go!"Reset", (some (go.signature.Signature [] false []))), (go!"ResetLabelAllowLists", (some (go.signature.Signature [] false []))), (go!"With", (some (go.signature.Signature [(go.GoType.MapType go.string go.string)] false [CounterMetric.ty]))), (go!"WithContext", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" [])] false [(go.GoType.PointerType CounterVecWithContext.ty)]))), (go!"WithLabelValues", (some (go.signature.Signature [(go.GoType.SliceType go.string)] true [CounterMetric.ty]))), (go!"github.com/prometheus/client_golang/prometheus.deleteByHashWithLabelValues", (some (go.signature.Signature [go.uint64, (go.GoType.SliceType go.string), (go.GoType.SliceType (go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.curriedLabelValue" []))] false [go.bool]))), (go!"github.com/prometheus/client_golang/prometheus.deleteByHashWithLabels", (some (go.signature.Signature [go.uint64, (go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.Labels" []), (go.GoType.SliceType (go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.curriedLabelValue" []))] false [go.bool]))), (go!"github.com/prometheus/client_golang/prometheus.deleteByLabels", (some (go.signature.Signature [(go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.Labels" []), (go.GoType.SliceType (go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.curriedLabelValue" []))] false [go.int]))), (go!"github.com/prometheus/client_golang/prometheus.getMetricWithHashAndLabelValues", (some (go.signature.Signature [go.uint64, (go.GoType.SliceType go.string), (go.GoType.SliceType (go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.curriedLabelValue" []))] false [(go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.Metric" []), go.bool]))), (go!"github.com/prometheus/client_golang/prometheus.getMetricWithHashAndLabels", (some (go.signature.Signature [go.uint64, (go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.Labels" []), (go.GoType.SliceType (go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.curriedLabelValue" []))] false [(go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.Metric" []), go.bool]))), (go!"github.com/prometheus/client_golang/prometheus.getOrCreateMetricWithLabelValues", (some (go.signature.Signature [go.uint64, (go.GoType.SliceType go.string), (go.GoType.SliceType (go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.curriedLabelValue" []))] false [(go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.Metric" [])]))), (go!"github.com/prometheus/client_golang/prometheus.getOrCreateMetricWithLabels", (some (go.signature.Signature [go.uint64, (go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.Labels" []), (go.GoType.SliceType (go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.curriedLabelValue" []))] false [(go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.Metric" [])]))), (go!"github.com/prometheus/client_golang/prometheus.hashLabelValues", (some (go.signature.Signature [(go.GoType.SliceType go.string)] false [go.uint64, go.error]))), (go!"github.com/prometheus/client_golang/prometheus.hashLabels", (some (go.signature.Signature [(go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.Labels" [])] false [go.uint64, go.error]))), (go!"k8s.io/component-base/metrics.annotateStabilityLevel", (some (go.signature.Signature [] false []))), (go!"k8s.io/component-base/metrics.initializeDeprecatedMetric", (some (go.signature.Signature [] false []))), (go!"k8s.io/component-base/metrics.initializeMetric", (some (go.signature.Signature [] false []))), (go!"k8s.io/component-base/metrics.lazyInit", (some (go.signature.Signature [kubeCollector.ty, go.string] false []))), (go!"k8s.io/component-base/metrics.markDeprecated", (some (go.signature.Signature [] false []))), (go!"k8s.io/component-base/metrics.preprocessMetric", (some (go.signature.Signature [(go.GoType.Named go!"github.com/blang/semver/v4.Version" [])] false []))), (go!"k8s.io/component-base/metrics.toPromCounterOpts", (some (go.signature.Signature [] false [(go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.CounterOpts" [])])))]
 
 attribute [instance] CounterVecWithContext.TypeAssumptions.type_repr
   CounterVecWithContext.TypeAssumptions.underlying
   CounterVecWithContext.TypeAssumptions.isUnderlying
+  CounterVecWithContext.TypeAssumptions.method_set
+  CounterVecWithContext.TypeAssumptions.ptr_method_set
 
 axiom Desc : Type
 axiom Desc.zero_val : ZeroVal Desc
 attribute [instance] Desc.zero_val
 
-class Desc.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class Desc.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying Desc.underlying Desc
   underlying : go.UnderlyingDirectedEq Desc.ty Desc.underlying
   isUnderlying : go.IsUnderlying Desc.underlying Desc.underlying
+  method_set : go.MethodSetIs Desc.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType Desc.ty) [(go!"ClearState", (some (go.signature.Signature [] false []))), (go!"DeprecatedVersion", (some (go.signature.Signature [] false [(go.GoType.PointerType (go.GoType.Named go!"github.com/blang/semver/v4.Version" []))]))), (go!"GetRawDesc", (some (go.signature.Signature [] false [(go.GoType.PointerType Desc.ty)]))), (go!"IsCreated", (some (go.signature.Signature [] false [go.bool]))), (go!"IsDeprecated", (some (go.signature.Signature [] false [go.bool]))), (go!"IsHidden", (some (go.signature.Signature [] false [go.bool]))), (go!"String", (some (go.signature.Signature [] false [go.string]))), (go!"k8s.io/component-base/metrics.annotateStabilityLevel", (some (go.signature.Signature [] false []))), (go!"k8s.io/component-base/metrics.create", (some (go.signature.Signature [(go.GoType.PointerType (go.GoType.Named go!"github.com/blang/semver/v4.Version" []))] false [go.bool]))), (go!"k8s.io/component-base/metrics.determineDeprecationStatus", (some (go.signature.Signature [(go.GoType.Named go!"github.com/blang/semver/v4.Version" [])] false []))), (go!"k8s.io/component-base/metrics.initialize", (some (go.signature.Signature [] false []))), (go!"k8s.io/component-base/metrics.initializeDeprecatedDesc", (some (go.signature.Signature [] false []))), (go!"k8s.io/component-base/metrics.markDeprecated", (some (go.signature.Signature [] false []))), (go!"k8s.io/component-base/metrics.toPrometheusDesc", (some (go.signature.Signature [] false [(go.GoType.PointerType (go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.Desc" []))])))]
 
 attribute [instance] Desc.TypeAssumptions.type_repr
   Desc.TypeAssumptions.underlying
   Desc.TypeAssumptions.isUnderlying
+  Desc.TypeAssumptions.method_set
+  Desc.TypeAssumptions.ptr_method_set
 
 axiom Gauge : Type
 axiom Gauge.zero_val : ZeroVal Gauge
 attribute [instance] Gauge.zero_val
 
-class Gauge.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class Gauge.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying Gauge.underlying Gauge
   underlying : go.UnderlyingDirectedEq Gauge.ty Gauge.underlying
   isUnderlying : go.IsUnderlying Gauge.underlying Gauge.underlying
+  method_set : go.MethodSetIs Gauge.ty [(go!"Add", (some (go.signature.Signature [go.float64] false []))), (go!"Dec", (some (go.signature.Signature [] false []))), (go!"Inc", (some (go.signature.Signature [] false []))), (go!"Set", (some (go.signature.Signature [go.float64] false []))), (go!"SetToCurrentTime", (some (go.signature.Signature [] false []))), (go!"Write", (some (go.signature.Signature [(go.GoType.PointerType (go.GoType.Named go!"github.com/prometheus/client_model/go.Metric" []))] false [go.error]))), (go!"k8s.io/component-base/metrics.annotateStabilityLevel", (some (go.signature.Signature [] false []))), (go!"k8s.io/component-base/metrics.markDeprecated", (some (go.signature.Signature [] false []))), (go!"k8s.io/component-base/metrics.toPromGaugeOpts", (some (go.signature.Signature [] false [(go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.GaugeOpts" [])])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType Gauge.ty) [(go!"Add", (some (go.signature.Signature [go.float64] false []))), (go!"ClearState", (some (go.signature.Signature [] false []))), (go!"Collect", (some (go.signature.Signature [(go.GoType.ChannelType go.ChanDir.sendonly (go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.Metric" []))] false []))), (go!"Create", (some (go.signature.Signature [(go.GoType.PointerType (go.GoType.Named go!"github.com/blang/semver/v4.Version" []))] false [go.bool]))), (go!"Dec", (some (go.signature.Signature [] false []))), (go!"DeprecatedVersion", (some (go.signature.Signature [] false [(go.GoType.PointerType (go.GoType.Named go!"github.com/blang/semver/v4.Version" []))]))), (go!"Describe", (some (go.signature.Signature [(go.GoType.ChannelType go.ChanDir.sendonly (go.GoType.PointerType (go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.Desc" [])))] false []))), (go!"FQName", (some (go.signature.Signature [] false [go.string]))), (go!"Inc", (some (go.signature.Signature [] false []))), (go!"IsCreated", (some (go.signature.Signature [] false [go.bool]))), (go!"IsDeprecated", (some (go.signature.Signature [] false [go.bool]))), (go!"IsHidden", (some (go.signature.Signature [] false [go.bool]))), (go!"Set", (some (go.signature.Signature [go.float64] false []))), (go!"SetToCurrentTime", (some (go.signature.Signature [] false []))), (go!"WithContext", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" [])] false [GaugeMetric.ty]))), (go!"Write", (some (go.signature.Signature [(go.GoType.PointerType (go.GoType.Named go!"github.com/prometheus/client_model/go.Metric" []))] false [go.error]))), (go!"k8s.io/component-base/metrics.annotateStabilityLevel", (some (go.signature.Signature [] false []))), (go!"k8s.io/component-base/metrics.initSelfCollection", (some (go.signature.Signature [(go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.Metric" [])] false []))), (go!"k8s.io/component-base/metrics.initializeDeprecatedMetric", (some (go.signature.Signature [] false []))), (go!"k8s.io/component-base/metrics.initializeMetric", (some (go.signature.Signature [] false []))), (go!"k8s.io/component-base/metrics.lazyInit", (some (go.signature.Signature [kubeCollector.ty, go.string] false []))), (go!"k8s.io/component-base/metrics.markDeprecated", (some (go.signature.Signature [] false []))), (go!"k8s.io/component-base/metrics.preprocessMetric", (some (go.signature.Signature [(go.GoType.Named go!"github.com/blang/semver/v4.Version" [])] false []))), (go!"k8s.io/component-base/metrics.setPrometheusGauge", (some (go.signature.Signature [(go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.Gauge" [])] false []))), (go!"k8s.io/component-base/metrics.toPromGaugeOpts", (some (go.signature.Signature [] false [(go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.GaugeOpts" [])])))]
 
 attribute [instance] Gauge.TypeAssumptions.type_repr
   Gauge.TypeAssumptions.underlying
   Gauge.TypeAssumptions.isUnderlying
+  Gauge.TypeAssumptions.method_set
+  Gauge.TypeAssumptions.ptr_method_set
 
 axiom GaugeVec : Type
 axiom GaugeVec.zero_val : ZeroVal GaugeVec
 attribute [instance] GaugeVec.zero_val
 
-class GaugeVec.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class GaugeVec.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying GaugeVec.underlying GaugeVec
   underlying : go.UnderlyingDirectedEq GaugeVec.ty GaugeVec.underlying
   isUnderlying : go.IsUnderlying GaugeVec.underlying GaugeVec.underlying
+  method_set : go.MethodSetIs GaugeVec.ty [(go!"Collect", (some (go.signature.Signature [(go.GoType.ChannelType go.ChanDir.sendonly (go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.Metric" []))] false []))), (go!"CurryWith", (some (go.signature.Signature [(go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.Labels" [])] false [(go.GoType.PointerType (go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.GaugeVec" [])), go.error]))), (go!"DeletePartialMatch", (some (go.signature.Signature [(go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.Labels" [])] false [go.int]))), (go!"Describe", (some (go.signature.Signature [(go.GoType.ChannelType go.ChanDir.sendonly (go.GoType.PointerType (go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.Desc" [])))] false []))), (go!"GetMetricWith", (some (go.signature.Signature [(go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.Labels" [])] false [(go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.Gauge" []), go.error]))), (go!"GetMetricWithLabelValues", (some (go.signature.Signature [(go.GoType.SliceType go.string)] true [(go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.Gauge" []), go.error]))), (go!"MustCurryWith", (some (go.signature.Signature [(go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.Labels" [])] false [(go.GoType.PointerType (go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.GaugeVec" []))]))), (go!"github.com/prometheus/client_golang/prometheus.deleteByHashWithLabelValues", (some (go.signature.Signature [go.uint64, (go.GoType.SliceType go.string), (go.GoType.SliceType (go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.curriedLabelValue" []))] false [go.bool]))), (go!"github.com/prometheus/client_golang/prometheus.deleteByHashWithLabels", (some (go.signature.Signature [go.uint64, (go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.Labels" []), (go.GoType.SliceType (go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.curriedLabelValue" []))] false [go.bool]))), (go!"github.com/prometheus/client_golang/prometheus.deleteByLabels", (some (go.signature.Signature [(go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.Labels" []), (go.GoType.SliceType (go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.curriedLabelValue" []))] false [go.int]))), (go!"github.com/prometheus/client_golang/prometheus.getMetricWithHashAndLabelValues", (some (go.signature.Signature [go.uint64, (go.GoType.SliceType go.string), (go.GoType.SliceType (go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.curriedLabelValue" []))] false [(go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.Metric" []), go.bool]))), (go!"github.com/prometheus/client_golang/prometheus.getMetricWithHashAndLabels", (some (go.signature.Signature [go.uint64, (go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.Labels" []), (go.GoType.SliceType (go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.curriedLabelValue" []))] false [(go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.Metric" []), go.bool]))), (go!"github.com/prometheus/client_golang/prometheus.getOrCreateMetricWithLabelValues", (some (go.signature.Signature [go.uint64, (go.GoType.SliceType go.string), (go.GoType.SliceType (go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.curriedLabelValue" []))] false [(go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.Metric" [])]))), (go!"github.com/prometheus/client_golang/prometheus.getOrCreateMetricWithLabels", (some (go.signature.Signature [go.uint64, (go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.Labels" []), (go.GoType.SliceType (go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.curriedLabelValue" []))] false [(go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.Metric" [])]))), (go!"github.com/prometheus/client_golang/prometheus.hashLabelValues", (some (go.signature.Signature [(go.GoType.SliceType go.string)] false [go.uint64, go.error]))), (go!"github.com/prometheus/client_golang/prometheus.hashLabels", (some (go.signature.Signature [(go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.Labels" [])] false [go.uint64, go.error]))), (go!"k8s.io/component-base/metrics.annotateStabilityLevel", (some (go.signature.Signature [] false []))), (go!"k8s.io/component-base/metrics.markDeprecated", (some (go.signature.Signature [] false []))), (go!"k8s.io/component-base/metrics.toPromGaugeOpts", (some (go.signature.Signature [] false [(go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.GaugeOpts" [])])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType GaugeVec.ty) [(go!"ClearState", (some (go.signature.Signature [] false []))), (go!"Collect", (some (go.signature.Signature [(go.GoType.ChannelType go.ChanDir.sendonly (go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.Metric" []))] false []))), (go!"Create", (some (go.signature.Signature [(go.GoType.PointerType (go.GoType.Named go!"github.com/blang/semver/v4.Version" []))] false [go.bool]))), (go!"CurryWith", (some (go.signature.Signature [(go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.Labels" [])] false [(go.GoType.PointerType (go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.GaugeVec" [])), go.error]))), (go!"Delete", (some (go.signature.Signature [(go.GoType.MapType go.string go.string)] false [go.bool]))), (go!"DeleteLabelValues", (some (go.signature.Signature [(go.GoType.SliceType go.string)] true [go.bool]))), (go!"DeleteLabelValuesChecked", (some (go.signature.Signature [(go.GoType.SliceType go.string)] true [go.bool, go.error]))), (go!"DeletePartialMatch", (some (go.signature.Signature [(go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.Labels" [])] false [go.int]))), (go!"DeprecatedVersion", (some (go.signature.Signature [] false [(go.GoType.PointerType (go.GoType.Named go!"github.com/blang/semver/v4.Version" []))]))), (go!"Describe", (some (go.signature.Signature [(go.GoType.ChannelType go.ChanDir.sendonly (go.GoType.PointerType (go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.Desc" [])))] false []))), (go!"FQName", (some (go.signature.Signature [] false [go.string]))), (go!"GetMetricWith", (some (go.signature.Signature [(go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.Labels" [])] false [(go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.Gauge" []), go.error]))), (go!"GetMetricWithLabelValues", (some (go.signature.Signature [(go.GoType.SliceType go.string)] true [(go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.Gauge" []), go.error]))), (go!"InterfaceWithContext", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" [])] false [GaugeVecMetric.ty]))), (go!"IsCreated", (some (go.signature.Signature [] false [go.bool]))), (go!"IsDeprecated", (some (go.signature.Signature [] false [go.bool]))), (go!"IsHidden", (some (go.signature.Signature [] false [go.bool]))), (go!"MustCurryWith", (some (go.signature.Signature [(go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.Labels" [])] false [(go.GoType.PointerType (go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.GaugeVec" []))]))), (go!"Reset", (some (go.signature.Signature [] false []))), (go!"ResetLabelAllowLists", (some (go.signature.Signature [] false []))), (go!"With", (some (go.signature.Signature [(go.GoType.MapType go.string go.string)] false [GaugeMetric.ty]))), (go!"WithChecked", (some (go.signature.Signature [(go.GoType.MapType go.string go.string)] false [GaugeMetric.ty, go.error]))), (go!"WithContext", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" [])] false [(go.GoType.PointerType GaugeVecWithContext.ty)]))), (go!"WithLabelValues", (some (go.signature.Signature [(go.GoType.SliceType go.string)] true [GaugeMetric.ty]))), (go!"WithLabelValuesChecked", (some (go.signature.Signature [(go.GoType.SliceType go.string)] true [GaugeMetric.ty, go.error]))), (go!"github.com/prometheus/client_golang/prometheus.deleteByHashWithLabelValues", (some (go.signature.Signature [go.uint64, (go.GoType.SliceType go.string), (go.GoType.SliceType (go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.curriedLabelValue" []))] false [go.bool]))), (go!"github.com/prometheus/client_golang/prometheus.deleteByHashWithLabels", (some (go.signature.Signature [go.uint64, (go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.Labels" []), (go.GoType.SliceType (go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.curriedLabelValue" []))] false [go.bool]))), (go!"github.com/prometheus/client_golang/prometheus.deleteByLabels", (some (go.signature.Signature [(go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.Labels" []), (go.GoType.SliceType (go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.curriedLabelValue" []))] false [go.int]))), (go!"github.com/prometheus/client_golang/prometheus.getMetricWithHashAndLabelValues", (some (go.signature.Signature [go.uint64, (go.GoType.SliceType go.string), (go.GoType.SliceType (go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.curriedLabelValue" []))] false [(go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.Metric" []), go.bool]))), (go!"github.com/prometheus/client_golang/prometheus.getMetricWithHashAndLabels", (some (go.signature.Signature [go.uint64, (go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.Labels" []), (go.GoType.SliceType (go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.curriedLabelValue" []))] false [(go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.Metric" []), go.bool]))), (go!"github.com/prometheus/client_golang/prometheus.getOrCreateMetricWithLabelValues", (some (go.signature.Signature [go.uint64, (go.GoType.SliceType go.string), (go.GoType.SliceType (go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.curriedLabelValue" []))] false [(go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.Metric" [])]))), (go!"github.com/prometheus/client_golang/prometheus.getOrCreateMetricWithLabels", (some (go.signature.Signature [go.uint64, (go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.Labels" []), (go.GoType.SliceType (go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.curriedLabelValue" []))] false [(go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.Metric" [])]))), (go!"github.com/prometheus/client_golang/prometheus.hashLabelValues", (some (go.signature.Signature [(go.GoType.SliceType go.string)] false [go.uint64, go.error]))), (go!"github.com/prometheus/client_golang/prometheus.hashLabels", (some (go.signature.Signature [(go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.Labels" [])] false [go.uint64, go.error]))), (go!"k8s.io/component-base/metrics.annotateStabilityLevel", (some (go.signature.Signature [] false []))), (go!"k8s.io/component-base/metrics.initializeDeprecatedMetric", (some (go.signature.Signature [] false []))), (go!"k8s.io/component-base/metrics.initializeMetric", (some (go.signature.Signature [] false []))), (go!"k8s.io/component-base/metrics.lazyInit", (some (go.signature.Signature [kubeCollector.ty, go.string] false []))), (go!"k8s.io/component-base/metrics.markDeprecated", (some (go.signature.Signature [] false []))), (go!"k8s.io/component-base/metrics.preprocessMetric", (some (go.signature.Signature [(go.GoType.Named go!"github.com/blang/semver/v4.Version" [])] false []))), (go!"k8s.io/component-base/metrics.toPromGaugeOpts", (some (go.signature.Signature [] false [(go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.GaugeOpts" [])])))]
 
 attribute [instance] GaugeVec.TypeAssumptions.type_repr
   GaugeVec.TypeAssumptions.underlying
   GaugeVec.TypeAssumptions.isUnderlying
+  GaugeVec.TypeAssumptions.method_set
+  GaugeVec.TypeAssumptions.ptr_method_set
 
 axiom GaugeVecWithContext : Type
 axiom GaugeVecWithContext.zero_val : ZeroVal GaugeVecWithContext
 attribute [instance] GaugeVecWithContext.zero_val
 
-class GaugeVecWithContext.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class GaugeVecWithContext.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying GaugeVecWithContext.underlying GaugeVecWithContext
   underlying : go.UnderlyingDirectedEq GaugeVecWithContext.ty GaugeVecWithContext.underlying
   isUnderlying : go.IsUnderlying GaugeVecWithContext.underlying GaugeVecWithContext.underlying
+  method_set : go.MethodSetIs GaugeVecWithContext.ty [(go!"ClearState", (some (go.signature.Signature [] false []))), (go!"Collect", (some (go.signature.Signature [(go.GoType.ChannelType go.ChanDir.sendonly (go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.Metric" []))] false []))), (go!"Create", (some (go.signature.Signature [(go.GoType.PointerType (go.GoType.Named go!"github.com/blang/semver/v4.Version" []))] false [go.bool]))), (go!"CurryWith", (some (go.signature.Signature [(go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.Labels" [])] false [(go.GoType.PointerType (go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.GaugeVec" [])), go.error]))), (go!"Delete", (some (go.signature.Signature [(go.GoType.MapType go.string go.string)] false [go.bool]))), (go!"DeleteLabelValues", (some (go.signature.Signature [(go.GoType.SliceType go.string)] true [go.bool]))), (go!"DeleteLabelValuesChecked", (some (go.signature.Signature [(go.GoType.SliceType go.string)] true [go.bool, go.error]))), (go!"DeletePartialMatch", (some (go.signature.Signature [(go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.Labels" [])] false [go.int]))), (go!"DeprecatedVersion", (some (go.signature.Signature [] false [(go.GoType.PointerType (go.GoType.Named go!"github.com/blang/semver/v4.Version" []))]))), (go!"Describe", (some (go.signature.Signature [(go.GoType.ChannelType go.ChanDir.sendonly (go.GoType.PointerType (go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.Desc" [])))] false []))), (go!"FQName", (some (go.signature.Signature [] false [go.string]))), (go!"GetMetricWith", (some (go.signature.Signature [(go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.Labels" [])] false [(go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.Gauge" []), go.error]))), (go!"GetMetricWithLabelValues", (some (go.signature.Signature [(go.GoType.SliceType go.string)] true [(go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.Gauge" []), go.error]))), (go!"InterfaceWithContext", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" [])] false [GaugeVecMetric.ty]))), (go!"IsCreated", (some (go.signature.Signature [] false [go.bool]))), (go!"IsDeprecated", (some (go.signature.Signature [] false [go.bool]))), (go!"IsHidden", (some (go.signature.Signature [] false [go.bool]))), (go!"MustCurryWith", (some (go.signature.Signature [(go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.Labels" [])] false [(go.GoType.PointerType (go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.GaugeVec" []))]))), (go!"Reset", (some (go.signature.Signature [] false []))), (go!"ResetLabelAllowLists", (some (go.signature.Signature [] false []))), (go!"WithChecked", (some (go.signature.Signature [(go.GoType.MapType go.string go.string)] false [GaugeMetric.ty, go.error]))), (go!"WithContext", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" [])] false [(go.GoType.PointerType GaugeVecWithContext.ty)]))), (go!"WithLabelValuesChecked", (some (go.signature.Signature [(go.GoType.SliceType go.string)] true [GaugeMetric.ty, go.error]))), (go!"github.com/prometheus/client_golang/prometheus.deleteByHashWithLabelValues", (some (go.signature.Signature [go.uint64, (go.GoType.SliceType go.string), (go.GoType.SliceType (go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.curriedLabelValue" []))] false [go.bool]))), (go!"github.com/prometheus/client_golang/prometheus.deleteByHashWithLabels", (some (go.signature.Signature [go.uint64, (go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.Labels" []), (go.GoType.SliceType (go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.curriedLabelValue" []))] false [go.bool]))), (go!"github.com/prometheus/client_golang/prometheus.deleteByLabels", (some (go.signature.Signature [(go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.Labels" []), (go.GoType.SliceType (go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.curriedLabelValue" []))] false [go.int]))), (go!"github.com/prometheus/client_golang/prometheus.getMetricWithHashAndLabelValues", (some (go.signature.Signature [go.uint64, (go.GoType.SliceType go.string), (go.GoType.SliceType (go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.curriedLabelValue" []))] false [(go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.Metric" []), go.bool]))), (go!"github.com/prometheus/client_golang/prometheus.getMetricWithHashAndLabels", (some (go.signature.Signature [go.uint64, (go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.Labels" []), (go.GoType.SliceType (go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.curriedLabelValue" []))] false [(go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.Metric" []), go.bool]))), (go!"github.com/prometheus/client_golang/prometheus.getOrCreateMetricWithLabelValues", (some (go.signature.Signature [go.uint64, (go.GoType.SliceType go.string), (go.GoType.SliceType (go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.curriedLabelValue" []))] false [(go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.Metric" [])]))), (go!"github.com/prometheus/client_golang/prometheus.getOrCreateMetricWithLabels", (some (go.signature.Signature [go.uint64, (go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.Labels" []), (go.GoType.SliceType (go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.curriedLabelValue" []))] false [(go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.Metric" [])]))), (go!"github.com/prometheus/client_golang/prometheus.hashLabelValues", (some (go.signature.Signature [(go.GoType.SliceType go.string)] false [go.uint64, go.error]))), (go!"github.com/prometheus/client_golang/prometheus.hashLabels", (some (go.signature.Signature [(go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.Labels" [])] false [go.uint64, go.error]))), (go!"k8s.io/component-base/metrics.annotateStabilityLevel", (some (go.signature.Signature [] false []))), (go!"k8s.io/component-base/metrics.initializeDeprecatedMetric", (some (go.signature.Signature [] false []))), (go!"k8s.io/component-base/metrics.initializeMetric", (some (go.signature.Signature [] false []))), (go!"k8s.io/component-base/metrics.lazyInit", (some (go.signature.Signature [kubeCollector.ty, go.string] false []))), (go!"k8s.io/component-base/metrics.markDeprecated", (some (go.signature.Signature [] false []))), (go!"k8s.io/component-base/metrics.preprocessMetric", (some (go.signature.Signature [(go.GoType.Named go!"github.com/blang/semver/v4.Version" [])] false []))), (go!"k8s.io/component-base/metrics.toPromGaugeOpts", (some (go.signature.Signature [] false [(go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.GaugeOpts" [])])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType GaugeVecWithContext.ty) [(go!"ClearState", (some (go.signature.Signature [] false []))), (go!"Collect", (some (go.signature.Signature [(go.GoType.ChannelType go.ChanDir.sendonly (go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.Metric" []))] false []))), (go!"Create", (some (go.signature.Signature [(go.GoType.PointerType (go.GoType.Named go!"github.com/blang/semver/v4.Version" []))] false [go.bool]))), (go!"CurryWith", (some (go.signature.Signature [(go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.Labels" [])] false [(go.GoType.PointerType (go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.GaugeVec" [])), go.error]))), (go!"Delete", (some (go.signature.Signature [(go.GoType.MapType go.string go.string)] false [go.bool]))), (go!"DeleteLabelValues", (some (go.signature.Signature [(go.GoType.SliceType go.string)] true [go.bool]))), (go!"DeleteLabelValuesChecked", (some (go.signature.Signature [(go.GoType.SliceType go.string)] true [go.bool, go.error]))), (go!"DeletePartialMatch", (some (go.signature.Signature [(go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.Labels" [])] false [go.int]))), (go!"DeprecatedVersion", (some (go.signature.Signature [] false [(go.GoType.PointerType (go.GoType.Named go!"github.com/blang/semver/v4.Version" []))]))), (go!"Describe", (some (go.signature.Signature [(go.GoType.ChannelType go.ChanDir.sendonly (go.GoType.PointerType (go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.Desc" [])))] false []))), (go!"FQName", (some (go.signature.Signature [] false [go.string]))), (go!"GetMetricWith", (some (go.signature.Signature [(go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.Labels" [])] false [(go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.Gauge" []), go.error]))), (go!"GetMetricWithLabelValues", (some (go.signature.Signature [(go.GoType.SliceType go.string)] true [(go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.Gauge" []), go.error]))), (go!"InterfaceWithContext", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" [])] false [GaugeVecMetric.ty]))), (go!"IsCreated", (some (go.signature.Signature [] false [go.bool]))), (go!"IsDeprecated", (some (go.signature.Signature [] false [go.bool]))), (go!"IsHidden", (some (go.signature.Signature [] false [go.bool]))), (go!"MustCurryWith", (some (go.signature.Signature [(go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.Labels" [])] false [(go.GoType.PointerType (go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.GaugeVec" []))]))), (go!"Reset", (some (go.signature.Signature [] false []))), (go!"ResetLabelAllowLists", (some (go.signature.Signature [] false []))), (go!"With", (some (go.signature.Signature [(go.GoType.MapType go.string go.string)] false [GaugeMetric.ty]))), (go!"WithChecked", (some (go.signature.Signature [(go.GoType.MapType go.string go.string)] false [GaugeMetric.ty, go.error]))), (go!"WithContext", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" [])] false [(go.GoType.PointerType GaugeVecWithContext.ty)]))), (go!"WithLabelValues", (some (go.signature.Signature [(go.GoType.SliceType go.string)] true [GaugeMetric.ty]))), (go!"WithLabelValuesChecked", (some (go.signature.Signature [(go.GoType.SliceType go.string)] true [GaugeMetric.ty, go.error]))), (go!"github.com/prometheus/client_golang/prometheus.deleteByHashWithLabelValues", (some (go.signature.Signature [go.uint64, (go.GoType.SliceType go.string), (go.GoType.SliceType (go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.curriedLabelValue" []))] false [go.bool]))), (go!"github.com/prometheus/client_golang/prometheus.deleteByHashWithLabels", (some (go.signature.Signature [go.uint64, (go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.Labels" []), (go.GoType.SliceType (go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.curriedLabelValue" []))] false [go.bool]))), (go!"github.com/prometheus/client_golang/prometheus.deleteByLabels", (some (go.signature.Signature [(go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.Labels" []), (go.GoType.SliceType (go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.curriedLabelValue" []))] false [go.int]))), (go!"github.com/prometheus/client_golang/prometheus.getMetricWithHashAndLabelValues", (some (go.signature.Signature [go.uint64, (go.GoType.SliceType go.string), (go.GoType.SliceType (go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.curriedLabelValue" []))] false [(go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.Metric" []), go.bool]))), (go!"github.com/prometheus/client_golang/prometheus.getMetricWithHashAndLabels", (some (go.signature.Signature [go.uint64, (go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.Labels" []), (go.GoType.SliceType (go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.curriedLabelValue" []))] false [(go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.Metric" []), go.bool]))), (go!"github.com/prometheus/client_golang/prometheus.getOrCreateMetricWithLabelValues", (some (go.signature.Signature [go.uint64, (go.GoType.SliceType go.string), (go.GoType.SliceType (go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.curriedLabelValue" []))] false [(go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.Metric" [])]))), (go!"github.com/prometheus/client_golang/prometheus.getOrCreateMetricWithLabels", (some (go.signature.Signature [go.uint64, (go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.Labels" []), (go.GoType.SliceType (go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.curriedLabelValue" []))] false [(go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.Metric" [])]))), (go!"github.com/prometheus/client_golang/prometheus.hashLabelValues", (some (go.signature.Signature [(go.GoType.SliceType go.string)] false [go.uint64, go.error]))), (go!"github.com/prometheus/client_golang/prometheus.hashLabels", (some (go.signature.Signature [(go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.Labels" [])] false [go.uint64, go.error]))), (go!"k8s.io/component-base/metrics.annotateStabilityLevel", (some (go.signature.Signature [] false []))), (go!"k8s.io/component-base/metrics.initializeDeprecatedMetric", (some (go.signature.Signature [] false []))), (go!"k8s.io/component-base/metrics.initializeMetric", (some (go.signature.Signature [] false []))), (go!"k8s.io/component-base/metrics.lazyInit", (some (go.signature.Signature [kubeCollector.ty, go.string] false []))), (go!"k8s.io/component-base/metrics.markDeprecated", (some (go.signature.Signature [] false []))), (go!"k8s.io/component-base/metrics.preprocessMetric", (some (go.signature.Signature [(go.GoType.Named go!"github.com/blang/semver/v4.Version" [])] false []))), (go!"k8s.io/component-base/metrics.toPromGaugeOpts", (some (go.signature.Signature [] false [(go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.GaugeOpts" [])])))]
 
 attribute [instance] GaugeVecWithContext.TypeAssumptions.type_repr
   GaugeVecWithContext.TypeAssumptions.underlying
   GaugeVecWithContext.TypeAssumptions.isUnderlying
+  GaugeVecWithContext.TypeAssumptions.method_set
+  GaugeVecWithContext.TypeAssumptions.ptr_method_set
 
 axiom Histogram : Type
 axiom Histogram.zero_val : ZeroVal Histogram
 attribute [instance] Histogram.zero_val
 
-class Histogram.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class Histogram.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying Histogram.underlying Histogram
   underlying : go.UnderlyingDirectedEq Histogram.ty Histogram.underlying
   isUnderlying : go.IsUnderlying Histogram.underlying Histogram.underlying
+  method_set : go.MethodSetIs Histogram.ty [(go!"Observe", (some (go.signature.Signature [go.float64] false []))), (go!"k8s.io/component-base/metrics.annotateStabilityLevel", (some (go.signature.Signature [] false []))), (go!"k8s.io/component-base/metrics.markDeprecated", (some (go.signature.Signature [] false []))), (go!"k8s.io/component-base/metrics.toPromHistogramOpts", (some (go.signature.Signature [] false [(go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.HistogramOpts" [])])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType Histogram.ty) [(go!"ClearState", (some (go.signature.Signature [] false []))), (go!"Collect", (some (go.signature.Signature [(go.GoType.ChannelType go.ChanDir.sendonly (go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.Metric" []))] false []))), (go!"Create", (some (go.signature.Signature [(go.GoType.PointerType (go.GoType.Named go!"github.com/blang/semver/v4.Version" []))] false [go.bool]))), (go!"DeprecatedVersion", (some (go.signature.Signature [] false [(go.GoType.PointerType (go.GoType.Named go!"github.com/blang/semver/v4.Version" []))]))), (go!"Describe", (some (go.signature.Signature [(go.GoType.ChannelType go.ChanDir.sendonly (go.GoType.PointerType (go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.Desc" [])))] false []))), (go!"FQName", (some (go.signature.Signature [] false [go.string]))), (go!"IsCreated", (some (go.signature.Signature [] false [go.bool]))), (go!"IsDeprecated", (some (go.signature.Signature [] false [go.bool]))), (go!"IsHidden", (some (go.signature.Signature [] false [go.bool]))), (go!"Observe", (some (go.signature.Signature [go.float64] false []))), (go!"WithContext", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" [])] false [ObserverMetric.ty]))), (go!"k8s.io/component-base/metrics.annotateStabilityLevel", (some (go.signature.Signature [] false []))), (go!"k8s.io/component-base/metrics.initSelfCollection", (some (go.signature.Signature [(go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.Metric" [])] false []))), (go!"k8s.io/component-base/metrics.initializeDeprecatedMetric", (some (go.signature.Signature [] false []))), (go!"k8s.io/component-base/metrics.initializeMetric", (some (go.signature.Signature [] false []))), (go!"k8s.io/component-base/metrics.lazyInit", (some (go.signature.Signature [kubeCollector.ty, go.string] false []))), (go!"k8s.io/component-base/metrics.markDeprecated", (some (go.signature.Signature [] false []))), (go!"k8s.io/component-base/metrics.preprocessMetric", (some (go.signature.Signature [(go.GoType.Named go!"github.com/blang/semver/v4.Version" [])] false []))), (go!"k8s.io/component-base/metrics.setPrometheusHistogram", (some (go.signature.Signature [(go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.Histogram" [])] false []))), (go!"k8s.io/component-base/metrics.toPromHistogramOpts", (some (go.signature.Signature [] false [(go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.HistogramOpts" [])])))]
 
 attribute [instance] Histogram.TypeAssumptions.type_repr
   Histogram.TypeAssumptions.underlying
   Histogram.TypeAssumptions.isUnderlying
+  Histogram.TypeAssumptions.method_set
+  Histogram.TypeAssumptions.ptr_method_set
 
 axiom exemplarHistogramMetric : Type
 axiom exemplarHistogramMetric.zero_val : ZeroVal exemplarHistogramMetric
 attribute [instance] exemplarHistogramMetric.zero_val
 
-class exemplarHistogramMetric.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class exemplarHistogramMetric.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying exemplarHistogramMetric.underlying exemplarHistogramMetric
   underlying : go.UnderlyingDirectedEq exemplarHistogramMetric.ty exemplarHistogramMetric.underlying
   isUnderlying : go.IsUnderlying exemplarHistogramMetric.underlying exemplarHistogramMetric.underlying
+  method_set : go.MethodSetIs exemplarHistogramMetric.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType exemplarHistogramMetric.ty) [(go!"Observe", (some (go.signature.Signature [go.float64] false [])))]
 
 attribute [instance] exemplarHistogramMetric.TypeAssumptions.type_repr
   exemplarHistogramMetric.TypeAssumptions.underlying
   exemplarHistogramMetric.TypeAssumptions.isUnderlying
+  exemplarHistogramMetric.TypeAssumptions.method_set
+  exemplarHistogramMetric.TypeAssumptions.ptr_method_set
 
 axiom exemplarHistogramVec : Type
 axiom exemplarHistogramVec.zero_val : ZeroVal exemplarHistogramVec
 attribute [instance] exemplarHistogramVec.zero_val
 
-class exemplarHistogramVec.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class exemplarHistogramVec.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying exemplarHistogramVec.underlying exemplarHistogramVec
   underlying : go.UnderlyingDirectedEq exemplarHistogramVec.ty exemplarHistogramVec.underlying
   isUnderlying : go.IsUnderlying exemplarHistogramVec.underlying exemplarHistogramVec.underlying
+  method_set : go.MethodSetIs exemplarHistogramVec.ty [(go!"ClearState", (some (go.signature.Signature [] false []))), (go!"Collect", (some (go.signature.Signature [(go.GoType.ChannelType go.ChanDir.sendonly (go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.Metric" []))] false []))), (go!"Create", (some (go.signature.Signature [(go.GoType.PointerType (go.GoType.Named go!"github.com/blang/semver/v4.Version" []))] false [go.bool]))), (go!"CurryWith", (some (go.signature.Signature [(go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.Labels" [])] false [(go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.ObserverVec" []), go.error]))), (go!"Delete", (some (go.signature.Signature [(go.GoType.MapType go.string go.string)] false [go.bool]))), (go!"DeleteLabelValues", (some (go.signature.Signature [(go.GoType.SliceType go.string)] true [go.bool]))), (go!"DeletePartialMatch", (some (go.signature.Signature [(go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.Labels" [])] false [go.int]))), (go!"DeprecatedVersion", (some (go.signature.Signature [] false [(go.GoType.PointerType (go.GoType.Named go!"github.com/blang/semver/v4.Version" []))]))), (go!"Describe", (some (go.signature.Signature [(go.GoType.ChannelType go.ChanDir.sendonly (go.GoType.PointerType (go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.Desc" [])))] false []))), (go!"FQName", (some (go.signature.Signature [] false [go.string]))), (go!"GetMetricWith", (some (go.signature.Signature [(go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.Labels" [])] false [(go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.Observer" []), go.error]))), (go!"GetMetricWithLabelValues", (some (go.signature.Signature [(go.GoType.SliceType go.string)] true [(go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.Observer" []), go.error]))), (go!"IsCreated", (some (go.signature.Signature [] false [go.bool]))), (go!"IsDeprecated", (some (go.signature.Signature [] false [go.bool]))), (go!"IsHidden", (some (go.signature.Signature [] false [go.bool]))), (go!"MustCurryWith", (some (go.signature.Signature [(go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.Labels" [])] false [(go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.ObserverVec" [])]))), (go!"ObserveSince", (some (go.signature.Signature [(go.GoType.Named go!"time.Time" []), (go.GoType.SliceType go.string)] true [(go.GoType.FunctionType (go.signature.Signature [] false []))]))), (go!"Reset", (some (go.signature.Signature [] false []))), (go!"ResetLabelAllowLists", (some (go.signature.Signature [] false []))), (go!"With", (some (go.signature.Signature [(go.GoType.MapType go.string go.string)] false [(go.GoType.PointerType exemplarHistogramVec.ty)]))), (go!"WithContext", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" [])] false [(go.GoType.PointerType HistogramVecWithContext.ty)]))), (go!"WithLabelValues", (some (go.signature.Signature [(go.GoType.SliceType go.string)] true [(go.GoType.PointerType exemplarHistogramVec.ty)]))), (go!"github.com/prometheus/client_golang/prometheus.deleteByHashWithLabelValues", (some (go.signature.Signature [go.uint64, (go.GoType.SliceType go.string), (go.GoType.SliceType (go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.curriedLabelValue" []))] false [go.bool]))), (go!"github.com/prometheus/client_golang/prometheus.deleteByHashWithLabels", (some (go.signature.Signature [go.uint64, (go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.Labels" []), (go.GoType.SliceType (go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.curriedLabelValue" []))] false [go.bool]))), (go!"github.com/prometheus/client_golang/prometheus.deleteByLabels", (some (go.signature.Signature [(go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.Labels" []), (go.GoType.SliceType (go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.curriedLabelValue" []))] false [go.int]))), (go!"github.com/prometheus/client_golang/prometheus.getMetricWithHashAndLabelValues", (some (go.signature.Signature [go.uint64, (go.GoType.SliceType go.string), (go.GoType.SliceType (go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.curriedLabelValue" []))] false [(go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.Metric" []), go.bool]))), (go!"github.com/prometheus/client_golang/prometheus.getMetricWithHashAndLabels", (some (go.signature.Signature [go.uint64, (go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.Labels" []), (go.GoType.SliceType (go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.curriedLabelValue" []))] false [(go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.Metric" []), go.bool]))), (go!"github.com/prometheus/client_golang/prometheus.getOrCreateMetricWithLabelValues", (some (go.signature.Signature [go.uint64, (go.GoType.SliceType go.string), (go.GoType.SliceType (go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.curriedLabelValue" []))] false [(go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.Metric" [])]))), (go!"github.com/prometheus/client_golang/prometheus.getOrCreateMetricWithLabels", (some (go.signature.Signature [go.uint64, (go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.Labels" []), (go.GoType.SliceType (go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.curriedLabelValue" []))] false [(go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.Metric" [])]))), (go!"github.com/prometheus/client_golang/prometheus.hashLabelValues", (some (go.signature.Signature [(go.GoType.SliceType go.string)] false [go.uint64, go.error]))), (go!"github.com/prometheus/client_golang/prometheus.hashLabels", (some (go.signature.Signature [(go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.Labels" [])] false [go.uint64, go.error]))), (go!"k8s.io/component-base/metrics.annotateStabilityLevel", (some (go.signature.Signature [] false []))), (go!"k8s.io/component-base/metrics.initializeDeprecatedMetric", (some (go.signature.Signature [] false []))), (go!"k8s.io/component-base/metrics.initializeMetric", (some (go.signature.Signature [] false []))), (go!"k8s.io/component-base/metrics.lazyInit", (some (go.signature.Signature [kubeCollector.ty, go.string] false []))), (go!"k8s.io/component-base/metrics.markDeprecated", (some (go.signature.Signature [] false []))), (go!"k8s.io/component-base/metrics.preprocessMetric", (some (go.signature.Signature [(go.GoType.Named go!"github.com/blang/semver/v4.Version" [])] false []))), (go!"k8s.io/component-base/metrics.toPromHistogramOpts", (some (go.signature.Signature [] false [(go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.HistogramOpts" [])])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType exemplarHistogramVec.ty) [(go!"ClearState", (some (go.signature.Signature [] false []))), (go!"Collect", (some (go.signature.Signature [(go.GoType.ChannelType go.ChanDir.sendonly (go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.Metric" []))] false []))), (go!"Create", (some (go.signature.Signature [(go.GoType.PointerType (go.GoType.Named go!"github.com/blang/semver/v4.Version" []))] false [go.bool]))), (go!"CurryWith", (some (go.signature.Signature [(go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.Labels" [])] false [(go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.ObserverVec" []), go.error]))), (go!"Delete", (some (go.signature.Signature [(go.GoType.MapType go.string go.string)] false [go.bool]))), (go!"DeleteLabelValues", (some (go.signature.Signature [(go.GoType.SliceType go.string)] true [go.bool]))), (go!"DeletePartialMatch", (some (go.signature.Signature [(go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.Labels" [])] false [go.int]))), (go!"DeprecatedVersion", (some (go.signature.Signature [] false [(go.GoType.PointerType (go.GoType.Named go!"github.com/blang/semver/v4.Version" []))]))), (go!"Describe", (some (go.signature.Signature [(go.GoType.ChannelType go.ChanDir.sendonly (go.GoType.PointerType (go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.Desc" [])))] false []))), (go!"FQName", (some (go.signature.Signature [] false [go.string]))), (go!"GetMetricWith", (some (go.signature.Signature [(go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.Labels" [])] false [(go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.Observer" []), go.error]))), (go!"GetMetricWithLabelValues", (some (go.signature.Signature [(go.GoType.SliceType go.string)] true [(go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.Observer" []), go.error]))), (go!"IsCreated", (some (go.signature.Signature [] false [go.bool]))), (go!"IsDeprecated", (some (go.signature.Signature [] false [go.bool]))), (go!"IsHidden", (some (go.signature.Signature [] false [go.bool]))), (go!"MustCurryWith", (some (go.signature.Signature [(go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.Labels" [])] false [(go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.ObserverVec" [])]))), (go!"Observe", (some (go.signature.Signature [go.float64] false []))), (go!"ObserveSince", (some (go.signature.Signature [(go.GoType.Named go!"time.Time" []), (go.GoType.SliceType go.string)] true [(go.GoType.FunctionType (go.signature.Signature [] false []))]))), (go!"Reset", (some (go.signature.Signature [] false []))), (go!"ResetLabelAllowLists", (some (go.signature.Signature [] false []))), (go!"With", (some (go.signature.Signature [(go.GoType.MapType go.string go.string)] false [(go.GoType.PointerType exemplarHistogramVec.ty)]))), (go!"WithContext", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" [])] false [(go.GoType.PointerType HistogramVecWithContext.ty)]))), (go!"WithLabelValues", (some (go.signature.Signature [(go.GoType.SliceType go.string)] true [(go.GoType.PointerType exemplarHistogramVec.ty)]))), (go!"github.com/prometheus/client_golang/prometheus.deleteByHashWithLabelValues", (some (go.signature.Signature [go.uint64, (go.GoType.SliceType go.string), (go.GoType.SliceType (go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.curriedLabelValue" []))] false [go.bool]))), (go!"github.com/prometheus/client_golang/prometheus.deleteByHashWithLabels", (some (go.signature.Signature [go.uint64, (go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.Labels" []), (go.GoType.SliceType (go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.curriedLabelValue" []))] false [go.bool]))), (go!"github.com/prometheus/client_golang/prometheus.deleteByLabels", (some (go.signature.Signature [(go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.Labels" []), (go.GoType.SliceType (go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.curriedLabelValue" []))] false [go.int]))), (go!"github.com/prometheus/client_golang/prometheus.getMetricWithHashAndLabelValues", (some (go.signature.Signature [go.uint64, (go.GoType.SliceType go.string), (go.GoType.SliceType (go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.curriedLabelValue" []))] false [(go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.Metric" []), go.bool]))), (go!"github.com/prometheus/client_golang/prometheus.getMetricWithHashAndLabels", (some (go.signature.Signature [go.uint64, (go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.Labels" []), (go.GoType.SliceType (go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.curriedLabelValue" []))] false [(go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.Metric" []), go.bool]))), (go!"github.com/prometheus/client_golang/prometheus.getOrCreateMetricWithLabelValues", (some (go.signature.Signature [go.uint64, (go.GoType.SliceType go.string), (go.GoType.SliceType (go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.curriedLabelValue" []))] false [(go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.Metric" [])]))), (go!"github.com/prometheus/client_golang/prometheus.getOrCreateMetricWithLabels", (some (go.signature.Signature [go.uint64, (go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.Labels" []), (go.GoType.SliceType (go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.curriedLabelValue" []))] false [(go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.Metric" [])]))), (go!"github.com/prometheus/client_golang/prometheus.hashLabelValues", (some (go.signature.Signature [(go.GoType.SliceType go.string)] false [go.uint64, go.error]))), (go!"github.com/prometheus/client_golang/prometheus.hashLabels", (some (go.signature.Signature [(go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.Labels" [])] false [go.uint64, go.error]))), (go!"k8s.io/component-base/metrics.annotateStabilityLevel", (some (go.signature.Signature [] false []))), (go!"k8s.io/component-base/metrics.initializeDeprecatedMetric", (some (go.signature.Signature [] false []))), (go!"k8s.io/component-base/metrics.initializeMetric", (some (go.signature.Signature [] false []))), (go!"k8s.io/component-base/metrics.lazyInit", (some (go.signature.Signature [kubeCollector.ty, go.string] false []))), (go!"k8s.io/component-base/metrics.markDeprecated", (some (go.signature.Signature [] false []))), (go!"k8s.io/component-base/metrics.preprocessMetric", (some (go.signature.Signature [(go.GoType.Named go!"github.com/blang/semver/v4.Version" [])] false []))), (go!"k8s.io/component-base/metrics.toPromHistogramOpts", (some (go.signature.Signature [] false [(go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.HistogramOpts" [])]))), (go!"k8s.io/component-base/metrics.withExemplar", (some (go.signature.Signature [go.float64] false [])))]
 
 attribute [instance] exemplarHistogramVec.TypeAssumptions.type_repr
   exemplarHistogramVec.TypeAssumptions.underlying
   exemplarHistogramVec.TypeAssumptions.isUnderlying
+  exemplarHistogramVec.TypeAssumptions.method_set
+  exemplarHistogramVec.TypeAssumptions.ptr_method_set
 
 axiom HistogramVec : Type
 axiom HistogramVec.zero_val : ZeroVal HistogramVec
 attribute [instance] HistogramVec.zero_val
 
-class HistogramVec.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class HistogramVec.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying HistogramVec.underlying HistogramVec
   underlying : go.UnderlyingDirectedEq HistogramVec.ty HistogramVec.underlying
   isUnderlying : go.IsUnderlying HistogramVec.underlying HistogramVec.underlying
+  method_set : go.MethodSetIs HistogramVec.ty [(go!"Collect", (some (go.signature.Signature [(go.GoType.ChannelType go.ChanDir.sendonly (go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.Metric" []))] false []))), (go!"CurryWith", (some (go.signature.Signature [(go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.Labels" [])] false [(go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.ObserverVec" []), go.error]))), (go!"DeleteLabelValues", (some (go.signature.Signature [(go.GoType.SliceType go.string)] true [go.bool]))), (go!"DeletePartialMatch", (some (go.signature.Signature [(go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.Labels" [])] false [go.int]))), (go!"Describe", (some (go.signature.Signature [(go.GoType.ChannelType go.ChanDir.sendonly (go.GoType.PointerType (go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.Desc" [])))] false []))), (go!"GetMetricWith", (some (go.signature.Signature [(go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.Labels" [])] false [(go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.Observer" []), go.error]))), (go!"GetMetricWithLabelValues", (some (go.signature.Signature [(go.GoType.SliceType go.string)] true [(go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.Observer" []), go.error]))), (go!"MustCurryWith", (some (go.signature.Signature [(go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.Labels" [])] false [(go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.ObserverVec" [])]))), (go!"github.com/prometheus/client_golang/prometheus.deleteByHashWithLabelValues", (some (go.signature.Signature [go.uint64, (go.GoType.SliceType go.string), (go.GoType.SliceType (go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.curriedLabelValue" []))] false [go.bool]))), (go!"github.com/prometheus/client_golang/prometheus.deleteByHashWithLabels", (some (go.signature.Signature [go.uint64, (go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.Labels" []), (go.GoType.SliceType (go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.curriedLabelValue" []))] false [go.bool]))), (go!"github.com/prometheus/client_golang/prometheus.deleteByLabels", (some (go.signature.Signature [(go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.Labels" []), (go.GoType.SliceType (go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.curriedLabelValue" []))] false [go.int]))), (go!"github.com/prometheus/client_golang/prometheus.getMetricWithHashAndLabelValues", (some (go.signature.Signature [go.uint64, (go.GoType.SliceType go.string), (go.GoType.SliceType (go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.curriedLabelValue" []))] false [(go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.Metric" []), go.bool]))), (go!"github.com/prometheus/client_golang/prometheus.getMetricWithHashAndLabels", (some (go.signature.Signature [go.uint64, (go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.Labels" []), (go.GoType.SliceType (go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.curriedLabelValue" []))] false [(go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.Metric" []), go.bool]))), (go!"github.com/prometheus/client_golang/prometheus.getOrCreateMetricWithLabelValues", (some (go.signature.Signature [go.uint64, (go.GoType.SliceType go.string), (go.GoType.SliceType (go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.curriedLabelValue" []))] false [(go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.Metric" [])]))), (go!"github.com/prometheus/client_golang/prometheus.getOrCreateMetricWithLabels", (some (go.signature.Signature [go.uint64, (go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.Labels" []), (go.GoType.SliceType (go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.curriedLabelValue" []))] false [(go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.Metric" [])]))), (go!"github.com/prometheus/client_golang/prometheus.hashLabelValues", (some (go.signature.Signature [(go.GoType.SliceType go.string)] false [go.uint64, go.error]))), (go!"github.com/prometheus/client_golang/prometheus.hashLabels", (some (go.signature.Signature [(go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.Labels" [])] false [go.uint64, go.error]))), (go!"k8s.io/component-base/metrics.annotateStabilityLevel", (some (go.signature.Signature [] false []))), (go!"k8s.io/component-base/metrics.markDeprecated", (some (go.signature.Signature [] false []))), (go!"k8s.io/component-base/metrics.toPromHistogramOpts", (some (go.signature.Signature [] false [(go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.HistogramOpts" [])])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType HistogramVec.ty) [(go!"ClearState", (some (go.signature.Signature [] false []))), (go!"Collect", (some (go.signature.Signature [(go.GoType.ChannelType go.ChanDir.sendonly (go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.Metric" []))] false []))), (go!"Create", (some (go.signature.Signature [(go.GoType.PointerType (go.GoType.Named go!"github.com/blang/semver/v4.Version" []))] false [go.bool]))), (go!"CurryWith", (some (go.signature.Signature [(go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.Labels" [])] false [(go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.ObserverVec" []), go.error]))), (go!"Delete", (some (go.signature.Signature [(go.GoType.MapType go.string go.string)] false [go.bool]))), (go!"DeleteLabelValues", (some (go.signature.Signature [(go.GoType.SliceType go.string)] true [go.bool]))), (go!"DeletePartialMatch", (some (go.signature.Signature [(go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.Labels" [])] false [go.int]))), (go!"DeprecatedVersion", (some (go.signature.Signature [] false [(go.GoType.PointerType (go.GoType.Named go!"github.com/blang/semver/v4.Version" []))]))), (go!"Describe", (some (go.signature.Signature [(go.GoType.ChannelType go.ChanDir.sendonly (go.GoType.PointerType (go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.Desc" [])))] false []))), (go!"FQName", (some (go.signature.Signature [] false [go.string]))), (go!"GetMetricWith", (some (go.signature.Signature [(go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.Labels" [])] false [(go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.Observer" []), go.error]))), (go!"GetMetricWithLabelValues", (some (go.signature.Signature [(go.GoType.SliceType go.string)] true [(go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.Observer" []), go.error]))), (go!"IsCreated", (some (go.signature.Signature [] false [go.bool]))), (go!"IsDeprecated", (some (go.signature.Signature [] false [go.bool]))), (go!"IsHidden", (some (go.signature.Signature [] false [go.bool]))), (go!"MustCurryWith", (some (go.signature.Signature [(go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.Labels" [])] false [(go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.ObserverVec" [])]))), (go!"ObserveSince", (some (go.signature.Signature [(go.GoType.Named go!"time.Time" []), (go.GoType.SliceType go.string)] true [(go.GoType.FunctionType (go.signature.Signature [] false []))]))), (go!"Reset", (some (go.signature.Signature [] false []))), (go!"ResetLabelAllowLists", (some (go.signature.Signature [] false []))), (go!"With", (some (go.signature.Signature [(go.GoType.MapType go.string go.string)] false [ObserverMetric.ty]))), (go!"WithContext", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" [])] false [(go.GoType.PointerType HistogramVecWithContext.ty)]))), (go!"WithLabelValues", (some (go.signature.Signature [(go.GoType.SliceType go.string)] true [ObserverMetric.ty]))), (go!"github.com/prometheus/client_golang/prometheus.deleteByHashWithLabelValues", (some (go.signature.Signature [go.uint64, (go.GoType.SliceType go.string), (go.GoType.SliceType (go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.curriedLabelValue" []))] false [go.bool]))), (go!"github.com/prometheus/client_golang/prometheus.deleteByHashWithLabels", (some (go.signature.Signature [go.uint64, (go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.Labels" []), (go.GoType.SliceType (go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.curriedLabelValue" []))] false [go.bool]))), (go!"github.com/prometheus/client_golang/prometheus.deleteByLabels", (some (go.signature.Signature [(go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.Labels" []), (go.GoType.SliceType (go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.curriedLabelValue" []))] false [go.int]))), (go!"github.com/prometheus/client_golang/prometheus.getMetricWithHashAndLabelValues", (some (go.signature.Signature [go.uint64, (go.GoType.SliceType go.string), (go.GoType.SliceType (go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.curriedLabelValue" []))] false [(go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.Metric" []), go.bool]))), (go!"github.com/prometheus/client_golang/prometheus.getMetricWithHashAndLabels", (some (go.signature.Signature [go.uint64, (go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.Labels" []), (go.GoType.SliceType (go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.curriedLabelValue" []))] false [(go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.Metric" []), go.bool]))), (go!"github.com/prometheus/client_golang/prometheus.getOrCreateMetricWithLabelValues", (some (go.signature.Signature [go.uint64, (go.GoType.SliceType go.string), (go.GoType.SliceType (go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.curriedLabelValue" []))] false [(go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.Metric" [])]))), (go!"github.com/prometheus/client_golang/prometheus.getOrCreateMetricWithLabels", (some (go.signature.Signature [go.uint64, (go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.Labels" []), (go.GoType.SliceType (go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.curriedLabelValue" []))] false [(go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.Metric" [])]))), (go!"github.com/prometheus/client_golang/prometheus.hashLabelValues", (some (go.signature.Signature [(go.GoType.SliceType go.string)] false [go.uint64, go.error]))), (go!"github.com/prometheus/client_golang/prometheus.hashLabels", (some (go.signature.Signature [(go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.Labels" [])] false [go.uint64, go.error]))), (go!"k8s.io/component-base/metrics.annotateStabilityLevel", (some (go.signature.Signature [] false []))), (go!"k8s.io/component-base/metrics.initializeDeprecatedMetric", (some (go.signature.Signature [] false []))), (go!"k8s.io/component-base/metrics.initializeMetric", (some (go.signature.Signature [] false []))), (go!"k8s.io/component-base/metrics.lazyInit", (some (go.signature.Signature [kubeCollector.ty, go.string] false []))), (go!"k8s.io/component-base/metrics.markDeprecated", (some (go.signature.Signature [] false []))), (go!"k8s.io/component-base/metrics.preprocessMetric", (some (go.signature.Signature [(go.GoType.Named go!"github.com/blang/semver/v4.Version" [])] false []))), (go!"k8s.io/component-base/metrics.toPromHistogramOpts", (some (go.signature.Signature [] false [(go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.HistogramOpts" [])])))]
 
 attribute [instance] HistogramVec.TypeAssumptions.type_repr
   HistogramVec.TypeAssumptions.underlying
   HistogramVec.TypeAssumptions.isUnderlying
+  HistogramVec.TypeAssumptions.method_set
+  HistogramVec.TypeAssumptions.ptr_method_set
 
 axiom HistogramVecWithContext : Type
 axiom HistogramVecWithContext.zero_val : ZeroVal HistogramVecWithContext
 attribute [instance] HistogramVecWithContext.zero_val
 
-class HistogramVecWithContext.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class HistogramVecWithContext.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying HistogramVecWithContext.underlying HistogramVecWithContext
   underlying : go.UnderlyingDirectedEq HistogramVecWithContext.ty HistogramVecWithContext.underlying
   isUnderlying : go.IsUnderlying HistogramVecWithContext.underlying HistogramVecWithContext.underlying
+  method_set : go.MethodSetIs HistogramVecWithContext.ty [(go!"ClearState", (some (go.signature.Signature [] false []))), (go!"Collect", (some (go.signature.Signature [(go.GoType.ChannelType go.ChanDir.sendonly (go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.Metric" []))] false []))), (go!"Create", (some (go.signature.Signature [(go.GoType.PointerType (go.GoType.Named go!"github.com/blang/semver/v4.Version" []))] false [go.bool]))), (go!"CurryWith", (some (go.signature.Signature [(go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.Labels" [])] false [(go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.ObserverVec" []), go.error]))), (go!"Delete", (some (go.signature.Signature [(go.GoType.MapType go.string go.string)] false [go.bool]))), (go!"DeleteLabelValues", (some (go.signature.Signature [(go.GoType.SliceType go.string)] true [go.bool]))), (go!"DeletePartialMatch", (some (go.signature.Signature [(go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.Labels" [])] false [go.int]))), (go!"DeprecatedVersion", (some (go.signature.Signature [] false [(go.GoType.PointerType (go.GoType.Named go!"github.com/blang/semver/v4.Version" []))]))), (go!"Describe", (some (go.signature.Signature [(go.GoType.ChannelType go.ChanDir.sendonly (go.GoType.PointerType (go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.Desc" [])))] false []))), (go!"FQName", (some (go.signature.Signature [] false [go.string]))), (go!"GetMetricWith", (some (go.signature.Signature [(go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.Labels" [])] false [(go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.Observer" []), go.error]))), (go!"GetMetricWithLabelValues", (some (go.signature.Signature [(go.GoType.SliceType go.string)] true [(go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.Observer" []), go.error]))), (go!"IsCreated", (some (go.signature.Signature [] false [go.bool]))), (go!"IsDeprecated", (some (go.signature.Signature [] false [go.bool]))), (go!"IsHidden", (some (go.signature.Signature [] false [go.bool]))), (go!"MustCurryWith", (some (go.signature.Signature [(go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.Labels" [])] false [(go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.ObserverVec" [])]))), (go!"Reset", (some (go.signature.Signature [] false []))), (go!"ResetLabelAllowLists", (some (go.signature.Signature [] false []))), (go!"WithContext", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" [])] false [(go.GoType.PointerType HistogramVecWithContext.ty)]))), (go!"github.com/prometheus/client_golang/prometheus.deleteByHashWithLabelValues", (some (go.signature.Signature [go.uint64, (go.GoType.SliceType go.string), (go.GoType.SliceType (go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.curriedLabelValue" []))] false [go.bool]))), (go!"github.com/prometheus/client_golang/prometheus.deleteByHashWithLabels", (some (go.signature.Signature [go.uint64, (go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.Labels" []), (go.GoType.SliceType (go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.curriedLabelValue" []))] false [go.bool]))), (go!"github.com/prometheus/client_golang/prometheus.deleteByLabels", (some (go.signature.Signature [(go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.Labels" []), (go.GoType.SliceType (go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.curriedLabelValue" []))] false [go.int]))), (go!"github.com/prometheus/client_golang/prometheus.getMetricWithHashAndLabelValues", (some (go.signature.Signature [go.uint64, (go.GoType.SliceType go.string), (go.GoType.SliceType (go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.curriedLabelValue" []))] false [(go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.Metric" []), go.bool]))), (go!"github.com/prometheus/client_golang/prometheus.getMetricWithHashAndLabels", (some (go.signature.Signature [go.uint64, (go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.Labels" []), (go.GoType.SliceType (go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.curriedLabelValue" []))] false [(go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.Metric" []), go.bool]))), (go!"github.com/prometheus/client_golang/prometheus.getOrCreateMetricWithLabelValues", (some (go.signature.Signature [go.uint64, (go.GoType.SliceType go.string), (go.GoType.SliceType (go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.curriedLabelValue" []))] false [(go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.Metric" [])]))), (go!"github.com/prometheus/client_golang/prometheus.getOrCreateMetricWithLabels", (some (go.signature.Signature [go.uint64, (go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.Labels" []), (go.GoType.SliceType (go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.curriedLabelValue" []))] false [(go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.Metric" [])]))), (go!"github.com/prometheus/client_golang/prometheus.hashLabelValues", (some (go.signature.Signature [(go.GoType.SliceType go.string)] false [go.uint64, go.error]))), (go!"github.com/prometheus/client_golang/prometheus.hashLabels", (some (go.signature.Signature [(go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.Labels" [])] false [go.uint64, go.error]))), (go!"k8s.io/component-base/metrics.annotateStabilityLevel", (some (go.signature.Signature [] false []))), (go!"k8s.io/component-base/metrics.initializeDeprecatedMetric", (some (go.signature.Signature [] false []))), (go!"k8s.io/component-base/metrics.initializeMetric", (some (go.signature.Signature [] false []))), (go!"k8s.io/component-base/metrics.lazyInit", (some (go.signature.Signature [kubeCollector.ty, go.string] false []))), (go!"k8s.io/component-base/metrics.markDeprecated", (some (go.signature.Signature [] false []))), (go!"k8s.io/component-base/metrics.preprocessMetric", (some (go.signature.Signature [(go.GoType.Named go!"github.com/blang/semver/v4.Version" [])] false []))), (go!"k8s.io/component-base/metrics.toPromHistogramOpts", (some (go.signature.Signature [] false [(go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.HistogramOpts" [])])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType HistogramVecWithContext.ty) [(go!"ClearState", (some (go.signature.Signature [] false []))), (go!"Collect", (some (go.signature.Signature [(go.GoType.ChannelType go.ChanDir.sendonly (go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.Metric" []))] false []))), (go!"Create", (some (go.signature.Signature [(go.GoType.PointerType (go.GoType.Named go!"github.com/blang/semver/v4.Version" []))] false [go.bool]))), (go!"CurryWith", (some (go.signature.Signature [(go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.Labels" [])] false [(go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.ObserverVec" []), go.error]))), (go!"Delete", (some (go.signature.Signature [(go.GoType.MapType go.string go.string)] false [go.bool]))), (go!"DeleteLabelValues", (some (go.signature.Signature [(go.GoType.SliceType go.string)] true [go.bool]))), (go!"DeletePartialMatch", (some (go.signature.Signature [(go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.Labels" [])] false [go.int]))), (go!"DeprecatedVersion", (some (go.signature.Signature [] false [(go.GoType.PointerType (go.GoType.Named go!"github.com/blang/semver/v4.Version" []))]))), (go!"Describe", (some (go.signature.Signature [(go.GoType.ChannelType go.ChanDir.sendonly (go.GoType.PointerType (go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.Desc" [])))] false []))), (go!"FQName", (some (go.signature.Signature [] false [go.string]))), (go!"GetMetricWith", (some (go.signature.Signature [(go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.Labels" [])] false [(go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.Observer" []), go.error]))), (go!"GetMetricWithLabelValues", (some (go.signature.Signature [(go.GoType.SliceType go.string)] true [(go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.Observer" []), go.error]))), (go!"IsCreated", (some (go.signature.Signature [] false [go.bool]))), (go!"IsDeprecated", (some (go.signature.Signature [] false [go.bool]))), (go!"IsHidden", (some (go.signature.Signature [] false [go.bool]))), (go!"MustCurryWith", (some (go.signature.Signature [(go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.Labels" [])] false [(go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.ObserverVec" [])]))), (go!"ObserveSince", (some (go.signature.Signature [(go.GoType.Named go!"time.Time" []), (go.GoType.SliceType go.string)] true [(go.GoType.FunctionType (go.signature.Signature [] false []))]))), (go!"Reset", (some (go.signature.Signature [] false []))), (go!"ResetLabelAllowLists", (some (go.signature.Signature [] false []))), (go!"With", (some (go.signature.Signature [(go.GoType.MapType go.string go.string)] false [(go.GoType.PointerType exemplarHistogramVec.ty)]))), (go!"WithContext", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" [])] false [(go.GoType.PointerType HistogramVecWithContext.ty)]))), (go!"WithLabelValues", (some (go.signature.Signature [(go.GoType.SliceType go.string)] true [(go.GoType.PointerType exemplarHistogramVec.ty)]))), (go!"github.com/prometheus/client_golang/prometheus.deleteByHashWithLabelValues", (some (go.signature.Signature [go.uint64, (go.GoType.SliceType go.string), (go.GoType.SliceType (go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.curriedLabelValue" []))] false [go.bool]))), (go!"github.com/prometheus/client_golang/prometheus.deleteByHashWithLabels", (some (go.signature.Signature [go.uint64, (go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.Labels" []), (go.GoType.SliceType (go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.curriedLabelValue" []))] false [go.bool]))), (go!"github.com/prometheus/client_golang/prometheus.deleteByLabels", (some (go.signature.Signature [(go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.Labels" []), (go.GoType.SliceType (go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.curriedLabelValue" []))] false [go.int]))), (go!"github.com/prometheus/client_golang/prometheus.getMetricWithHashAndLabelValues", (some (go.signature.Signature [go.uint64, (go.GoType.SliceType go.string), (go.GoType.SliceType (go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.curriedLabelValue" []))] false [(go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.Metric" []), go.bool]))), (go!"github.com/prometheus/client_golang/prometheus.getMetricWithHashAndLabels", (some (go.signature.Signature [go.uint64, (go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.Labels" []), (go.GoType.SliceType (go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.curriedLabelValue" []))] false [(go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.Metric" []), go.bool]))), (go!"github.com/prometheus/client_golang/prometheus.getOrCreateMetricWithLabelValues", (some (go.signature.Signature [go.uint64, (go.GoType.SliceType go.string), (go.GoType.SliceType (go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.curriedLabelValue" []))] false [(go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.Metric" [])]))), (go!"github.com/prometheus/client_golang/prometheus.getOrCreateMetricWithLabels", (some (go.signature.Signature [go.uint64, (go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.Labels" []), (go.GoType.SliceType (go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.curriedLabelValue" []))] false [(go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.Metric" [])]))), (go!"github.com/prometheus/client_golang/prometheus.hashLabelValues", (some (go.signature.Signature [(go.GoType.SliceType go.string)] false [go.uint64, go.error]))), (go!"github.com/prometheus/client_golang/prometheus.hashLabels", (some (go.signature.Signature [(go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.Labels" [])] false [go.uint64, go.error]))), (go!"k8s.io/component-base/metrics.annotateStabilityLevel", (some (go.signature.Signature [] false []))), (go!"k8s.io/component-base/metrics.initializeDeprecatedMetric", (some (go.signature.Signature [] false []))), (go!"k8s.io/component-base/metrics.initializeMetric", (some (go.signature.Signature [] false []))), (go!"k8s.io/component-base/metrics.lazyInit", (some (go.signature.Signature [kubeCollector.ty, go.string] false []))), (go!"k8s.io/component-base/metrics.markDeprecated", (some (go.signature.Signature [] false []))), (go!"k8s.io/component-base/metrics.preprocessMetric", (some (go.signature.Signature [(go.GoType.Named go!"github.com/blang/semver/v4.Version" [])] false []))), (go!"k8s.io/component-base/metrics.toPromHistogramOpts", (some (go.signature.Signature [] false [(go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.HistogramOpts" [])])))]
 
 attribute [instance] HistogramVecWithContext.TypeAssumptions.type_repr
   HistogramVecWithContext.TypeAssumptions.underlying
   HistogramVecWithContext.TypeAssumptions.isUnderlying
+  HistogramVecWithContext.TypeAssumptions.method_set
+  HistogramVecWithContext.TypeAssumptions.ptr_method_set
 
 axiom HandlerOpts : Type
 axiom HandlerOpts.zero_val : ZeroVal HandlerOpts
 attribute [instance] HandlerOpts.zero_val
 
-class HandlerOpts.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class HandlerOpts.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying HandlerOpts.underlying HandlerOpts
   underlying : go.UnderlyingDirectedEq HandlerOpts.ty HandlerOpts.underlying
   isUnderlying : go.IsUnderlying HandlerOpts.underlying HandlerOpts.underlying
+  method_set : go.MethodSetIs HandlerOpts.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType HandlerOpts.ty) [(go!"k8s.io/component-base/metrics.toPromhttpHandlerOpts", (some (go.signature.Signature [] false [(go.GoType.Named go!"github.com/prometheus/client_golang/prometheus/promhttp.HandlerOpts" [])])))]
 
 attribute [instance] HandlerOpts.TypeAssumptions.type_repr
   HandlerOpts.TypeAssumptions.underlying
   HandlerOpts.TypeAssumptions.isUnderlying
+  HandlerOpts.TypeAssumptions.method_set
+  HandlerOpts.TypeAssumptions.ptr_method_set
 
 axiom Labels : Type
 axiom Labels.zero_val : ZeroVal Labels
 attribute [instance] Labels.zero_val
 
-class Labels.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class Labels.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying Labels.underlying Labels
   underlying : go.UnderlyingDirectedEq Labels.ty Labels.underlying
   isUnderlying : go.IsUnderlying Labels.underlying Labels.underlying
+  method_set : go.MethodSetIs Labels.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType Labels.ty) []
 
 attribute [instance] Labels.TypeAssumptions.type_repr
   Labels.TypeAssumptions.underlying
   Labels.TypeAssumptions.isUnderlying
+  Labels.TypeAssumptions.method_set
+  Labels.TypeAssumptions.ptr_method_set
 
 axiom kubeCollector : Type
 axiom kubeCollector.zero_val : ZeroVal kubeCollector
 attribute [instance] kubeCollector.zero_val
 
-class kubeCollector.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class kubeCollector.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying kubeCollector.underlying kubeCollector
   underlying : go.UnderlyingDirectedEq kubeCollector.ty kubeCollector.underlying
   isUnderlying : go.IsUnderlying kubeCollector.underlying kubeCollector.underlying
+  method_set : go.MethodSetIs kubeCollector.ty [(go!"Collect", (some (go.signature.Signature [(go.GoType.ChannelType go.ChanDir.sendonly (go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.Metric" []))] false []))), (go!"Create", (some (go.signature.Signature [(go.GoType.PointerType (go.GoType.Named go!"github.com/blang/semver/v4.Version" []))] false [go.bool]))), (go!"DeprecatedVersion", (some (go.signature.Signature [] false [(go.GoType.PointerType (go.GoType.Named go!"github.com/blang/semver/v4.Version" []))]))), (go!"Describe", (some (go.signature.Signature [(go.GoType.ChannelType go.ChanDir.sendonly (go.GoType.PointerType (go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.Desc" [])))] false []))), (go!"IsCreated", (some (go.signature.Signature [] false [go.bool]))), (go!"IsDeprecated", (some (go.signature.Signature [] false [go.bool]))), (go!"IsHidden", (some (go.signature.Signature [] false [go.bool]))), (go!"k8s.io/component-base/metrics.initializeDeprecatedMetric", (some (go.signature.Signature [] false []))), (go!"k8s.io/component-base/metrics.initializeMetric", (some (go.signature.Signature [] false [])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType kubeCollector.ty) []
 
 attribute [instance] kubeCollector.TypeAssumptions.type_repr
   kubeCollector.TypeAssumptions.underlying
   kubeCollector.TypeAssumptions.isUnderlying
+  kubeCollector.TypeAssumptions.method_set
+  kubeCollector.TypeAssumptions.ptr_method_set
 
 axiom lazyKubeMetric : Type
 axiom lazyKubeMetric.zero_val : ZeroVal lazyKubeMetric
 attribute [instance] lazyKubeMetric.zero_val
 
-class lazyKubeMetric.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class lazyKubeMetric.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying lazyKubeMetric.underlying lazyKubeMetric
   underlying : go.UnderlyingDirectedEq lazyKubeMetric.ty lazyKubeMetric.underlying
   isUnderlying : go.IsUnderlying lazyKubeMetric.underlying lazyKubeMetric.underlying
+  method_set : go.MethodSetIs lazyKubeMetric.ty [(go!"Create", (some (go.signature.Signature [(go.GoType.PointerType (go.GoType.Named go!"github.com/blang/semver/v4.Version" []))] false [go.bool]))), (go!"IsCreated", (some (go.signature.Signature [] false [go.bool]))), (go!"IsDeprecated", (some (go.signature.Signature [] false [go.bool]))), (go!"IsHidden", (some (go.signature.Signature [] false [go.bool])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType lazyKubeMetric.ty) []
 
 attribute [instance] lazyKubeMetric.TypeAssumptions.type_repr
   lazyKubeMetric.TypeAssumptions.underlying
   lazyKubeMetric.TypeAssumptions.isUnderlying
+  lazyKubeMetric.TypeAssumptions.method_set
+  lazyKubeMetric.TypeAssumptions.ptr_method_set
 
 axiom lazyMetric : Type
 axiom lazyMetric.zero_val : ZeroVal lazyMetric
 attribute [instance] lazyMetric.zero_val
 
-class lazyMetric.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class lazyMetric.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying lazyMetric.underlying lazyMetric
   underlying : go.UnderlyingDirectedEq lazyMetric.ty lazyMetric.underlying
   isUnderlying : go.IsUnderlying lazyMetric.underlying lazyMetric.underlying
+  method_set : go.MethodSetIs lazyMetric.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType lazyMetric.ty) [(go!"ClearState", (some (go.signature.Signature [] false []))), (go!"Create", (some (go.signature.Signature [(go.GoType.PointerType (go.GoType.Named go!"github.com/blang/semver/v4.Version" []))] false [go.bool]))), (go!"FQName", (some (go.signature.Signature [] false [go.string]))), (go!"IsCreated", (some (go.signature.Signature [] false [go.bool]))), (go!"IsDeprecated", (some (go.signature.Signature [] false [go.bool]))), (go!"IsHidden", (some (go.signature.Signature [] false [go.bool]))), (go!"k8s.io/component-base/metrics.lazyInit", (some (go.signature.Signature [kubeCollector.ty, go.string] false []))), (go!"k8s.io/component-base/metrics.preprocessMetric", (some (go.signature.Signature [(go.GoType.Named go!"github.com/blang/semver/v4.Version" [])] false [])))]
 
 attribute [instance] lazyMetric.TypeAssumptions.type_repr
   lazyMetric.TypeAssumptions.underlying
   lazyMetric.TypeAssumptions.isUnderlying
+  lazyMetric.TypeAssumptions.method_set
+  lazyMetric.TypeAssumptions.ptr_method_set
 
 axiom selfCollector : Type
 axiom selfCollector.zero_val : ZeroVal selfCollector
 attribute [instance] selfCollector.zero_val
 
-class selfCollector.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class selfCollector.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying selfCollector.underlying selfCollector
   underlying : go.UnderlyingDirectedEq selfCollector.ty selfCollector.underlying
   isUnderlying : go.IsUnderlying selfCollector.underlying selfCollector.underlying
+  method_set : go.MethodSetIs selfCollector.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType selfCollector.ty) [(go!"Collect", (some (go.signature.Signature [(go.GoType.ChannelType go.ChanDir.sendonly (go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.Metric" []))] false []))), (go!"Describe", (some (go.signature.Signature [(go.GoType.ChannelType go.ChanDir.sendonly (go.GoType.PointerType (go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.Desc" [])))] false []))), (go!"k8s.io/component-base/metrics.initSelfCollection", (some (go.signature.Signature [(go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.Metric" [])] false [])))]
 
 attribute [instance] selfCollector.TypeAssumptions.type_repr
   selfCollector.TypeAssumptions.underlying
   selfCollector.TypeAssumptions.isUnderlying
+  selfCollector.TypeAssumptions.method_set
+  selfCollector.TypeAssumptions.ptr_method_set
 
 axiom noopMetric : Type
 axiom noopMetric.zero_val : ZeroVal noopMetric
 attribute [instance] noopMetric.zero_val
 
-class noopMetric.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class noopMetric.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying noopMetric.underlying noopMetric
   underlying : go.UnderlyingDirectedEq noopMetric.ty noopMetric.underlying
   isUnderlying : go.IsUnderlying noopMetric.underlying noopMetric.underlying
+  method_set : go.MethodSetIs noopMetric.ty [(go!"Add", (some (go.signature.Signature [go.float64] false []))), (go!"Collect", (some (go.signature.Signature [(go.GoType.ChannelType go.ChanDir.sendonly (go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.Metric" []))] false []))), (go!"Dec", (some (go.signature.Signature [] false []))), (go!"Desc", (some (go.signature.Signature [] false [(go.GoType.PointerType (go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.Desc" []))]))), (go!"Describe", (some (go.signature.Signature [(go.GoType.ChannelType go.ChanDir.sendonly (go.GoType.PointerType (go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.Desc" [])))] false []))), (go!"Inc", (some (go.signature.Signature [] false []))), (go!"Observe", (some (go.signature.Signature [go.float64] false []))), (go!"ObserveWithWeight", (some (go.signature.Signature [go.float64, go.uint64] false []))), (go!"Set", (some (go.signature.Signature [go.float64] false []))), (go!"SetToCurrentTime", (some (go.signature.Signature [] false []))), (go!"Sub", (some (go.signature.Signature [go.float64] false []))), (go!"Write", (some (go.signature.Signature [(go.GoType.PointerType (go.GoType.Named go!"github.com/prometheus/client_model/go.Metric" []))] false [go.error])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType noopMetric.ty) [(go!"Add", (some (go.signature.Signature [go.float64] false []))), (go!"Collect", (some (go.signature.Signature [(go.GoType.ChannelType go.ChanDir.sendonly (go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.Metric" []))] false []))), (go!"Dec", (some (go.signature.Signature [] false []))), (go!"Desc", (some (go.signature.Signature [] false [(go.GoType.PointerType (go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.Desc" []))]))), (go!"Describe", (some (go.signature.Signature [(go.GoType.ChannelType go.ChanDir.sendonly (go.GoType.PointerType (go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.Desc" [])))] false []))), (go!"Inc", (some (go.signature.Signature [] false []))), (go!"Observe", (some (go.signature.Signature [go.float64] false []))), (go!"ObserveWithWeight", (some (go.signature.Signature [go.float64, go.uint64] false []))), (go!"Set", (some (go.signature.Signature [go.float64] false []))), (go!"SetToCurrentTime", (some (go.signature.Signature [] false []))), (go!"Sub", (some (go.signature.Signature [go.float64] false []))), (go!"Write", (some (go.signature.Signature [(go.GoType.PointerType (go.GoType.Named go!"github.com/prometheus/client_model/go.Metric" []))] false [go.error])))]
 
 attribute [instance] noopMetric.TypeAssumptions.type_repr
   noopMetric.TypeAssumptions.underlying
   noopMetric.TypeAssumptions.isUnderlying
+  noopMetric.TypeAssumptions.method_set
+  noopMetric.TypeAssumptions.ptr_method_set
 
 axiom Options : Type
 axiom Options.zero_val : ZeroVal Options
 attribute [instance] Options.zero_val
 
-class Options.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class Options.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying Options.underlying Options
   underlying : go.UnderlyingDirectedEq Options.ty Options.underlying
   isUnderlying : go.IsUnderlying Options.underlying Options.underlying
+  method_set : go.MethodSetIs Options.ty [(go!"OpenAPIModelName", (some (go.signature.Signature [] false [go.string])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType Options.ty) [(go!"AddFlags", (some (go.signature.Signature [(go.GoType.PointerType (go.GoType.Named go!"github.com/spf13/pflag.FlagSet" []))] false []))), (go!"Apply", (some (go.signature.Signature [] false []))), (go!"DeepCopy", (some (go.signature.Signature [] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/component-base/metrics/api/v1.MetricsConfiguration" []))]))), (go!"DeepCopyInto", (some (go.signature.Signature [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/component-base/metrics/api/v1.MetricsConfiguration" []))] false []))), (go!"OpenAPIModelName", (some (go.signature.Signature [] false [go.string]))), (go!"Validate", (some (go.signature.Signature [] false [(go.GoType.SliceType go.error)])))]
 
 attribute [instance] Options.TypeAssumptions.type_repr
   Options.TypeAssumptions.underlying
   Options.TypeAssumptions.isUnderlying
+  Options.TypeAssumptions.method_set
+  Options.TypeAssumptions.ptr_method_set
 
 axiom MetricLabelAllowList : Type
 axiom MetricLabelAllowList.zero_val : ZeroVal MetricLabelAllowList
 attribute [instance] MetricLabelAllowList.zero_val
 
-class MetricLabelAllowList.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class MetricLabelAllowList.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying MetricLabelAllowList.underlying MetricLabelAllowList
   underlying : go.UnderlyingDirectedEq MetricLabelAllowList.ty MetricLabelAllowList.underlying
   isUnderlying : go.IsUnderlying MetricLabelAllowList.underlying MetricLabelAllowList.underlying
+  method_set : go.MethodSetIs MetricLabelAllowList.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType MetricLabelAllowList.ty) [(go!"ConstrainLabelMap", (some (go.signature.Signature [(go.GoType.MapType go.string go.string)] false []))), (go!"ConstrainToAllowedList", (some (go.signature.Signature [(go.GoType.SliceType go.string), (go.GoType.SliceType go.string)] false [])))]
 
 attribute [instance] MetricLabelAllowList.TypeAssumptions.type_repr
   MetricLabelAllowList.TypeAssumptions.underlying
   MetricLabelAllowList.TypeAssumptions.isUnderlying
+  MetricLabelAllowList.TypeAssumptions.method_set
+  MetricLabelAllowList.TypeAssumptions.ptr_method_set
 
 axiom KubeOpts : Type
 axiom KubeOpts.zero_val : ZeroVal KubeOpts
 attribute [instance] KubeOpts.zero_val
 
-class KubeOpts.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class KubeOpts.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying KubeOpts.underlying KubeOpts
   underlying : go.UnderlyingDirectedEq KubeOpts.ty KubeOpts.underlying
   isUnderlying : go.IsUnderlying KubeOpts.underlying KubeOpts.underlying
+  method_set : go.MethodSetIs KubeOpts.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType KubeOpts.ty) []
 
 attribute [instance] KubeOpts.TypeAssumptions.type_repr
   KubeOpts.TypeAssumptions.underlying
   KubeOpts.TypeAssumptions.isUnderlying
+  KubeOpts.TypeAssumptions.method_set
+  KubeOpts.TypeAssumptions.ptr_method_set
 
 axiom StabilityLevel : Type
 axiom StabilityLevel.zero_val : ZeroVal StabilityLevel
 attribute [instance] StabilityLevel.zero_val
 
-class StabilityLevel.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class StabilityLevel.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying StabilityLevel.underlying StabilityLevel
   underlying : go.UnderlyingDirectedEq StabilityLevel.ty StabilityLevel.underlying
   isUnderlying : go.IsUnderlying StabilityLevel.underlying StabilityLevel.underlying
+  method_set : go.MethodSetIs StabilityLevel.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType StabilityLevel.ty) [(go!"k8s.io/component-base/metrics.setDefaults", (some (go.signature.Signature [] false [])))]
 
 attribute [instance] StabilityLevel.TypeAssumptions.type_repr
   StabilityLevel.TypeAssumptions.underlying
   StabilityLevel.TypeAssumptions.isUnderlying
+  StabilityLevel.TypeAssumptions.method_set
+  StabilityLevel.TypeAssumptions.ptr_method_set
 
 axiom CounterOpts : Type
 axiom CounterOpts.zero_val : ZeroVal CounterOpts
 attribute [instance] CounterOpts.zero_val
 
-class CounterOpts.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class CounterOpts.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying CounterOpts.underlying CounterOpts
   underlying : go.UnderlyingDirectedEq CounterOpts.ty CounterOpts.underlying
   isUnderlying : go.IsUnderlying CounterOpts.underlying CounterOpts.underlying
+  method_set : go.MethodSetIs CounterOpts.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType CounterOpts.ty) [(go!"k8s.io/component-base/metrics.annotateStabilityLevel", (some (go.signature.Signature [] false []))), (go!"k8s.io/component-base/metrics.markDeprecated", (some (go.signature.Signature [] false []))), (go!"k8s.io/component-base/metrics.toPromCounterOpts", (some (go.signature.Signature [] false [(go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.CounterOpts" [])])))]
 
 attribute [instance] CounterOpts.TypeAssumptions.type_repr
   CounterOpts.TypeAssumptions.underlying
   CounterOpts.TypeAssumptions.isUnderlying
+  CounterOpts.TypeAssumptions.method_set
+  CounterOpts.TypeAssumptions.ptr_method_set
 
 axiom GaugeOpts : Type
 axiom GaugeOpts.zero_val : ZeroVal GaugeOpts
 attribute [instance] GaugeOpts.zero_val
 
-class GaugeOpts.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class GaugeOpts.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying GaugeOpts.underlying GaugeOpts
   underlying : go.UnderlyingDirectedEq GaugeOpts.ty GaugeOpts.underlying
   isUnderlying : go.IsUnderlying GaugeOpts.underlying GaugeOpts.underlying
+  method_set : go.MethodSetIs GaugeOpts.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType GaugeOpts.ty) [(go!"k8s.io/component-base/metrics.annotateStabilityLevel", (some (go.signature.Signature [] false []))), (go!"k8s.io/component-base/metrics.markDeprecated", (some (go.signature.Signature [] false []))), (go!"k8s.io/component-base/metrics.toPromGaugeOpts", (some (go.signature.Signature [] false [(go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.GaugeOpts" [])])))]
 
 attribute [instance] GaugeOpts.TypeAssumptions.type_repr
   GaugeOpts.TypeAssumptions.underlying
   GaugeOpts.TypeAssumptions.isUnderlying
+  GaugeOpts.TypeAssumptions.method_set
+  GaugeOpts.TypeAssumptions.ptr_method_set
 
 axiom HistogramOpts : Type
 axiom HistogramOpts.zero_val : ZeroVal HistogramOpts
 attribute [instance] HistogramOpts.zero_val
 
-class HistogramOpts.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class HistogramOpts.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying HistogramOpts.underlying HistogramOpts
   underlying : go.UnderlyingDirectedEq HistogramOpts.ty HistogramOpts.underlying
   isUnderlying : go.IsUnderlying HistogramOpts.underlying HistogramOpts.underlying
+  method_set : go.MethodSetIs HistogramOpts.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType HistogramOpts.ty) [(go!"k8s.io/component-base/metrics.annotateStabilityLevel", (some (go.signature.Signature [] false []))), (go!"k8s.io/component-base/metrics.markDeprecated", (some (go.signature.Signature [] false []))), (go!"k8s.io/component-base/metrics.toPromHistogramOpts", (some (go.signature.Signature [] false [(go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.HistogramOpts" [])])))]
 
 attribute [instance] HistogramOpts.TypeAssumptions.type_repr
   HistogramOpts.TypeAssumptions.underlying
   HistogramOpts.TypeAssumptions.isUnderlying
+  HistogramOpts.TypeAssumptions.method_set
+  HistogramOpts.TypeAssumptions.ptr_method_set
 
 axiom TimingHistogramOpts : Type
 axiom TimingHistogramOpts.zero_val : ZeroVal TimingHistogramOpts
 attribute [instance] TimingHistogramOpts.zero_val
 
-class TimingHistogramOpts.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class TimingHistogramOpts.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying TimingHistogramOpts.underlying TimingHistogramOpts
   underlying : go.UnderlyingDirectedEq TimingHistogramOpts.ty TimingHistogramOpts.underlying
   isUnderlying : go.IsUnderlying TimingHistogramOpts.underlying TimingHistogramOpts.underlying
+  method_set : go.MethodSetIs TimingHistogramOpts.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType TimingHistogramOpts.ty) [(go!"k8s.io/component-base/metrics.annotateStabilityLevel", (some (go.signature.Signature [] false []))), (go!"k8s.io/component-base/metrics.markDeprecated", (some (go.signature.Signature [] false []))), (go!"k8s.io/component-base/metrics.toPromHistogramOpts", (some (go.signature.Signature [] false [(go.GoType.Named go!"k8s.io/component-base/metrics/prometheusextension.TimingHistogramOpts" [])])))]
 
 attribute [instance] TimingHistogramOpts.TypeAssumptions.type_repr
   TimingHistogramOpts.TypeAssumptions.underlying
   TimingHistogramOpts.TypeAssumptions.isUnderlying
+  TimingHistogramOpts.TypeAssumptions.method_set
+  TimingHistogramOpts.TypeAssumptions.ptr_method_set
 
 axiom SummaryOpts : Type
 axiom SummaryOpts.zero_val : ZeroVal SummaryOpts
 attribute [instance] SummaryOpts.zero_val
 
-class SummaryOpts.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class SummaryOpts.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying SummaryOpts.underlying SummaryOpts
   underlying : go.UnderlyingDirectedEq SummaryOpts.ty SummaryOpts.underlying
   isUnderlying : go.IsUnderlying SummaryOpts.underlying SummaryOpts.underlying
+  method_set : go.MethodSetIs SummaryOpts.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType SummaryOpts.ty) [(go!"k8s.io/component-base/metrics.annotateStabilityLevel", (some (go.signature.Signature [] false []))), (go!"k8s.io/component-base/metrics.markDeprecated", (some (go.signature.Signature [] false []))), (go!"k8s.io/component-base/metrics.toPromSummaryOpts", (some (go.signature.Signature [] false [(go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.SummaryOpts" [])])))]
 
 attribute [instance] SummaryOpts.TypeAssumptions.type_repr
   SummaryOpts.TypeAssumptions.underlying
   SummaryOpts.TypeAssumptions.isUnderlying
+  SummaryOpts.TypeAssumptions.method_set
+  SummaryOpts.TypeAssumptions.ptr_method_set
 
 axiom Registerable : Type
 axiom Registerable.zero_val : ZeroVal Registerable
 attribute [instance] Registerable.zero_val
 
-class Registerable.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class Registerable.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying Registerable.underlying Registerable
   underlying : go.UnderlyingDirectedEq Registerable.ty Registerable.underlying
   isUnderlying : go.IsUnderlying Registerable.underlying Registerable.underlying
+  method_set : go.MethodSetIs Registerable.ty [(go!"ClearState", (some (go.signature.Signature [] false []))), (go!"Collect", (some (go.signature.Signature [(go.GoType.ChannelType go.ChanDir.sendonly (go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.Metric" []))] false []))), (go!"Create", (some (go.signature.Signature [(go.GoType.PointerType (go.GoType.Named go!"github.com/blang/semver/v4.Version" []))] false [go.bool]))), (go!"Describe", (some (go.signature.Signature [(go.GoType.ChannelType go.ChanDir.sendonly (go.GoType.PointerType (go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.Desc" [])))] false []))), (go!"FQName", (some (go.signature.Signature [] false [go.string])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType Registerable.ty) []
 
 attribute [instance] Registerable.TypeAssumptions.type_repr
   Registerable.TypeAssumptions.underlying
   Registerable.TypeAssumptions.isUnderlying
+  Registerable.TypeAssumptions.method_set
+  Registerable.TypeAssumptions.ptr_method_set
 
 axiom resettable : Type
 axiom resettable.zero_val : ZeroVal resettable
 attribute [instance] resettable.zero_val
 
-class resettable.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class resettable.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying resettable.underlying resettable
   underlying : go.UnderlyingDirectedEq resettable.ty resettable.underlying
   isUnderlying : go.IsUnderlying resettable.underlying resettable.underlying
+  method_set : go.MethodSetIs resettable.ty [(go!"Reset", (some (go.signature.Signature [] false [])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType resettable.ty) []
 
 attribute [instance] resettable.TypeAssumptions.type_repr
   resettable.TypeAssumptions.underlying
   resettable.TypeAssumptions.isUnderlying
+  resettable.TypeAssumptions.method_set
+  resettable.TypeAssumptions.ptr_method_set
 
 axiom KubeRegistry : Type
 axiom KubeRegistry.zero_val : ZeroVal KubeRegistry
 attribute [instance] KubeRegistry.zero_val
 
-class KubeRegistry.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class KubeRegistry.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying KubeRegistry.underlying KubeRegistry
   underlying : go.UnderlyingDirectedEq KubeRegistry.ty KubeRegistry.underlying
   isUnderlying : go.IsUnderlying KubeRegistry.underlying KubeRegistry.underlying
+  method_set : go.MethodSetIs KubeRegistry.ty [(go!"CustomMustRegister", (some (go.signature.Signature [(go.GoType.SliceType StableCollector.ty)] true []))), (go!"CustomRegister", (some (go.signature.Signature [StableCollector.ty] false [go.error]))), (go!"Gather", (some (go.signature.Signature [] false [(go.GoType.SliceType (go.GoType.PointerType (go.GoType.Named go!"github.com/prometheus/client_model/go.MetricFamily" []))), go.error]))), (go!"Gatherer", (some (go.signature.Signature [] false [(go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.Gatherer" [])]))), (go!"MustRegister", (some (go.signature.Signature [(go.GoType.SliceType Registerable.ty)] true []))), (go!"RawMustRegister", (some (go.signature.Signature [(go.GoType.SliceType (go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.Collector" []))] true []))), (go!"Register", (some (go.signature.Signature [Registerable.ty] false [go.error]))), (go!"RegisterMetaMetrics", (some (go.signature.Signature [] false []))), (go!"Registerer", (some (go.signature.Signature [] false [(go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.Registerer" [])]))), (go!"Reset", (some (go.signature.Signature [] false []))), (go!"Unregister", (some (go.signature.Signature [Collector.ty] false [go.bool])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType KubeRegistry.ty) []
 
 attribute [instance] KubeRegistry.TypeAssumptions.type_repr
   KubeRegistry.TypeAssumptions.underlying
   KubeRegistry.TypeAssumptions.isUnderlying
+  KubeRegistry.TypeAssumptions.method_set
+  KubeRegistry.TypeAssumptions.ptr_method_set
 
 axiom kubeRegistry : Type
 axiom kubeRegistry.zero_val : ZeroVal kubeRegistry
 attribute [instance] kubeRegistry.zero_val
 
-class kubeRegistry.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class kubeRegistry.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying kubeRegistry.underlying kubeRegistry
   underlying : go.UnderlyingDirectedEq kubeRegistry.ty kubeRegistry.underlying
   isUnderlying : go.IsUnderlying kubeRegistry.underlying kubeRegistry.underlying
+  method_set : go.MethodSetIs kubeRegistry.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType kubeRegistry.ty) [(go!"CustomMustRegister", (some (go.signature.Signature [(go.GoType.SliceType StableCollector.ty)] true []))), (go!"CustomRegister", (some (go.signature.Signature [StableCollector.ty] false [go.error]))), (go!"Gather", (some (go.signature.Signature [] false [(go.GoType.SliceType (go.GoType.PointerType (go.GoType.Named go!"github.com/prometheus/client_model/go.MetricFamily" []))), go.error]))), (go!"Gatherer", (some (go.signature.Signature [] false [(go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.Gatherer" [])]))), (go!"MustRegister", (some (go.signature.Signature [(go.GoType.SliceType Registerable.ty)] true []))), (go!"RawMustRegister", (some (go.signature.Signature [(go.GoType.SliceType (go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.Collector" []))] true []))), (go!"Register", (some (go.signature.Signature [Registerable.ty] false [go.error]))), (go!"RegisterMetaMetrics", (some (go.signature.Signature [] false []))), (go!"Registerer", (some (go.signature.Signature [] false [(go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.Registerer" [])]))), (go!"Reset", (some (go.signature.Signature [] false []))), (go!"Unregister", (some (go.signature.Signature [Collector.ty] false [go.bool]))), (go!"k8s.io/component-base/metrics.addResettable", (some (go.signature.Signature [(go.GoType.InterfaceType [])] false []))), (go!"k8s.io/component-base/metrics.enableHiddenCollectors", (some (go.signature.Signature [] false []))), (go!"k8s.io/component-base/metrics.enableHiddenStableCollectors", (some (go.signature.Signature [] false []))), (go!"k8s.io/component-base/metrics.trackHiddenCollector", (some (go.signature.Signature [Registerable.ty] false []))), (go!"k8s.io/component-base/metrics.trackStableCollectors", (some (go.signature.Signature [(go.GoType.SliceType StableCollector.ty)] true [])))]
 
 attribute [instance] kubeRegistry.TypeAssumptions.type_repr
   kubeRegistry.TypeAssumptions.underlying
   kubeRegistry.TypeAssumptions.isUnderlying
+  kubeRegistry.TypeAssumptions.method_set
+  kubeRegistry.TypeAssumptions.ptr_method_set
 
 axiom Summary : Type
 axiom Summary.zero_val : ZeroVal Summary
 attribute [instance] Summary.zero_val
 
-class Summary.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class Summary.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying Summary.underlying Summary
   underlying : go.UnderlyingDirectedEq Summary.ty Summary.underlying
   isUnderlying : go.IsUnderlying Summary.underlying Summary.underlying
+  method_set : go.MethodSetIs Summary.ty [(go!"Observe", (some (go.signature.Signature [go.float64] false []))), (go!"k8s.io/component-base/metrics.annotateStabilityLevel", (some (go.signature.Signature [] false []))), (go!"k8s.io/component-base/metrics.markDeprecated", (some (go.signature.Signature [] false []))), (go!"k8s.io/component-base/metrics.toPromSummaryOpts", (some (go.signature.Signature [] false [(go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.SummaryOpts" [])])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType Summary.ty) [(go!"ClearState", (some (go.signature.Signature [] false []))), (go!"Collect", (some (go.signature.Signature [(go.GoType.ChannelType go.ChanDir.sendonly (go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.Metric" []))] false []))), (go!"Create", (some (go.signature.Signature [(go.GoType.PointerType (go.GoType.Named go!"github.com/blang/semver/v4.Version" []))] false [go.bool]))), (go!"DeprecatedVersion", (some (go.signature.Signature [] false [(go.GoType.PointerType (go.GoType.Named go!"github.com/blang/semver/v4.Version" []))]))), (go!"Describe", (some (go.signature.Signature [(go.GoType.ChannelType go.ChanDir.sendonly (go.GoType.PointerType (go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.Desc" [])))] false []))), (go!"FQName", (some (go.signature.Signature [] false [go.string]))), (go!"IsCreated", (some (go.signature.Signature [] false [go.bool]))), (go!"IsDeprecated", (some (go.signature.Signature [] false [go.bool]))), (go!"IsHidden", (some (go.signature.Signature [] false [go.bool]))), (go!"Observe", (some (go.signature.Signature [go.float64] false []))), (go!"WithContext", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" [])] false [ObserverMetric.ty]))), (go!"k8s.io/component-base/metrics.annotateStabilityLevel", (some (go.signature.Signature [] false []))), (go!"k8s.io/component-base/metrics.initSelfCollection", (some (go.signature.Signature [(go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.Metric" [])] false []))), (go!"k8s.io/component-base/metrics.initializeDeprecatedMetric", (some (go.signature.Signature [] false []))), (go!"k8s.io/component-base/metrics.initializeMetric", (some (go.signature.Signature [] false []))), (go!"k8s.io/component-base/metrics.lazyInit", (some (go.signature.Signature [kubeCollector.ty, go.string] false []))), (go!"k8s.io/component-base/metrics.markDeprecated", (some (go.signature.Signature [] false []))), (go!"k8s.io/component-base/metrics.preprocessMetric", (some (go.signature.Signature [(go.GoType.Named go!"github.com/blang/semver/v4.Version" [])] false []))), (go!"k8s.io/component-base/metrics.setPrometheusSummary", (some (go.signature.Signature [(go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.Summary" [])] false []))), (go!"k8s.io/component-base/metrics.toPromSummaryOpts", (some (go.signature.Signature [] false [(go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.SummaryOpts" [])])))]
 
 attribute [instance] Summary.TypeAssumptions.type_repr
   Summary.TypeAssumptions.underlying
   Summary.TypeAssumptions.isUnderlying
+  Summary.TypeAssumptions.method_set
+  Summary.TypeAssumptions.ptr_method_set
 
 axiom SummaryVec : Type
 axiom SummaryVec.zero_val : ZeroVal SummaryVec
 attribute [instance] SummaryVec.zero_val
 
-class SummaryVec.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class SummaryVec.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying SummaryVec.underlying SummaryVec
   underlying : go.UnderlyingDirectedEq SummaryVec.ty SummaryVec.underlying
   isUnderlying : go.IsUnderlying SummaryVec.underlying SummaryVec.underlying
+  method_set : go.MethodSetIs SummaryVec.ty [(go!"Collect", (some (go.signature.Signature [(go.GoType.ChannelType go.ChanDir.sendonly (go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.Metric" []))] false []))), (go!"CurryWith", (some (go.signature.Signature [(go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.Labels" [])] false [(go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.ObserverVec" []), go.error]))), (go!"DeleteLabelValues", (some (go.signature.Signature [(go.GoType.SliceType go.string)] true [go.bool]))), (go!"DeletePartialMatch", (some (go.signature.Signature [(go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.Labels" [])] false [go.int]))), (go!"Describe", (some (go.signature.Signature [(go.GoType.ChannelType go.ChanDir.sendonly (go.GoType.PointerType (go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.Desc" [])))] false []))), (go!"GetMetricWith", (some (go.signature.Signature [(go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.Labels" [])] false [(go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.Observer" []), go.error]))), (go!"GetMetricWithLabelValues", (some (go.signature.Signature [(go.GoType.SliceType go.string)] true [(go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.Observer" []), go.error]))), (go!"MustCurryWith", (some (go.signature.Signature [(go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.Labels" [])] false [(go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.ObserverVec" [])]))), (go!"github.com/prometheus/client_golang/prometheus.deleteByHashWithLabelValues", (some (go.signature.Signature [go.uint64, (go.GoType.SliceType go.string), (go.GoType.SliceType (go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.curriedLabelValue" []))] false [go.bool]))), (go!"github.com/prometheus/client_golang/prometheus.deleteByHashWithLabels", (some (go.signature.Signature [go.uint64, (go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.Labels" []), (go.GoType.SliceType (go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.curriedLabelValue" []))] false [go.bool]))), (go!"github.com/prometheus/client_golang/prometheus.deleteByLabels", (some (go.signature.Signature [(go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.Labels" []), (go.GoType.SliceType (go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.curriedLabelValue" []))] false [go.int]))), (go!"github.com/prometheus/client_golang/prometheus.getMetricWithHashAndLabelValues", (some (go.signature.Signature [go.uint64, (go.GoType.SliceType go.string), (go.GoType.SliceType (go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.curriedLabelValue" []))] false [(go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.Metric" []), go.bool]))), (go!"github.com/prometheus/client_golang/prometheus.getMetricWithHashAndLabels", (some (go.signature.Signature [go.uint64, (go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.Labels" []), (go.GoType.SliceType (go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.curriedLabelValue" []))] false [(go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.Metric" []), go.bool]))), (go!"github.com/prometheus/client_golang/prometheus.getOrCreateMetricWithLabelValues", (some (go.signature.Signature [go.uint64, (go.GoType.SliceType go.string), (go.GoType.SliceType (go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.curriedLabelValue" []))] false [(go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.Metric" [])]))), (go!"github.com/prometheus/client_golang/prometheus.getOrCreateMetricWithLabels", (some (go.signature.Signature [go.uint64, (go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.Labels" []), (go.GoType.SliceType (go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.curriedLabelValue" []))] false [(go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.Metric" [])]))), (go!"github.com/prometheus/client_golang/prometheus.hashLabelValues", (some (go.signature.Signature [(go.GoType.SliceType go.string)] false [go.uint64, go.error]))), (go!"github.com/prometheus/client_golang/prometheus.hashLabels", (some (go.signature.Signature [(go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.Labels" [])] false [go.uint64, go.error]))), (go!"k8s.io/component-base/metrics.annotateStabilityLevel", (some (go.signature.Signature [] false []))), (go!"k8s.io/component-base/metrics.markDeprecated", (some (go.signature.Signature [] false []))), (go!"k8s.io/component-base/metrics.toPromSummaryOpts", (some (go.signature.Signature [] false [(go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.SummaryOpts" [])])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType SummaryVec.ty) [(go!"ClearState", (some (go.signature.Signature [] false []))), (go!"Collect", (some (go.signature.Signature [(go.GoType.ChannelType go.ChanDir.sendonly (go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.Metric" []))] false []))), (go!"Create", (some (go.signature.Signature [(go.GoType.PointerType (go.GoType.Named go!"github.com/blang/semver/v4.Version" []))] false [go.bool]))), (go!"CurryWith", (some (go.signature.Signature [(go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.Labels" [])] false [(go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.ObserverVec" []), go.error]))), (go!"Delete", (some (go.signature.Signature [(go.GoType.MapType go.string go.string)] false [go.bool]))), (go!"DeleteLabelValues", (some (go.signature.Signature [(go.GoType.SliceType go.string)] true [go.bool]))), (go!"DeletePartialMatch", (some (go.signature.Signature [(go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.Labels" [])] false [go.int]))), (go!"DeprecatedVersion", (some (go.signature.Signature [] false [(go.GoType.PointerType (go.GoType.Named go!"github.com/blang/semver/v4.Version" []))]))), (go!"Describe", (some (go.signature.Signature [(go.GoType.ChannelType go.ChanDir.sendonly (go.GoType.PointerType (go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.Desc" [])))] false []))), (go!"FQName", (some (go.signature.Signature [] false [go.string]))), (go!"GetMetricWith", (some (go.signature.Signature [(go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.Labels" [])] false [(go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.Observer" []), go.error]))), (go!"GetMetricWithLabelValues", (some (go.signature.Signature [(go.GoType.SliceType go.string)] true [(go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.Observer" []), go.error]))), (go!"IsCreated", (some (go.signature.Signature [] false [go.bool]))), (go!"IsDeprecated", (some (go.signature.Signature [] false [go.bool]))), (go!"IsHidden", (some (go.signature.Signature [] false [go.bool]))), (go!"MustCurryWith", (some (go.signature.Signature [(go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.Labels" [])] false [(go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.ObserverVec" [])]))), (go!"Reset", (some (go.signature.Signature [] false []))), (go!"ResetLabelAllowLists", (some (go.signature.Signature [] false []))), (go!"With", (some (go.signature.Signature [(go.GoType.MapType go.string go.string)] false [ObserverMetric.ty]))), (go!"WithContext", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" [])] false [(go.GoType.PointerType SummaryVecWithContext.ty)]))), (go!"WithLabelValues", (some (go.signature.Signature [(go.GoType.SliceType go.string)] true [ObserverMetric.ty]))), (go!"github.com/prometheus/client_golang/prometheus.deleteByHashWithLabelValues", (some (go.signature.Signature [go.uint64, (go.GoType.SliceType go.string), (go.GoType.SliceType (go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.curriedLabelValue" []))] false [go.bool]))), (go!"github.com/prometheus/client_golang/prometheus.deleteByHashWithLabels", (some (go.signature.Signature [go.uint64, (go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.Labels" []), (go.GoType.SliceType (go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.curriedLabelValue" []))] false [go.bool]))), (go!"github.com/prometheus/client_golang/prometheus.deleteByLabels", (some (go.signature.Signature [(go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.Labels" []), (go.GoType.SliceType (go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.curriedLabelValue" []))] false [go.int]))), (go!"github.com/prometheus/client_golang/prometheus.getMetricWithHashAndLabelValues", (some (go.signature.Signature [go.uint64, (go.GoType.SliceType go.string), (go.GoType.SliceType (go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.curriedLabelValue" []))] false [(go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.Metric" []), go.bool]))), (go!"github.com/prometheus/client_golang/prometheus.getMetricWithHashAndLabels", (some (go.signature.Signature [go.uint64, (go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.Labels" []), (go.GoType.SliceType (go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.curriedLabelValue" []))] false [(go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.Metric" []), go.bool]))), (go!"github.com/prometheus/client_golang/prometheus.getOrCreateMetricWithLabelValues", (some (go.signature.Signature [go.uint64, (go.GoType.SliceType go.string), (go.GoType.SliceType (go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.curriedLabelValue" []))] false [(go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.Metric" [])]))), (go!"github.com/prometheus/client_golang/prometheus.getOrCreateMetricWithLabels", (some (go.signature.Signature [go.uint64, (go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.Labels" []), (go.GoType.SliceType (go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.curriedLabelValue" []))] false [(go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.Metric" [])]))), (go!"github.com/prometheus/client_golang/prometheus.hashLabelValues", (some (go.signature.Signature [(go.GoType.SliceType go.string)] false [go.uint64, go.error]))), (go!"github.com/prometheus/client_golang/prometheus.hashLabels", (some (go.signature.Signature [(go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.Labels" [])] false [go.uint64, go.error]))), (go!"k8s.io/component-base/metrics.annotateStabilityLevel", (some (go.signature.Signature [] false []))), (go!"k8s.io/component-base/metrics.initializeDeprecatedMetric", (some (go.signature.Signature [] false []))), (go!"k8s.io/component-base/metrics.initializeMetric", (some (go.signature.Signature [] false []))), (go!"k8s.io/component-base/metrics.lazyInit", (some (go.signature.Signature [kubeCollector.ty, go.string] false []))), (go!"k8s.io/component-base/metrics.markDeprecated", (some (go.signature.Signature [] false []))), (go!"k8s.io/component-base/metrics.preprocessMetric", (some (go.signature.Signature [(go.GoType.Named go!"github.com/blang/semver/v4.Version" [])] false []))), (go!"k8s.io/component-base/metrics.toPromSummaryOpts", (some (go.signature.Signature [] false [(go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.SummaryOpts" [])])))]
 
 attribute [instance] SummaryVec.TypeAssumptions.type_repr
   SummaryVec.TypeAssumptions.underlying
   SummaryVec.TypeAssumptions.isUnderlying
+  SummaryVec.TypeAssumptions.method_set
+  SummaryVec.TypeAssumptions.ptr_method_set
 
 axiom SummaryVecWithContext : Type
 axiom SummaryVecWithContext.zero_val : ZeroVal SummaryVecWithContext
 attribute [instance] SummaryVecWithContext.zero_val
 
-class SummaryVecWithContext.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class SummaryVecWithContext.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying SummaryVecWithContext.underlying SummaryVecWithContext
   underlying : go.UnderlyingDirectedEq SummaryVecWithContext.ty SummaryVecWithContext.underlying
   isUnderlying : go.IsUnderlying SummaryVecWithContext.underlying SummaryVecWithContext.underlying
+  method_set : go.MethodSetIs SummaryVecWithContext.ty [(go!"ClearState", (some (go.signature.Signature [] false []))), (go!"Collect", (some (go.signature.Signature [(go.GoType.ChannelType go.ChanDir.sendonly (go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.Metric" []))] false []))), (go!"Create", (some (go.signature.Signature [(go.GoType.PointerType (go.GoType.Named go!"github.com/blang/semver/v4.Version" []))] false [go.bool]))), (go!"CurryWith", (some (go.signature.Signature [(go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.Labels" [])] false [(go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.ObserverVec" []), go.error]))), (go!"Delete", (some (go.signature.Signature [(go.GoType.MapType go.string go.string)] false [go.bool]))), (go!"DeleteLabelValues", (some (go.signature.Signature [(go.GoType.SliceType go.string)] true [go.bool]))), (go!"DeletePartialMatch", (some (go.signature.Signature [(go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.Labels" [])] false [go.int]))), (go!"DeprecatedVersion", (some (go.signature.Signature [] false [(go.GoType.PointerType (go.GoType.Named go!"github.com/blang/semver/v4.Version" []))]))), (go!"Describe", (some (go.signature.Signature [(go.GoType.ChannelType go.ChanDir.sendonly (go.GoType.PointerType (go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.Desc" [])))] false []))), (go!"FQName", (some (go.signature.Signature [] false [go.string]))), (go!"GetMetricWith", (some (go.signature.Signature [(go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.Labels" [])] false [(go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.Observer" []), go.error]))), (go!"GetMetricWithLabelValues", (some (go.signature.Signature [(go.GoType.SliceType go.string)] true [(go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.Observer" []), go.error]))), (go!"IsCreated", (some (go.signature.Signature [] false [go.bool]))), (go!"IsDeprecated", (some (go.signature.Signature [] false [go.bool]))), (go!"IsHidden", (some (go.signature.Signature [] false [go.bool]))), (go!"MustCurryWith", (some (go.signature.Signature [(go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.Labels" [])] false [(go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.ObserverVec" [])]))), (go!"Reset", (some (go.signature.Signature [] false []))), (go!"ResetLabelAllowLists", (some (go.signature.Signature [] false []))), (go!"WithContext", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" [])] false [(go.GoType.PointerType SummaryVecWithContext.ty)]))), (go!"github.com/prometheus/client_golang/prometheus.deleteByHashWithLabelValues", (some (go.signature.Signature [go.uint64, (go.GoType.SliceType go.string), (go.GoType.SliceType (go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.curriedLabelValue" []))] false [go.bool]))), (go!"github.com/prometheus/client_golang/prometheus.deleteByHashWithLabels", (some (go.signature.Signature [go.uint64, (go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.Labels" []), (go.GoType.SliceType (go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.curriedLabelValue" []))] false [go.bool]))), (go!"github.com/prometheus/client_golang/prometheus.deleteByLabels", (some (go.signature.Signature [(go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.Labels" []), (go.GoType.SliceType (go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.curriedLabelValue" []))] false [go.int]))), (go!"github.com/prometheus/client_golang/prometheus.getMetricWithHashAndLabelValues", (some (go.signature.Signature [go.uint64, (go.GoType.SliceType go.string), (go.GoType.SliceType (go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.curriedLabelValue" []))] false [(go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.Metric" []), go.bool]))), (go!"github.com/prometheus/client_golang/prometheus.getMetricWithHashAndLabels", (some (go.signature.Signature [go.uint64, (go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.Labels" []), (go.GoType.SliceType (go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.curriedLabelValue" []))] false [(go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.Metric" []), go.bool]))), (go!"github.com/prometheus/client_golang/prometheus.getOrCreateMetricWithLabelValues", (some (go.signature.Signature [go.uint64, (go.GoType.SliceType go.string), (go.GoType.SliceType (go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.curriedLabelValue" []))] false [(go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.Metric" [])]))), (go!"github.com/prometheus/client_golang/prometheus.getOrCreateMetricWithLabels", (some (go.signature.Signature [go.uint64, (go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.Labels" []), (go.GoType.SliceType (go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.curriedLabelValue" []))] false [(go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.Metric" [])]))), (go!"github.com/prometheus/client_golang/prometheus.hashLabelValues", (some (go.signature.Signature [(go.GoType.SliceType go.string)] false [go.uint64, go.error]))), (go!"github.com/prometheus/client_golang/prometheus.hashLabels", (some (go.signature.Signature [(go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.Labels" [])] false [go.uint64, go.error]))), (go!"k8s.io/component-base/metrics.annotateStabilityLevel", (some (go.signature.Signature [] false []))), (go!"k8s.io/component-base/metrics.initializeDeprecatedMetric", (some (go.signature.Signature [] false []))), (go!"k8s.io/component-base/metrics.initializeMetric", (some (go.signature.Signature [] false []))), (go!"k8s.io/component-base/metrics.lazyInit", (some (go.signature.Signature [kubeCollector.ty, go.string] false []))), (go!"k8s.io/component-base/metrics.markDeprecated", (some (go.signature.Signature [] false []))), (go!"k8s.io/component-base/metrics.preprocessMetric", (some (go.signature.Signature [(go.GoType.Named go!"github.com/blang/semver/v4.Version" [])] false []))), (go!"k8s.io/component-base/metrics.toPromSummaryOpts", (some (go.signature.Signature [] false [(go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.SummaryOpts" [])])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType SummaryVecWithContext.ty) [(go!"ClearState", (some (go.signature.Signature [] false []))), (go!"Collect", (some (go.signature.Signature [(go.GoType.ChannelType go.ChanDir.sendonly (go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.Metric" []))] false []))), (go!"Create", (some (go.signature.Signature [(go.GoType.PointerType (go.GoType.Named go!"github.com/blang/semver/v4.Version" []))] false [go.bool]))), (go!"CurryWith", (some (go.signature.Signature [(go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.Labels" [])] false [(go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.ObserverVec" []), go.error]))), (go!"Delete", (some (go.signature.Signature [(go.GoType.MapType go.string go.string)] false [go.bool]))), (go!"DeleteLabelValues", (some (go.signature.Signature [(go.GoType.SliceType go.string)] true [go.bool]))), (go!"DeletePartialMatch", (some (go.signature.Signature [(go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.Labels" [])] false [go.int]))), (go!"DeprecatedVersion", (some (go.signature.Signature [] false [(go.GoType.PointerType (go.GoType.Named go!"github.com/blang/semver/v4.Version" []))]))), (go!"Describe", (some (go.signature.Signature [(go.GoType.ChannelType go.ChanDir.sendonly (go.GoType.PointerType (go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.Desc" [])))] false []))), (go!"FQName", (some (go.signature.Signature [] false [go.string]))), (go!"GetMetricWith", (some (go.signature.Signature [(go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.Labels" [])] false [(go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.Observer" []), go.error]))), (go!"GetMetricWithLabelValues", (some (go.signature.Signature [(go.GoType.SliceType go.string)] true [(go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.Observer" []), go.error]))), (go!"IsCreated", (some (go.signature.Signature [] false [go.bool]))), (go!"IsDeprecated", (some (go.signature.Signature [] false [go.bool]))), (go!"IsHidden", (some (go.signature.Signature [] false [go.bool]))), (go!"MustCurryWith", (some (go.signature.Signature [(go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.Labels" [])] false [(go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.ObserverVec" [])]))), (go!"Reset", (some (go.signature.Signature [] false []))), (go!"ResetLabelAllowLists", (some (go.signature.Signature [] false []))), (go!"With", (some (go.signature.Signature [(go.GoType.MapType go.string go.string)] false [ObserverMetric.ty]))), (go!"WithContext", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" [])] false [(go.GoType.PointerType SummaryVecWithContext.ty)]))), (go!"WithLabelValues", (some (go.signature.Signature [(go.GoType.SliceType go.string)] true [ObserverMetric.ty]))), (go!"github.com/prometheus/client_golang/prometheus.deleteByHashWithLabelValues", (some (go.signature.Signature [go.uint64, (go.GoType.SliceType go.string), (go.GoType.SliceType (go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.curriedLabelValue" []))] false [go.bool]))), (go!"github.com/prometheus/client_golang/prometheus.deleteByHashWithLabels", (some (go.signature.Signature [go.uint64, (go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.Labels" []), (go.GoType.SliceType (go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.curriedLabelValue" []))] false [go.bool]))), (go!"github.com/prometheus/client_golang/prometheus.deleteByLabels", (some (go.signature.Signature [(go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.Labels" []), (go.GoType.SliceType (go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.curriedLabelValue" []))] false [go.int]))), (go!"github.com/prometheus/client_golang/prometheus.getMetricWithHashAndLabelValues", (some (go.signature.Signature [go.uint64, (go.GoType.SliceType go.string), (go.GoType.SliceType (go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.curriedLabelValue" []))] false [(go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.Metric" []), go.bool]))), (go!"github.com/prometheus/client_golang/prometheus.getMetricWithHashAndLabels", (some (go.signature.Signature [go.uint64, (go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.Labels" []), (go.GoType.SliceType (go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.curriedLabelValue" []))] false [(go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.Metric" []), go.bool]))), (go!"github.com/prometheus/client_golang/prometheus.getOrCreateMetricWithLabelValues", (some (go.signature.Signature [go.uint64, (go.GoType.SliceType go.string), (go.GoType.SliceType (go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.curriedLabelValue" []))] false [(go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.Metric" [])]))), (go!"github.com/prometheus/client_golang/prometheus.getOrCreateMetricWithLabels", (some (go.signature.Signature [go.uint64, (go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.Labels" []), (go.GoType.SliceType (go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.curriedLabelValue" []))] false [(go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.Metric" [])]))), (go!"github.com/prometheus/client_golang/prometheus.hashLabelValues", (some (go.signature.Signature [(go.GoType.SliceType go.string)] false [go.uint64, go.error]))), (go!"github.com/prometheus/client_golang/prometheus.hashLabels", (some (go.signature.Signature [(go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.Labels" [])] false [go.uint64, go.error]))), (go!"k8s.io/component-base/metrics.annotateStabilityLevel", (some (go.signature.Signature [] false []))), (go!"k8s.io/component-base/metrics.initializeDeprecatedMetric", (some (go.signature.Signature [] false []))), (go!"k8s.io/component-base/metrics.initializeMetric", (some (go.signature.Signature [] false []))), (go!"k8s.io/component-base/metrics.lazyInit", (some (go.signature.Signature [kubeCollector.ty, go.string] false []))), (go!"k8s.io/component-base/metrics.markDeprecated", (some (go.signature.Signature [] false []))), (go!"k8s.io/component-base/metrics.preprocessMetric", (some (go.signature.Signature [(go.GoType.Named go!"github.com/blang/semver/v4.Version" [])] false []))), (go!"k8s.io/component-base/metrics.toPromSummaryOpts", (some (go.signature.Signature [] false [(go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.SummaryOpts" [])])))]
 
 attribute [instance] SummaryVecWithContext.TypeAssumptions.type_repr
   SummaryVecWithContext.TypeAssumptions.underlying
   SummaryVecWithContext.TypeAssumptions.isUnderlying
+  SummaryVecWithContext.TypeAssumptions.method_set
+  SummaryVecWithContext.TypeAssumptions.ptr_method_set
 
 axiom PrometheusTimingHistogram : Type
 axiom PrometheusTimingHistogram.zero_val : ZeroVal PrometheusTimingHistogram
 attribute [instance] PrometheusTimingHistogram.zero_val
 
-class PrometheusTimingHistogram.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class PrometheusTimingHistogram.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying PrometheusTimingHistogram.underlying PrometheusTimingHistogram
   underlying : go.UnderlyingDirectedEq PrometheusTimingHistogram.ty PrometheusTimingHistogram.underlying
   isUnderlying : go.IsUnderlying PrometheusTimingHistogram.underlying PrometheusTimingHistogram.underlying
+  method_set : go.MethodSetIs PrometheusTimingHistogram.ty [(go!"Add", (some (go.signature.Signature [go.float64] false []))), (go!"Dec", (some (go.signature.Signature [] false []))), (go!"Inc", (some (go.signature.Signature [] false []))), (go!"Set", (some (go.signature.Signature [go.float64] false []))), (go!"SetToCurrentTime", (some (go.signature.Signature [] false []))), (go!"Write", (some (go.signature.Signature [(go.GoType.PointerType (go.GoType.Named go!"github.com/prometheus/client_model/go.Metric" []))] false [go.error])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType PrometheusTimingHistogram.ty) []
 
 attribute [instance] PrometheusTimingHistogram.TypeAssumptions.type_repr
   PrometheusTimingHistogram.TypeAssumptions.underlying
   PrometheusTimingHistogram.TypeAssumptions.isUnderlying
+  PrometheusTimingHistogram.TypeAssumptions.method_set
+  PrometheusTimingHistogram.TypeAssumptions.ptr_method_set
 
 axiom TimingHistogram : Type
 axiom TimingHistogram.zero_val : ZeroVal TimingHistogram
 attribute [instance] TimingHistogram.zero_val
 
-class TimingHistogram.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class TimingHistogram.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying TimingHistogram.underlying TimingHistogram
   underlying : go.UnderlyingDirectedEq TimingHistogram.ty TimingHistogram.underlying
   isUnderlying : go.IsUnderlying TimingHistogram.underlying TimingHistogram.underlying
+  method_set : go.MethodSetIs TimingHistogram.ty [(go!"Add", (some (go.signature.Signature [go.float64] false []))), (go!"Dec", (some (go.signature.Signature [] false []))), (go!"Inc", (some (go.signature.Signature [] false []))), (go!"Set", (some (go.signature.Signature [go.float64] false []))), (go!"SetToCurrentTime", (some (go.signature.Signature [] false []))), (go!"Write", (some (go.signature.Signature [(go.GoType.PointerType (go.GoType.Named go!"github.com/prometheus/client_model/go.Metric" []))] false [go.error]))), (go!"k8s.io/component-base/metrics.annotateStabilityLevel", (some (go.signature.Signature [] false []))), (go!"k8s.io/component-base/metrics.markDeprecated", (some (go.signature.Signature [] false []))), (go!"k8s.io/component-base/metrics.toPromHistogramOpts", (some (go.signature.Signature [] false [(go.GoType.Named go!"k8s.io/component-base/metrics/prometheusextension.TimingHistogramOpts" [])])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType TimingHistogram.ty) [(go!"Add", (some (go.signature.Signature [go.float64] false []))), (go!"ClearState", (some (go.signature.Signature [] false []))), (go!"Collect", (some (go.signature.Signature [(go.GoType.ChannelType go.ChanDir.sendonly (go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.Metric" []))] false []))), (go!"Create", (some (go.signature.Signature [(go.GoType.PointerType (go.GoType.Named go!"github.com/blang/semver/v4.Version" []))] false [go.bool]))), (go!"Dec", (some (go.signature.Signature [] false []))), (go!"DeprecatedVersion", (some (go.signature.Signature [] false [(go.GoType.PointerType (go.GoType.Named go!"github.com/blang/semver/v4.Version" []))]))), (go!"Describe", (some (go.signature.Signature [(go.GoType.ChannelType go.ChanDir.sendonly (go.GoType.PointerType (go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.Desc" [])))] false []))), (go!"FQName", (some (go.signature.Signature [] false [go.string]))), (go!"Inc", (some (go.signature.Signature [] false []))), (go!"IsCreated", (some (go.signature.Signature [] false [go.bool]))), (go!"IsDeprecated", (some (go.signature.Signature [] false [go.bool]))), (go!"IsHidden", (some (go.signature.Signature [] false [go.bool]))), (go!"Set", (some (go.signature.Signature [go.float64] false []))), (go!"SetToCurrentTime", (some (go.signature.Signature [] false []))), (go!"WithContext", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" [])] false [GaugeMetric.ty]))), (go!"Write", (some (go.signature.Signature [(go.GoType.PointerType (go.GoType.Named go!"github.com/prometheus/client_model/go.Metric" []))] false [go.error]))), (go!"k8s.io/component-base/metrics.annotateStabilityLevel", (some (go.signature.Signature [] false []))), (go!"k8s.io/component-base/metrics.initSelfCollection", (some (go.signature.Signature [(go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.Metric" [])] false []))), (go!"k8s.io/component-base/metrics.initializeDeprecatedMetric", (some (go.signature.Signature [] false []))), (go!"k8s.io/component-base/metrics.initializeMetric", (some (go.signature.Signature [] false []))), (go!"k8s.io/component-base/metrics.lazyInit", (some (go.signature.Signature [kubeCollector.ty, go.string] false []))), (go!"k8s.io/component-base/metrics.markDeprecated", (some (go.signature.Signature [] false []))), (go!"k8s.io/component-base/metrics.preprocessMetric", (some (go.signature.Signature [(go.GoType.Named go!"github.com/blang/semver/v4.Version" [])] false []))), (go!"k8s.io/component-base/metrics.setPrometheusHistogram", (some (go.signature.Signature [(go.GoType.Named go!"k8s.io/component-base/metrics/prometheusextension.TimingHistogram" [])] false []))), (go!"k8s.io/component-base/metrics.toPromHistogramOpts", (some (go.signature.Signature [] false [(go.GoType.Named go!"k8s.io/component-base/metrics/prometheusextension.TimingHistogramOpts" [])])))]
 
 attribute [instance] TimingHistogram.TypeAssumptions.type_repr
   TimingHistogram.TypeAssumptions.underlying
   TimingHistogram.TypeAssumptions.isUnderlying
+  TimingHistogram.TypeAssumptions.method_set
+  TimingHistogram.TypeAssumptions.ptr_method_set
 
 axiom TimingHistogramVec : Type
 axiom TimingHistogramVec.zero_val : ZeroVal TimingHistogramVec
 attribute [instance] TimingHistogramVec.zero_val
 
-class TimingHistogramVec.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class TimingHistogramVec.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying TimingHistogramVec.underlying TimingHistogramVec
   underlying : go.UnderlyingDirectedEq TimingHistogramVec.ty TimingHistogramVec.underlying
   isUnderlying : go.IsUnderlying TimingHistogramVec.underlying TimingHistogramVec.underlying
+  method_set : go.MethodSetIs TimingHistogramVec.ty [(go!"Collect", (some (go.signature.Signature [(go.GoType.ChannelType go.ChanDir.sendonly (go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.Metric" []))] false []))), (go!"CurryWith", (some (go.signature.Signature [(go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.Labels" [])] false [(go.GoType.Named go!"k8s.io/component-base/metrics/prometheusextension.GaugeVecOps" []), go.error]))), (go!"DeleteLabelValues", (some (go.signature.Signature [(go.GoType.SliceType go.string)] true [go.bool]))), (go!"DeletePartialMatch", (some (go.signature.Signature [(go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.Labels" [])] false [go.int]))), (go!"Describe", (some (go.signature.Signature [(go.GoType.ChannelType go.ChanDir.sendonly (go.GoType.PointerType (go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.Desc" [])))] false []))), (go!"GetMetricWith", (some (go.signature.Signature [(go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.Labels" [])] false [(go.GoType.Named go!"k8s.io/component-base/metrics/prometheusextension.GaugeOps" []), go.error]))), (go!"GetMetricWithLabelValues", (some (go.signature.Signature [(go.GoType.SliceType go.string)] true [(go.GoType.Named go!"k8s.io/component-base/metrics/prometheusextension.GaugeOps" []), go.error]))), (go!"MustCurryWith", (some (go.signature.Signature [(go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.Labels" [])] false [(go.GoType.Named go!"k8s.io/component-base/metrics/prometheusextension.GaugeVecOps" [])]))), (go!"github.com/prometheus/client_golang/prometheus.deleteByHashWithLabelValues", (some (go.signature.Signature [go.uint64, (go.GoType.SliceType go.string), (go.GoType.SliceType (go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.curriedLabelValue" []))] false [go.bool]))), (go!"github.com/prometheus/client_golang/prometheus.deleteByHashWithLabels", (some (go.signature.Signature [go.uint64, (go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.Labels" []), (go.GoType.SliceType (go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.curriedLabelValue" []))] false [go.bool]))), (go!"github.com/prometheus/client_golang/prometheus.deleteByLabels", (some (go.signature.Signature [(go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.Labels" []), (go.GoType.SliceType (go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.curriedLabelValue" []))] false [go.int]))), (go!"github.com/prometheus/client_golang/prometheus.getMetricWithHashAndLabelValues", (some (go.signature.Signature [go.uint64, (go.GoType.SliceType go.string), (go.GoType.SliceType (go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.curriedLabelValue" []))] false [(go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.Metric" []), go.bool]))), (go!"github.com/prometheus/client_golang/prometheus.getMetricWithHashAndLabels", (some (go.signature.Signature [go.uint64, (go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.Labels" []), (go.GoType.SliceType (go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.curriedLabelValue" []))] false [(go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.Metric" []), go.bool]))), (go!"github.com/prometheus/client_golang/prometheus.getOrCreateMetricWithLabelValues", (some (go.signature.Signature [go.uint64, (go.GoType.SliceType go.string), (go.GoType.SliceType (go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.curriedLabelValue" []))] false [(go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.Metric" [])]))), (go!"github.com/prometheus/client_golang/prometheus.getOrCreateMetricWithLabels", (some (go.signature.Signature [go.uint64, (go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.Labels" []), (go.GoType.SliceType (go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.curriedLabelValue" []))] false [(go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.Metric" [])]))), (go!"github.com/prometheus/client_golang/prometheus.hashLabelValues", (some (go.signature.Signature [(go.GoType.SliceType go.string)] false [go.uint64, go.error]))), (go!"github.com/prometheus/client_golang/prometheus.hashLabels", (some (go.signature.Signature [(go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.Labels" [])] false [go.uint64, go.error]))), (go!"k8s.io/component-base/metrics.annotateStabilityLevel", (some (go.signature.Signature [] false []))), (go!"k8s.io/component-base/metrics.markDeprecated", (some (go.signature.Signature [] false []))), (go!"k8s.io/component-base/metrics.toPromHistogramOpts", (some (go.signature.Signature [] false [(go.GoType.Named go!"k8s.io/component-base/metrics/prometheusextension.TimingHistogramOpts" [])])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType TimingHistogramVec.ty) [(go!"ClearState", (some (go.signature.Signature [] false []))), (go!"Collect", (some (go.signature.Signature [(go.GoType.ChannelType go.ChanDir.sendonly (go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.Metric" []))] false []))), (go!"Create", (some (go.signature.Signature [(go.GoType.PointerType (go.GoType.Named go!"github.com/blang/semver/v4.Version" []))] false [go.bool]))), (go!"CurryWith", (some (go.signature.Signature [(go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.Labels" [])] false [(go.GoType.Named go!"k8s.io/component-base/metrics/prometheusextension.GaugeVecOps" []), go.error]))), (go!"Delete", (some (go.signature.Signature [(go.GoType.MapType go.string go.string)] false [go.bool]))), (go!"DeleteLabelValues", (some (go.signature.Signature [(go.GoType.SliceType go.string)] true [go.bool]))), (go!"DeletePartialMatch", (some (go.signature.Signature [(go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.Labels" [])] false [go.int]))), (go!"DeprecatedVersion", (some (go.signature.Signature [] false [(go.GoType.PointerType (go.GoType.Named go!"github.com/blang/semver/v4.Version" []))]))), (go!"Describe", (some (go.signature.Signature [(go.GoType.ChannelType go.ChanDir.sendonly (go.GoType.PointerType (go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.Desc" [])))] false []))), (go!"FQName", (some (go.signature.Signature [] false [go.string]))), (go!"GetMetricWith", (some (go.signature.Signature [(go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.Labels" [])] false [(go.GoType.Named go!"k8s.io/component-base/metrics/prometheusextension.GaugeOps" []), go.error]))), (go!"GetMetricWithLabelValues", (some (go.signature.Signature [(go.GoType.SliceType go.string)] true [(go.GoType.Named go!"k8s.io/component-base/metrics/prometheusextension.GaugeOps" []), go.error]))), (go!"InterfaceWithContext", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" [])] false [GaugeVecMetric.ty]))), (go!"IsCreated", (some (go.signature.Signature [] false [go.bool]))), (go!"IsDeprecated", (some (go.signature.Signature [] false [go.bool]))), (go!"IsHidden", (some (go.signature.Signature [] false [go.bool]))), (go!"MustCurryWith", (some (go.signature.Signature [(go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.Labels" [])] false [(go.GoType.Named go!"k8s.io/component-base/metrics/prometheusextension.GaugeVecOps" [])]))), (go!"Reset", (some (go.signature.Signature [] false []))), (go!"ResetLabelAllowLists", (some (go.signature.Signature [] false []))), (go!"With", (some (go.signature.Signature [(go.GoType.MapType go.string go.string)] false [GaugeMetric.ty]))), (go!"WithChecked", (some (go.signature.Signature [(go.GoType.MapType go.string go.string)] false [GaugeMetric.ty, go.error]))), (go!"WithLabelValues", (some (go.signature.Signature [(go.GoType.SliceType go.string)] true [GaugeMetric.ty]))), (go!"WithLabelValuesChecked", (some (go.signature.Signature [(go.GoType.SliceType go.string)] true [GaugeMetric.ty, go.error]))), (go!"github.com/prometheus/client_golang/prometheus.deleteByHashWithLabelValues", (some (go.signature.Signature [go.uint64, (go.GoType.SliceType go.string), (go.GoType.SliceType (go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.curriedLabelValue" []))] false [go.bool]))), (go!"github.com/prometheus/client_golang/prometheus.deleteByHashWithLabels", (some (go.signature.Signature [go.uint64, (go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.Labels" []), (go.GoType.SliceType (go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.curriedLabelValue" []))] false [go.bool]))), (go!"github.com/prometheus/client_golang/prometheus.deleteByLabels", (some (go.signature.Signature [(go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.Labels" []), (go.GoType.SliceType (go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.curriedLabelValue" []))] false [go.int]))), (go!"github.com/prometheus/client_golang/prometheus.getMetricWithHashAndLabelValues", (some (go.signature.Signature [go.uint64, (go.GoType.SliceType go.string), (go.GoType.SliceType (go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.curriedLabelValue" []))] false [(go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.Metric" []), go.bool]))), (go!"github.com/prometheus/client_golang/prometheus.getMetricWithHashAndLabels", (some (go.signature.Signature [go.uint64, (go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.Labels" []), (go.GoType.SliceType (go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.curriedLabelValue" []))] false [(go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.Metric" []), go.bool]))), (go!"github.com/prometheus/client_golang/prometheus.getOrCreateMetricWithLabelValues", (some (go.signature.Signature [go.uint64, (go.GoType.SliceType go.string), (go.GoType.SliceType (go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.curriedLabelValue" []))] false [(go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.Metric" [])]))), (go!"github.com/prometheus/client_golang/prometheus.getOrCreateMetricWithLabels", (some (go.signature.Signature [go.uint64, (go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.Labels" []), (go.GoType.SliceType (go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.curriedLabelValue" []))] false [(go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.Metric" [])]))), (go!"github.com/prometheus/client_golang/prometheus.hashLabelValues", (some (go.signature.Signature [(go.GoType.SliceType go.string)] false [go.uint64, go.error]))), (go!"github.com/prometheus/client_golang/prometheus.hashLabels", (some (go.signature.Signature [(go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.Labels" [])] false [go.uint64, go.error]))), (go!"k8s.io/component-base/metrics.annotateStabilityLevel", (some (go.signature.Signature [] false []))), (go!"k8s.io/component-base/metrics.initializeDeprecatedMetric", (some (go.signature.Signature [] false []))), (go!"k8s.io/component-base/metrics.initializeMetric", (some (go.signature.Signature [] false []))), (go!"k8s.io/component-base/metrics.lazyInit", (some (go.signature.Signature [kubeCollector.ty, go.string] false []))), (go!"k8s.io/component-base/metrics.markDeprecated", (some (go.signature.Signature [] false []))), (go!"k8s.io/component-base/metrics.preprocessMetric", (some (go.signature.Signature [(go.GoType.Named go!"github.com/blang/semver/v4.Version" [])] false []))), (go!"k8s.io/component-base/metrics.toPromHistogramOpts", (some (go.signature.Signature [] false [(go.GoType.Named go!"k8s.io/component-base/metrics/prometheusextension.TimingHistogramOpts" [])])))]
 
 attribute [instance] TimingHistogramVec.TypeAssumptions.type_repr
   TimingHistogramVec.TypeAssumptions.underlying
   TimingHistogramVec.TypeAssumptions.isUnderlying
+  TimingHistogramVec.TypeAssumptions.method_set
+  TimingHistogramVec.TypeAssumptions.ptr_method_set
 
 axiom TimingHistogramVecWithContext : Type
 axiom TimingHistogramVecWithContext.zero_val : ZeroVal TimingHistogramVecWithContext
 attribute [instance] TimingHistogramVecWithContext.zero_val
 
-class TimingHistogramVecWithContext.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class TimingHistogramVecWithContext.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying TimingHistogramVecWithContext.underlying TimingHistogramVecWithContext
   underlying : go.UnderlyingDirectedEq TimingHistogramVecWithContext.ty TimingHistogramVecWithContext.underlying
   isUnderlying : go.IsUnderlying TimingHistogramVecWithContext.underlying TimingHistogramVecWithContext.underlying
+  method_set : go.MethodSetIs TimingHistogramVecWithContext.ty [(go!"ClearState", (some (go.signature.Signature [] false []))), (go!"Collect", (some (go.signature.Signature [(go.GoType.ChannelType go.ChanDir.sendonly (go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.Metric" []))] false []))), (go!"Create", (some (go.signature.Signature [(go.GoType.PointerType (go.GoType.Named go!"github.com/blang/semver/v4.Version" []))] false [go.bool]))), (go!"CurryWith", (some (go.signature.Signature [(go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.Labels" [])] false [(go.GoType.Named go!"k8s.io/component-base/metrics/prometheusextension.GaugeVecOps" []), go.error]))), (go!"Delete", (some (go.signature.Signature [(go.GoType.MapType go.string go.string)] false [go.bool]))), (go!"DeleteLabelValues", (some (go.signature.Signature [(go.GoType.SliceType go.string)] true [go.bool]))), (go!"DeletePartialMatch", (some (go.signature.Signature [(go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.Labels" [])] false [go.int]))), (go!"DeprecatedVersion", (some (go.signature.Signature [] false [(go.GoType.PointerType (go.GoType.Named go!"github.com/blang/semver/v4.Version" []))]))), (go!"Describe", (some (go.signature.Signature [(go.GoType.ChannelType go.ChanDir.sendonly (go.GoType.PointerType (go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.Desc" [])))] false []))), (go!"FQName", (some (go.signature.Signature [] false [go.string]))), (go!"GetMetricWith", (some (go.signature.Signature [(go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.Labels" [])] false [(go.GoType.Named go!"k8s.io/component-base/metrics/prometheusextension.GaugeOps" []), go.error]))), (go!"GetMetricWithLabelValues", (some (go.signature.Signature [(go.GoType.SliceType go.string)] true [(go.GoType.Named go!"k8s.io/component-base/metrics/prometheusextension.GaugeOps" []), go.error]))), (go!"InterfaceWithContext", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" [])] false [GaugeVecMetric.ty]))), (go!"IsCreated", (some (go.signature.Signature [] false [go.bool]))), (go!"IsDeprecated", (some (go.signature.Signature [] false [go.bool]))), (go!"IsHidden", (some (go.signature.Signature [] false [go.bool]))), (go!"MustCurryWith", (some (go.signature.Signature [(go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.Labels" [])] false [(go.GoType.Named go!"k8s.io/component-base/metrics/prometheusextension.GaugeVecOps" [])]))), (go!"Reset", (some (go.signature.Signature [] false []))), (go!"ResetLabelAllowLists", (some (go.signature.Signature [] false []))), (go!"With", (some (go.signature.Signature [(go.GoType.MapType go.string go.string)] false [GaugeMetric.ty]))), (go!"WithChecked", (some (go.signature.Signature [(go.GoType.MapType go.string go.string)] false [GaugeMetric.ty, go.error]))), (go!"WithLabelValues", (some (go.signature.Signature [(go.GoType.SliceType go.string)] true [GaugeMetric.ty]))), (go!"WithLabelValuesChecked", (some (go.signature.Signature [(go.GoType.SliceType go.string)] true [GaugeMetric.ty, go.error]))), (go!"github.com/prometheus/client_golang/prometheus.deleteByHashWithLabelValues", (some (go.signature.Signature [go.uint64, (go.GoType.SliceType go.string), (go.GoType.SliceType (go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.curriedLabelValue" []))] false [go.bool]))), (go!"github.com/prometheus/client_golang/prometheus.deleteByHashWithLabels", (some (go.signature.Signature [go.uint64, (go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.Labels" []), (go.GoType.SliceType (go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.curriedLabelValue" []))] false [go.bool]))), (go!"github.com/prometheus/client_golang/prometheus.deleteByLabels", (some (go.signature.Signature [(go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.Labels" []), (go.GoType.SliceType (go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.curriedLabelValue" []))] false [go.int]))), (go!"github.com/prometheus/client_golang/prometheus.getMetricWithHashAndLabelValues", (some (go.signature.Signature [go.uint64, (go.GoType.SliceType go.string), (go.GoType.SliceType (go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.curriedLabelValue" []))] false [(go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.Metric" []), go.bool]))), (go!"github.com/prometheus/client_golang/prometheus.getMetricWithHashAndLabels", (some (go.signature.Signature [go.uint64, (go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.Labels" []), (go.GoType.SliceType (go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.curriedLabelValue" []))] false [(go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.Metric" []), go.bool]))), (go!"github.com/prometheus/client_golang/prometheus.getOrCreateMetricWithLabelValues", (some (go.signature.Signature [go.uint64, (go.GoType.SliceType go.string), (go.GoType.SliceType (go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.curriedLabelValue" []))] false [(go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.Metric" [])]))), (go!"github.com/prometheus/client_golang/prometheus.getOrCreateMetricWithLabels", (some (go.signature.Signature [go.uint64, (go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.Labels" []), (go.GoType.SliceType (go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.curriedLabelValue" []))] false [(go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.Metric" [])]))), (go!"github.com/prometheus/client_golang/prometheus.hashLabelValues", (some (go.signature.Signature [(go.GoType.SliceType go.string)] false [go.uint64, go.error]))), (go!"github.com/prometheus/client_golang/prometheus.hashLabels", (some (go.signature.Signature [(go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.Labels" [])] false [go.uint64, go.error]))), (go!"k8s.io/component-base/metrics.annotateStabilityLevel", (some (go.signature.Signature [] false []))), (go!"k8s.io/component-base/metrics.initializeDeprecatedMetric", (some (go.signature.Signature [] false []))), (go!"k8s.io/component-base/metrics.initializeMetric", (some (go.signature.Signature [] false []))), (go!"k8s.io/component-base/metrics.lazyInit", (some (go.signature.Signature [kubeCollector.ty, go.string] false []))), (go!"k8s.io/component-base/metrics.markDeprecated", (some (go.signature.Signature [] false []))), (go!"k8s.io/component-base/metrics.preprocessMetric", (some (go.signature.Signature [(go.GoType.Named go!"github.com/blang/semver/v4.Version" [])] false []))), (go!"k8s.io/component-base/metrics.toPromHistogramOpts", (some (go.signature.Signature [] false [(go.GoType.Named go!"k8s.io/component-base/metrics/prometheusextension.TimingHistogramOpts" [])])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType TimingHistogramVecWithContext.ty) [(go!"ClearState", (some (go.signature.Signature [] false []))), (go!"Collect", (some (go.signature.Signature [(go.GoType.ChannelType go.ChanDir.sendonly (go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.Metric" []))] false []))), (go!"Create", (some (go.signature.Signature [(go.GoType.PointerType (go.GoType.Named go!"github.com/blang/semver/v4.Version" []))] false [go.bool]))), (go!"CurryWith", (some (go.signature.Signature [(go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.Labels" [])] false [(go.GoType.Named go!"k8s.io/component-base/metrics/prometheusextension.GaugeVecOps" []), go.error]))), (go!"Delete", (some (go.signature.Signature [(go.GoType.MapType go.string go.string)] false [go.bool]))), (go!"DeleteLabelValues", (some (go.signature.Signature [(go.GoType.SliceType go.string)] true [go.bool]))), (go!"DeletePartialMatch", (some (go.signature.Signature [(go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.Labels" [])] false [go.int]))), (go!"DeprecatedVersion", (some (go.signature.Signature [] false [(go.GoType.PointerType (go.GoType.Named go!"github.com/blang/semver/v4.Version" []))]))), (go!"Describe", (some (go.signature.Signature [(go.GoType.ChannelType go.ChanDir.sendonly (go.GoType.PointerType (go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.Desc" [])))] false []))), (go!"FQName", (some (go.signature.Signature [] false [go.string]))), (go!"GetMetricWith", (some (go.signature.Signature [(go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.Labels" [])] false [(go.GoType.Named go!"k8s.io/component-base/metrics/prometheusextension.GaugeOps" []), go.error]))), (go!"GetMetricWithLabelValues", (some (go.signature.Signature [(go.GoType.SliceType go.string)] true [(go.GoType.Named go!"k8s.io/component-base/metrics/prometheusextension.GaugeOps" []), go.error]))), (go!"InterfaceWithContext", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" [])] false [GaugeVecMetric.ty]))), (go!"IsCreated", (some (go.signature.Signature [] false [go.bool]))), (go!"IsDeprecated", (some (go.signature.Signature [] false [go.bool]))), (go!"IsHidden", (some (go.signature.Signature [] false [go.bool]))), (go!"MustCurryWith", (some (go.signature.Signature [(go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.Labels" [])] false [(go.GoType.Named go!"k8s.io/component-base/metrics/prometheusextension.GaugeVecOps" [])]))), (go!"Reset", (some (go.signature.Signature [] false []))), (go!"ResetLabelAllowLists", (some (go.signature.Signature [] false []))), (go!"With", (some (go.signature.Signature [(go.GoType.MapType go.string go.string)] false [GaugeMetric.ty]))), (go!"WithChecked", (some (go.signature.Signature [(go.GoType.MapType go.string go.string)] false [GaugeMetric.ty, go.error]))), (go!"WithLabelValues", (some (go.signature.Signature [(go.GoType.SliceType go.string)] true [GaugeMetric.ty]))), (go!"WithLabelValuesChecked", (some (go.signature.Signature [(go.GoType.SliceType go.string)] true [GaugeMetric.ty, go.error]))), (go!"github.com/prometheus/client_golang/prometheus.deleteByHashWithLabelValues", (some (go.signature.Signature [go.uint64, (go.GoType.SliceType go.string), (go.GoType.SliceType (go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.curriedLabelValue" []))] false [go.bool]))), (go!"github.com/prometheus/client_golang/prometheus.deleteByHashWithLabels", (some (go.signature.Signature [go.uint64, (go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.Labels" []), (go.GoType.SliceType (go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.curriedLabelValue" []))] false [go.bool]))), (go!"github.com/prometheus/client_golang/prometheus.deleteByLabels", (some (go.signature.Signature [(go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.Labels" []), (go.GoType.SliceType (go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.curriedLabelValue" []))] false [go.int]))), (go!"github.com/prometheus/client_golang/prometheus.getMetricWithHashAndLabelValues", (some (go.signature.Signature [go.uint64, (go.GoType.SliceType go.string), (go.GoType.SliceType (go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.curriedLabelValue" []))] false [(go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.Metric" []), go.bool]))), (go!"github.com/prometheus/client_golang/prometheus.getMetricWithHashAndLabels", (some (go.signature.Signature [go.uint64, (go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.Labels" []), (go.GoType.SliceType (go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.curriedLabelValue" []))] false [(go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.Metric" []), go.bool]))), (go!"github.com/prometheus/client_golang/prometheus.getOrCreateMetricWithLabelValues", (some (go.signature.Signature [go.uint64, (go.GoType.SliceType go.string), (go.GoType.SliceType (go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.curriedLabelValue" []))] false [(go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.Metric" [])]))), (go!"github.com/prometheus/client_golang/prometheus.getOrCreateMetricWithLabels", (some (go.signature.Signature [go.uint64, (go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.Labels" []), (go.GoType.SliceType (go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.curriedLabelValue" []))] false [(go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.Metric" [])]))), (go!"github.com/prometheus/client_golang/prometheus.hashLabelValues", (some (go.signature.Signature [(go.GoType.SliceType go.string)] false [go.uint64, go.error]))), (go!"github.com/prometheus/client_golang/prometheus.hashLabels", (some (go.signature.Signature [(go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.Labels" [])] false [go.uint64, go.error]))), (go!"k8s.io/component-base/metrics.annotateStabilityLevel", (some (go.signature.Signature [] false []))), (go!"k8s.io/component-base/metrics.initializeDeprecatedMetric", (some (go.signature.Signature [] false []))), (go!"k8s.io/component-base/metrics.initializeMetric", (some (go.signature.Signature [] false []))), (go!"k8s.io/component-base/metrics.lazyInit", (some (go.signature.Signature [kubeCollector.ty, go.string] false []))), (go!"k8s.io/component-base/metrics.markDeprecated", (some (go.signature.Signature [] false []))), (go!"k8s.io/component-base/metrics.preprocessMetric", (some (go.signature.Signature [(go.GoType.Named go!"github.com/blang/semver/v4.Version" [])] false []))), (go!"k8s.io/component-base/metrics.toPromHistogramOpts", (some (go.signature.Signature [] false [(go.GoType.Named go!"k8s.io/component-base/metrics/prometheusextension.TimingHistogramOpts" [])])))]
 
 attribute [instance] TimingHistogramVecWithContext.TypeAssumptions.type_repr
   TimingHistogramVecWithContext.TypeAssumptions.underlying
   TimingHistogramVecWithContext.TypeAssumptions.isUnderlying
+  TimingHistogramVecWithContext.TypeAssumptions.method_set
+  TimingHistogramVecWithContext.TypeAssumptions.ptr_method_set
 
 axiom ValueType : Type
 axiom ValueType.zero_val : ZeroVal ValueType
 attribute [instance] ValueType.zero_val
 
-class ValueType.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class ValueType.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying ValueType.underlying ValueType
   underlying : go.UnderlyingDirectedEq ValueType.ty ValueType.underlying
   isUnderlying : go.IsUnderlying ValueType.underlying ValueType.underlying
+  method_set : go.MethodSetIs ValueType.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType ValueType.ty) [(go!"k8s.io/component-base/metrics.toPromValueType", (some (go.signature.Signature [] false [(go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.ValueType" [])])))]
 
 attribute [instance] ValueType.TypeAssumptions.type_repr
   ValueType.TypeAssumptions.underlying
   ValueType.TypeAssumptions.isUnderlying
+  ValueType.TypeAssumptions.method_set
+  ValueType.TypeAssumptions.ptr_method_set
 
 axiom Collector : Type
 axiom Collector.zero_val : ZeroVal Collector
 attribute [instance] Collector.zero_val
 
-class Collector.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class Collector.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying Collector.underlying Collector
   underlying : go.UnderlyingDirectedEq Collector.ty Collector.underlying
   isUnderlying : go.IsUnderlying Collector.underlying Collector.underlying
+  method_set : go.MethodSetIs Collector.ty [(go!"Collect", (some (go.signature.Signature [(go.GoType.ChannelType go.ChanDir.sendonly (go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.Metric" []))] false []))), (go!"Describe", (some (go.signature.Signature [(go.GoType.ChannelType go.ChanDir.sendonly (go.GoType.PointerType (go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.Desc" [])))] false [])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType Collector.ty) []
 
 attribute [instance] Collector.TypeAssumptions.type_repr
   Collector.TypeAssumptions.underlying
   Collector.TypeAssumptions.isUnderlying
+  Collector.TypeAssumptions.method_set
+  Collector.TypeAssumptions.ptr_method_set
 
 axiom Metric : Type
 axiom Metric.zero_val : ZeroVal Metric
 attribute [instance] Metric.zero_val
 
-class Metric.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class Metric.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying Metric.underlying Metric
   underlying : go.UnderlyingDirectedEq Metric.ty Metric.underlying
   isUnderlying : go.IsUnderlying Metric.underlying Metric.underlying
+  method_set : go.MethodSetIs Metric.ty [(go!"Desc", (some (go.signature.Signature [] false [(go.GoType.PointerType (go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.Desc" []))]))), (go!"Write", (some (go.signature.Signature [(go.GoType.PointerType (go.GoType.Named go!"github.com/prometheus/client_model/go.Metric" []))] false [go.error])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType Metric.ty) []
 
 attribute [instance] Metric.TypeAssumptions.type_repr
   Metric.TypeAssumptions.underlying
   Metric.TypeAssumptions.isUnderlying
+  Metric.TypeAssumptions.method_set
+  Metric.TypeAssumptions.ptr_method_set
 
 axiom CounterMetric : Type
 axiom CounterMetric.zero_val : ZeroVal CounterMetric
 attribute [instance] CounterMetric.zero_val
 
-class CounterMetric.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class CounterMetric.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying CounterMetric.underlying CounterMetric
   underlying : go.UnderlyingDirectedEq CounterMetric.ty CounterMetric.underlying
   isUnderlying : go.IsUnderlying CounterMetric.underlying CounterMetric.underlying
+  method_set : go.MethodSetIs CounterMetric.ty [(go!"Add", (some (go.signature.Signature [go.float64] false []))), (go!"Inc", (some (go.signature.Signature [] false [])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType CounterMetric.ty) []
 
 attribute [instance] CounterMetric.TypeAssumptions.type_repr
   CounterMetric.TypeAssumptions.underlying
   CounterMetric.TypeAssumptions.isUnderlying
+  CounterMetric.TypeAssumptions.method_set
+  CounterMetric.TypeAssumptions.ptr_method_set
 
 axiom CounterVecMetric : Type
 axiom CounterVecMetric.zero_val : ZeroVal CounterVecMetric
 attribute [instance] CounterVecMetric.zero_val
 
-class CounterVecMetric.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class CounterVecMetric.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying CounterVecMetric.underlying CounterVecMetric
   underlying : go.UnderlyingDirectedEq CounterVecMetric.ty CounterVecMetric.underlying
   isUnderlying : go.IsUnderlying CounterVecMetric.underlying CounterVecMetric.underlying
+  method_set : go.MethodSetIs CounterVecMetric.ty [(go!"With", (some (go.signature.Signature [(go.GoType.MapType go.string go.string)] false [CounterMetric.ty]))), (go!"WithLabelValues", (some (go.signature.Signature [(go.GoType.SliceType go.string)] true [CounterMetric.ty])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType CounterVecMetric.ty) []
 
 attribute [instance] CounterVecMetric.TypeAssumptions.type_repr
   CounterVecMetric.TypeAssumptions.underlying
   CounterVecMetric.TypeAssumptions.isUnderlying
+  CounterVecMetric.TypeAssumptions.method_set
+  CounterVecMetric.TypeAssumptions.ptr_method_set
 
 axiom GaugeMetric : Type
 axiom GaugeMetric.zero_val : ZeroVal GaugeMetric
 attribute [instance] GaugeMetric.zero_val
 
-class GaugeMetric.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class GaugeMetric.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying GaugeMetric.underlying GaugeMetric
   underlying : go.UnderlyingDirectedEq GaugeMetric.ty GaugeMetric.underlying
   isUnderlying : go.IsUnderlying GaugeMetric.underlying GaugeMetric.underlying
+  method_set : go.MethodSetIs GaugeMetric.ty [(go!"Add", (some (go.signature.Signature [go.float64] false []))), (go!"Dec", (some (go.signature.Signature [] false []))), (go!"Inc", (some (go.signature.Signature [] false []))), (go!"Set", (some (go.signature.Signature [go.float64] false []))), (go!"SetToCurrentTime", (some (go.signature.Signature [] false []))), (go!"Write", (some (go.signature.Signature [(go.GoType.PointerType (go.GoType.Named go!"github.com/prometheus/client_model/go.Metric" []))] false [go.error])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType GaugeMetric.ty) []
 
 attribute [instance] GaugeMetric.TypeAssumptions.type_repr
   GaugeMetric.TypeAssumptions.underlying
   GaugeMetric.TypeAssumptions.isUnderlying
+  GaugeMetric.TypeAssumptions.method_set
+  GaugeMetric.TypeAssumptions.ptr_method_set
 
 axiom GaugeVecMetric : Type
 axiom GaugeVecMetric.zero_val : ZeroVal GaugeVecMetric
 attribute [instance] GaugeVecMetric.zero_val
 
-class GaugeVecMetric.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class GaugeVecMetric.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying GaugeVecMetric.underlying GaugeVecMetric
   underlying : go.UnderlyingDirectedEq GaugeVecMetric.ty GaugeVecMetric.underlying
   isUnderlying : go.IsUnderlying GaugeVecMetric.underlying GaugeVecMetric.underlying
+  method_set : go.MethodSetIs GaugeVecMetric.ty [(go!"Delete", (some (go.signature.Signature [(go.GoType.MapType go.string go.string)] false [go.bool]))), (go!"Reset", (some (go.signature.Signature [] false []))), (go!"With", (some (go.signature.Signature [(go.GoType.MapType go.string go.string)] false [GaugeMetric.ty]))), (go!"WithChecked", (some (go.signature.Signature [(go.GoType.MapType go.string go.string)] false [GaugeMetric.ty, go.error]))), (go!"WithLabelValues", (some (go.signature.Signature [(go.GoType.SliceType go.string)] true [GaugeMetric.ty]))), (go!"WithLabelValuesChecked", (some (go.signature.Signature [(go.GoType.SliceType go.string)] true [GaugeMetric.ty, go.error])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType GaugeVecMetric.ty) []
 
 attribute [instance] GaugeVecMetric.TypeAssumptions.type_repr
   GaugeVecMetric.TypeAssumptions.underlying
   GaugeVecMetric.TypeAssumptions.isUnderlying
+  GaugeVecMetric.TypeAssumptions.method_set
+  GaugeVecMetric.TypeAssumptions.ptr_method_set
 
 axiom ObserverMetric : Type
 axiom ObserverMetric.zero_val : ZeroVal ObserverMetric
 attribute [instance] ObserverMetric.zero_val
 
-class ObserverMetric.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class ObserverMetric.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying ObserverMetric.underlying ObserverMetric
   underlying : go.UnderlyingDirectedEq ObserverMetric.ty ObserverMetric.underlying
   isUnderlying : go.IsUnderlying ObserverMetric.underlying ObserverMetric.underlying
+  method_set : go.MethodSetIs ObserverMetric.ty [(go!"Observe", (some (go.signature.Signature [go.float64] false [])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType ObserverMetric.ty) []
 
 attribute [instance] ObserverMetric.TypeAssumptions.type_repr
   ObserverMetric.TypeAssumptions.underlying
   ObserverMetric.TypeAssumptions.isUnderlying
+  ObserverMetric.TypeAssumptions.method_set
+  ObserverMetric.TypeAssumptions.ptr_method_set
 
 axiom PromRegistry : Type
 axiom PromRegistry.zero_val : ZeroVal PromRegistry
 attribute [instance] PromRegistry.zero_val
 
-class PromRegistry.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class PromRegistry.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying PromRegistry.underlying PromRegistry
   underlying : go.UnderlyingDirectedEq PromRegistry.ty PromRegistry.underlying
   isUnderlying : go.IsUnderlying PromRegistry.underlying PromRegistry.underlying
+  method_set : go.MethodSetIs PromRegistry.ty [(go!"Gather", (some (go.signature.Signature [] false [(go.GoType.SliceType (go.GoType.PointerType (go.GoType.Named go!"github.com/prometheus/client_model/go.MetricFamily" []))), go.error]))), (go!"MustRegister", (some (go.signature.Signature [(go.GoType.SliceType (go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.Collector" []))] true []))), (go!"Register", (some (go.signature.Signature [(go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.Collector" [])] false [go.error]))), (go!"Unregister", (some (go.signature.Signature [(go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.Collector" [])] false [go.bool])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType PromRegistry.ty) []
 
 attribute [instance] PromRegistry.TypeAssumptions.type_repr
   PromRegistry.TypeAssumptions.underlying
   PromRegistry.TypeAssumptions.isUnderlying
+  PromRegistry.TypeAssumptions.method_set
+  PromRegistry.TypeAssumptions.ptr_method_set
 
 axiom Gatherer : Type
 axiom Gatherer.zero_val : ZeroVal Gatherer
 attribute [instance] Gatherer.zero_val
 
-class Gatherer.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class Gatherer.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying Gatherer.underlying Gatherer
   underlying : go.UnderlyingDirectedEq Gatherer.ty Gatherer.underlying
   isUnderlying : go.IsUnderlying Gatherer.underlying Gatherer.underlying
+  method_set : go.MethodSetIs Gatherer.ty [(go!"Gather", (some (go.signature.Signature [] false [(go.GoType.SliceType (go.GoType.PointerType (go.GoType.Named go!"github.com/prometheus/client_model/go.MetricFamily" []))), go.error])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType Gatherer.ty) []
 
 attribute [instance] Gatherer.TypeAssumptions.type_repr
   Gatherer.TypeAssumptions.underlying
   Gatherer.TypeAssumptions.isUnderlying
+  Gatherer.TypeAssumptions.method_set
+  Gatherer.TypeAssumptions.ptr_method_set
 
 axiom Registerer : Type
 axiom Registerer.zero_val : ZeroVal Registerer
 attribute [instance] Registerer.zero_val
 
-class Registerer.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class Registerer.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying Registerer.underlying Registerer
   underlying : go.UnderlyingDirectedEq Registerer.ty Registerer.underlying
   isUnderlying : go.IsUnderlying Registerer.underlying Registerer.underlying
+  method_set : go.MethodSetIs Registerer.ty [(go!"MustRegister", (some (go.signature.Signature [(go.GoType.SliceType (go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.Collector" []))] true []))), (go!"Register", (some (go.signature.Signature [(go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.Collector" [])] false [go.error]))), (go!"Unregister", (some (go.signature.Signature [(go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.Collector" [])] false [go.bool])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType Registerer.ty) []
 
 attribute [instance] Registerer.TypeAssumptions.type_repr
   Registerer.TypeAssumptions.underlying
   Registerer.TypeAssumptions.isUnderlying
+  Registerer.TypeAssumptions.method_set
+  Registerer.TypeAssumptions.ptr_method_set
 
 axiom GaugeFunc : Type
 axiom GaugeFunc.zero_val : ZeroVal GaugeFunc
 attribute [instance] GaugeFunc.zero_val
 
-class GaugeFunc.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class GaugeFunc.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying GaugeFunc.underlying GaugeFunc
   underlying : go.UnderlyingDirectedEq GaugeFunc.ty GaugeFunc.underlying
   isUnderlying : go.IsUnderlying GaugeFunc.underlying GaugeFunc.underlying
+  method_set : go.MethodSetIs GaugeFunc.ty [(go!"Collect", (some (go.signature.Signature [(go.GoType.ChannelType go.ChanDir.sendonly (go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.Metric" []))] false []))), (go!"Desc", (some (go.signature.Signature [] false [(go.GoType.PointerType (go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.Desc" []))]))), (go!"Describe", (some (go.signature.Signature [(go.GoType.ChannelType go.ChanDir.sendonly (go.GoType.PointerType (go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.Desc" [])))] false []))), (go!"Write", (some (go.signature.Signature [(go.GoType.PointerType (go.GoType.Named go!"github.com/prometheus/client_model/go.Metric" []))] false [go.error])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType GaugeFunc.ty) []
 
 attribute [instance] GaugeFunc.TypeAssumptions.type_repr
   GaugeFunc.TypeAssumptions.underlying
   GaugeFunc.TypeAssumptions.isUnderlying
+  GaugeFunc.TypeAssumptions.method_set
+  GaugeFunc.TypeAssumptions.ptr_method_set
 
-class Assumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   StableCollector_instance : StableCollector.TypeAssumptions
   BaseStableCollector_instance : BaseStableCollector.TypeAssumptions
   Counter_instance : Counter.TypeAssumptions

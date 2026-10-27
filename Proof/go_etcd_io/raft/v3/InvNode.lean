@@ -63,7 +63,7 @@ pointers (`recvc`, `confc`, `confstatec` a `Loc`; `propc` a `msgWithResult` whos
 `*pb.Message`), so the payloads are over the pointed-to objects: `fwdP γ ml`/`netP γ id ml` an
 owned message (`msgIn`) and its state's facts (`NetMsgOk` on the state, `InvRawnode.lean`),
 `propP γ pm` the message `Propose` builds (`propMsgM`, one entry `propEntryM d` holding the
-data's bytes, D6), `confcP γ v` a read-only `*pb.ConfChangeV2` (`ownCCV2 v □ ccm`, the changes
+data's bytes, D6), `confcP γ v` a read-only `*pb.ConfChangeV2` (`ownConfChangeV2 v □ ccm`, the changes
 `ccm.changes`), `confstateP γ cs` the fresh `*pb.ConfState` `applyConfChange` returns (`csPts cs
 1 c true`), with `confstateOk`/`confstateS` pure over its record; `readyData` hands out the
 messages (D8, at `readyDq`), the hard state (`hsOpt`), the entries `entsRO`, the read states
@@ -106,7 +106,7 @@ open Iris Iris.BI OFE CMRA Iris.ProofMode go_etcd_io.raft.v3
 /-! ## Countability of the channels' element types -/
 
 section countable
-variable [FfiSyntax]
+variable [GooseExts]
 
 -- (2026-10-16, stage R5) the instances for `raftpb.HardState`, `ConfState`,
 -- `SnapshotMetadata`, `Snapshot`, `Message`, `ConfChangeV2` are gone: the channels carry
@@ -162,7 +162,7 @@ def budgetN : Namespace := nroot.@"raft_budget"
 
 
 section budget
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 
@@ -351,7 +351,7 @@ end budget
 /-! ## The node's ghost names and channel payloads -/
 
 /-- Ghost names (and the storage) of one node. -/
-structure NodeNames [FfiSyntax] where
+structure NodeNames [GooseExts] where
   raft : RaftNames
   bud : BudgetNames
   /-- the node's `Storage` (`RNState.storage`), for the append right and its receipt -/
@@ -406,7 +406,7 @@ def tickN : Namespace := nroot.@"raft_tick"
 -- (2026-10-16, stage R5, D6) `propDataN`, the proposed slices' invariant's namespace, is gone.
 
 section node
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [StorageModel GF]
 variable [sem : go.Semantics]
@@ -647,6 +647,9 @@ def readySnapData (γ : NodeNames) (rd : Ready) (d ce es : List EntryM)
     -- (2026-10-26, D22 J2, R-loc) the snapshot local to the node (`snapLocal`: for a server, its
     -- index saved in the member's snapshot directory, which `snapDirInv` turns into its file)
     snapLocal γ.raft γ.id l.snap.Metadata'.Index' ∗
+    -- (2026-10-26, D22 J6a; J7b's raft part) the snapshot's id is the last of the committed log up
+    -- to it (`ownRawNodeReady_loanLast`): its term is the term of the entry at its index
+    ⌜plogLast base0 l.dlv = snapId l.snap⌝ ∗
     ⌜l.ptr = rd.Snapshot' ∧ ce = [] ∧ d <+: l.dlv ∧
       -- (D22 S-r, 2026-10-21) past the committed log handed out before
       d.length < l.dlv.length ∧
@@ -897,9 +900,9 @@ static mode, one that keeps the voters and only drops learners (`CCShrink`,
 view of the configuration (`cap`'s half at `(ca, cfg)`), the answer it expects (`ccq`'s half at
 `(k + 1, cs')`), a lower bound `ds` of the committed log handed out, and that the change is that
 of the next conf entry of `ds`, at position `k` (`DynCCPreOp`). (2026-10-16, stage R5: a
-`*pb.ConfChangeV2` at `v`, read-only (`ownCCV2 v □ ccm`, R1), its content `ccm`.) -/
+`*pb.ConfChangeV2` at `v`, read-only (`ownConfChangeV2 v □ ccm`, R1), its content `ccm`.) -/
 @[no_expose] def confcP (γ : NodeNames) (v : Loc) : IProp GF :=
-  iprop(∃ ccm : CCV2M, ownCCV2 v DFrac.discard ccm ∗
+  iprop(∃ ccm : ConfChangeV2M, ownConfChangeV2 v DFrac.discard ccm ∗
     ((⌜γ.mode = .static ∧ CCShrink γ.raft.reCfg ccm.transition ccm.changes⌝) ∨
      (∃ (ds : List EntryM) (ca : Nat) (cfg : CCState) (k : Nat) (e : EntryM)
         (cs' : CCState),
@@ -1151,7 +1154,7 @@ theorem handshake_send_au_upd {V : Type} [Pos.Countable V] [ZeroVal V]
 end node
 
 section helpers
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
@@ -1198,7 +1201,7 @@ update deposited); and what the committed log's entries hold, for the applicatio
 record, `propDataInv` gone.) -/
 
 section props
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
@@ -1218,7 +1221,7 @@ def propArg (γ : RaftNames) (d : List w8) (Q : List EntryM → IProp GF) : IPro
 end props
 
 section nodeprops
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [StorageModel GF]
 variable [sem : go.Semantics]

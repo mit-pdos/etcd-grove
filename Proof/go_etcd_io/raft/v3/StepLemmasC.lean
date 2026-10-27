@@ -20,7 +20,7 @@ namespace EtcdGrove
 open go_etcd_io.raft.v3
 
 section step_lemmasC
-variable [FfiSyntax] [GoGlobalContext] [GoSemanticsFunctions]
+variable [GooseExts] [GoGlobalContext] [GoSemanticsFunctions]
 variable (c : CfgM)
 /- (2026-10-18, D19b stage 5) the bound of the indices a step may create (`Step`'s) -/
 variable {B : Int}

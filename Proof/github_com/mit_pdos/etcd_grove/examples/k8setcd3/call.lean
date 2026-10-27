@@ -40,7 +40,7 @@ open github_com.mit_pdos.etcd_grove.examples.k8setcd3 (Input Output Obj item mst
 open go_etcd_io.etcd.server.v3.etcdserver
 
 section proof
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
@@ -81,7 +81,7 @@ theorem call.wp_proof (wp_errOut : errOut.spec (GF := GF) (hG := hG))
     (wp_Update : store.GuaranteedUpdate.spec (GF := GF) (hG := hG))
     (wp_Get : store.Get.spec (GF := GF) (hG := hG)) :
     call.spec (GF := GF) (hG := hG) := by
-  intro _ _ _ sp c eD eU x W _ Φu Q hc hAs hkey hpp hx hQ
+  intro _ _ _ sp c eD eU x W _ Φu Q hc hAs hse hkey hpp hx hQ
   wp_start as ⟨#Hst, #HD, #HU, Hpre⟩
   wp_auto
   wp_apply context.wp_Background
@@ -131,7 +131,7 @@ theorem call.wp_proof (wp_errOut : errOut.spec (GF := GF) (hG := hG))
         $$ [Hres]
     · icases Hres with (⟨#Hu, -⟩ | ⟨%σ, HΦ1, Hr⟩)
       · ihave %Hne := unkErr_ne c err0 $$ Hu
-        ihave Hy := unkErr_errIs c hc err0 $$ [Hu]
+        ihave Hy := unkErr_errIs hse c hc err0 $$ [Hu]
         · iframe #
         iexists errOutL
         isplitl [Hy]
@@ -186,7 +186,7 @@ theorem call.wp_proof (wp_errOut : errOut.spec (GF := GF) (hG := hG))
         $$ [Hres]
     · icases Hres with (⟨#Hu, -⟩ | ⟨%σ, HΦ1, Hr⟩)
       · ihave %Hne := unkErr_ne c err0 $$ Hu
-        ihave Hy := unkErr_errIs c hc err0 $$ [Hu]
+        ihave Hy := unkErr_errIs hse c hc err0 $$ [Hu]
         · iframe #
         iexists errOutL
         isplitl [Hy]
@@ -243,7 +243,7 @@ theorem call.wp_proof (wp_errOut : errOut.spec (GF := GF) (hG := hG))
         $$ [Hres]
     · icases Hres with (⟨#Hu, -⟩ | ⟨%σ, HΦ1, Hr⟩)
       · ihave %Hne := unkErr_ne c err0 $$ Hu
-        ihave Hy := unkErr_errIs c hc err0 $$ [Hu]
+        ihave Hy := unkErr_errIs hse c hc err0 $$ [Hu]
         · iframe #
         iexists errOutL
         isplitl [Hy]
@@ -288,7 +288,7 @@ theorem call.wp_proof (wp_errOut : errOut.spec (GF := GF) (hG := hG))
         $$ [Hres]
     · icases Hres with (⟨#Hu, -⟩ | ⟨%σ, #HQ1, Hr⟩)
       · ihave %Hne := unkErr_ne c err0 $$ Hu
-        ihave Hy := unkErr_errIs c hc err0 $$ [Hu]
+        ihave Hy := unkErr_errIs hse c hc err0 $$ [Hu]
         · iframe #
         iexists errOutL
         isplitl [Hy]

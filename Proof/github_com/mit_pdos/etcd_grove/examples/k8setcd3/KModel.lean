@@ -34,7 +34,7 @@ namespace k8setcd3
 open github_com.mit_pdos.etcd_grove.examples.k8setcd3 (Obj Input Output item)
 
 section go
-variable [ext : FfiSyntax]
+variable [GooseExts]
 
 /-! ## Decidable equality of the Go records -/
 

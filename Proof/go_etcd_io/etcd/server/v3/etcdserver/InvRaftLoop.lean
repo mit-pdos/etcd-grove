@@ -19,7 +19,7 @@ namespace EtcdGrove
 open Iris Iris.BI Iris.ProofMode go_etcd_io.etcd.server.v3.etcdserver go_etcd_io.raft.v3
 
 section lemmas
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
@@ -50,7 +50,10 @@ theorem cum_extend (γc : GName) (cums : List (List EntryModel)) (L ce : List En
 /-- **The apply side's receive** of the payload at its position: the batch extends exactly the
 log `A` it got so far, and its token moves to `A ++ ce`. -/
 theorem rnApplyTok_recv (E : RNEnv GF) (γ : RNNames) (rcv : List toApply) (A : List EntryModel)
-    (ap : toApply) :
+    (ap : toApply)
+    -- (D22 J6a, 2026-10-26) in raft's no-snapshot mode, which refutes a snapshot payload
+    -- (`rnApplyTok_recvS` is the other case)
+    (hns : γ.node.raft.reNoSnap = true) :
     ⊢ spscConsumer γ.ap (rcv ++ [ap]) -∗ monoListIdxOwn γ.cum rcv.length A -∗
       rnApP E γ (rcv.length : Int) ap -∗
       ∃ (ce : List EntryModel) (ceL : List Loc),
@@ -62,6 +65,12 @@ theorem rnApplyTok_recv (E : RNEnv GF) (γ : RNNames) (rcv : List toApply) (A : 
         committedLast E.γr ce := by
   iintro Hcons #HA HP
   iunfold rnApP at HP
+  icases HP with (HP | HP)
+  rotate_left
+  · iunfold rnApSnap at HP
+    icases HP with ⟨%F, %A', %sv, %ceL, -, -, -, -, %H5, -⟩
+    exfalso; rw [hns] at H5; exact Bool.noConfusion H5.1
+  iunfold rnApN at HP
   icases HP with ⟨%F, %ce, %ceL, #HF, #HFce, #Hsl, #Hents, #HC, %Hsnap, Hn, HG, #Hrac, #Hcl, -⟩
   simp only [Int.toNat_natCast] at *
   ihave %Heq := mono_list_idx_agree γ.cum rcv.length F A $$ HF HA
@@ -75,6 +84,40 @@ theorem rnApplyTok_recv (E : RNEnv GF) (γ : RNNames) (rcv : List toApply) (A : 
     simp only [List.length_append, List.length_singleton]
     iexact HFce
   ipureintro; exact Hsnap
+
+/-- (D22 J6a, 2026-10-26) **The apply side's receive of a snapshot payload** (`rnApSnap`): the log
+the snapshot jumps to (`A'`) extends exactly the log `A` it got so far, strictly, and its token moves
+to `A'`; with what the payload carries for `applySnapshot` (J8a). -/
+theorem rnApplyTok_recvS (E : RNEnv GF) (γ : RNNames) (rcv : List toApply) (A : List EntryModel)
+    (ap : toApply) :
+    ⊢ spscConsumer γ.ap (rcv ++ [ap]) -∗ monoListIdxOwn γ.cum rcv.length A -∗
+      rnApSnap E γ (rcv.length : Int) ap -∗
+      ∃ (A' : List EntryModel) (sv : SnapshotM) (ceL : List Loc),
+        rnApplyTok γ A' ∗ ap.entries' ↦*□ ceL ∗ entriesAt ceL [] ∗
+        ⌜γ.node.raft.reNoSnap = false ∧ A <+: A' ∧ A.length < A'.length ∧
+          ((γ.pre ++ A').length : Int) = uint.Z sv.Metadata'.Index' ∧
+          plogLast base0 (rnLogOf γ A') = snapId sv⌝ ∗
+        ownSnapM ap.snapshot' DFrac.discard sv ∗ □ E.C A' ∗
+        snapLocal γ.node.raft γ.node.id sv.Metadata'.Index' ∗
+        (∃ γnc : NotifyNames, isNotify γnc ap.notifyc' iprop(True) ∗ notifyRcv γnc) ∗
+        rnAdvChan ap.raftAdvancedC' (memFloorAtLeast γ.ms γ.γs (γ.pre ++ A').length) ∗
+        committedAtLeast E.γr sv.Metadata'.Index' := by
+  iintro Hcons #HA HP
+  iunfold rnApSnap at HP
+  icases HP with ⟨%F, %A', %sv, %ceL, #HF, #HFA, #Hsl, #Hents, %H5, #Hsn, #HC, #Hloc, Hn, #Hrac,
+    #Hca, -⟩
+  simp only [Int.toNat_natCast] at *
+  ihave %Heq := mono_list_idx_agree γ.cum rcv.length F A $$ HF HA
+  subst Heq
+  iexists A', sv, ceL
+  iframe Hsl Hents Hsn HC Hloc Hn Hrac Hca
+  isplitl [Hcons]
+  · iunfold rnApplyTok
+    iexists rcv ++ [ap]
+    iframe Hcons
+    simp only [List.length_append, List.length_singleton]
+    iexact HFA
+  ipureintro; exact ⟨H5.1, H5.2.1, H5.2.2.1, H5.2.2.2.1, H5.2.2.2.2⟩
 
 /-- (D43 M3) In raft's static mode the view is any `nodeCfg`: it holds after any log. -/
 theorem rnCfgAt_static (γ : RNNames) (L L' : List EntryModel) (h : γ.node.mode.isDyn = false) :

@@ -30,7 +30,7 @@ open Iris Iris.BI go_etcd_io.raft.v3
 /-! ## The model -/
 
 section model
-variable [FfiSyntax]
+variable [GooseExts]
 
 /-- The voters `cfg` tracked as non-learners and the learners `lrn` as learners (since
 2026-10-13, reconfiguration stage L; until then voters only). -/

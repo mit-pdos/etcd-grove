@@ -21,67 +21,67 @@ end pkg_id
 
 namespace github_com.xiang90.probing
 
-noncomputable def Prober.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def Prober.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"github.com/xiang90/probing.Prober" [])
 
 attribute [irreducible] Prober.ty
 
-noncomputable def prober.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def prober.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"github.com/xiang90/probing.prober" [])
 
 attribute [irreducible] prober.ty
 
-noncomputable def httpHealth.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def httpHealth.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"github.com/xiang90/probing.httpHealth" [])
 
 attribute [irreducible] httpHealth.ty
 
-noncomputable def Health.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def Health.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"github.com/xiang90/probing.Health" [])
 
 attribute [irreducible] Health.ty
 
-noncomputable def Status.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def Status.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"github.com/xiang90/probing.Status" [])
 
 attribute [irreducible] Status.ty
 
-noncomputable def status.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def status.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"github.com/xiang90/probing.status" [])
 
 attribute [irreducible] status.ty
 
-axiom prober.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom prober.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom status.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom status.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-noncomputable def ErrNotFound [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ErrNotFound [GooseExts] [GoGlobalContext] : GoString :=
   go!"github.com/xiang90/probing.ErrNotFound"
 
-axiom ErrNotFound.init [FfiSyntax] [GoGlobalContext] : val
+axiom ErrNotFound.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def ErrExist [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ErrExist [GooseExts] [GoGlobalContext] : GoString :=
   go!"github.com/xiang90/probing.ErrExist"
 
-axiom ErrExist.init [FfiSyntax] [GoGlobalContext] : val
+axiom ErrExist.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def «α» [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def «α» [GooseExts] [GoGlobalContext] : GoString :=
   go!"github.com/xiang90/probing.α"
 
-axiom «α».init [FfiSyntax] [GoGlobalContext] : val
+axiom «α».init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def NewProber [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def NewProber [GooseExts] [GoGlobalContext] : GoString :=
   go!"github.com/xiang90/probing.NewProber"
 
-noncomputable def NewHandler [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def NewHandler [GooseExts] [GoGlobalContext] : GoString :=
   go!"github.com/xiang90/probing.NewHandler"
 
 noncomputable instance info' : PkgInfo pkg_id.github_com.xiang90.probing where
   pkgImportedPkgs := [pkg_id.time]
 
-axiom «_».init [FfiSyntax] [GoGlobalContext] : val
+axiom «_».init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (App (Val (package.init pkg_id.github_com.xiang90.probing)) (Lam BAnon
   (App (Val exceptionDo)
@@ -97,84 +97,98 @@ noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val _root_.Perennial.time.initialize') (Val #()))))))))
 
-abbrev Prober [FfiSyntax] : Type := GoInterface
+abbrev Prober [GooseExts] : Type := GoInterface
 
-@[reducible] noncomputable def Prober.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def Prober.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"AddHTTP" (go.signature.Signature [go.string, _root_.Perennial.time.Duration.ty, (go.GoType.SliceType go.string)] false [go.error])), (go.InterfaceElem.MethodElem go!"Remove" (go.signature.Signature [go.string] false [go.error])), (go.InterfaceElem.MethodElem go!"RemoveAll" (go.signature.Signature [] false [])), (go.InterfaceElem.MethodElem go!"Reset" (go.signature.Signature [go.string] false [go.error])), (go.InterfaceElem.MethodElem go!"Status" (go.signature.Signature [go.string] false [Status.ty, go.error]))])
 
-class Prober.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class Prober.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq Prober.ty Prober.underlying
+  method_set : go.MethodSetIs Prober.ty [(go!"AddHTTP", (some (go.signature.Signature [go.string, _root_.Perennial.time.Duration.ty, (go.GoType.SliceType go.string)] false [go.error]))), (go!"Remove", (some (go.signature.Signature [go.string] false [go.error]))), (go!"RemoveAll", (some (go.signature.Signature [] false []))), (go!"Reset", (some (go.signature.Signature [go.string] false [go.error]))), (go!"Status", (some (go.signature.Signature [go.string] false [Status.ty, go.error])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType Prober.ty) []
 
 attribute [instance] Prober.TypeAssumptions.underlying
+  Prober.TypeAssumptions.method_set
+  Prober.TypeAssumptions.ptr_method_set
 
 axiom prober : Type
 axiom prober.zero_val : ZeroVal prober
 attribute [instance] prober.zero_val
 
-class prober.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class prober.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying prober.underlying prober
   underlying : go.UnderlyingDirectedEq prober.ty prober.underlying
   isUnderlying : go.IsUnderlying prober.underlying prober.underlying
+  method_set : go.MethodSetIs prober.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType prober.ty) [(go!"AddHTTP", (some (go.signature.Signature [go.string, _root_.Perennial.time.Duration.ty, (go.GoType.SliceType go.string)] false [go.error]))), (go!"Remove", (some (go.signature.Signature [go.string] false [go.error]))), (go!"RemoveAll", (some (go.signature.Signature [] false []))), (go!"Reset", (some (go.signature.Signature [go.string] false [go.error]))), (go!"Status", (some (go.signature.Signature [go.string] false [Status.ty, go.error])))]
 
 attribute [instance] prober.TypeAssumptions.type_repr
   prober.TypeAssumptions.underlying
   prober.TypeAssumptions.isUnderlying
+  prober.TypeAssumptions.method_set
+  prober.TypeAssumptions.ptr_method_set
 
-structure httpHealth [FfiSyntax] where
+structure httpHealth [GooseExts] where
   mk ::
 
-noncomputable instance httpHealth.zero_val [FfiSyntax] : ZeroVal httpHealth :=
+noncomputable instance httpHealth.zero_val [GooseExts] : ZeroVal httpHealth :=
   ⟨httpHealth.mk⟩
 
-@[reducible] noncomputable def httpHealth.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def httpHealth.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   []
 
-@[irreducible] noncomputable def httpHealth.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def httpHealth.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   httpHealth.fieldsUnsealed
 
-noncomputable instance equals_unfold_httpHealth [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_httpHealth [GooseExts] [GoGlobalContext] :
     EqualsUnfold httpHealth.fields httpHealth.fieldsUnsealed :=
   ⟨by unfold httpHealth.fields; rfl⟩
 
-@[reducible] noncomputable def httpHealth.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def httpHealth.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType httpHealth.fields)
 
-class httpHealth.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class httpHealth.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying httpHealth.underlying httpHealth
   underlying : go.UnderlyingDirectedEq httpHealth.ty httpHealth.underlying
+  method_set : go.MethodSetIs httpHealth.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType httpHealth.ty) [(go!"ServeHTTP", (some (go.signature.Signature [(go.GoType.Named go!"net/http.ResponseWriter" []), (go.GoType.PointerType (go.GoType.Named go!"net/http.Request" []))] false [])))]
 
 attribute [instance] httpHealth.TypeAssumptions.type_repr
   httpHealth.TypeAssumptions.underlying
+  httpHealth.TypeAssumptions.method_set
+  httpHealth.TypeAssumptions.ptr_method_set
 
-structure Health [FfiSyntax] where
+structure Health [GooseExts] where
   mk ::
   OK' : Bool
   Now' : _root_.Perennial.time.Time
 
-noncomputable instance Health.zero_val [FfiSyntax] : ZeroVal Health :=
+noncomputable instance Health.zero_val [GooseExts] : ZeroVal Health :=
   ⟨Health.mk zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def Health.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def Health.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"OK" go.bool),
 (go.field_decl.FieldDecl go!"Now" _root_.Perennial.time.Time.ty)]
 
-@[irreducible] noncomputable def Health.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def Health.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   Health.fieldsUnsealed
 
-noncomputable instance equals_unfold_Health [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_Health [GooseExts] [GoGlobalContext] :
     EqualsUnfold Health.fields Health.fieldsUnsealed :=
   ⟨by unfold Health.fields; rfl⟩
 
-@[reducible] noncomputable def Health.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def Health.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType Health.fields)
 
-class Health.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class Health.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying Health.underlying Health
   underlying : go.UnderlyingDirectedEq Health.ty Health.underlying
   get_OK : ∀ (x : Health), go.IsGoStepPureDetTagged under (StructFieldGet Health.underlying go!"OK") #x (Val #(x.OK'))
   set_OK : ∀ (x : Health) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet Health.underlying go!"OK") (PairV #x #y) (Val #(({ x with OK' := y } : Health)))
   get_Now : ∀ (x : Health), go.IsGoStepPureDetTagged under (StructFieldGet Health.underlying go!"Now") #x (Val #(x.Now'))
   set_Now : ∀ (x : Health) (y : _root_.Perennial.time.Time), go.IsGoStepPureDetTagged under (StructFieldSet Health.underlying go!"Now") (PairV #x #y) (Val #(({ x with Now' := y } : Health)))
+  method_set : go.MethodSetIs Health.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType Health.ty) []
 
 attribute [instance] Health.TypeAssumptions.type_repr
   Health.TypeAssumptions.underlying
@@ -182,31 +196,41 @@ attribute [instance] Health.TypeAssumptions.type_repr
   Health.TypeAssumptions.set_OK
   Health.TypeAssumptions.get_Now
   Health.TypeAssumptions.set_Now
+  Health.TypeAssumptions.method_set
+  Health.TypeAssumptions.ptr_method_set
 
-abbrev Status [FfiSyntax] : Type := GoInterface
+abbrev Status [GooseExts] : Type := GoInterface
 
-@[reducible] noncomputable def Status.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def Status.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"ClockDiff" (go.signature.Signature [] false [_root_.Perennial.time.Duration.ty])), (go.InterfaceElem.MethodElem go!"Err" (go.signature.Signature [] false [go.error])), (go.InterfaceElem.MethodElem go!"Health" (go.signature.Signature [] false [go.bool])), (go.InterfaceElem.MethodElem go!"Loss" (go.signature.Signature [] false [go.int64])), (go.InterfaceElem.MethodElem go!"SRTT" (go.signature.Signature [] false [_root_.Perennial.time.Duration.ty])), (go.InterfaceElem.MethodElem go!"StopNotify" (go.signature.Signature [] false [(go.GoType.ChannelType go.ChanDir.recvonly (go.GoType.StructType []))])), (go.InterfaceElem.MethodElem go!"Total" (go.signature.Signature [] false [go.int64]))])
 
-class Status.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class Status.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq Status.ty Status.underlying
+  method_set : go.MethodSetIs Status.ty [(go!"ClockDiff", (some (go.signature.Signature [] false [_root_.Perennial.time.Duration.ty]))), (go!"Err", (some (go.signature.Signature [] false [go.error]))), (go!"Health", (some (go.signature.Signature [] false [go.bool]))), (go!"Loss", (some (go.signature.Signature [] false [go.int64]))), (go!"SRTT", (some (go.signature.Signature [] false [_root_.Perennial.time.Duration.ty]))), (go!"StopNotify", (some (go.signature.Signature [] false [(go.GoType.ChannelType go.ChanDir.recvonly (go.GoType.StructType []))]))), (go!"Total", (some (go.signature.Signature [] false [go.int64])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType Status.ty) []
 
 attribute [instance] Status.TypeAssumptions.underlying
+  Status.TypeAssumptions.method_set
+  Status.TypeAssumptions.ptr_method_set
 
 axiom status : Type
 axiom status.zero_val : ZeroVal status
 attribute [instance] status.zero_val
 
-class status.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class status.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying status.underlying status
   underlying : go.UnderlyingDirectedEq status.ty status.underlying
   isUnderlying : go.IsUnderlying status.underlying status.underlying
+  method_set : go.MethodSetIs status.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType status.ty) [(go!"ClockDiff", (some (go.signature.Signature [] false [_root_.Perennial.time.Duration.ty]))), (go!"Err", (some (go.signature.Signature [] false [go.error]))), (go!"Health", (some (go.signature.Signature [] false [go.bool]))), (go!"Loss", (some (go.signature.Signature [] false [go.int64]))), (go!"SRTT", (some (go.signature.Signature [] false [_root_.Perennial.time.Duration.ty]))), (go!"StopNotify", (some (go.signature.Signature [] false [(go.GoType.ChannelType go.ChanDir.recvonly (go.GoType.StructType []))]))), (go!"Total", (some (go.signature.Signature [] false [go.int64]))), (go!"github.com/xiang90/probing.record", (some (go.signature.Signature [_root_.Perennial.time.Duration.ty, _root_.Perennial.time.Time.ty] false []))), (go!"github.com/xiang90/probing.recordFailure", (some (go.signature.Signature [go.error] false []))), (go!"github.com/xiang90/probing.reset", (some (go.signature.Signature [] false [])))]
 
 attribute [instance] status.TypeAssumptions.type_repr
   status.TypeAssumptions.underlying
   status.TypeAssumptions.isUnderlying
+  status.TypeAssumptions.method_set
+  status.TypeAssumptions.ptr_method_set
 
-class Assumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   Prober_instance : Prober.TypeAssumptions
   prober_instance : prober.TypeAssumptions
   httpHealth_instance : httpHealth.TypeAssumptions

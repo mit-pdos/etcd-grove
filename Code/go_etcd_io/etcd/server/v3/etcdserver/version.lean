@@ -20,74 +20,74 @@ end pkg_id
 
 namespace go_etcd_io.etcd.server.v3.etcdserver.version
 
-noncomputable def DowngradeInfo.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def DowngradeInfo.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/etcd/server/v3/etcdserver/version.DowngradeInfo" [])
 
 attribute [irreducible] DowngradeInfo.ty
 
-noncomputable def Monitor.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def Monitor.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/etcd/server/v3/etcdserver/version.Monitor" [])
 
 attribute [irreducible] Monitor.ty
 
-noncomputable def Server.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def Server.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/etcd/server/v3/etcdserver/version.Server" [])
 
 attribute [irreducible] Server.ty
 
-noncomputable def Manager.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def Manager.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/etcd/server/v3/etcdserver/version.Manager" [])
 
 attribute [irreducible] Manager.ty
 
-axiom Monitor.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom Monitor.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom Server.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom Server.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom Manager.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom Manager.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-noncomputable def ErrInvalidDowngradeTargetVersion [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ErrInvalidDowngradeTargetVersion [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver/version.ErrInvalidDowngradeTargetVersion"
 
-axiom ErrInvalidDowngradeTargetVersion.init [FfiSyntax] [GoGlobalContext] : val
+axiom ErrInvalidDowngradeTargetVersion.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def ErrDowngradeInProcess [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ErrDowngradeInProcess [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver/version.ErrDowngradeInProcess"
 
-axiom ErrDowngradeInProcess.init [FfiSyntax] [GoGlobalContext] : val
+axiom ErrDowngradeInProcess.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def ErrNoInflightDowngrade [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ErrNoInflightDowngrade [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver/version.ErrNoInflightDowngrade"
 
-axiom ErrNoInflightDowngrade.init [FfiSyntax] [GoGlobalContext] : val
+axiom ErrNoInflightDowngrade.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def isValidDowngrade [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def isValidDowngrade [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver/version.isValidDowngrade"
 
-noncomputable def MustDetectDowngrade [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def MustDetectDowngrade [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver/version.MustDetectDowngrade"
 
-noncomputable def allowedDowngradeVersion [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def allowedDowngradeVersion [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver/version.allowedDowngradeVersion"
 
-noncomputable def IsValidClusterVersionChange [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def IsValidClusterVersionChange [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver/version.IsValidClusterVersionChange"
 
-noncomputable def NewMonitor [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def NewMonitor [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver/version.NewMonitor"
 
-noncomputable def parseServerVersion [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def parseServerVersion [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver/version.parseServerVersion"
 
-noncomputable def NewManager [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def NewManager [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver/version.NewManager"
 
 noncomputable instance info' : PkgInfo pkg_id.go_etcd_io.etcd.server.v3.etcdserver.version where
   pkgImportedPkgs := []
 
-axiom «_».init [FfiSyntax] [GoGlobalContext] : val
+axiom «_».init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (App (Val (package.init pkg_id.go_etcd_io.etcd.server.v3.etcdserver.version)) (Lam BAnon
   (App (Val exceptionDo)
@@ -100,35 +100,37 @@ noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val ErrInvalidDowngradeTargetVersion.init) (Val #()))))))))
 
-structure DowngradeInfo [FfiSyntax] where
+structure DowngradeInfo [GooseExts] where
   mk ::
   TargetVersion' : GoString
   Enabled' : Bool
 
-noncomputable instance DowngradeInfo.zero_val [FfiSyntax] : ZeroVal DowngradeInfo :=
+noncomputable instance DowngradeInfo.zero_val [GooseExts] : ZeroVal DowngradeInfo :=
   ⟨DowngradeInfo.mk zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def DowngradeInfo.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def DowngradeInfo.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"TargetVersion" go.string),
 (go.field_decl.FieldDecl go!"Enabled" go.bool)]
 
-@[irreducible] noncomputable def DowngradeInfo.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def DowngradeInfo.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   DowngradeInfo.fieldsUnsealed
 
-noncomputable instance equals_unfold_DowngradeInfo [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_DowngradeInfo [GooseExts] [GoGlobalContext] :
     EqualsUnfold DowngradeInfo.fields DowngradeInfo.fieldsUnsealed :=
   ⟨by unfold DowngradeInfo.fields; rfl⟩
 
-@[reducible] noncomputable def DowngradeInfo.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def DowngradeInfo.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType DowngradeInfo.fields)
 
-class DowngradeInfo.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class DowngradeInfo.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying DowngradeInfo.underlying DowngradeInfo
   underlying : go.UnderlyingDirectedEq DowngradeInfo.ty DowngradeInfo.underlying
   get_TargetVersion : ∀ (x : DowngradeInfo), go.IsGoStepPureDetTagged under (StructFieldGet DowngradeInfo.underlying go!"TargetVersion") #x (Val #(x.TargetVersion'))
   set_TargetVersion : ∀ (x : DowngradeInfo) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet DowngradeInfo.underlying go!"TargetVersion") (PairV #x #y) (Val #(({ x with TargetVersion' := y } : DowngradeInfo)))
   get_Enabled : ∀ (x : DowngradeInfo), go.IsGoStepPureDetTagged under (StructFieldGet DowngradeInfo.underlying go!"Enabled") #x (Val #(x.Enabled'))
   set_Enabled : ∀ (x : DowngradeInfo) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet DowngradeInfo.underlying go!"Enabled") (PairV #x #y) (Val #(({ x with Enabled' := y } : DowngradeInfo)))
+  method_set : go.MethodSetIs DowngradeInfo.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType DowngradeInfo.ty) [(go!"GetTargetVersion", (some (go.signature.Signature [] false [(go.GoType.PointerType (go.GoType.Named go!"github.com/Masterminds/semver/v3.Version" []))])))]
 
 attribute [instance] DowngradeInfo.TypeAssumptions.type_repr
   DowngradeInfo.TypeAssumptions.underlying
@@ -136,47 +138,61 @@ attribute [instance] DowngradeInfo.TypeAssumptions.type_repr
   DowngradeInfo.TypeAssumptions.set_TargetVersion
   DowngradeInfo.TypeAssumptions.get_Enabled
   DowngradeInfo.TypeAssumptions.set_Enabled
+  DowngradeInfo.TypeAssumptions.method_set
+  DowngradeInfo.TypeAssumptions.ptr_method_set
 
 axiom Monitor : Type
 axiom Monitor.zero_val : ZeroVal Monitor
 attribute [instance] Monitor.zero_val
 
-class Monitor.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class Monitor.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying Monitor.underlying Monitor
   underlying : go.UnderlyingDirectedEq Monitor.ty Monitor.underlying
   isUnderlying : go.IsUnderlying Monitor.underlying Monitor.underlying
+  method_set : go.MethodSetIs Monitor.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType Monitor.ty) [(go!"CancelDowngradeIfNeeded", (some (go.signature.Signature [] false []))), (go!"UpdateClusterVersionIfNeeded", (some (go.signature.Signature [] false [go.error]))), (go!"UpdateStorageVersionIfNeeded", (some (go.signature.Signature [] false []))), (go!"go.etcd.io/etcd/server/v3/etcdserver/version.decideClusterVersion", (some (go.signature.Signature [] false [(go.GoType.PointerType (go.GoType.Named go!"github.com/Masterminds/semver/v3.Version" [])), go.error]))), (go!"go.etcd.io/etcd/server/v3/etcdserver/version.membersMinimalServerVersion", (some (go.signature.Signature [] false [(go.GoType.PointerType (go.GoType.Named go!"github.com/Masterminds/semver/v3.Version" []))]))), (go!"go.etcd.io/etcd/server/v3/etcdserver/version.versionsMatchTarget", (some (go.signature.Signature [(go.GoType.PointerType (go.GoType.Named go!"github.com/Masterminds/semver/v3.Version" []))] false [go.bool])))]
 
 attribute [instance] Monitor.TypeAssumptions.type_repr
   Monitor.TypeAssumptions.underlying
   Monitor.TypeAssumptions.isUnderlying
+  Monitor.TypeAssumptions.method_set
+  Monitor.TypeAssumptions.ptr_method_set
 
 axiom Server : Type
 axiom Server.zero_val : ZeroVal Server
 attribute [instance] Server.zero_val
 
-class Server.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class Server.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying Server.underlying Server
   underlying : go.UnderlyingDirectedEq Server.ty Server.underlying
   isUnderlying : go.IsUnderlying Server.underlying Server.underlying
+  method_set : go.MethodSetIs Server.ty [(go!"DowngradeCancel", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" [])] false [go.error]))), (go!"DowngradeEnable", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType (go.GoType.Named go!"github.com/Masterminds/semver/v3.Version" []))] false [go.error]))), (go!"GetClusterVersion", (some (go.signature.Signature [] false [(go.GoType.PointerType (go.GoType.Named go!"github.com/Masterminds/semver/v3.Version" []))]))), (go!"GetDowngradeInfo", (some (go.signature.Signature [] false [(go.GoType.PointerType DowngradeInfo.ty)]))), (go!"GetMembersVersions", (some (go.signature.Signature [] false [(go.GoType.MapType go.string (go.GoType.PointerType (go.GoType.Named go!"go.etcd.io/etcd/api/v3/version.Versions" [])))]))), (go!"GetStorageVersion", (some (go.signature.Signature [] false [(go.GoType.PointerType (go.GoType.Named go!"github.com/Masterminds/semver/v3.Version" []))]))), (go!"LinearizableReadNotify", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" [])] false [go.error]))), (go!"UpdateClusterVersion", (some (go.signature.Signature [go.string] false []))), (go!"UpdateStorageVersion", (some (go.signature.Signature [(go.GoType.Named go!"github.com/Masterminds/semver/v3.Version" [])] false [go.error])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType Server.ty) []
 
 attribute [instance] Server.TypeAssumptions.type_repr
   Server.TypeAssumptions.underlying
   Server.TypeAssumptions.isUnderlying
+  Server.TypeAssumptions.method_set
+  Server.TypeAssumptions.ptr_method_set
 
 axiom Manager : Type
 axiom Manager.zero_val : ZeroVal Manager
 attribute [instance] Manager.zero_val
 
-class Manager.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class Manager.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying Manager.underlying Manager
   underlying : go.UnderlyingDirectedEq Manager.ty Manager.underlying
   isUnderlying : go.IsUnderlying Manager.underlying Manager.underlying
+  method_set : go.MethodSetIs Manager.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType Manager.ty) [(go!"DowngradeCancel", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" [])] false [go.error]))), (go!"DowngradeEnable", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType (go.GoType.Named go!"github.com/Masterminds/semver/v3.Version" []))] false [go.error]))), (go!"DowngradeValidate", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType (go.GoType.Named go!"github.com/Masterminds/semver/v3.Version" []))] false [go.error])))]
 
 attribute [instance] Manager.TypeAssumptions.type_repr
   Manager.TypeAssumptions.underlying
   Manager.TypeAssumptions.isUnderlying
+  Manager.TypeAssumptions.method_set
+  Manager.TypeAssumptions.ptr_method_set
 
-class Assumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   DowngradeInfo_instance : DowngradeInfo.TypeAssumptions
   Monitor_instance : Monitor.TypeAssumptions
   Server_instance : Server.TypeAssumptions

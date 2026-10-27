@@ -45,7 +45,7 @@ instance (s : GoString) : Decidable (types.plainPeerURL s) := by
   unfold types.plainPeerURL; infer_instance
 
 section url
-variable [FfiSyntax] [GoGlobalContext]
+variable [GooseExts] [GoGlobalContext]
 
 /-- **A URL `url.Parse` gives of a plain peer URL string**: scheme `http`, the host, nothing
 else (rafthttp's `urlPlain`, with its `urlHostOk`), and `http://` and its host are the string. -/

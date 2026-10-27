@@ -20,86 +20,86 @@ end pkg_id
 
 namespace k8s_io.apimachinery.pkg.util.runtime
 
-noncomputable def ErrorHandler.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def ErrorHandler.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/apimachinery/pkg/util/runtime.ErrorHandler" [])
 
 attribute [irreducible] ErrorHandler.ty
 
-noncomputable def rudimentaryErrorBackoff.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def rudimentaryErrorBackoff.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/apimachinery/pkg/util/runtime.rudimentaryErrorBackoff" [])
 
 attribute [irreducible] rudimentaryErrorBackoff.ty
 
-axiom ErrorHandler.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom ErrorHandler.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom rudimentaryErrorBackoff.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom rudimentaryErrorBackoff.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-noncomputable def ReallyCrash [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ReallyCrash [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/util/runtime.ReallyCrash"
 
-axiom ReallyCrash.init [FfiSyntax] [GoGlobalContext] : val
+axiom ReallyCrash.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def PanicHandlers [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def PanicHandlers [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/util/runtime.PanicHandlers"
 
-axiom PanicHandlers.init [FfiSyntax] [GoGlobalContext] : val
+axiom PanicHandlers.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def ErrorHandlers [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ErrorHandlers [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/util/runtime.ErrorHandlers"
 
-axiom ErrorHandlers.init [FfiSyntax] [GoGlobalContext] : val
+axiom ErrorHandlers.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def HandleCrash [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def HandleCrash [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/util/runtime.HandleCrash"
 
-noncomputable def HandleCrashWithContext [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def HandleCrashWithContext [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/util/runtime.HandleCrashWithContext"
 
-noncomputable def HandleCrashWithLogger [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def HandleCrashWithLogger [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/util/runtime.HandleCrashWithLogger"
 
-noncomputable def handleCrash [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def handleCrash [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/util/runtime.handleCrash"
 
-noncomputable def logPanic [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def logPanic [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/util/runtime.logPanic"
 
-noncomputable def ErrorToString [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ErrorToString [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/util/runtime.ErrorToString"
 
-noncomputable def HandleError [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def HandleError [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/util/runtime.HandleError"
 
-noncomputable def HandleErrorWithContext [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def HandleErrorWithContext [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/util/runtime.HandleErrorWithContext"
 
-noncomputable def HandleErrorWithLogger [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def HandleErrorWithLogger [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/util/runtime.HandleErrorWithLogger"
 
-noncomputable def handleError [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def handleError [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/util/runtime.handleError"
 
-noncomputable def logError [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def logError [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/util/runtime.logError"
 
-noncomputable def backoffError [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def backoffError [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/util/runtime.backoffError"
 
-noncomputable def GetCaller [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def GetCaller [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/util/runtime.GetCaller"
 
-noncomputable def RecoverFromPanic [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def RecoverFromPanic [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/util/runtime.RecoverFromPanic"
 
-noncomputable def Must [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def Must [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/util/runtime.Must"
 
 noncomputable instance info' : PkgInfo pkg_id.k8s_io.apimachinery.pkg.util.runtime where
   pkgImportedPkgs := []
 
-axiom «_».init [FfiSyntax] [GoGlobalContext] : val
+axiom «_».init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (App (Val (package.init pkg_id.k8s_io.apimachinery.pkg.util.runtime)) (Lam BAnon
   (App (Val exceptionDo)
@@ -116,29 +116,37 @@ axiom ErrorHandler : Type
 axiom ErrorHandler.zero_val : ZeroVal ErrorHandler
 attribute [instance] ErrorHandler.zero_val
 
-class ErrorHandler.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class ErrorHandler.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying ErrorHandler.underlying ErrorHandler
   underlying : go.UnderlyingDirectedEq ErrorHandler.ty ErrorHandler.underlying
   isUnderlying : go.IsUnderlying ErrorHandler.underlying ErrorHandler.underlying
+  method_set : go.MethodSetIs ErrorHandler.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType ErrorHandler.ty) []
 
 attribute [instance] ErrorHandler.TypeAssumptions.type_repr
   ErrorHandler.TypeAssumptions.underlying
   ErrorHandler.TypeAssumptions.isUnderlying
+  ErrorHandler.TypeAssumptions.method_set
+  ErrorHandler.TypeAssumptions.ptr_method_set
 
 axiom rudimentaryErrorBackoff : Type
 axiom rudimentaryErrorBackoff.zero_val : ZeroVal rudimentaryErrorBackoff
 attribute [instance] rudimentaryErrorBackoff.zero_val
 
-class rudimentaryErrorBackoff.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class rudimentaryErrorBackoff.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying rudimentaryErrorBackoff.underlying rudimentaryErrorBackoff
   underlying : go.UnderlyingDirectedEq rudimentaryErrorBackoff.ty rudimentaryErrorBackoff.underlying
   isUnderlying : go.IsUnderlying rudimentaryErrorBackoff.underlying rudimentaryErrorBackoff.underlying
+  method_set : go.MethodSetIs rudimentaryErrorBackoff.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType rudimentaryErrorBackoff.ty) [(go!"OnError", (some (go.signature.Signature [] false [])))]
 
 attribute [instance] rudimentaryErrorBackoff.TypeAssumptions.type_repr
   rudimentaryErrorBackoff.TypeAssumptions.underlying
   rudimentaryErrorBackoff.TypeAssumptions.isUnderlying
+  rudimentaryErrorBackoff.TypeAssumptions.method_set
+  rudimentaryErrorBackoff.TypeAssumptions.ptr_method_set
 
-class Assumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   ErrorHandler_instance : ErrorHandler.TypeAssumptions
   rudimentaryErrorBackoff_instance : rudimentaryErrorBackoff.TypeAssumptions
 

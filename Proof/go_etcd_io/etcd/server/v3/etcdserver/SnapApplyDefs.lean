@@ -1,7 +1,7 @@
 /-
-**`applySnapshot`'s named premises and its walk's result** (D22 receiver epochs, S8d, 2026-10-26;
-`notes/snapshot-s8-plan.md`): the premises S8d takes from the auth track (`srvAuthRecoverOk`) and
-from boot (`srvMembersDir`), and `snapWalkPost`, what `applySnapshot`'s code leaves
+**`applySnapshot`'s walk's result** (D22 receiver epochs, S8d, 2026-10-26;
+`notes/snapshot-s8-plan.md`; its named premises `authRecoverOk`, `srvMembersDir`, `lessorLookupOk`
+are in `SnapRO.lean` since D22 J1a): `snapWalkPost`, what `applySnapshot`'s code leaves
 (`applySnapshot_walk`, `SnapApplyWalk.lean`).
 -/
 module
@@ -56,7 +56,7 @@ namespace EtcdGrove
 open Iris Iris.BI Iris.ProofMode go_etcd_io.etcd.server.v3.etcdserver go_etcd_io.raft.v3
 
 section proof
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
@@ -76,50 +76,8 @@ theorem toks_take (γ : GName) (n k : Nat) (h : k ≤ n) :
 
 theorem kbRT_some (d : mvcc.KBReal) : mvcc.kbRT (GF := GF) (some d) = mvcc.bkRTx d.γB d.P d.be := rfl
 
-/-- The auth store's `Recover` on a new backend (S8d's named premise, the auth track's). -/
-def srvAuthRecoverOk (ast : Loc) : IProp GF :=
-  iprop(□ (∀ (oldbe abl lg : Loc) (dn : mvcc.KBReal) (W Pk : IProp GF) (qo : Qp)
-          (r : GMap GoString backend.BktData),
-        {{ authBeOn ast oldbe ∗ ⌜lg ≠ null⌝ ∗
-            structFieldRef go_etcd_io.etcd.server.v3.storage.schema.authBackend go!"be" abl ↦□
-              (interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.backend.backend.ty)
-                #dn.be : GoInterface) ∗
-            structFieldRef go_etcd_io.etcd.server.v3.storage.schema.authBackend go!"lg" abl ↦□ lg ∗
-            backend.isBackend dn.γB dn.P W Pk dn.be ∗ backend.bOpen dn.γB qo ∗
-            mvcc.bkRTx dn.γB dn.P dn.be ∗ backend.rbOwn dn.γB r ∗
-            ⌜(r.lookup go!"auth").getD ∅ = authBoot ∧ (r.lookup go!"authUsers").getD ∅ = ∅ ∧
-              (r.lookup go!"authRoles").getD ∅ = ∅⌝ }}
-          (App (Val (ast @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.auth.authStore.ty @!!
-            go!"Recover")) (Val #(authBkIface abl)))
-        {{ RET #(); authBeOn ast dn.be ∗ backend.bOpen dn.γB qo ∗ mvcc.bkRTx dn.γB dn.P dn.be ∗
-            backend.rbOwn dn.γB r }}))
-
-instance srvAuthRecoverOk_persistent (ast : Loc) : Persistent (srvAuthRecoverOk (GF := GF) ast) := by
-  unfold srvAuthRecoverOk; infer_instance
-
-/-- `bootOk`'s contract of the cluster's `Members()` (S8d's named premise, threaded from `NewServer`). -/
-def srvMembersDir (cl : Loc) (ps : List w64) (dir : w64 → List GoString) : IProp GF :=
-  iprop(□ (∀ Φ : val → IProp GF,
-    (∀ (sl : GoSlice) (ms : List (Loc × w64)), ⌜ms.map Prod.snd = ps⌝ -∗
-      sl ↦* ms.map Prod.fst -∗ ([∗list] p ∈ ms, memberDirIs dir p.1 p.2) -∗ Φ #sl) -∗
-    WP (App (Val (cl @!! go.GoType.PointerType
-      go_etcd_io.etcd.server.v3.etcdserver.api.membership.RaftCluster.ty @!! go!"Members"))
-      (Val #())) {{ Φ }}))
-
-instance srvMembersDir_persistent (cl : Loc) (ps : List w64) (dir : w64 → List GoString) :
-    Persistent (srvMembersDir (GF := GF) cl ps dir) := by
-  unfold srvMembersDir; infer_instance
-
-/-- The lessor `lp`'s `Lookup` (`lease.NewLessor.spec`'s, the trust boundary; S8d's named premise,
-threaded from `NewServer`): what `isApplyLessor_of_lessorInv` takes. -/
-def lessorLookupOk (lp : Loc) : IProp GF :=
-  iprop(□ (∀ id : w64,
-    {{ True }} (App (Val (lp @!! go.GoType.PointerType
-      go_etcd_io.etcd.server.v3.lease.lessor.ty @!! go!"Lookup")) (Val #id))
-    {{ (l : Loc), RET #l; ⌜l = null⌝ ∨ apply.leaseIs l id }}))
-
-instance lessorLookupOk_persistent (lp : Loc) : Persistent (lessorLookupOk (GF := GF) lp) := by
-  unfold lessorLookupOk; infer_instance
+-- (D22 J1a, 2026-10-26) `srvAuthRecoverOk` (now `authRecoverOk`), `srvMembersDir` and
+-- `lessorLookupOk` moved to `SnapRO.lean`.
 
 /-- **What `applySnapshot`'s code leaves** (S8d's walk, `applySnapshot_walk`): the server's
 resources at the snapshot's backend (`d'`, opened at the snapshot's index `sv.Metadata'.Index'`),
@@ -133,7 +91,7 @@ def snapWalkPost (s ep : Loc) (sv : SnapshotM) (γ : ApplyNames) (ci : Loc) (E :
       (p' : mvcc.PhysNames) (γw : mvcc.WsNames) (ws : Loc) (g : GoFunc) (up' : Loc)
       (opts' : apply.ApplierOptions) (L : List w64) (spc : Loc) (Ll : List w64) (jf : Nat)
       (γcf : GName) (w0 : GoInterface) (RD0 : IProp GF) (up : Loc) (lg : Loc) (wsk stck : Loc),
-    ⌜d'.γB = γB ∧ d'.P = d.P ∧ d'.gx = gx ∧ π0.m0 = (sv.Metadata'.Index', sv.Metadata'.Term') ∧
+    ⌜d'.γB = γB ∧ d'.P = d.P ∧ d'.gx = gx ∧ π0.m0 = (sv.Metadata'.Index', π0.m0.2) ∧
       p'.bucket = E.γ.bucket ∧ p'.kb = some d' ∧ γw.st = E.γ ∧ mvcc.bridgeParams d'.P ∧
       (∀ f, (netRh γn).member f → f ≠ idm → f ∈ L) ∧ g ≠ func.nil ∧
       opts'.Logger' = lg ∧

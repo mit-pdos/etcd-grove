@@ -47,134 +47,134 @@ end pkg_id
 
 namespace go_etcd_io.etcd.server.v3.etcdserver.apply
 
-noncomputable def authApplierV3.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def authApplierV3.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/etcd/server/v3/etcdserver/apply.authApplierV3" [])
 
 attribute [irreducible] authApplierV3.ty
 
-noncomputable def applierV3backend.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def applierV3backend.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/etcd/server/v3/etcdserver/apply.applierV3backend" [])
 
 attribute [irreducible] applierV3backend.ty
 
-noncomputable def applierV3Capped.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def applierV3Capped.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/etcd/server/v3/etcdserver/apply.applierV3Capped" [])
 
 attribute [irreducible] applierV3Capped.ty
 
-noncomputable def applierV3Corrupt.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def applierV3Corrupt.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/etcd/server/v3/etcdserver/apply.applierV3Corrupt" [])
 
 attribute [irreducible] applierV3Corrupt.ty
 
-noncomputable def InternalRaftRequestWrapper.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def InternalRaftRequestWrapper.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/etcd/server/v3/etcdserver/apply.InternalRaftRequestWrapper" [])
 
 attribute [irreducible] InternalRaftRequestWrapper.ty
 
-noncomputable def applierV3.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def applierV3.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/etcd/server/v3/etcdserver/apply.applierV3" [])
 
 attribute [irreducible] applierV3.ty
 
-noncomputable def ApplierOptions.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def ApplierOptions.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/etcd/server/v3/etcdserver/apply.ApplierOptions" [])
 
 attribute [irreducible] ApplierOptions.ty
 
-noncomputable def SnapshotServer.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def SnapshotServer.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/etcd/server/v3/etcdserver/apply.SnapshotServer" [])
 
 attribute [irreducible] SnapshotServer.ty
 
-noncomputable def RaftStatusGetter.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def RaftStatusGetter.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/etcd/server/v3/etcdserver/apply.RaftStatusGetter" [])
 
 attribute [irreducible] RaftStatusGetter.ty
 
-noncomputable def Result.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def Result.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/etcd/server/v3/etcdserver/apply.Result" [])
 
 attribute [irreducible] Result.ty
 
-noncomputable def applyFunc.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def applyFunc.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/etcd/server/v3/etcdserver/apply.applyFunc" [])
 
 attribute [irreducible] applyFunc.ty
 
-noncomputable def quotaApplierV3.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def quotaApplierV3.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/etcd/server/v3/etcdserver/apply.quotaApplierV3" [])
 
 attribute [irreducible] quotaApplierV3.ty
 
-noncomputable def UberApplier.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def UberApplier.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/etcd/server/v3/etcdserver/apply.UberApplier" [])
 
 attribute [irreducible] UberApplier.ty
 
-noncomputable def uberApplier.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def uberApplier.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/etcd/server/v3/etcdserver/apply.uberApplier" [])
 
 attribute [irreducible] uberApplier.ty
 
-noncomputable def alarms [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def alarms [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver/apply.alarms"
 
-axiom alarms.init [FfiSyntax] [GoGlobalContext] : val
+axiom alarms.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def Apply [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def Apply [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver/apply.Apply"
 
-noncomputable def noSideEffect [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def noSideEffect [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver/apply.noSideEffect"
 
-noncomputable def newAuthApplierV3 [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def newAuthApplierV3 [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver/apply.newAuthApplierV3"
 
-noncomputable def checkPutAuth [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def checkPutAuth [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver/apply.checkPutAuth"
 
-noncomputable def CheckTxnAuth [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def CheckTxnAuth [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver/apply.CheckTxnAuth"
 
-noncomputable def checkTxnPermission [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def checkTxnPermission [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver/apply.checkTxnPermission"
 
-noncomputable def checkTxnReqsPermission [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def checkTxnReqsPermission [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver/apply.checkTxnReqsPermission"
 
-noncomputable def checkLeasePuts [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def checkLeasePuts [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver/apply.checkLeasePuts"
 
-noncomputable def checkLeasePutsKeys [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def checkLeasePutsKeys [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver/apply.checkLeasePutsKeys"
 
-noncomputable def needAdminPermission [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def needAdminPermission [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver/apply.needAdminPermission"
 
-noncomputable def newApplierV3Backend [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def newApplierV3Backend [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver/apply.newApplierV3Backend"
 
-noncomputable def newApplierV3Capped [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def newApplierV3Capped [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver/apply.newApplierV3Capped"
 
-noncomputable def newApplierV3Corrupt [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def newApplierV3Corrupt [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver/apply.newApplierV3Corrupt"
 
-noncomputable def init.«0» [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def init.«0» [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver/apply.init.0"
 
-noncomputable def newQuotaApplierV3 [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def newQuotaApplierV3 [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver/apply.newQuotaApplierV3"
 
-noncomputable def NewUberApplier [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def NewUberApplier [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver/apply.NewUberApplier"
 
-noncomputable def newApplierV3 [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def newApplierV3 [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver/apply.newApplierV3"
 
 /-- go: apply.go:27:6 -/
-noncomputable def Apply.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def Apply.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "lg"
   (Lam "e"
   (Lam "uberApply"
@@ -247,7 +247,7 @@ noncomputable def Apply.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.go_etcd_io.etcd.pkg.v3.pbutil.MustUnmarshalMessage []))) (Val #())) (Var "$a0")) (Var "$a1"))))))))))))))))))))
 
 /-- go: apply.go:51:6 -/
-noncomputable def noSideEffect.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def noSideEffect.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "r"
   (App (Val exceptionDo)
   (Let "r" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.InternalRaftRequest.ty)))) (Var "r"))
@@ -255,7 +255,7 @@ noncomputable def noSideEffect.impl [FfiSyntax] [GoGlobalContext] : val :=
   (If (If (If (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.RangeRequest.ty)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.RangeRequest.ty)))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.InternalRaftRequest.ty go!"Range"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.InternalRaftRequest.ty)))) (Var "r")))) (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.RangeRequest.ty)))) (Val UntypedNil))))) (Val #true) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserGetRequest.ty)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserGetRequest.ty)))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.InternalRaftRequest.ty go!"AuthUserGet"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.InternalRaftRequest.ty)))) (Var "r")))) (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserGetRequest.ty)))) (Val UntypedNil)))))) (Val #true) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleGetRequest.ty)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleGetRequest.ty)))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.InternalRaftRequest.ty go!"AuthRoleGet"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.InternalRaftRequest.ty)))) (Var "r")))) (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleGetRequest.ty)))) (Val UntypedNil)))))) (Val #true) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthStatusRequest.ty)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthStatusRequest.ty)))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.InternalRaftRequest.ty go!"AuthStatus"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.InternalRaftRequest.ty)))) (Var "r")))) (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthStatusRequest.ty)))) (Val UntypedNil))))))))))
 
 /-- go: auth.go:39:6 -/
-noncomputable def newAuthApplierV3.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def newAuthApplierV3.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "as"
   (Lam "base"
   (Lam "lessor"
@@ -270,7 +270,7 @@ noncomputable def newAuthApplierV3.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (CompositeLiteral authApplierV3.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"applierV3")) (ElementExpression applierV3.ty (Var "$v0"))), (KeyedElement (some (KeyField go!"as")) (ElementExpression _root_.Perennial.go_etcd_io.etcd.server.v3.auth.AuthStore.ty (Var "$v1"))), (KeyedElement (some (KeyField go!"lessor")) (ElementExpression _root_.Perennial.go_etcd_io.etcd.server.v3.lease.Lessor.ty (Var "$v2")))]))))))))))))))
 
 /-- go: auth.go:43:26 -/
-noncomputable def authApplierV3.Apply.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def authApplierV3.Apply.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "aa"
   (Lam "r"
   (Lam "shouldApplyV3"
@@ -347,7 +347,7 @@ noncomputable def authApplierV3.Apply.impl [FfiSyntax] [GoGlobalContext] : val :
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.Mutex.ty) go!"Lock"))) (App (Val (GoInstruction (StructFieldRef authApplierV3.ty go!"mu"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType authApplierV3.ty)))) (Var "aa")))) (Val #()))))))))))))))
 
 /-- go: auth.go:65:26 -/
-noncomputable def authApplierV3.Put.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def authApplierV3.Put.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "aa"
   (Lam "r"
   (App (Val exceptionDo)
@@ -377,7 +377,7 @@ noncomputable def authApplierV3.Put.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "err") (Var "$r0")))))))))))))
 
 /-- go: auth.go:73:6 -/
-noncomputable def checkPutAuth.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def checkPutAuth.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "as"
   (Lam "ai"
   (Lam "lessor"
@@ -436,7 +436,7 @@ noncomputable def checkPutAuth.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "err") (Var "$r0")))))))))))))))))
 
 /-- go: auth.go:96:26 -/
-noncomputable def authApplierV3.Range.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def authApplierV3.Range.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "aa"
   (Lam "r"
   (App (Val exceptionDo)
@@ -465,7 +465,7 @@ noncomputable def authApplierV3.Range.impl [FfiSyntax] [GoGlobalContext] : val :
   (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "err") (Var "$r0")))))))))))))
 
 /-- go: auth.go:103:26 -/
-noncomputable def authApplierV3.DeleteRange.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def authApplierV3.DeleteRange.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "aa"
   (Lam "r"
   (App (Val exceptionDo)
@@ -511,7 +511,7 @@ noncomputable def authApplierV3.DeleteRange.impl [FfiSyntax] [GoGlobalContext] :
   (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "err") (Var "$r0")))))))))))))
 
 /-- go: auth.go:117:26 -/
-noncomputable def authApplierV3.Txn.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def authApplierV3.Txn.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "aa"
   (Lam "rt"
   (Lam "skipRangeExecution"
@@ -544,7 +544,7 @@ noncomputable def authApplierV3.Txn.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "err") (Var "$r0")))))))))))))))
 
 /-- go: auth.go:124:6 -/
-noncomputable def CheckTxnAuth.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def CheckTxnAuth.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "as"
   (Lam "ai"
   (Lam "lessor"
@@ -562,7 +562,7 @@ noncomputable def CheckTxnAuth.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (App (App (App (App (Val (GoInstruction (FuncResolve checkTxnPermission []))) (Val #())) (Var "$a0")) (Var "$a1")) (Var "$a2")) (Var "$a3"))))))))))))))))
 
 /-- go: auth.go:128:6 -/
-noncomputable def checkTxnPermission.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def checkTxnPermission.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "as"
   (Lam "ai"
   (Lam "lessor"
@@ -620,7 +620,7 @@ noncomputable def checkTxnPermission.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.Compare.ty)))) (Pair (Var "c") (Var "$value"))))))))))))))))))))
 
 /-- go: auth.go:140:6 -/
-noncomputable def checkTxnReqsPermission.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def checkTxnReqsPermission.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "as"
   (Lam "ai"
   (Lam "lessor"
@@ -760,7 +760,7 @@ noncomputable def checkTxnReqsPermission.impl [FfiSyntax] [GoGlobalContext] : va
   (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.RequestOp.ty)))) (Pair (Var "requ") (Var "$value"))))))))))))))))))))
 
 /-- go: auth.go:191:26 -/
-noncomputable def authApplierV3.LeaseRevoke.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def authApplierV3.LeaseRevoke.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "aa"
   (Lam "lc"
   (App (Val exceptionDo)
@@ -789,7 +789,7 @@ noncomputable def authApplierV3.LeaseRevoke.impl [FfiSyntax] [GoGlobalContext] :
   (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "err") (Var "$r0")))))))))))))
 
 /-- go: auth.go:198:6 -/
-noncomputable def checkLeasePuts.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def checkLeasePuts.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "as"
   (Lam "ai"
   (Lam "lessor"
@@ -818,7 +818,7 @@ noncomputable def checkLeasePuts.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.lease.Lease.ty)))) (Pair (Var "l") (Var "$r0"))))))))))))))))
 
 /-- go: auth.go:207:6 -/
-noncomputable def checkLeasePutsKeys.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def checkLeasePutsKeys.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "as"
   (Lam "ai"
   (Lam "l"
@@ -866,7 +866,7 @@ noncomputable def checkLeasePutsKeys.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "err") (Var "$r0")))))))))))))))
 
 /-- go: auth.go:222:26 -/
-noncomputable def authApplierV3.UserGet.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def authApplierV3.UserGet.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "aa"
   (Lam "r"
   (App (Val exceptionDo)
@@ -900,7 +900,7 @@ noncomputable def authApplierV3.UserGet.impl [FfiSyntax] [GoGlobalContext] : val
   (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "err") (Var "$r0"))))))))))))
 
 /-- go: auth.go:233:26 -/
-noncomputable def authApplierV3.RoleGet.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def authApplierV3.RoleGet.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "aa"
   (Lam "r"
   (App (Val exceptionDo)
@@ -936,7 +936,7 @@ noncomputable def authApplierV3.RoleGet.impl [FfiSyntax] [GoGlobalContext] : val
   (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "err") (Var "$r0"))))))))))))
 
 /-- go: auth.go:244:6 -/
-noncomputable def needAdminPermission.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def needAdminPermission.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "r"
   (App (Val exceptionDo)
   (Let "r" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.InternalRaftRequest.ty)))) (Var "r"))
@@ -984,7 +984,7 @@ noncomputable def needAdminPermission.impl [FfiSyntax] [GoGlobalContext] : val :
   (Val #false)))))))))))))))))))
 
 /-- go: backend.go:40:6 -/
-noncomputable def newApplierV3Backend.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def newApplierV3Backend.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "opts"
   (App (Val exceptionDo)
   (Let "opts" (App (Val (GoInstruction (GoAlloc ApplierOptions.ty))) (Var "opts"))
@@ -993,7 +993,7 @@ noncomputable def newApplierV3Backend.impl [FfiSyntax] [GoGlobalContext] : val :
   (App (Val (GoInstruction (CompositeLiteral applierV3backend.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"options")) (ElementExpression ApplierOptions.ty (Var "$v0")))])))))))))
 
 /-- go: backend.go:46:28 -/
-noncomputable def applierV3backend.Apply.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def applierV3backend.Apply.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "a"
   (Lam "r"
   (Lam "shouldApplyV3"
@@ -1009,7 +1009,7 @@ noncomputable def applierV3backend.Apply.impl [FfiSyntax] [GoGlobalContext] : va
   (App (App (App (Val (GoInstruction (GoLoad applyFunc.ty))) (Var "applyFunc")) (Var "$a0")) (Var "$a1"))))))))))))))
 
 /-- go: backend.go:50:28 -/
-noncomputable def applierV3backend.Put.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def applierV3backend.Put.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "a"
   (Lam "p"
   (App (Val exceptionDo)
@@ -1031,7 +1031,7 @@ noncomputable def applierV3backend.Put.impl [FfiSyntax] [GoGlobalContext] : val 
   (Pair (Pair (Var "$ret0") (Var "$ret1")) (Var "$ret2")))))))))))))))
 
 /-- go: backend.go:54:28 -/
-noncomputable def applierV3backend.DeleteRange.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def applierV3backend.DeleteRange.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "a"
   (Lam "dr"
   (App (Val exceptionDo)
@@ -1049,7 +1049,7 @@ noncomputable def applierV3backend.DeleteRange.impl [FfiSyntax] [GoGlobalContext
   (Pair (Pair (Var "$ret0") (Var "$ret1")) (Var "$ret2"))))))))))))
 
 /-- go: backend.go:58:28 -/
-noncomputable def applierV3backend.Range.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def applierV3backend.Range.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "a"
   (Lam "r"
   (App (Val exceptionDo)
@@ -1068,7 +1068,7 @@ noncomputable def applierV3backend.Range.impl [FfiSyntax] [GoGlobalContext] : va
   (Pair (Pair (Var "$ret0") (Var "$ret1")) (Var "$ret2"))))))))))))
 
 /-- go: backend.go:62:28 -/
-noncomputable def applierV3backend.Txn.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def applierV3backend.Txn.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "a"
   (Lam "rt"
   (Lam "skipRangeExecution"
@@ -1091,7 +1091,7 @@ noncomputable def applierV3backend.Txn.impl [FfiSyntax] [GoGlobalContext] : val 
   (Pair (Pair (Var "$ret0") (Var "$ret1")) (Var "$ret2"))))))))))))))
 
 /-- go: backend.go:66:28 -/
-noncomputable def applierV3backend.Compaction.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def applierV3backend.Compaction.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "a"
   (Lam "compaction"
   (App (Val exceptionDo)
@@ -1171,7 +1171,7 @@ noncomputable def applierV3backend.Compaction.impl [FfiSyntax] [GoGlobalContext]
   (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.CompactionResponse.ty)))) (Pair (Var "resp") (Var "$r0"))))))))))))
 
 /-- go: backend.go:83:28 -/
-noncomputable def applierV3backend.LeaseGrant.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def applierV3backend.LeaseGrant.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "a"
   (Lam "lc"
   (App (Val exceptionDo)
@@ -1216,7 +1216,7 @@ noncomputable def applierV3backend.LeaseGrant.impl [FfiSyntax] [GoGlobalContext]
   (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.lease.Lease.ty)))) (Pair (Var "l") (Var "$r0")))))))))))))))))
 
 /-- go: backend.go:94:28 -/
-noncomputable def applierV3backend.LeaseRevoke.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def applierV3backend.LeaseRevoke.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "a"
   (Lam "lc"
   (App (Val exceptionDo)
@@ -1233,7 +1233,7 @@ noncomputable def applierV3backend.LeaseRevoke.impl [FfiSyntax] [GoGlobalContext
   (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "err") (Var "$r0"))))))))))))
 
 /-- go: backend.go:99:28 -/
-noncomputable def applierV3backend.LeaseCheckpoint.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def applierV3backend.LeaseCheckpoint.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "a"
   (Lam "lc"
   (App (Val exceptionDo)
@@ -1269,7 +1269,7 @@ noncomputable def applierV3backend.LeaseCheckpoint.impl [FfiSyntax] [GoGlobalCon
   (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.LeaseCheckpoint.ty)))) (Pair (Var "c") (Var "$value"))))))))))))))))
 
 /-- go: backend.go:109:28 -/
-noncomputable def applierV3backend.Alarm.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def applierV3backend.Alarm.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "a"
   (Lam "ar"
   (App (Val exceptionDo)
@@ -1348,7 +1348,7 @@ noncomputable def applierV3backend.Alarm.impl [FfiSyntax] [GoGlobalContext] : va
   (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AlarmResponse.ty)))) (Pair (Var "resp") (Var "$r0"))))))))))))
 
 /-- go: backend.go:138:28 -/
-noncomputable def applierV3backend.AuthEnable.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def applierV3backend.AuthEnable.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "a"
   (Lam BAnon
   (App (Val exceptionDo)
@@ -1369,7 +1369,7 @@ noncomputable def applierV3backend.AuthEnable.impl [FfiSyntax] [GoGlobalContext]
   (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "err") (Var "$r0")))))))))))
 
 /-- go: backend.go:146:28 -/
-noncomputable def applierV3backend.AuthDisable.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def applierV3backend.AuthDisable.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "a"
   (Lam BAnon
   (App (Val exceptionDo)
@@ -1382,7 +1382,7 @@ noncomputable def applierV3backend.AuthDisable.impl [FfiSyntax] [GoGlobalContext
   (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.go_etcd_io.etcd.server.v3.auth.AuthStore.ty go!"AuthDisable"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.server.v3.auth.AuthStore.ty))) (App (Val (GoInstruction (StructFieldRef ApplierOptions.ty go!"AuthStore"))) (App (Val (GoInstruction (StructFieldRef applierV3backend.ty go!"options"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType applierV3backend.ty)))) (Var "a")))))) (Val #()))))))))
 
 /-- go: backend.go:151:28 -/
-noncomputable def applierV3backend.AuthStatus.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def applierV3backend.AuthStatus.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "a"
   (Lam BAnon
   (App (Val exceptionDo)
@@ -1404,7 +1404,7 @@ noncomputable def applierV3backend.AuthStatus.impl [FfiSyntax] [GoGlobalContext]
   (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "enabled") (Var "$r0")))))))))))
 
 /-- go: backend.go:157:28 -/
-noncomputable def applierV3backend.Authenticate.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def applierV3backend.Authenticate.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "a"
   (Lam "r"
   (App (Val exceptionDo)
@@ -1448,7 +1448,7 @@ noncomputable def applierV3backend.Authenticate.impl [FfiSyntax] [GoGlobalContex
   (App (Val (GoInstruction (GoStore _root_.Perennial.context.Context.ty))) (Pair (Var "ctx") (Var "$r0"))))))))))))
 
 /-- go: backend.go:166:28 -/
-noncomputable def applierV3backend.UserAdd.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def applierV3backend.UserAdd.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "a"
   (Lam "r"
   (App (Val exceptionDo)
@@ -1479,7 +1479,7 @@ noncomputable def applierV3backend.UserAdd.impl [FfiSyntax] [GoGlobalContext] : 
   (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserAddResponse.ty)))) (Pair (Var "resp") (Var "$r0")))))))))))))))))
 
 /-- go: backend.go:174:28 -/
-noncomputable def applierV3backend.UserDelete.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def applierV3backend.UserDelete.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "a"
   (Lam "r"
   (App (Val exceptionDo)
@@ -1510,7 +1510,7 @@ noncomputable def applierV3backend.UserDelete.impl [FfiSyntax] [GoGlobalContext]
   (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserDeleteResponse.ty)))) (Pair (Var "resp") (Var "$r0")))))))))))))))))
 
 /-- go: backend.go:182:28 -/
-noncomputable def applierV3backend.UserChangePassword.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def applierV3backend.UserChangePassword.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "a"
   (Lam "r"
   (App (Val exceptionDo)
@@ -1541,7 +1541,7 @@ noncomputable def applierV3backend.UserChangePassword.impl [FfiSyntax] [GoGlobal
   (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserChangePasswordResponse.ty)))) (Pair (Var "resp") (Var "$r0")))))))))))))))))
 
 /-- go: backend.go:190:28 -/
-noncomputable def applierV3backend.UserGrantRole.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def applierV3backend.UserGrantRole.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "a"
   (Lam "r"
   (App (Val exceptionDo)
@@ -1572,7 +1572,7 @@ noncomputable def applierV3backend.UserGrantRole.impl [FfiSyntax] [GoGlobalConte
   (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserGrantRoleResponse.ty)))) (Pair (Var "resp") (Var "$r0")))))))))))))))))
 
 /-- go: backend.go:198:28 -/
-noncomputable def applierV3backend.UserGet.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def applierV3backend.UserGet.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "a"
   (Lam "r"
   (App (Val exceptionDo)
@@ -1603,7 +1603,7 @@ noncomputable def applierV3backend.UserGet.impl [FfiSyntax] [GoGlobalContext] : 
   (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserGetResponse.ty)))) (Pair (Var "resp") (Var "$r0")))))))))))))))))
 
 /-- go: backend.go:206:28 -/
-noncomputable def applierV3backend.UserRevokeRole.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def applierV3backend.UserRevokeRole.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "a"
   (Lam "r"
   (App (Val exceptionDo)
@@ -1634,7 +1634,7 @@ noncomputable def applierV3backend.UserRevokeRole.impl [FfiSyntax] [GoGlobalCont
   (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserRevokeRoleResponse.ty)))) (Pair (Var "resp") (Var "$r0")))))))))))))))))
 
 /-- go: backend.go:214:28 -/
-noncomputable def applierV3backend.RoleAdd.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def applierV3backend.RoleAdd.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "a"
   (Lam "r"
   (App (Val exceptionDo)
@@ -1665,7 +1665,7 @@ noncomputable def applierV3backend.RoleAdd.impl [FfiSyntax] [GoGlobalContext] : 
   (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleAddResponse.ty)))) (Pair (Var "resp") (Var "$r0")))))))))))))))))
 
 /-- go: backend.go:222:28 -/
-noncomputable def applierV3backend.RoleGrantPermission.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def applierV3backend.RoleGrantPermission.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "a"
   (Lam "r"
   (App (Val exceptionDo)
@@ -1696,7 +1696,7 @@ noncomputable def applierV3backend.RoleGrantPermission.impl [FfiSyntax] [GoGloba
   (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleGrantPermissionResponse.ty)))) (Pair (Var "resp") (Var "$r0")))))))))))))))))
 
 /-- go: backend.go:230:28 -/
-noncomputable def applierV3backend.RoleGet.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def applierV3backend.RoleGet.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "a"
   (Lam "r"
   (App (Val exceptionDo)
@@ -1727,7 +1727,7 @@ noncomputable def applierV3backend.RoleGet.impl [FfiSyntax] [GoGlobalContext] : 
   (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleGetResponse.ty)))) (Pair (Var "resp") (Var "$r0")))))))))))))))))
 
 /-- go: backend.go:238:28 -/
-noncomputable def applierV3backend.RoleRevokePermission.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def applierV3backend.RoleRevokePermission.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "a"
   (Lam "r"
   (App (Val exceptionDo)
@@ -1758,7 +1758,7 @@ noncomputable def applierV3backend.RoleRevokePermission.impl [FfiSyntax] [GoGlob
   (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleRevokePermissionResponse.ty)))) (Pair (Var "resp") (Var "$r0")))))))))))))))))
 
 /-- go: backend.go:246:28 -/
-noncomputable def applierV3backend.RoleDelete.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def applierV3backend.RoleDelete.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "a"
   (Lam "r"
   (App (Val exceptionDo)
@@ -1789,7 +1789,7 @@ noncomputable def applierV3backend.RoleDelete.impl [FfiSyntax] [GoGlobalContext]
   (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleDeleteResponse.ty)))) (Pair (Var "resp") (Var "$r0")))))))))))))))))
 
 /-- go: backend.go:254:28 -/
-noncomputable def applierV3backend.UserList.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def applierV3backend.UserList.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "a"
   (Lam "r"
   (App (Val exceptionDo)
@@ -1820,7 +1820,7 @@ noncomputable def applierV3backend.UserList.impl [FfiSyntax] [GoGlobalContext] :
   (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserListResponse.ty)))) (Pair (Var "resp") (Var "$r0")))))))))))))))))
 
 /-- go: backend.go:262:28 -/
-noncomputable def applierV3backend.RoleList.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def applierV3backend.RoleList.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "a"
   (Lam "r"
   (App (Val exceptionDo)
@@ -1851,7 +1851,7 @@ noncomputable def applierV3backend.RoleList.impl [FfiSyntax] [GoGlobalContext] :
   (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleListResponse.ty)))) (Pair (Var "resp") (Var "$r0")))))))))))))))))
 
 /-- go: backend.go:270:28 -/
-noncomputable def applierV3backend.ClusterVersionSet.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def applierV3backend.ClusterVersionSet.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "a"
   (Lam "r"
   (Lam "shouldApplyV3"
@@ -1906,7 +1906,7 @@ noncomputable def applierV3backend.ClusterVersionSet.impl [FfiSyntax] [GoGlobalC
   (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.github_com.Masterminds.semver.v3.Version.ty)))) (Pair (Var "prevVersion") (Var "$r0")))))))))))))))
 
 /-- go: backend.go:287:28 -/
-noncomputable def applierV3backend.ClusterMemberAttrSet.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def applierV3backend.ClusterMemberAttrSet.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "a"
   (Lam "r"
   (Lam "shouldApplyV3"
@@ -1926,7 +1926,7 @@ noncomputable def applierV3backend.ClusterMemberAttrSet.impl [FfiSyntax] [GoGlob
   (App (App (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.RaftCluster.ty) go!"UpdateAttributes"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.RaftCluster.ty)))) (App (Val (GoInstruction (StructFieldRef ApplierOptions.ty go!"Cluster"))) (App (Val (GoInstruction (StructFieldRef applierV3backend.ty go!"options"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType applierV3backend.ty)))) (Var "a")))))) (Var "$a0")) (Var "$a1")) (Var "$a2"))))))))))))))
 
 /-- go: backend.go:298:28 -/
-noncomputable def applierV3backend.DowngradeInfoSet.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def applierV3backend.DowngradeInfoSet.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "a"
   (Lam "r"
   (Lam "shouldApplyV3"
@@ -1958,7 +1958,7 @@ noncomputable def applierV3backend.DowngradeInfoSet.impl [FfiSyntax] [GoGlobalCo
   (App (Val (GoInstruction (GoStore _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.version.DowngradeInfo.ty))) (Pair (Var "d") (Var "$r0")))))))))))))))
 
 /-- go: backend.go:306:28 -/
-noncomputable def applierV3backend.newHeader.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def applierV3backend.newHeader.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "a"
   (Lam BAnon
   (App (Val exceptionDo)
@@ -1975,7 +1975,7 @@ noncomputable def applierV3backend.newHeader.impl [FfiSyntax] [GoGlobalContext] 
     with Puts so that the number of keys in the store is capped.
 
     go: capped.go:31:6 -/
-noncomputable def newApplierV3Capped.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def newApplierV3Capped.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "base"
   (App (Val exceptionDo)
   (Let "base" (App (Val (GoInstruction (GoAlloc applierV3.ty))) (Var "base"))
@@ -1984,7 +1984,7 @@ noncomputable def newApplierV3Capped.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (CompositeLiteral applierV3Capped.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"applierV3")) (ElementExpression applierV3.ty (Var "$v0")))])))))))))
 
 /-- go: capped.go:33:27 -/
-noncomputable def applierV3Capped.Put.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def applierV3Capped.Put.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "a"
   (Lam BAnon
   (App (Val exceptionDo)
@@ -1993,7 +1993,7 @@ noncomputable def applierV3Capped.Put.impl [FfiSyntax] [GoGlobalContext] : val :
   (Pair (Pair (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.PutResponse.ty)))) (Val UntypedNil)) (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.pkg.v3.traceutil.Trace.ty)))) (Val UntypedNil))) (App (Val (GoInstruction (GoLoad go.error))) (App (Val (GoInstruction (GlobalVarAddr _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.errors.ErrNoSpace))) (Val #())))))))))
 
 /-- go: capped.go:37:27 -/
-noncomputable def applierV3Capped.Txn.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def applierV3Capped.Txn.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "a"
   (Lam "r"
   (Lam "skipRangeExecution"
@@ -2018,7 +2018,7 @@ noncomputable def applierV3Capped.Txn.impl [FfiSyntax] [GoGlobalContext] : val :
   (Val #())))))))))))
 
 /-- go: capped.go:44:27 -/
-noncomputable def applierV3Capped.LeaseGrant.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def applierV3Capped.LeaseGrant.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "a"
   (Lam BAnon
   (App (Val exceptionDo)
@@ -2027,7 +2027,7 @@ noncomputable def applierV3Capped.LeaseGrant.impl [FfiSyntax] [GoGlobalContext] 
   (Pair (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.LeaseGrantResponse.ty)))) (Val UntypedNil)) (App (Val (GoInstruction (GoLoad go.error))) (App (Val (GoInstruction (GlobalVarAddr _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.errors.ErrNoSpace))) (Val #())))))))))
 
 /-- go: corrupt.go:27:6 -/
-noncomputable def newApplierV3Corrupt.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def newApplierV3Corrupt.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "a"
   (App (Val exceptionDo)
   (Let "a" (App (Val (GoInstruction (GoAlloc applierV3.ty))) (Var "a"))
@@ -2036,7 +2036,7 @@ noncomputable def newApplierV3Corrupt.impl [FfiSyntax] [GoGlobalContext] : val :
   (App (Val (GoInstruction (CompositeLiteral applierV3Corrupt.ty))) (LiteralValue [(KeyedElement none (ElementExpression applierV3.ty (Var "$v0")))]))))))))
 
 /-- go: corrupt.go:29:28 -/
-noncomputable def applierV3Corrupt.Put.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def applierV3Corrupt.Put.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "a"
   (Lam BAnon
   (App (Val exceptionDo)
@@ -2045,7 +2045,7 @@ noncomputable def applierV3Corrupt.Put.impl [FfiSyntax] [GoGlobalContext] : val 
   (Pair (Pair (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.PutResponse.ty)))) (Val UntypedNil)) (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.pkg.v3.traceutil.Trace.ty)))) (Val UntypedNil))) (App (Val (GoInstruction (GoLoad go.error))) (App (Val (GoInstruction (GlobalVarAddr _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.errors.ErrCorrupt))) (Val #())))))))))
 
 /-- go: corrupt.go:33:28 -/
-noncomputable def applierV3Corrupt.Range.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def applierV3Corrupt.Range.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "a"
   (Lam BAnon
   (App (Val exceptionDo)
@@ -2054,7 +2054,7 @@ noncomputable def applierV3Corrupt.Range.impl [FfiSyntax] [GoGlobalContext] : va
   (Pair (Pair (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.RangeResponse.ty)))) (Val UntypedNil)) (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.pkg.v3.traceutil.Trace.ty)))) (Val UntypedNil))) (App (Val (GoInstruction (GoLoad go.error))) (App (Val (GoInstruction (GlobalVarAddr _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.errors.ErrCorrupt))) (Val #())))))))))
 
 /-- go: corrupt.go:37:28 -/
-noncomputable def applierV3Corrupt.DeleteRange.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def applierV3Corrupt.DeleteRange.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "a"
   (Lam BAnon
   (App (Val exceptionDo)
@@ -2063,7 +2063,7 @@ noncomputable def applierV3Corrupt.DeleteRange.impl [FfiSyntax] [GoGlobalContext
   (Pair (Pair (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.DeleteRangeResponse.ty)))) (Val UntypedNil)) (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.pkg.v3.traceutil.Trace.ty)))) (Val UntypedNil))) (App (Val (GoInstruction (GoLoad go.error))) (App (Val (GoInstruction (GlobalVarAddr _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.errors.ErrCorrupt))) (Val #())))))))))
 
 /-- go: corrupt.go:41:28 -/
-noncomputable def applierV3Corrupt.Txn.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def applierV3Corrupt.Txn.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "a"
   (Lam BAnon
   (Lam BAnon
@@ -2073,7 +2073,7 @@ noncomputable def applierV3Corrupt.Txn.impl [FfiSyntax] [GoGlobalContext] : val 
   (Pair (Pair (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.TxnResponse.ty)))) (Val UntypedNil)) (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.pkg.v3.traceutil.Trace.ty)))) (Val UntypedNil))) (App (Val (GoInstruction (GoLoad go.error))) (App (Val (GoInstruction (GlobalVarAddr _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.errors.ErrCorrupt))) (Val #()))))))))))
 
 /-- go: corrupt.go:45:28 -/
-noncomputable def applierV3Corrupt.Compaction.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def applierV3Corrupt.Compaction.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "a"
   (Lam BAnon
   (App (Val exceptionDo)
@@ -2082,7 +2082,7 @@ noncomputable def applierV3Corrupt.Compaction.impl [FfiSyntax] [GoGlobalContext]
   (Pair (Pair (Pair (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.CompactionResponse.ty)))) (Val UntypedNil)) (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.ChannelType go.ChanDir.recvonly (go.GoType.StructType []))))) (Val UntypedNil))) (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.pkg.v3.traceutil.Trace.ty)))) (Val UntypedNil))) (App (Val (GoInstruction (GoLoad go.error))) (App (Val (GoInstruction (GlobalVarAddr _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.errors.ErrCorrupt))) (Val #())))))))))
 
 /-- go: corrupt.go:49:28 -/
-noncomputable def applierV3Corrupt.LeaseGrant.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def applierV3Corrupt.LeaseGrant.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "a"
   (Lam BAnon
   (App (Val exceptionDo)
@@ -2091,7 +2091,7 @@ noncomputable def applierV3Corrupt.LeaseGrant.impl [FfiSyntax] [GoGlobalContext]
   (Pair (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.LeaseGrantResponse.ty)))) (Val UntypedNil)) (App (Val (GoInstruction (GoLoad go.error))) (App (Val (GoInstruction (GlobalVarAddr _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.errors.ErrCorrupt))) (Val #())))))))))
 
 /-- go: corrupt.go:53:28 -/
-noncomputable def applierV3Corrupt.LeaseRevoke.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def applierV3Corrupt.LeaseRevoke.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "a"
   (Lam BAnon
   (App (Val exceptionDo)
@@ -2100,7 +2100,7 @@ noncomputable def applierV3Corrupt.LeaseRevoke.impl [FfiSyntax] [GoGlobalContext
   (Pair (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.LeaseRevokeResponse.ty)))) (Val UntypedNil)) (App (Val (GoInstruction (GoLoad go.error))) (App (Val (GoInstruction (GlobalVarAddr _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.errors.ErrCorrupt))) (Val #())))))))))
 
 /-- go: quota.go:32:6 -/
-noncomputable def newQuotaApplierV3.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def newQuotaApplierV3.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "lg"
   (Lam "quotaBackendBytesCfg"
   (Lam "be"
@@ -2120,7 +2120,7 @@ noncomputable def newQuotaApplierV3.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (CompositeLiteral quotaApplierV3.ty))) (LiteralValue [(KeyedElement none (ElementExpression applierV3.ty (Var "$v0"))), (KeyedElement none (ElementExpression _root_.Perennial.go_etcd_io.etcd.server.v3.storage.Quota.ty (Var "$v1")))]))))))))))))))))
 
 /-- go: quota.go:36:26 -/
-noncomputable def quotaApplierV3.Put.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def quotaApplierV3.Put.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "a"
   (Lam "p"
   (App (Val exceptionDo)
@@ -2163,7 +2163,7 @@ noncomputable def quotaApplierV3.Put.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "ok") (Var "$r0"))))))))))))
 
 /-- go: quota.go:45:26 -/
-noncomputable def quotaApplierV3.Txn.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def quotaApplierV3.Txn.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "a"
   (Lam "rt"
   (Lam "skipRangeExecution"
@@ -2209,7 +2209,7 @@ noncomputable def quotaApplierV3.Txn.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "ok") (Var "$r0"))))))))))))))
 
 /-- go: quota.go:54:26 -/
-noncomputable def quotaApplierV3.LeaseGrant.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def quotaApplierV3.LeaseGrant.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "a"
   (Lam "lc"
   (App (Val exceptionDo)
@@ -2246,7 +2246,7 @@ noncomputable def quotaApplierV3.LeaseGrant.impl [FfiSyntax] [GoGlobalContext] :
   (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "ok") (Var "$r0"))))))))))))
 
 /-- go: uber_applier.go:47:6 -/
-noncomputable def NewUberApplier.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def NewUberApplier.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "opts"
   (App (Val exceptionDo)
   (Let "opts" (App (Val (GoInstruction (GoAlloc ApplierOptions.ty))) (Var "opts"))
@@ -2273,7 +2273,7 @@ noncomputable def NewUberApplier.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore applierV3.ty))) (Pair (Var "applyV3base") (Var "$r0"))))))))))
 
 /-- go: uber_applier.go:61:6 -/
-noncomputable def newApplierV3.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def newApplierV3.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "opts"
   (App (Val exceptionDo)
   (Let "opts" (App (Val (GoInstruction (GoAlloc ApplierOptions.ty))) (Var "opts"))
@@ -2294,7 +2294,7 @@ noncomputable def newApplierV3.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore applierV3.ty))) (Pair (Var "applierBackend") (Var "$r0"))))))))))
 
 /-- go: uber_applier.go:70:23 -/
-noncomputable def uberApplier.restoreAlarms.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def uberApplier.restoreAlarms.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "a"
   (Lam BAnon
   (App (Val exceptionDo)
@@ -2337,7 +2337,7 @@ noncomputable def uberApplier.restoreAlarms.impl [FfiSyntax] [GoGlobalContext] :
   (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "noSpaceAlarms") (Var "$r0"))))))))))))
 
 /-- go: uber_applier.go:82:23 -/
-noncomputable def uberApplier.Apply.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def uberApplier.Apply.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "a"
   (Lam "r"
   (Lam "shouldApplyV3"
@@ -2355,7 +2355,7 @@ noncomputable def uberApplier.Apply.impl [FfiSyntax] [GoGlobalContext] : val :=
     the underlying applyV3 object.
 
     go: uber_applier.go:93:23 -/
-noncomputable def uberApplier.dispatch.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def uberApplier.dispatch.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "a"
   (Lam "r"
   (Lam "shouldApplyV3"
@@ -2987,7 +2987,7 @@ noncomputable def uberApplier.dispatch.impl [FfiSyntax] [GoGlobalContext] : val 
   (App (Val (GoInstruction (GoStore go.string))) (Pair (Var "op") (Var "$r0")))))))))))))))
 
 /-- go: uber_applier.go:214:23 -/
-noncomputable def uberApplier.Alarm.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def uberApplier.Alarm.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "a"
   (Lam "ar"
   (App (Val exceptionDo)
@@ -3019,7 +3019,7 @@ noncomputable def uberApplier.Alarm.impl [FfiSyntax] [GoGlobalContext] : val :=
 noncomputable instance info' : PkgInfo pkg_id.go_etcd_io.etcd.server.v3.etcdserver.apply where
   pkgImportedPkgs := [pkg_id.go_uber_org.zap, pkg_id.go_etcd_io.etcd.api.v3.etcdserverpb, pkg_id.go_etcd_io.etcd.pkg.v3.pbutil, pkg_id.go_etcd_io.etcd.pkg.v3.wait, pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.membership, pkg_id.go_etcd_io.raft.v3.raftpb, pkg_id.sync, pkg_id.go_etcd_io.etcd.pkg.v3.traceutil, pkg_id.go_etcd_io.etcd.server.v3.auth, pkg_id.go_etcd_io.etcd.server.v3.lease, pkg_id.context, pkg_id.github_com.Masterminds.semver.v3, pkg_id.go_etcd_io.etcd.api.v3.membershippb, pkg_id.go_etcd_io.etcd.client.pkg.v3.types, pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api, pkg_id.go_etcd_io.etcd.server.v3.etcdserver.txn, pkg_id.go_etcd_io.etcd.server.v3.etcdserver.version, pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc, pkg_id.go_etcd_io.etcd.server.v3.etcdserver.errors, pkg_id.go_etcd_io.etcd.server.v3.storage, pkg_id.time, pkg_id.google_golang_org.protobuf.proto, pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3alarm, pkg_id.go_etcd_io.etcd.server.v3.etcdserver.cindex, pkg_id.go_etcd_io.etcd.server.v3.storage.backend, pkg_id.github_com.prometheus.client_golang.prometheus, pkg_id.errors]
 
-noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (App (Val (package.init pkg_id.go_etcd_io.etcd.server.v3.etcdserver.apply)) (Lam BAnon
   (App (Val exceptionDo)
@@ -3110,17 +3110,21 @@ noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val _root_.Perennial.errors.initialize') (Val #()))))))))
 
-abbrev applierV3 [FfiSyntax] : Type := GoInterface
+abbrev applierV3 [GooseExts] : Type := GoInterface
 
-@[reducible] noncomputable def applierV3.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def applierV3.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"Alarm" (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AlarmRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AlarmResponse.ty), go.error])), (go.InterfaceElem.MethodElem go!"Apply" (go.signature.Signature [(go.GoType.PointerType InternalRaftRequestWrapper.ty), _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.ShouldApplyV3.ty, applyFunc.ty] false [(go.GoType.PointerType Result.ty)])), (go.InterfaceElem.MethodElem go!"AuthDisable" (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthDisableResponse.ty), go.error])), (go.InterfaceElem.MethodElem go!"AuthEnable" (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthEnableResponse.ty), go.error])), (go.InterfaceElem.MethodElem go!"AuthStatus" (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthStatusResponse.ty), go.error])), (go.InterfaceElem.MethodElem go!"Authenticate" (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.InternalAuthenticateRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthenticateResponse.ty), go.error])), (go.InterfaceElem.MethodElem go!"ClusterMemberAttrSet" (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.membershippb.ClusterMemberAttrSetRequest.ty), _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.ShouldApplyV3.ty] false [])), (go.InterfaceElem.MethodElem go!"ClusterVersionSet" (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.membershippb.ClusterVersionSetRequest.ty), _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.ShouldApplyV3.ty] false [])), (go.InterfaceElem.MethodElem go!"Compaction" (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.CompactionRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.CompactionResponse.ty), (go.GoType.ChannelType go.ChanDir.recvonly (go.GoType.StructType [])), (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.pkg.v3.traceutil.Trace.ty), go.error])), (go.InterfaceElem.MethodElem go!"DeleteRange" (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.DeleteRangeRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.DeleteRangeResponse.ty), (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.pkg.v3.traceutil.Trace.ty), go.error])), (go.InterfaceElem.MethodElem go!"DowngradeInfoSet" (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.membershippb.DowngradeInfoSetRequest.ty), _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.ShouldApplyV3.ty] false [])), (go.InterfaceElem.MethodElem go!"LeaseCheckpoint" (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.LeaseCheckpointRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.LeaseCheckpointResponse.ty), go.error])), (go.InterfaceElem.MethodElem go!"LeaseGrant" (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.LeaseGrantRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.LeaseGrantResponse.ty), go.error])), (go.InterfaceElem.MethodElem go!"LeaseRevoke" (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.LeaseRevokeRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.LeaseRevokeResponse.ty), go.error])), (go.InterfaceElem.MethodElem go!"Put" (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.PutRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.PutResponse.ty), (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.pkg.v3.traceutil.Trace.ty), go.error])), (go.InterfaceElem.MethodElem go!"Range" (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.RangeRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.RangeResponse.ty), (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.pkg.v3.traceutil.Trace.ty), go.error])), (go.InterfaceElem.MethodElem go!"RoleAdd" (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleAddRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleAddResponse.ty), go.error])), (go.InterfaceElem.MethodElem go!"RoleDelete" (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleDeleteRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleDeleteResponse.ty), go.error])), (go.InterfaceElem.MethodElem go!"RoleGet" (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleGetRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleGetResponse.ty), go.error])), (go.InterfaceElem.MethodElem go!"RoleGrantPermission" (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleGrantPermissionRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleGrantPermissionResponse.ty), go.error])), (go.InterfaceElem.MethodElem go!"RoleList" (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleListRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleListResponse.ty), go.error])), (go.InterfaceElem.MethodElem go!"RoleRevokePermission" (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleRevokePermissionRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleRevokePermissionResponse.ty), go.error])), (go.InterfaceElem.MethodElem go!"Txn" (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.TxnRequest.ty), go.bool] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.TxnResponse.ty), (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.pkg.v3.traceutil.Trace.ty), go.error])), (go.InterfaceElem.MethodElem go!"UserAdd" (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserAddRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserAddResponse.ty), go.error])), (go.InterfaceElem.MethodElem go!"UserChangePassword" (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserChangePasswordRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserChangePasswordResponse.ty), go.error])), (go.InterfaceElem.MethodElem go!"UserDelete" (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserDeleteRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserDeleteResponse.ty), go.error])), (go.InterfaceElem.MethodElem go!"UserGet" (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserGetRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserGetResponse.ty), go.error])), (go.InterfaceElem.MethodElem go!"UserGrantRole" (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserGrantRoleRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserGrantRoleResponse.ty), go.error])), (go.InterfaceElem.MethodElem go!"UserList" (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserListRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserListResponse.ty), go.error])), (go.InterfaceElem.MethodElem go!"UserRevokeRole" (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserRevokeRoleRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserRevokeRoleResponse.ty), go.error]))])
 
-class applierV3.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class applierV3.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq applierV3.ty applierV3.underlying
+  method_set : go.MethodSetIs applierV3.ty [(go!"Alarm", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AlarmRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AlarmResponse.ty), go.error]))), (go!"Apply", (some (go.signature.Signature [(go.GoType.PointerType InternalRaftRequestWrapper.ty), _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.ShouldApplyV3.ty, applyFunc.ty] false [(go.GoType.PointerType Result.ty)]))), (go!"AuthDisable", (some (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthDisableResponse.ty), go.error]))), (go!"AuthEnable", (some (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthEnableResponse.ty), go.error]))), (go!"AuthStatus", (some (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthStatusResponse.ty), go.error]))), (go!"Authenticate", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.InternalAuthenticateRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthenticateResponse.ty), go.error]))), (go!"ClusterMemberAttrSet", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.membershippb.ClusterMemberAttrSetRequest.ty), _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.ShouldApplyV3.ty] false []))), (go!"ClusterVersionSet", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.membershippb.ClusterVersionSetRequest.ty), _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.ShouldApplyV3.ty] false []))), (go!"Compaction", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.CompactionRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.CompactionResponse.ty), (go.GoType.ChannelType go.ChanDir.recvonly (go.GoType.StructType [])), (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.pkg.v3.traceutil.Trace.ty), go.error]))), (go!"DeleteRange", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.DeleteRangeRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.DeleteRangeResponse.ty), (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.pkg.v3.traceutil.Trace.ty), go.error]))), (go!"DowngradeInfoSet", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.membershippb.DowngradeInfoSetRequest.ty), _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.ShouldApplyV3.ty] false []))), (go!"LeaseCheckpoint", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.LeaseCheckpointRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.LeaseCheckpointResponse.ty), go.error]))), (go!"LeaseGrant", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.LeaseGrantRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.LeaseGrantResponse.ty), go.error]))), (go!"LeaseRevoke", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.LeaseRevokeRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.LeaseRevokeResponse.ty), go.error]))), (go!"Put", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.PutRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.PutResponse.ty), (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.pkg.v3.traceutil.Trace.ty), go.error]))), (go!"Range", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.RangeRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.RangeResponse.ty), (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.pkg.v3.traceutil.Trace.ty), go.error]))), (go!"RoleAdd", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleAddRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleAddResponse.ty), go.error]))), (go!"RoleDelete", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleDeleteRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleDeleteResponse.ty), go.error]))), (go!"RoleGet", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleGetRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleGetResponse.ty), go.error]))), (go!"RoleGrantPermission", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleGrantPermissionRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleGrantPermissionResponse.ty), go.error]))), (go!"RoleList", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleListRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleListResponse.ty), go.error]))), (go!"RoleRevokePermission", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleRevokePermissionRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleRevokePermissionResponse.ty), go.error]))), (go!"Txn", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.TxnRequest.ty), go.bool] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.TxnResponse.ty), (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.pkg.v3.traceutil.Trace.ty), go.error]))), (go!"UserAdd", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserAddRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserAddResponse.ty), go.error]))), (go!"UserChangePassword", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserChangePasswordRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserChangePasswordResponse.ty), go.error]))), (go!"UserDelete", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserDeleteRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserDeleteResponse.ty), go.error]))), (go!"UserGet", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserGetRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserGetResponse.ty), go.error]))), (go!"UserGrantRole", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserGrantRoleRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserGrantRoleResponse.ty), go.error]))), (go!"UserList", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserListRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserListResponse.ty), go.error]))), (go!"UserRevokeRole", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserRevokeRoleRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserRevokeRoleResponse.ty), go.error])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType applierV3.ty) []
 
 attribute [instance] applierV3.TypeAssumptions.underlying
+  applierV3.TypeAssumptions.method_set
+  applierV3.TypeAssumptions.ptr_method_set
 
-structure authApplierV3 [FfiSyntax] where
+structure authApplierV3 [GooseExts] where
   mk ::
   applierV3' : applierV3
   as' : _root_.Perennial.go_etcd_io.etcd.server.v3.auth.AuthStore
@@ -3128,27 +3132,27 @@ structure authApplierV3 [FfiSyntax] where
   mu' : _root_.Perennial.sync.Mutex
   authInfo' : _root_.Perennial.go_etcd_io.etcd.server.v3.auth.AuthInfo
 
-noncomputable instance authApplierV3.zero_val [FfiSyntax] : ZeroVal authApplierV3 :=
+noncomputable instance authApplierV3.zero_val [GooseExts] : ZeroVal authApplierV3 :=
   ⟨authApplierV3.mk zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def authApplierV3.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def authApplierV3.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.EmbeddedField go!"applierV3" applierV3.ty),
 (go.field_decl.FieldDecl go!"as" _root_.Perennial.go_etcd_io.etcd.server.v3.auth.AuthStore.ty),
 (go.field_decl.FieldDecl go!"lessor" _root_.Perennial.go_etcd_io.etcd.server.v3.lease.Lessor.ty),
 (go.field_decl.FieldDecl go!"mu" _root_.Perennial.sync.Mutex.ty),
 (go.field_decl.FieldDecl go!"authInfo" _root_.Perennial.go_etcd_io.etcd.server.v3.auth.AuthInfo.ty)]
 
-@[irreducible] noncomputable def authApplierV3.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def authApplierV3.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   authApplierV3.fieldsUnsealed
 
-noncomputable instance equals_unfold_authApplierV3 [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_authApplierV3 [GooseExts] [GoGlobalContext] :
     EqualsUnfold authApplierV3.fields authApplierV3.fieldsUnsealed :=
   ⟨by unfold authApplierV3.fields; rfl⟩
 
-@[reducible] noncomputable def authApplierV3.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def authApplierV3.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType authApplierV3.fields)
 
-class authApplierV3.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class authApplierV3.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying authApplierV3.underlying authApplierV3
   underlying : go.UnderlyingDirectedEq authApplierV3.ty authApplierV3.underlying
   get_applierV3 : ∀ (x : authApplierV3), go.IsGoStepPureDetTagged under (StructFieldGet authApplierV3.underlying go!"applierV3") #x (Val #(x.applierV3'))
@@ -3161,6 +3165,8 @@ class authApplierV3.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContex
   set_mu : ∀ (x : authApplierV3) (y : _root_.Perennial.sync.Mutex), go.IsGoStepPureDetTagged under (StructFieldSet authApplierV3.underlying go!"mu") (PairV #x #y) (Val #(({ x with mu' := y } : authApplierV3)))
   get_authInfo : ∀ (x : authApplierV3), go.IsGoStepPureDetTagged under (StructFieldGet authApplierV3.underlying go!"authInfo") #x (Val #(x.authInfo'))
   set_authInfo : ∀ (x : authApplierV3) (y : _root_.Perennial.go_etcd_io.etcd.server.v3.auth.AuthInfo), go.IsGoStepPureDetTagged under (StructFieldSet authApplierV3.underlying go!"authInfo") (PairV #x #y) (Val #(({ x with authInfo' := y } : authApplierV3)))
+  method_set : go.MethodSetIs authApplierV3.ty [(go!"Alarm", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AlarmRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AlarmResponse.ty), go.error]))), (go!"AuthDisable", (some (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthDisableResponse.ty), go.error]))), (go!"AuthEnable", (some (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthEnableResponse.ty), go.error]))), (go!"AuthStatus", (some (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthStatusResponse.ty), go.error]))), (go!"Authenticate", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.InternalAuthenticateRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthenticateResponse.ty), go.error]))), (go!"ClusterMemberAttrSet", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.membershippb.ClusterMemberAttrSetRequest.ty), _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.ShouldApplyV3.ty] false []))), (go!"ClusterVersionSet", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.membershippb.ClusterVersionSetRequest.ty), _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.ShouldApplyV3.ty] false []))), (go!"Compaction", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.CompactionRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.CompactionResponse.ty), (go.GoType.ChannelType go.ChanDir.recvonly (go.GoType.StructType [])), (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.pkg.v3.traceutil.Trace.ty), go.error]))), (go!"DowngradeInfoSet", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.membershippb.DowngradeInfoSetRequest.ty), _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.ShouldApplyV3.ty] false []))), (go!"LeaseCheckpoint", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.LeaseCheckpointRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.LeaseCheckpointResponse.ty), go.error]))), (go!"LeaseGrant", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.LeaseGrantRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.LeaseGrantResponse.ty), go.error]))), (go!"RoleAdd", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleAddRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleAddResponse.ty), go.error]))), (go!"RoleDelete", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleDeleteRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleDeleteResponse.ty), go.error]))), (go!"RoleGrantPermission", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleGrantPermissionRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleGrantPermissionResponse.ty), go.error]))), (go!"RoleList", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleListRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleListResponse.ty), go.error]))), (go!"RoleRevokePermission", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleRevokePermissionRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleRevokePermissionResponse.ty), go.error]))), (go!"UserAdd", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserAddRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserAddResponse.ty), go.error]))), (go!"UserChangePassword", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserChangePasswordRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserChangePasswordResponse.ty), go.error]))), (go!"UserDelete", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserDeleteRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserDeleteResponse.ty), go.error]))), (go!"UserGrantRole", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserGrantRoleRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserGrantRoleResponse.ty), go.error]))), (go!"UserList", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserListRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserListResponse.ty), go.error]))), (go!"UserRevokeRole", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserRevokeRoleRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserRevokeRoleResponse.ty), go.error])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType authApplierV3.ty) [(go!"Alarm", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AlarmRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AlarmResponse.ty), go.error]))), (go!"Apply", (some (go.signature.Signature [(go.GoType.PointerType InternalRaftRequestWrapper.ty), _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.ShouldApplyV3.ty, applyFunc.ty] false [(go.GoType.PointerType Result.ty)]))), (go!"AuthDisable", (some (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthDisableResponse.ty), go.error]))), (go!"AuthEnable", (some (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthEnableResponse.ty), go.error]))), (go!"AuthStatus", (some (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthStatusResponse.ty), go.error]))), (go!"Authenticate", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.InternalAuthenticateRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthenticateResponse.ty), go.error]))), (go!"ClusterMemberAttrSet", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.membershippb.ClusterMemberAttrSetRequest.ty), _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.ShouldApplyV3.ty] false []))), (go!"ClusterVersionSet", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.membershippb.ClusterVersionSetRequest.ty), _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.ShouldApplyV3.ty] false []))), (go!"Compaction", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.CompactionRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.CompactionResponse.ty), (go.GoType.ChannelType go.ChanDir.recvonly (go.GoType.StructType [])), (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.pkg.v3.traceutil.Trace.ty), go.error]))), (go!"DeleteRange", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.DeleteRangeRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.DeleteRangeResponse.ty), (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.pkg.v3.traceutil.Trace.ty), go.error]))), (go!"DowngradeInfoSet", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.membershippb.DowngradeInfoSetRequest.ty), _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.ShouldApplyV3.ty] false []))), (go!"LeaseCheckpoint", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.LeaseCheckpointRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.LeaseCheckpointResponse.ty), go.error]))), (go!"LeaseGrant", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.LeaseGrantRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.LeaseGrantResponse.ty), go.error]))), (go!"LeaseRevoke", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.LeaseRevokeRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.LeaseRevokeResponse.ty), go.error]))), (go!"Put", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.PutRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.PutResponse.ty), (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.pkg.v3.traceutil.Trace.ty), go.error]))), (go!"Range", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.RangeRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.RangeResponse.ty), (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.pkg.v3.traceutil.Trace.ty), go.error]))), (go!"RoleAdd", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleAddRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleAddResponse.ty), go.error]))), (go!"RoleDelete", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleDeleteRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleDeleteResponse.ty), go.error]))), (go!"RoleGet", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleGetRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleGetResponse.ty), go.error]))), (go!"RoleGrantPermission", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleGrantPermissionRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleGrantPermissionResponse.ty), go.error]))), (go!"RoleList", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleListRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleListResponse.ty), go.error]))), (go!"RoleRevokePermission", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleRevokePermissionRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleRevokePermissionResponse.ty), go.error]))), (go!"Txn", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.TxnRequest.ty), go.bool] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.TxnResponse.ty), (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.pkg.v3.traceutil.Trace.ty), go.error]))), (go!"UserAdd", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserAddRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserAddResponse.ty), go.error]))), (go!"UserChangePassword", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserChangePasswordRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserChangePasswordResponse.ty), go.error]))), (go!"UserDelete", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserDeleteRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserDeleteResponse.ty), go.error]))), (go!"UserGet", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserGetRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserGetResponse.ty), go.error]))), (go!"UserGrantRole", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserGrantRoleRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserGrantRoleResponse.ty), go.error]))), (go!"UserList", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserListRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserListResponse.ty), go.error]))), (go!"UserRevokeRole", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserRevokeRoleRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserRevokeRoleResponse.ty), go.error])))]
   Alarm_unfold : MethodUnfold authApplierV3.ty go!"Alarm" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve applierV3.ty go!"Alarm"))) (App (Val (GoInstruction (StructFieldGet authApplierV3.ty go!"applierV3"))) (Var "$r"))))
   AuthDisable_unfold : MethodUnfold authApplierV3.ty go!"AuthDisable" (LamV "$r"
@@ -3270,6 +3276,8 @@ attribute [instance] authApplierV3.TypeAssumptions.type_repr
   authApplierV3.TypeAssumptions.set_mu
   authApplierV3.TypeAssumptions.get_authInfo
   authApplierV3.TypeAssumptions.set_authInfo
+  authApplierV3.TypeAssumptions.method_set
+  authApplierV3.TypeAssumptions.ptr_method_set
   authApplierV3.TypeAssumptions.Alarm_unfold
   authApplierV3.TypeAssumptions.AuthDisable_unfold
   authApplierV3.TypeAssumptions.AuthEnable_unfold
@@ -3323,27 +3331,35 @@ attribute [instance] authApplierV3.TypeAssumptions.type_repr
   authApplierV3.TypeAssumptions.ptr_UserList_unfold
   authApplierV3.TypeAssumptions.ptr_UserRevokeRole_unfold
 
-abbrev RaftStatusGetter [FfiSyntax] : Type := GoInterface
+abbrev RaftStatusGetter [GooseExts] : Type := GoInterface
 
-@[reducible] noncomputable def RaftStatusGetter.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def RaftStatusGetter.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"AppliedIndex" (go.signature.Signature [] false [go.uint64])), (go.InterfaceElem.MethodElem go!"CommittedIndex" (go.signature.Signature [] false [go.uint64])), (go.InterfaceElem.MethodElem go!"Leader" (go.signature.Signature [] false [_root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID.ty])), (go.InterfaceElem.MethodElem go!"MemberID" (go.signature.Signature [] false [_root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID.ty])), (go.InterfaceElem.MethodElem go!"Term" (go.signature.Signature [] false [go.uint64]))])
 
-class RaftStatusGetter.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class RaftStatusGetter.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq RaftStatusGetter.ty RaftStatusGetter.underlying
+  method_set : go.MethodSetIs RaftStatusGetter.ty [(go!"AppliedIndex", (some (go.signature.Signature [] false [go.uint64]))), (go!"CommittedIndex", (some (go.signature.Signature [] false [go.uint64]))), (go!"Leader", (some (go.signature.Signature [] false [_root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID.ty]))), (go!"MemberID", (some (go.signature.Signature [] false [_root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID.ty]))), (go!"Term", (some (go.signature.Signature [] false [go.uint64])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType RaftStatusGetter.ty) []
 
 attribute [instance] RaftStatusGetter.TypeAssumptions.underlying
+  RaftStatusGetter.TypeAssumptions.method_set
+  RaftStatusGetter.TypeAssumptions.ptr_method_set
 
-abbrev SnapshotServer [FfiSyntax] : Type := GoInterface
+abbrev SnapshotServer [GooseExts] : Type := GoInterface
 
-@[reducible] noncomputable def SnapshotServer.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def SnapshotServer.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"ForceSnapshot" (go.signature.Signature [] false []))])
 
-class SnapshotServer.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class SnapshotServer.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq SnapshotServer.ty SnapshotServer.underlying
+  method_set : go.MethodSetIs SnapshotServer.ty [(go!"ForceSnapshot", (some (go.signature.Signature [] false [])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType SnapshotServer.ty) []
 
 attribute [instance] SnapshotServer.TypeAssumptions.underlying
+  SnapshotServer.TypeAssumptions.method_set
+  SnapshotServer.TypeAssumptions.ptr_method_set
 
-structure ApplierOptions [FfiSyntax] where
+structure ApplierOptions [GooseExts] where
   mk ::
   Logger' : Loc
   KV' : _root_.Perennial.go_etcd_io.etcd.server.v3.storage.mvcc.KV
@@ -3359,10 +3375,10 @@ structure ApplierOptions [FfiSyntax] where
   QuotaBackendBytesCfg' : w64
   WarningApplyDuration' : _root_.Perennial.time.Duration
 
-noncomputable instance ApplierOptions.zero_val [FfiSyntax] : ZeroVal ApplierOptions :=
+noncomputable instance ApplierOptions.zero_val [GooseExts] : ZeroVal ApplierOptions :=
   ⟨ApplierOptions.mk zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def ApplierOptions.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def ApplierOptions.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"Logger" (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)),
 (go.field_decl.FieldDecl go!"KV" _root_.Perennial.go_etcd_io.etcd.server.v3.storage.mvcc.KV.ty),
 (go.field_decl.FieldDecl go!"AlarmStore" (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3alarm.AlarmStore.ty)),
@@ -3377,17 +3393,17 @@ noncomputable instance ApplierOptions.zero_val [FfiSyntax] : ZeroVal ApplierOpti
 (go.field_decl.FieldDecl go!"QuotaBackendBytesCfg" go.int64),
 (go.field_decl.FieldDecl go!"WarningApplyDuration" _root_.Perennial.time.Duration.ty)]
 
-@[irreducible] noncomputable def ApplierOptions.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def ApplierOptions.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   ApplierOptions.fieldsUnsealed
 
-noncomputable instance equals_unfold_ApplierOptions [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_ApplierOptions [GooseExts] [GoGlobalContext] :
     EqualsUnfold ApplierOptions.fields ApplierOptions.fieldsUnsealed :=
   ⟨by unfold ApplierOptions.fields; rfl⟩
 
-@[reducible] noncomputable def ApplierOptions.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def ApplierOptions.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType ApplierOptions.fields)
 
-class ApplierOptions.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class ApplierOptions.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying ApplierOptions.underlying ApplierOptions
   underlying : go.UnderlyingDirectedEq ApplierOptions.ty ApplierOptions.underlying
   get_Logger : ∀ (x : ApplierOptions), go.IsGoStepPureDetTagged under (StructFieldGet ApplierOptions.underlying go!"Logger") #x (Val #(x.Logger'))
@@ -3416,6 +3432,8 @@ class ApplierOptions.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalConte
   set_QuotaBackendBytesCfg : ∀ (x : ApplierOptions) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet ApplierOptions.underlying go!"QuotaBackendBytesCfg") (PairV #x #y) (Val #(({ x with QuotaBackendBytesCfg' := y } : ApplierOptions)))
   get_WarningApplyDuration : ∀ (x : ApplierOptions), go.IsGoStepPureDetTagged under (StructFieldGet ApplierOptions.underlying go!"WarningApplyDuration") #x (Val #(x.WarningApplyDuration'))
   set_WarningApplyDuration : ∀ (x : ApplierOptions) (y : _root_.Perennial.time.Duration), go.IsGoStepPureDetTagged under (StructFieldSet ApplierOptions.underlying go!"WarningApplyDuration") (PairV #x #y) (Val #(({ x with WarningApplyDuration' := y } : ApplierOptions)))
+  method_set : go.MethodSetIs ApplierOptions.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType ApplierOptions.ty) []
 
 attribute [instance] ApplierOptions.TypeAssumptions.type_repr
   ApplierOptions.TypeAssumptions.underlying
@@ -3445,32 +3463,36 @@ attribute [instance] ApplierOptions.TypeAssumptions.type_repr
   ApplierOptions.TypeAssumptions.set_QuotaBackendBytesCfg
   ApplierOptions.TypeAssumptions.get_WarningApplyDuration
   ApplierOptions.TypeAssumptions.set_WarningApplyDuration
+  ApplierOptions.TypeAssumptions.method_set
+  ApplierOptions.TypeAssumptions.ptr_method_set
 
-structure applierV3backend [FfiSyntax] where
+structure applierV3backend [GooseExts] where
   mk ::
   options' : ApplierOptions
 
-noncomputable instance applierV3backend.zero_val [FfiSyntax] : ZeroVal applierV3backend :=
+noncomputable instance applierV3backend.zero_val [GooseExts] : ZeroVal applierV3backend :=
   ⟨applierV3backend.mk zeroValDef⟩
 
-@[reducible] noncomputable def applierV3backend.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def applierV3backend.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"options" ApplierOptions.ty)]
 
-@[irreducible] noncomputable def applierV3backend.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def applierV3backend.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   applierV3backend.fieldsUnsealed
 
-noncomputable instance equals_unfold_applierV3backend [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_applierV3backend [GooseExts] [GoGlobalContext] :
     EqualsUnfold applierV3backend.fields applierV3backend.fieldsUnsealed :=
   ⟨by unfold applierV3backend.fields; rfl⟩
 
-@[reducible] noncomputable def applierV3backend.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def applierV3backend.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType applierV3backend.fields)
 
-class applierV3backend.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class applierV3backend.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying applierV3backend.underlying applierV3backend
   underlying : go.UnderlyingDirectedEq applierV3backend.ty applierV3backend.underlying
   get_options : ∀ (x : applierV3backend), go.IsGoStepPureDetTagged under (StructFieldGet applierV3backend.underlying go!"options") #x (Val #(x.options'))
   set_options : ∀ (x : applierV3backend) (y : ApplierOptions), go.IsGoStepPureDetTagged under (StructFieldSet applierV3backend.underlying go!"options") (PairV #x #y) (Val #(({ x with options' := y } : applierV3backend)))
+  method_set : go.MethodSetIs applierV3backend.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType applierV3backend.ty) [(go!"Alarm", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AlarmRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AlarmResponse.ty), go.error]))), (go!"Apply", (some (go.signature.Signature [(go.GoType.PointerType InternalRaftRequestWrapper.ty), _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.ShouldApplyV3.ty, applyFunc.ty] false [(go.GoType.PointerType Result.ty)]))), (go!"AuthDisable", (some (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthDisableResponse.ty), go.error]))), (go!"AuthEnable", (some (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthEnableResponse.ty), go.error]))), (go!"AuthStatus", (some (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthStatusResponse.ty), go.error]))), (go!"Authenticate", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.InternalAuthenticateRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthenticateResponse.ty), go.error]))), (go!"ClusterMemberAttrSet", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.membershippb.ClusterMemberAttrSetRequest.ty), _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.ShouldApplyV3.ty] false []))), (go!"ClusterVersionSet", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.membershippb.ClusterVersionSetRequest.ty), _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.ShouldApplyV3.ty] false []))), (go!"Compaction", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.CompactionRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.CompactionResponse.ty), (go.GoType.ChannelType go.ChanDir.recvonly (go.GoType.StructType [])), (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.pkg.v3.traceutil.Trace.ty), go.error]))), (go!"DeleteRange", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.DeleteRangeRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.DeleteRangeResponse.ty), (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.pkg.v3.traceutil.Trace.ty), go.error]))), (go!"DowngradeInfoSet", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.membershippb.DowngradeInfoSetRequest.ty), _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.ShouldApplyV3.ty] false []))), (go!"LeaseCheckpoint", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.LeaseCheckpointRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.LeaseCheckpointResponse.ty), go.error]))), (go!"LeaseGrant", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.LeaseGrantRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.LeaseGrantResponse.ty), go.error]))), (go!"LeaseRevoke", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.LeaseRevokeRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.LeaseRevokeResponse.ty), go.error]))), (go!"Put", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.PutRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.PutResponse.ty), (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.pkg.v3.traceutil.Trace.ty), go.error]))), (go!"Range", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.RangeRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.RangeResponse.ty), (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.pkg.v3.traceutil.Trace.ty), go.error]))), (go!"RoleAdd", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleAddRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleAddResponse.ty), go.error]))), (go!"RoleDelete", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleDeleteRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleDeleteResponse.ty), go.error]))), (go!"RoleGet", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleGetRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleGetResponse.ty), go.error]))), (go!"RoleGrantPermission", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleGrantPermissionRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleGrantPermissionResponse.ty), go.error]))), (go!"RoleList", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleListRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleListResponse.ty), go.error]))), (go!"RoleRevokePermission", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleRevokePermissionRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleRevokePermissionResponse.ty), go.error]))), (go!"Txn", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.TxnRequest.ty), go.bool] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.TxnResponse.ty), (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.pkg.v3.traceutil.Trace.ty), go.error]))), (go!"UserAdd", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserAddRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserAddResponse.ty), go.error]))), (go!"UserChangePassword", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserChangePasswordRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserChangePasswordResponse.ty), go.error]))), (go!"UserDelete", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserDeleteRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserDeleteResponse.ty), go.error]))), (go!"UserGet", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserGetRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserGetResponse.ty), go.error]))), (go!"UserGrantRole", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserGrantRoleRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserGrantRoleResponse.ty), go.error]))), (go!"UserList", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserListRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserListResponse.ty), go.error]))), (go!"UserRevokeRole", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserRevokeRoleRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserRevokeRoleResponse.ty), go.error]))), (go!"go.etcd.io/etcd/server/v3/etcdserver/apply.newHeader", (some (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.ResponseHeader.ty)])))]
   ptr_Alarm_unfold : MethodUnfold (go.GoType.PointerType applierV3backend.ty) go!"Alarm" applierV3backend.Alarm.impl
   ptr_Apply_unfold : MethodUnfold (go.GoType.PointerType applierV3backend.ty) go!"Apply" applierV3backend.Apply.impl
   ptr_AuthDisable_unfold : MethodUnfold (go.GoType.PointerType applierV3backend.ty) go!"AuthDisable" applierV3backend.AuthDisable.impl
@@ -3507,6 +3529,8 @@ attribute [instance] applierV3backend.TypeAssumptions.type_repr
   applierV3backend.TypeAssumptions.underlying
   applierV3backend.TypeAssumptions.get_options
   applierV3backend.TypeAssumptions.set_options
+  applierV3backend.TypeAssumptions.method_set
+  applierV3backend.TypeAssumptions.ptr_method_set
   applierV3backend.TypeAssumptions.ptr_Alarm_unfold
   applierV3backend.TypeAssumptions.ptr_Apply_unfold
   applierV3backend.TypeAssumptions.ptr_AuthDisable_unfold
@@ -3539,35 +3563,37 @@ attribute [instance] applierV3backend.TypeAssumptions.type_repr
   applierV3backend.TypeAssumptions.ptr_UserRevokeRole_unfold
   applierV3backend.TypeAssumptions.ptr_newHeader_unfold
 
-structure applierV3Capped [FfiSyntax] where
+structure applierV3Capped [GooseExts] where
   mk ::
   applierV3' : applierV3
   q' : _root_.Perennial.go_etcd_io.etcd.server.v3.storage.BackendQuota
 
-noncomputable instance applierV3Capped.zero_val [FfiSyntax] : ZeroVal applierV3Capped :=
+noncomputable instance applierV3Capped.zero_val [GooseExts] : ZeroVal applierV3Capped :=
   ⟨applierV3Capped.mk zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def applierV3Capped.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def applierV3Capped.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.EmbeddedField go!"applierV3" applierV3.ty),
 (go.field_decl.FieldDecl go!"q" _root_.Perennial.go_etcd_io.etcd.server.v3.storage.BackendQuota.ty)]
 
-@[irreducible] noncomputable def applierV3Capped.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def applierV3Capped.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   applierV3Capped.fieldsUnsealed
 
-noncomputable instance equals_unfold_applierV3Capped [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_applierV3Capped [GooseExts] [GoGlobalContext] :
     EqualsUnfold applierV3Capped.fields applierV3Capped.fieldsUnsealed :=
   ⟨by unfold applierV3Capped.fields; rfl⟩
 
-@[reducible] noncomputable def applierV3Capped.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def applierV3Capped.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType applierV3Capped.fields)
 
-class applierV3Capped.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class applierV3Capped.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying applierV3Capped.underlying applierV3Capped
   underlying : go.UnderlyingDirectedEq applierV3Capped.ty applierV3Capped.underlying
   get_applierV3 : ∀ (x : applierV3Capped), go.IsGoStepPureDetTagged under (StructFieldGet applierV3Capped.underlying go!"applierV3") #x (Val #(x.applierV3'))
   set_applierV3 : ∀ (x : applierV3Capped) (y : applierV3), go.IsGoStepPureDetTagged under (StructFieldSet applierV3Capped.underlying go!"applierV3") (PairV #x #y) (Val #(({ x with applierV3' := y } : applierV3Capped)))
   get_q : ∀ (x : applierV3Capped), go.IsGoStepPureDetTagged under (StructFieldGet applierV3Capped.underlying go!"q") #x (Val #(x.q'))
   set_q : ∀ (x : applierV3Capped) (y : _root_.Perennial.go_etcd_io.etcd.server.v3.storage.BackendQuota), go.IsGoStepPureDetTagged under (StructFieldSet applierV3Capped.underlying go!"q") (PairV #x #y) (Val #(({ x with q' := y } : applierV3Capped)))
+  method_set : go.MethodSetIs applierV3Capped.ty [(go!"Alarm", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AlarmRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AlarmResponse.ty), go.error]))), (go!"Apply", (some (go.signature.Signature [(go.GoType.PointerType InternalRaftRequestWrapper.ty), _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.ShouldApplyV3.ty, applyFunc.ty] false [(go.GoType.PointerType Result.ty)]))), (go!"AuthDisable", (some (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthDisableResponse.ty), go.error]))), (go!"AuthEnable", (some (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthEnableResponse.ty), go.error]))), (go!"AuthStatus", (some (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthStatusResponse.ty), go.error]))), (go!"Authenticate", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.InternalAuthenticateRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthenticateResponse.ty), go.error]))), (go!"ClusterMemberAttrSet", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.membershippb.ClusterMemberAttrSetRequest.ty), _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.ShouldApplyV3.ty] false []))), (go!"ClusterVersionSet", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.membershippb.ClusterVersionSetRequest.ty), _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.ShouldApplyV3.ty] false []))), (go!"Compaction", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.CompactionRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.CompactionResponse.ty), (go.GoType.ChannelType go.ChanDir.recvonly (go.GoType.StructType [])), (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.pkg.v3.traceutil.Trace.ty), go.error]))), (go!"DeleteRange", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.DeleteRangeRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.DeleteRangeResponse.ty), (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.pkg.v3.traceutil.Trace.ty), go.error]))), (go!"DowngradeInfoSet", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.membershippb.DowngradeInfoSetRequest.ty), _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.ShouldApplyV3.ty] false []))), (go!"LeaseCheckpoint", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.LeaseCheckpointRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.LeaseCheckpointResponse.ty), go.error]))), (go!"LeaseRevoke", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.LeaseRevokeRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.LeaseRevokeResponse.ty), go.error]))), (go!"Range", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.RangeRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.RangeResponse.ty), (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.pkg.v3.traceutil.Trace.ty), go.error]))), (go!"RoleAdd", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleAddRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleAddResponse.ty), go.error]))), (go!"RoleDelete", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleDeleteRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleDeleteResponse.ty), go.error]))), (go!"RoleGet", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleGetRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleGetResponse.ty), go.error]))), (go!"RoleGrantPermission", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleGrantPermissionRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleGrantPermissionResponse.ty), go.error]))), (go!"RoleList", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleListRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleListResponse.ty), go.error]))), (go!"RoleRevokePermission", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleRevokePermissionRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleRevokePermissionResponse.ty), go.error]))), (go!"UserAdd", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserAddRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserAddResponse.ty), go.error]))), (go!"UserChangePassword", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserChangePasswordRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserChangePasswordResponse.ty), go.error]))), (go!"UserDelete", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserDeleteRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserDeleteResponse.ty), go.error]))), (go!"UserGet", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserGetRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserGetResponse.ty), go.error]))), (go!"UserGrantRole", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserGrantRoleRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserGrantRoleResponse.ty), go.error]))), (go!"UserList", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserListRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserListResponse.ty), go.error]))), (go!"UserRevokeRole", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserRevokeRoleRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserRevokeRoleResponse.ty), go.error])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType applierV3Capped.ty) [(go!"Alarm", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AlarmRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AlarmResponse.ty), go.error]))), (go!"Apply", (some (go.signature.Signature [(go.GoType.PointerType InternalRaftRequestWrapper.ty), _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.ShouldApplyV3.ty, applyFunc.ty] false [(go.GoType.PointerType Result.ty)]))), (go!"AuthDisable", (some (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthDisableResponse.ty), go.error]))), (go!"AuthEnable", (some (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthEnableResponse.ty), go.error]))), (go!"AuthStatus", (some (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthStatusResponse.ty), go.error]))), (go!"Authenticate", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.InternalAuthenticateRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthenticateResponse.ty), go.error]))), (go!"ClusterMemberAttrSet", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.membershippb.ClusterMemberAttrSetRequest.ty), _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.ShouldApplyV3.ty] false []))), (go!"ClusterVersionSet", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.membershippb.ClusterVersionSetRequest.ty), _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.ShouldApplyV3.ty] false []))), (go!"Compaction", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.CompactionRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.CompactionResponse.ty), (go.GoType.ChannelType go.ChanDir.recvonly (go.GoType.StructType [])), (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.pkg.v3.traceutil.Trace.ty), go.error]))), (go!"DeleteRange", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.DeleteRangeRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.DeleteRangeResponse.ty), (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.pkg.v3.traceutil.Trace.ty), go.error]))), (go!"DowngradeInfoSet", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.membershippb.DowngradeInfoSetRequest.ty), _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.ShouldApplyV3.ty] false []))), (go!"LeaseCheckpoint", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.LeaseCheckpointRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.LeaseCheckpointResponse.ty), go.error]))), (go!"LeaseGrant", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.LeaseGrantRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.LeaseGrantResponse.ty), go.error]))), (go!"LeaseRevoke", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.LeaseRevokeRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.LeaseRevokeResponse.ty), go.error]))), (go!"Put", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.PutRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.PutResponse.ty), (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.pkg.v3.traceutil.Trace.ty), go.error]))), (go!"Range", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.RangeRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.RangeResponse.ty), (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.pkg.v3.traceutil.Trace.ty), go.error]))), (go!"RoleAdd", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleAddRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleAddResponse.ty), go.error]))), (go!"RoleDelete", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleDeleteRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleDeleteResponse.ty), go.error]))), (go!"RoleGet", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleGetRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleGetResponse.ty), go.error]))), (go!"RoleGrantPermission", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleGrantPermissionRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleGrantPermissionResponse.ty), go.error]))), (go!"RoleList", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleListRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleListResponse.ty), go.error]))), (go!"RoleRevokePermission", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleRevokePermissionRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleRevokePermissionResponse.ty), go.error]))), (go!"Txn", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.TxnRequest.ty), go.bool] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.TxnResponse.ty), (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.pkg.v3.traceutil.Trace.ty), go.error]))), (go!"UserAdd", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserAddRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserAddResponse.ty), go.error]))), (go!"UserChangePassword", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserChangePasswordRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserChangePasswordResponse.ty), go.error]))), (go!"UserDelete", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserDeleteRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserDeleteResponse.ty), go.error]))), (go!"UserGet", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserGetRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserGetResponse.ty), go.error]))), (go!"UserGrantRole", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserGrantRoleRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserGrantRoleResponse.ty), go.error]))), (go!"UserList", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserListRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserListResponse.ty), go.error]))), (go!"UserRevokeRole", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserRevokeRoleRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserRevokeRoleResponse.ty), go.error])))]
   Alarm_unfold : MethodUnfold applierV3Capped.ty go!"Alarm" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve applierV3.ty go!"Alarm"))) (App (Val (GoInstruction (StructFieldGet applierV3Capped.ty go!"applierV3"))) (Var "$r"))))
   Apply_unfold : MethodUnfold applierV3Capped.ty go!"Apply" (LamV "$r"
@@ -3686,6 +3712,8 @@ attribute [instance] applierV3Capped.TypeAssumptions.type_repr
   applierV3Capped.TypeAssumptions.set_applierV3
   applierV3Capped.TypeAssumptions.get_q
   applierV3Capped.TypeAssumptions.set_q
+  applierV3Capped.TypeAssumptions.method_set
+  applierV3Capped.TypeAssumptions.ptr_method_set
   applierV3Capped.TypeAssumptions.Alarm_unfold
   applierV3Capped.TypeAssumptions.Apply_unfold
   applierV3Capped.TypeAssumptions.AuthDisable_unfold
@@ -3744,31 +3772,33 @@ attribute [instance] applierV3Capped.TypeAssumptions.type_repr
   applierV3Capped.TypeAssumptions.ptr_UserList_unfold
   applierV3Capped.TypeAssumptions.ptr_UserRevokeRole_unfold
 
-structure applierV3Corrupt [FfiSyntax] where
+structure applierV3Corrupt [GooseExts] where
   mk ::
   applierV3' : applierV3
 
-noncomputable instance applierV3Corrupt.zero_val [FfiSyntax] : ZeroVal applierV3Corrupt :=
+noncomputable instance applierV3Corrupt.zero_val [GooseExts] : ZeroVal applierV3Corrupt :=
   ⟨applierV3Corrupt.mk zeroValDef⟩
 
-@[reducible] noncomputable def applierV3Corrupt.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def applierV3Corrupt.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.EmbeddedField go!"applierV3" applierV3.ty)]
 
-@[irreducible] noncomputable def applierV3Corrupt.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def applierV3Corrupt.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   applierV3Corrupt.fieldsUnsealed
 
-noncomputable instance equals_unfold_applierV3Corrupt [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_applierV3Corrupt [GooseExts] [GoGlobalContext] :
     EqualsUnfold applierV3Corrupt.fields applierV3Corrupt.fieldsUnsealed :=
   ⟨by unfold applierV3Corrupt.fields; rfl⟩
 
-@[reducible] noncomputable def applierV3Corrupt.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def applierV3Corrupt.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType applierV3Corrupt.fields)
 
-class applierV3Corrupt.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class applierV3Corrupt.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying applierV3Corrupt.underlying applierV3Corrupt
   underlying : go.UnderlyingDirectedEq applierV3Corrupt.ty applierV3Corrupt.underlying
   get_applierV3 : ∀ (x : applierV3Corrupt), go.IsGoStepPureDetTagged under (StructFieldGet applierV3Corrupt.underlying go!"applierV3") #x (Val #(x.applierV3'))
   set_applierV3 : ∀ (x : applierV3Corrupt) (y : applierV3), go.IsGoStepPureDetTagged under (StructFieldSet applierV3Corrupt.underlying go!"applierV3") (PairV #x #y) (Val #(({ x with applierV3' := y } : applierV3Corrupt)))
+  method_set : go.MethodSetIs applierV3Corrupt.ty [(go!"Alarm", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AlarmRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AlarmResponse.ty), go.error]))), (go!"Apply", (some (go.signature.Signature [(go.GoType.PointerType InternalRaftRequestWrapper.ty), _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.ShouldApplyV3.ty, applyFunc.ty] false [(go.GoType.PointerType Result.ty)]))), (go!"AuthDisable", (some (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthDisableResponse.ty), go.error]))), (go!"AuthEnable", (some (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthEnableResponse.ty), go.error]))), (go!"AuthStatus", (some (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthStatusResponse.ty), go.error]))), (go!"Authenticate", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.InternalAuthenticateRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthenticateResponse.ty), go.error]))), (go!"ClusterMemberAttrSet", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.membershippb.ClusterMemberAttrSetRequest.ty), _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.ShouldApplyV3.ty] false []))), (go!"ClusterVersionSet", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.membershippb.ClusterVersionSetRequest.ty), _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.ShouldApplyV3.ty] false []))), (go!"DowngradeInfoSet", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.membershippb.DowngradeInfoSetRequest.ty), _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.ShouldApplyV3.ty] false []))), (go!"LeaseCheckpoint", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.LeaseCheckpointRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.LeaseCheckpointResponse.ty), go.error]))), (go!"RoleAdd", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleAddRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleAddResponse.ty), go.error]))), (go!"RoleDelete", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleDeleteRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleDeleteResponse.ty), go.error]))), (go!"RoleGet", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleGetRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleGetResponse.ty), go.error]))), (go!"RoleGrantPermission", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleGrantPermissionRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleGrantPermissionResponse.ty), go.error]))), (go!"RoleList", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleListRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleListResponse.ty), go.error]))), (go!"RoleRevokePermission", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleRevokePermissionRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleRevokePermissionResponse.ty), go.error]))), (go!"UserAdd", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserAddRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserAddResponse.ty), go.error]))), (go!"UserChangePassword", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserChangePasswordRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserChangePasswordResponse.ty), go.error]))), (go!"UserDelete", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserDeleteRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserDeleteResponse.ty), go.error]))), (go!"UserGet", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserGetRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserGetResponse.ty), go.error]))), (go!"UserGrantRole", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserGrantRoleRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserGrantRoleResponse.ty), go.error]))), (go!"UserList", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserListRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserListResponse.ty), go.error]))), (go!"UserRevokeRole", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserRevokeRoleRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserRevokeRoleResponse.ty), go.error])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType applierV3Corrupt.ty) [(go!"Alarm", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AlarmRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AlarmResponse.ty), go.error]))), (go!"Apply", (some (go.signature.Signature [(go.GoType.PointerType InternalRaftRequestWrapper.ty), _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.ShouldApplyV3.ty, applyFunc.ty] false [(go.GoType.PointerType Result.ty)]))), (go!"AuthDisable", (some (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthDisableResponse.ty), go.error]))), (go!"AuthEnable", (some (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthEnableResponse.ty), go.error]))), (go!"AuthStatus", (some (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthStatusResponse.ty), go.error]))), (go!"Authenticate", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.InternalAuthenticateRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthenticateResponse.ty), go.error]))), (go!"ClusterMemberAttrSet", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.membershippb.ClusterMemberAttrSetRequest.ty), _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.ShouldApplyV3.ty] false []))), (go!"ClusterVersionSet", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.membershippb.ClusterVersionSetRequest.ty), _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.ShouldApplyV3.ty] false []))), (go!"Compaction", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.CompactionRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.CompactionResponse.ty), (go.GoType.ChannelType go.ChanDir.recvonly (go.GoType.StructType [])), (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.pkg.v3.traceutil.Trace.ty), go.error]))), (go!"DeleteRange", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.DeleteRangeRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.DeleteRangeResponse.ty), (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.pkg.v3.traceutil.Trace.ty), go.error]))), (go!"DowngradeInfoSet", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.membershippb.DowngradeInfoSetRequest.ty), _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.ShouldApplyV3.ty] false []))), (go!"LeaseCheckpoint", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.LeaseCheckpointRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.LeaseCheckpointResponse.ty), go.error]))), (go!"LeaseGrant", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.LeaseGrantRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.LeaseGrantResponse.ty), go.error]))), (go!"LeaseRevoke", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.LeaseRevokeRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.LeaseRevokeResponse.ty), go.error]))), (go!"Put", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.PutRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.PutResponse.ty), (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.pkg.v3.traceutil.Trace.ty), go.error]))), (go!"Range", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.RangeRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.RangeResponse.ty), (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.pkg.v3.traceutil.Trace.ty), go.error]))), (go!"RoleAdd", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleAddRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleAddResponse.ty), go.error]))), (go!"RoleDelete", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleDeleteRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleDeleteResponse.ty), go.error]))), (go!"RoleGet", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleGetRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleGetResponse.ty), go.error]))), (go!"RoleGrantPermission", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleGrantPermissionRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleGrantPermissionResponse.ty), go.error]))), (go!"RoleList", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleListRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleListResponse.ty), go.error]))), (go!"RoleRevokePermission", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleRevokePermissionRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleRevokePermissionResponse.ty), go.error]))), (go!"Txn", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.TxnRequest.ty), go.bool] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.TxnResponse.ty), (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.pkg.v3.traceutil.Trace.ty), go.error]))), (go!"UserAdd", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserAddRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserAddResponse.ty), go.error]))), (go!"UserChangePassword", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserChangePasswordRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserChangePasswordResponse.ty), go.error]))), (go!"UserDelete", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserDeleteRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserDeleteResponse.ty), go.error]))), (go!"UserGet", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserGetRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserGetResponse.ty), go.error]))), (go!"UserGrantRole", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserGrantRoleRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserGrantRoleResponse.ty), go.error]))), (go!"UserList", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserListRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserListResponse.ty), go.error]))), (go!"UserRevokeRole", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserRevokeRoleRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserRevokeRoleResponse.ty), go.error])))]
   Alarm_unfold : MethodUnfold applierV3Corrupt.ty go!"Alarm" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve applierV3.ty go!"Alarm"))) (App (Val (GoInstruction (StructFieldGet applierV3Corrupt.ty go!"applierV3"))) (Var "$r"))))
   Apply_unfold : MethodUnfold applierV3Corrupt.ty go!"Apply" (LamV "$r"
@@ -3873,6 +3903,8 @@ attribute [instance] applierV3Corrupt.TypeAssumptions.type_repr
   applierV3Corrupt.TypeAssumptions.underlying
   applierV3Corrupt.TypeAssumptions.get_applierV3
   applierV3Corrupt.TypeAssumptions.set_applierV3
+  applierV3Corrupt.TypeAssumptions.method_set
+  applierV3Corrupt.TypeAssumptions.ptr_method_set
   applierV3Corrupt.TypeAssumptions.Alarm_unfold
   applierV3Corrupt.TypeAssumptions.Apply_unfold
   applierV3Corrupt.TypeAssumptions.AuthDisable_unfold
@@ -3927,35 +3959,37 @@ attribute [instance] applierV3Corrupt.TypeAssumptions.type_repr
   applierV3Corrupt.TypeAssumptions.ptr_UserList_unfold
   applierV3Corrupt.TypeAssumptions.ptr_UserRevokeRole_unfold
 
-structure InternalRaftRequestWrapper [FfiSyntax] where
+structure InternalRaftRequestWrapper [GooseExts] where
   mk ::
   InternalRaftRequest' : Loc
   SkipRangeExecution' : Bool
 
-noncomputable instance InternalRaftRequestWrapper.zero_val [FfiSyntax] : ZeroVal InternalRaftRequestWrapper :=
+noncomputable instance InternalRaftRequestWrapper.zero_val [GooseExts] : ZeroVal InternalRaftRequestWrapper :=
   ⟨InternalRaftRequestWrapper.mk zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def InternalRaftRequestWrapper.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def InternalRaftRequestWrapper.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.EmbeddedField go!"InternalRaftRequest" (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.InternalRaftRequest.ty)),
 (go.field_decl.FieldDecl go!"SkipRangeExecution" go.bool)]
 
-@[irreducible] noncomputable def InternalRaftRequestWrapper.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def InternalRaftRequestWrapper.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   InternalRaftRequestWrapper.fieldsUnsealed
 
-noncomputable instance equals_unfold_InternalRaftRequestWrapper [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_InternalRaftRequestWrapper [GooseExts] [GoGlobalContext] :
     EqualsUnfold InternalRaftRequestWrapper.fields InternalRaftRequestWrapper.fieldsUnsealed :=
   ⟨by unfold InternalRaftRequestWrapper.fields; rfl⟩
 
-@[reducible] noncomputable def InternalRaftRequestWrapper.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def InternalRaftRequestWrapper.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType InternalRaftRequestWrapper.fields)
 
-class InternalRaftRequestWrapper.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class InternalRaftRequestWrapper.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying InternalRaftRequestWrapper.underlying InternalRaftRequestWrapper
   underlying : go.UnderlyingDirectedEq InternalRaftRequestWrapper.ty InternalRaftRequestWrapper.underlying
   get_InternalRaftRequest : ∀ (x : InternalRaftRequestWrapper), go.IsGoStepPureDetTagged under (StructFieldGet InternalRaftRequestWrapper.underlying go!"InternalRaftRequest") #x (Val #(x.InternalRaftRequest'))
   set_InternalRaftRequest : ∀ (x : InternalRaftRequestWrapper) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet InternalRaftRequestWrapper.underlying go!"InternalRaftRequest") (PairV #x #y) (Val #(({ x with InternalRaftRequest' := y } : InternalRaftRequestWrapper)))
   get_SkipRangeExecution : ∀ (x : InternalRaftRequestWrapper), go.IsGoStepPureDetTagged under (StructFieldGet InternalRaftRequestWrapper.underlying go!"SkipRangeExecution") #x (Val #(x.SkipRangeExecution'))
   set_SkipRangeExecution : ∀ (x : InternalRaftRequestWrapper) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet InternalRaftRequestWrapper.underlying go!"SkipRangeExecution") (PairV #x #y) (Val #(({ x with SkipRangeExecution' := y } : InternalRaftRequestWrapper)))
+  method_set : go.MethodSetIs InternalRaftRequestWrapper.ty [(go!"Descriptor", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), (go.GoType.SliceType go.int)]))), (go!"GetAlarm", (some (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AlarmRequest.ty)]))), (go!"GetAuthDisable", (some (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthDisableRequest.ty)]))), (go!"GetAuthEnable", (some (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthEnableRequest.ty)]))), (go!"GetAuthRoleAdd", (some (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleAddRequest.ty)]))), (go!"GetAuthRoleDelete", (some (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleDeleteRequest.ty)]))), (go!"GetAuthRoleGet", (some (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleGetRequest.ty)]))), (go!"GetAuthRoleGrantPermission", (some (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleGrantPermissionRequest.ty)]))), (go!"GetAuthRoleList", (some (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleListRequest.ty)]))), (go!"GetAuthRoleRevokePermission", (some (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleRevokePermissionRequest.ty)]))), (go!"GetAuthStatus", (some (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthStatusRequest.ty)]))), (go!"GetAuthUserAdd", (some (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserAddRequest.ty)]))), (go!"GetAuthUserChangePassword", (some (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserChangePasswordRequest.ty)]))), (go!"GetAuthUserDelete", (some (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserDeleteRequest.ty)]))), (go!"GetAuthUserGet", (some (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserGetRequest.ty)]))), (go!"GetAuthUserGrantRole", (some (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserGrantRoleRequest.ty)]))), (go!"GetAuthUserList", (some (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserListRequest.ty)]))), (go!"GetAuthUserRevokeRole", (some (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserRevokeRoleRequest.ty)]))), (go!"GetAuthenticate", (some (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.InternalAuthenticateRequest.ty)]))), (go!"GetClusterMemberAttrSet", (some (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.membershippb.ClusterMemberAttrSetRequest.ty)]))), (go!"GetClusterVersionSet", (some (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.membershippb.ClusterVersionSetRequest.ty)]))), (go!"GetCompaction", (some (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.CompactionRequest.ty)]))), (go!"GetDeleteRange", (some (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.DeleteRangeRequest.ty)]))), (go!"GetDowngradeInfoSet", (some (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.membershippb.DowngradeInfoSetRequest.ty)]))), (go!"GetDowngradeVersionTest", (some (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.DowngradeVersionTestRequest.ty)]))), (go!"GetHeader", (some (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.RequestHeader.ty)]))), (go!"GetID", (some (go.signature.Signature [] false [go.uint64]))), (go!"GetLeaseCheckpoint", (some (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.LeaseCheckpointRequest.ty)]))), (go!"GetLeaseGrant", (some (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.LeaseGrantRequest.ty)]))), (go!"GetLeaseRevoke", (some (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.LeaseRevokeRequest.ty)]))), (go!"GetPut", (some (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.PutRequest.ty)]))), (go!"GetRange", (some (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.RangeRequest.ty)]))), (go!"GetTxn", (some (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.TxnRequest.ty)]))), (go!"ProtoMessage", (some (go.signature.Signature [] false []))), (go!"ProtoReflect", (some (go.signature.Signature [] false [(go.GoType.Named go!"google.golang.org/protobuf/reflect/protoreflect.Message" [])]))), (go!"Reset", (some (go.signature.Signature [] false []))), (go!"String", (some (go.signature.Signature [] false [go.string])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType InternalRaftRequestWrapper.ty) [(go!"Descriptor", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), (go.GoType.SliceType go.int)]))), (go!"GetAlarm", (some (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AlarmRequest.ty)]))), (go!"GetAuthDisable", (some (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthDisableRequest.ty)]))), (go!"GetAuthEnable", (some (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthEnableRequest.ty)]))), (go!"GetAuthRoleAdd", (some (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleAddRequest.ty)]))), (go!"GetAuthRoleDelete", (some (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleDeleteRequest.ty)]))), (go!"GetAuthRoleGet", (some (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleGetRequest.ty)]))), (go!"GetAuthRoleGrantPermission", (some (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleGrantPermissionRequest.ty)]))), (go!"GetAuthRoleList", (some (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleListRequest.ty)]))), (go!"GetAuthRoleRevokePermission", (some (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleRevokePermissionRequest.ty)]))), (go!"GetAuthStatus", (some (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthStatusRequest.ty)]))), (go!"GetAuthUserAdd", (some (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserAddRequest.ty)]))), (go!"GetAuthUserChangePassword", (some (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserChangePasswordRequest.ty)]))), (go!"GetAuthUserDelete", (some (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserDeleteRequest.ty)]))), (go!"GetAuthUserGet", (some (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserGetRequest.ty)]))), (go!"GetAuthUserGrantRole", (some (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserGrantRoleRequest.ty)]))), (go!"GetAuthUserList", (some (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserListRequest.ty)]))), (go!"GetAuthUserRevokeRole", (some (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserRevokeRoleRequest.ty)]))), (go!"GetAuthenticate", (some (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.InternalAuthenticateRequest.ty)]))), (go!"GetClusterMemberAttrSet", (some (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.membershippb.ClusterMemberAttrSetRequest.ty)]))), (go!"GetClusterVersionSet", (some (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.membershippb.ClusterVersionSetRequest.ty)]))), (go!"GetCompaction", (some (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.CompactionRequest.ty)]))), (go!"GetDeleteRange", (some (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.DeleteRangeRequest.ty)]))), (go!"GetDowngradeInfoSet", (some (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.membershippb.DowngradeInfoSetRequest.ty)]))), (go!"GetDowngradeVersionTest", (some (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.DowngradeVersionTestRequest.ty)]))), (go!"GetHeader", (some (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.RequestHeader.ty)]))), (go!"GetID", (some (go.signature.Signature [] false [go.uint64]))), (go!"GetLeaseCheckpoint", (some (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.LeaseCheckpointRequest.ty)]))), (go!"GetLeaseGrant", (some (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.LeaseGrantRequest.ty)]))), (go!"GetLeaseRevoke", (some (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.LeaseRevokeRequest.ty)]))), (go!"GetPut", (some (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.PutRequest.ty)]))), (go!"GetRange", (some (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.RangeRequest.ty)]))), (go!"GetTxn", (some (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.TxnRequest.ty)]))), (go!"ProtoMessage", (some (go.signature.Signature [] false []))), (go!"ProtoReflect", (some (go.signature.Signature [] false [(go.GoType.Named go!"google.golang.org/protobuf/reflect/protoreflect.Message" [])]))), (go!"Reset", (some (go.signature.Signature [] false []))), (go!"String", (some (go.signature.Signature [] false [go.string])))]
   Descriptor_unfold : MethodUnfold InternalRaftRequestWrapper.ty go!"Descriptor" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.InternalRaftRequest.ty) go!"Descriptor"))) (App (Val (GoInstruction (StructFieldGet InternalRaftRequestWrapper.ty go!"InternalRaftRequest"))) (Var "$r"))))
   GetAlarm_unfold : MethodUnfold InternalRaftRequestWrapper.ty go!"GetAlarm" (LamV "$r"
@@ -4111,6 +4145,8 @@ attribute [instance] InternalRaftRequestWrapper.TypeAssumptions.type_repr
   InternalRaftRequestWrapper.TypeAssumptions.set_InternalRaftRequest
   InternalRaftRequestWrapper.TypeAssumptions.get_SkipRangeExecution
   InternalRaftRequestWrapper.TypeAssumptions.set_SkipRangeExecution
+  InternalRaftRequestWrapper.TypeAssumptions.method_set
+  InternalRaftRequestWrapper.TypeAssumptions.ptr_method_set
   InternalRaftRequestWrapper.TypeAssumptions.Descriptor_unfold
   InternalRaftRequestWrapper.TypeAssumptions.GetAlarm_unfold
   InternalRaftRequestWrapper.TypeAssumptions.GetAuthDisable_unfold
@@ -4186,33 +4222,33 @@ attribute [instance] InternalRaftRequestWrapper.TypeAssumptions.type_repr
   InternalRaftRequestWrapper.TypeAssumptions.ptr_Reset_unfold
   InternalRaftRequestWrapper.TypeAssumptions.ptr_String_unfold
 
-structure Result [FfiSyntax] where
+structure Result [GooseExts] where
   mk ::
   Resp' : _root_.Perennial.google_golang_org.protobuf.reflect.protoreflect.ProtoMessage
   Err' : GoError
   Physc' : GoChan
   Trace' : Loc
 
-noncomputable instance Result.zero_val [FfiSyntax] : ZeroVal Result :=
+noncomputable instance Result.zero_val [GooseExts] : ZeroVal Result :=
   ⟨Result.mk zeroValDef zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def Result.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def Result.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"Resp" _root_.Perennial.google_golang_org.protobuf.proto.Message.ty),
 (go.field_decl.FieldDecl go!"Err" go.error),
 (go.field_decl.FieldDecl go!"Physc" (go.GoType.ChannelType go.ChanDir.recvonly (go.GoType.StructType []))),
 (go.field_decl.FieldDecl go!"Trace" (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.pkg.v3.traceutil.Trace.ty))]
 
-@[irreducible] noncomputable def Result.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def Result.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   Result.fieldsUnsealed
 
-noncomputable instance equals_unfold_Result [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_Result [GooseExts] [GoGlobalContext] :
     EqualsUnfold Result.fields Result.fieldsUnsealed :=
   ⟨by unfold Result.fields; rfl⟩
 
-@[reducible] noncomputable def Result.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def Result.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType Result.fields)
 
-class Result.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class Result.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying Result.underlying Result
   underlying : go.UnderlyingDirectedEq Result.ty Result.underlying
   get_Resp : ∀ (x : Result), go.IsGoStepPureDetTagged under (StructFieldGet Result.underlying go!"Resp") #x (Val #(x.Resp'))
@@ -4223,6 +4259,8 @@ class Result.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoS
   set_Physc : ∀ (x : Result) (y : GoChan), go.IsGoStepPureDetTagged under (StructFieldSet Result.underlying go!"Physc") (PairV #x #y) (Val #(({ x with Physc' := y } : Result)))
   get_Trace : ∀ (x : Result), go.IsGoStepPureDetTagged under (StructFieldGet Result.underlying go!"Trace") #x (Val #(x.Trace'))
   set_Trace : ∀ (x : Result) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet Result.underlying go!"Trace") (PairV #x #y) (Val #(({ x with Trace' := y } : Result)))
+  method_set : go.MethodSetIs Result.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType Result.ty) []
 
 attribute [instance] Result.TypeAssumptions.type_repr
   Result.TypeAssumptions.underlying
@@ -4234,46 +4272,54 @@ attribute [instance] Result.TypeAssumptions.type_repr
   Result.TypeAssumptions.set_Physc
   Result.TypeAssumptions.get_Trace
   Result.TypeAssumptions.set_Trace
+  Result.TypeAssumptions.method_set
+  Result.TypeAssumptions.ptr_method_set
 
-abbrev applyFunc [FfiSyntax] : Type := GoFunc
+abbrev applyFunc [GooseExts] : Type := GoFunc
 
-@[reducible] noncomputable def applyFunc.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def applyFunc.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.FunctionType (go.signature.Signature [(go.GoType.PointerType InternalRaftRequestWrapper.ty), _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.ShouldApplyV3.ty] false [(go.GoType.PointerType Result.ty)]))
 
-class applyFunc.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class applyFunc.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq applyFunc.ty applyFunc.underlying
+  method_set : go.MethodSetIs applyFunc.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType applyFunc.ty) []
 
 attribute [instance] applyFunc.TypeAssumptions.underlying
+  applyFunc.TypeAssumptions.method_set
+  applyFunc.TypeAssumptions.ptr_method_set
 
-structure quotaApplierV3 [FfiSyntax] where
+structure quotaApplierV3 [GooseExts] where
   mk ::
   applierV3' : applierV3
   q' : _root_.Perennial.go_etcd_io.etcd.server.v3.storage.Quota
 
-noncomputable instance quotaApplierV3.zero_val [FfiSyntax] : ZeroVal quotaApplierV3 :=
+noncomputable instance quotaApplierV3.zero_val [GooseExts] : ZeroVal quotaApplierV3 :=
   ⟨quotaApplierV3.mk zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def quotaApplierV3.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def quotaApplierV3.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.EmbeddedField go!"applierV3" applierV3.ty),
 (go.field_decl.FieldDecl go!"q" _root_.Perennial.go_etcd_io.etcd.server.v3.storage.Quota.ty)]
 
-@[irreducible] noncomputable def quotaApplierV3.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def quotaApplierV3.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   quotaApplierV3.fieldsUnsealed
 
-noncomputable instance equals_unfold_quotaApplierV3 [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_quotaApplierV3 [GooseExts] [GoGlobalContext] :
     EqualsUnfold quotaApplierV3.fields quotaApplierV3.fieldsUnsealed :=
   ⟨by unfold quotaApplierV3.fields; rfl⟩
 
-@[reducible] noncomputable def quotaApplierV3.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def quotaApplierV3.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType quotaApplierV3.fields)
 
-class quotaApplierV3.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class quotaApplierV3.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying quotaApplierV3.underlying quotaApplierV3
   underlying : go.UnderlyingDirectedEq quotaApplierV3.ty quotaApplierV3.underlying
   get_applierV3 : ∀ (x : quotaApplierV3), go.IsGoStepPureDetTagged under (StructFieldGet quotaApplierV3.underlying go!"applierV3") #x (Val #(x.applierV3'))
   set_applierV3 : ∀ (x : quotaApplierV3) (y : applierV3), go.IsGoStepPureDetTagged under (StructFieldSet quotaApplierV3.underlying go!"applierV3") (PairV #x #y) (Val #(({ x with applierV3' := y } : quotaApplierV3)))
   get_q : ∀ (x : quotaApplierV3), go.IsGoStepPureDetTagged under (StructFieldGet quotaApplierV3.underlying go!"q") #x (Val #(x.q'))
   set_q : ∀ (x : quotaApplierV3) (y : _root_.Perennial.go_etcd_io.etcd.server.v3.storage.Quota), go.IsGoStepPureDetTagged under (StructFieldSet quotaApplierV3.underlying go!"q") (PairV #x #y) (Val #(({ x with q' := y } : quotaApplierV3)))
+  method_set : go.MethodSetIs quotaApplierV3.ty [(go!"Alarm", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AlarmRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AlarmResponse.ty), go.error]))), (go!"Apply", (some (go.signature.Signature [(go.GoType.PointerType InternalRaftRequestWrapper.ty), _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.ShouldApplyV3.ty, applyFunc.ty] false [(go.GoType.PointerType Result.ty)]))), (go!"AuthDisable", (some (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthDisableResponse.ty), go.error]))), (go!"AuthEnable", (some (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthEnableResponse.ty), go.error]))), (go!"AuthStatus", (some (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthStatusResponse.ty), go.error]))), (go!"Authenticate", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.InternalAuthenticateRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthenticateResponse.ty), go.error]))), (go!"ClusterMemberAttrSet", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.membershippb.ClusterMemberAttrSetRequest.ty), _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.ShouldApplyV3.ty] false []))), (go!"ClusterVersionSet", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.membershippb.ClusterVersionSetRequest.ty), _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.ShouldApplyV3.ty] false []))), (go!"Compaction", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.CompactionRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.CompactionResponse.ty), (go.GoType.ChannelType go.ChanDir.recvonly (go.GoType.StructType [])), (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.pkg.v3.traceutil.Trace.ty), go.error]))), (go!"DeleteRange", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.DeleteRangeRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.DeleteRangeResponse.ty), (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.pkg.v3.traceutil.Trace.ty), go.error]))), (go!"DowngradeInfoSet", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.membershippb.DowngradeInfoSetRequest.ty), _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.ShouldApplyV3.ty] false []))), (go!"LeaseCheckpoint", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.LeaseCheckpointRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.LeaseCheckpointResponse.ty), go.error]))), (go!"LeaseRevoke", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.LeaseRevokeRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.LeaseRevokeResponse.ty), go.error]))), (go!"Range", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.RangeRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.RangeResponse.ty), (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.pkg.v3.traceutil.Trace.ty), go.error]))), (go!"RoleAdd", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleAddRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleAddResponse.ty), go.error]))), (go!"RoleDelete", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleDeleteRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleDeleteResponse.ty), go.error]))), (go!"RoleGet", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleGetRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleGetResponse.ty), go.error]))), (go!"RoleGrantPermission", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleGrantPermissionRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleGrantPermissionResponse.ty), go.error]))), (go!"RoleList", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleListRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleListResponse.ty), go.error]))), (go!"RoleRevokePermission", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleRevokePermissionRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleRevokePermissionResponse.ty), go.error]))), (go!"UserAdd", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserAddRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserAddResponse.ty), go.error]))), (go!"UserChangePassword", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserChangePasswordRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserChangePasswordResponse.ty), go.error]))), (go!"UserDelete", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserDeleteRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserDeleteResponse.ty), go.error]))), (go!"UserGet", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserGetRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserGetResponse.ty), go.error]))), (go!"UserGrantRole", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserGrantRoleRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserGrantRoleResponse.ty), go.error]))), (go!"UserList", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserListRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserListResponse.ty), go.error]))), (go!"UserRevokeRole", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserRevokeRoleRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserRevokeRoleResponse.ty), go.error])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType quotaApplierV3.ty) [(go!"Alarm", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AlarmRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AlarmResponse.ty), go.error]))), (go!"Apply", (some (go.signature.Signature [(go.GoType.PointerType InternalRaftRequestWrapper.ty), _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.ShouldApplyV3.ty, applyFunc.ty] false [(go.GoType.PointerType Result.ty)]))), (go!"AuthDisable", (some (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthDisableResponse.ty), go.error]))), (go!"AuthEnable", (some (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthEnableResponse.ty), go.error]))), (go!"AuthStatus", (some (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthStatusResponse.ty), go.error]))), (go!"Authenticate", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.InternalAuthenticateRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthenticateResponse.ty), go.error]))), (go!"ClusterMemberAttrSet", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.membershippb.ClusterMemberAttrSetRequest.ty), _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.ShouldApplyV3.ty] false []))), (go!"ClusterVersionSet", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.membershippb.ClusterVersionSetRequest.ty), _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.ShouldApplyV3.ty] false []))), (go!"Compaction", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.CompactionRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.CompactionResponse.ty), (go.GoType.ChannelType go.ChanDir.recvonly (go.GoType.StructType [])), (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.pkg.v3.traceutil.Trace.ty), go.error]))), (go!"DeleteRange", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.DeleteRangeRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.DeleteRangeResponse.ty), (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.pkg.v3.traceutil.Trace.ty), go.error]))), (go!"DowngradeInfoSet", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.membershippb.DowngradeInfoSetRequest.ty), _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.ShouldApplyV3.ty] false []))), (go!"LeaseCheckpoint", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.LeaseCheckpointRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.LeaseCheckpointResponse.ty), go.error]))), (go!"LeaseGrant", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.LeaseGrantRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.LeaseGrantResponse.ty), go.error]))), (go!"LeaseRevoke", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.LeaseRevokeRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.LeaseRevokeResponse.ty), go.error]))), (go!"Put", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.PutRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.PutResponse.ty), (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.pkg.v3.traceutil.Trace.ty), go.error]))), (go!"Range", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.RangeRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.RangeResponse.ty), (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.pkg.v3.traceutil.Trace.ty), go.error]))), (go!"RoleAdd", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleAddRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleAddResponse.ty), go.error]))), (go!"RoleDelete", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleDeleteRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleDeleteResponse.ty), go.error]))), (go!"RoleGet", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleGetRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleGetResponse.ty), go.error]))), (go!"RoleGrantPermission", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleGrantPermissionRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleGrantPermissionResponse.ty), go.error]))), (go!"RoleList", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleListRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleListResponse.ty), go.error]))), (go!"RoleRevokePermission", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleRevokePermissionRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleRevokePermissionResponse.ty), go.error]))), (go!"Txn", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.TxnRequest.ty), go.bool] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.TxnResponse.ty), (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.pkg.v3.traceutil.Trace.ty), go.error]))), (go!"UserAdd", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserAddRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserAddResponse.ty), go.error]))), (go!"UserChangePassword", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserChangePasswordRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserChangePasswordResponse.ty), go.error]))), (go!"UserDelete", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserDeleteRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserDeleteResponse.ty), go.error]))), (go!"UserGet", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserGetRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserGetResponse.ty), go.error]))), (go!"UserGrantRole", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserGrantRoleRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserGrantRoleResponse.ty), go.error]))), (go!"UserList", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserListRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserListResponse.ty), go.error]))), (go!"UserRevokeRole", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserRevokeRoleRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserRevokeRoleResponse.ty), go.error])))]
   Alarm_unfold : MethodUnfold quotaApplierV3.ty go!"Alarm" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve applierV3.ty go!"Alarm"))) (App (Val (GoInstruction (StructFieldGet quotaApplierV3.ty go!"applierV3"))) (Var "$r"))))
   Apply_unfold : MethodUnfold quotaApplierV3.ty go!"Apply" (LamV "$r"
@@ -4392,6 +4438,8 @@ attribute [instance] quotaApplierV3.TypeAssumptions.type_repr
   quotaApplierV3.TypeAssumptions.set_applierV3
   quotaApplierV3.TypeAssumptions.get_q
   quotaApplierV3.TypeAssumptions.set_q
+  quotaApplierV3.TypeAssumptions.method_set
+  quotaApplierV3.TypeAssumptions.ptr_method_set
   quotaApplierV3.TypeAssumptions.Alarm_unfold
   quotaApplierV3.TypeAssumptions.Apply_unfold
   quotaApplierV3.TypeAssumptions.AuthDisable_unfold
@@ -4450,17 +4498,21 @@ attribute [instance] quotaApplierV3.TypeAssumptions.type_repr
   quotaApplierV3.TypeAssumptions.ptr_UserList_unfold
   quotaApplierV3.TypeAssumptions.ptr_UserRevokeRole_unfold
 
-abbrev UberApplier [FfiSyntax] : Type := GoInterface
+abbrev UberApplier [GooseExts] : Type := GoInterface
 
-@[reducible] noncomputable def UberApplier.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def UberApplier.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"Apply" (go.signature.Signature [(go.GoType.PointerType InternalRaftRequestWrapper.ty), _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.ShouldApplyV3.ty] false [(go.GoType.PointerType Result.ty)]))])
 
-class UberApplier.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class UberApplier.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq UberApplier.ty UberApplier.underlying
+  method_set : go.MethodSetIs UberApplier.ty [(go!"Apply", (some (go.signature.Signature [(go.GoType.PointerType InternalRaftRequestWrapper.ty), _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.ShouldApplyV3.ty] false [(go.GoType.PointerType Result.ty)])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType UberApplier.ty) []
 
 attribute [instance] UberApplier.TypeAssumptions.underlying
+  UberApplier.TypeAssumptions.method_set
+  UberApplier.TypeAssumptions.ptr_method_set
 
-structure uberApplier [FfiSyntax] where
+structure uberApplier [GooseExts] where
   mk ::
   lg' : Loc
   alarmStore' : Loc
@@ -4468,27 +4520,27 @@ structure uberApplier [FfiSyntax] where
   applyV3' : applierV3
   applyV3base' : applierV3
 
-noncomputable instance uberApplier.zero_val [FfiSyntax] : ZeroVal uberApplier :=
+noncomputable instance uberApplier.zero_val [GooseExts] : ZeroVal uberApplier :=
   ⟨uberApplier.mk zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def uberApplier.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def uberApplier.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"lg" (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)),
 (go.field_decl.FieldDecl go!"alarmStore" (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3alarm.AlarmStore.ty)),
 (go.field_decl.FieldDecl go!"warningApplyDuration" _root_.Perennial.time.Duration.ty),
 (go.field_decl.FieldDecl go!"applyV3" applierV3.ty),
 (go.field_decl.FieldDecl go!"applyV3base" applierV3.ty)]
 
-@[irreducible] noncomputable def uberApplier.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def uberApplier.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   uberApplier.fieldsUnsealed
 
-noncomputable instance equals_unfold_uberApplier [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_uberApplier [GooseExts] [GoGlobalContext] :
     EqualsUnfold uberApplier.fields uberApplier.fieldsUnsealed :=
   ⟨by unfold uberApplier.fields; rfl⟩
 
-@[reducible] noncomputable def uberApplier.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def uberApplier.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType uberApplier.fields)
 
-class uberApplier.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class uberApplier.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying uberApplier.underlying uberApplier
   underlying : go.UnderlyingDirectedEq uberApplier.ty uberApplier.underlying
   get_lg : ∀ (x : uberApplier), go.IsGoStepPureDetTagged under (StructFieldGet uberApplier.underlying go!"lg") #x (Val #(x.lg'))
@@ -4501,6 +4553,8 @@ class uberApplier.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext]
   set_applyV3 : ∀ (x : uberApplier) (y : applierV3), go.IsGoStepPureDetTagged under (StructFieldSet uberApplier.underlying go!"applyV3") (PairV #x #y) (Val #(({ x with applyV3' := y } : uberApplier)))
   get_applyV3base : ∀ (x : uberApplier), go.IsGoStepPureDetTagged under (StructFieldGet uberApplier.underlying go!"applyV3base") #x (Val #(x.applyV3base'))
   set_applyV3base : ∀ (x : uberApplier) (y : applierV3), go.IsGoStepPureDetTagged under (StructFieldSet uberApplier.underlying go!"applyV3base") (PairV #x #y) (Val #(({ x with applyV3base' := y } : uberApplier)))
+  method_set : go.MethodSetIs uberApplier.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType uberApplier.ty) [(go!"Alarm", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AlarmRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AlarmResponse.ty), go.error]))), (go!"Apply", (some (go.signature.Signature [(go.GoType.PointerType InternalRaftRequestWrapper.ty), _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.ShouldApplyV3.ty] false [(go.GoType.PointerType Result.ty)]))), (go!"go.etcd.io/etcd/server/v3/etcdserver/apply.dispatch", (some (go.signature.Signature [(go.GoType.PointerType InternalRaftRequestWrapper.ty), _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.ShouldApplyV3.ty] false [(go.GoType.PointerType Result.ty)]))), (go!"go.etcd.io/etcd/server/v3/etcdserver/apply.restoreAlarms", (some (go.signature.Signature [] false [])))]
   ptr_Alarm_unfold : MethodUnfold (go.GoType.PointerType uberApplier.ty) go!"Alarm" uberApplier.Alarm.impl
   ptr_Apply_unfold : MethodUnfold (go.GoType.PointerType uberApplier.ty) go!"Apply" uberApplier.Apply.impl
   ptr_dispatch_unfold : MethodUnfold (go.GoType.PointerType uberApplier.ty) go!"dispatch" uberApplier.dispatch.impl
@@ -4518,12 +4572,14 @@ attribute [instance] uberApplier.TypeAssumptions.type_repr
   uberApplier.TypeAssumptions.set_applyV3
   uberApplier.TypeAssumptions.get_applyV3base
   uberApplier.TypeAssumptions.set_applyV3base
+  uberApplier.TypeAssumptions.method_set
+  uberApplier.TypeAssumptions.ptr_method_set
   uberApplier.TypeAssumptions.ptr_Alarm_unfold
   uberApplier.TypeAssumptions.ptr_Apply_unfold
   uberApplier.TypeAssumptions.ptr_dispatch_unfold
   uberApplier.TypeAssumptions.ptr_restoreAlarms_unfold
 
-class Assumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   authApplierV3_instance : authApplierV3.TypeAssumptions
   applierV3backend_instance : applierV3backend.TypeAssumptions
   applierV3Capped_instance : applierV3Capped.TypeAssumptions

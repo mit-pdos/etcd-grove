@@ -42,13 +42,7 @@ open Iris Iris.BI Iris.ProofMode go_etcd_io.etcd.server.v3.storage.mvcc
 /-! ### The `available` map -/
 
 section maps
-variable [ext : FfiSyntax]
-
-/-- `Revision`s are compared by their fields (the `available` map's keys). -/
-instance revision_decEq : DecidableEq Revision := fun a b =>
-  if h : a.Main' = b.Main' ∧ a.Sub' = b.Sub' then
-    isTrue (by cases a; cases b; simp only at h; rw [h.1, h.2])
-  else isFalse (by intro e; subst e; exact h ⟨rfl, rfl⟩)
+variable [GooseExts]
 
 /-- `doCompact`'s addition to `available` (the revision it keeps, if any). -/
 def availAdd (A : GMap Revision Unit) : Option Rev → GMap Revision Unit
@@ -83,7 +77,7 @@ def keepOfIs (A : GMap Revision Unit) (log : Log) (rev : w64) : Prop :=
 end maps
 
 section chans
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]

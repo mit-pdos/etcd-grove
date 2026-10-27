@@ -39,12 +39,12 @@ def utf8.firstEntry (n : Nat) : w8 :=
 def utf8.firstTable : List w8 := (List.range 256).map utf8.firstEntry
 
 /-- The table `acceptRanges` (`[16]acceptRange`): five ranges, the rest zero. -/
-def utf8.acceptTable [FfiSyntax] : List unicode.utf8.acceptRange :=
+def utf8.acceptTable [GooseExts] : List unicode.utf8.acceptRange :=
   [⟨0x80, 0xBF⟩, ⟨0xA0, 0xBF⟩, ⟨0x80, 0x9F⟩, ⟨0x90, 0xBF⟩, ⟨0x80, 0x8F⟩] ++
     List.replicate 11 ⟨0, 0⟩
 
 section init
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
@@ -62,7 +62,7 @@ end EtcdGrove
 open Iris Iris.BI
 
 section inst
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]

@@ -24,7 +24,7 @@ namespace metadata
 
 /-- **The outgoing metadata of the context `ctx`** (opaque, see the file header): `none` if it
 has none, else each key's values. -/
-opaque outgoingOf [FfiSyntax] : GoInterface → Option (GoString → Option (List GoString))
+opaque outgoingOf [GooseExts] : GoInterface → Option (GoString → Option (List GoString))
 
 /-- Metadata (`none`: no metadata) with `v` appended to the values of the key `k`. -/
 def mdAdd (md : Option (GoString → Option (List GoString))) (k v : GoString) :

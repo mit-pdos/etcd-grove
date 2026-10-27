@@ -132,7 +132,7 @@ path must be shown unreachable. Saying "these three do not fail" is therefore th
 honest reading of raft's use of the interface.
 
 Lean notes: `ownStorage` is the field of `class StorageModel GF` (binders `GF` and
-`FfiSyntax`, which `Storage`/`entryID` need), exported; a section that uses it has
+`GooseExts`, which `Storage`/`entryID` need), exported; a section that uses it has
 `[StorageModel GF]`.
 Rocq's `l1 `prefix_of` l2` is `l1 <+: l2`, `take n l`/`drop n l` are `l.take n`/`l.drop n`.
 The Rocq `ents !! k` is `ents[k]?` and `Z.to_nat` is `Int.toNat`. Inside `iprop(…)` a
@@ -163,7 +163,7 @@ and (2026-10-10) the batch `pend` the application may be appending. One record, 
 changes (notes/decisions.md, "Predicate indices"; until 2026-10-08 these were three
 arguments of `ownStorage`, `isStorageWith`'s `P`, `memstorageFields` and
 `ownMemoryStorage`). -/
-structure StorState [FfiSyntax] where
+structure StorState [GooseExts] where
   prev : entryID
   ents : List EntryM
   ss : entryID
@@ -203,7 +203,7 @@ Exclusive (not persistent) by intent, because a `Storage` is mutable -- `Append`
 `Compact` change it; nothing assumes otherwise. There is deliberately no global
 instance: one would specialise every result to it. Until 2026-10-08 `ownStorage` was an
 `axiom`, which fixed one unknown predicate that no client could ever establish. -/
-class StorageModel (GF : BundledGFunctors) [FfiSyntax] where
+class StorageModel (GF : BundledGFunctors) [GooseExts] where
   ownStorage : Storage → StorState → IProp GF
   /-- `appendTok st σ p` (2026-10-10): the application's right to append the batch `p`
   to the storage `st`, handed out at the state `σ` (with nothing pending) by the
@@ -242,24 +242,24 @@ class StorageModel (GF : BundledGFunctors) [FfiSyntax] where
 
 export StorageModel (ownStorage appendTok appendedTok storCut storFloor storCap storCert)
 
-instance storCut_pers {GF : BundledGFunctors} [FfiSyntax] [StorageModel GF] (st : Storage)
+instance storCut_pers {GF : BundledGFunctors} [GooseExts] [StorageModel GF] (st : Storage)
     (n : Int) : Persistent (storCut (GF := GF) st n) :=
   StorageModel.storCut_persistent st n
 
-instance storFloor_pers {GF : BundledGFunctors} [FfiSyntax] [StorageModel GF] (st : Storage)
+instance storFloor_pers {GF : BundledGFunctors} [GooseExts] [StorageModel GF] (st : Storage)
     (x : w64) : Persistent (storFloor (GF := GF) st x) :=
   StorageModel.storFloor_persistent st x
 
-instance storCap_pers {GF : BundledGFunctors} [FfiSyntax] [StorageModel GF] (st : Storage)
+instance storCap_pers {GF : BundledGFunctors} [GooseExts] [StorageModel GF] (st : Storage)
     (k : Int) : Persistent (storCap (GF := GF) st k) :=
   StorageModel.storCap_persistent st k
 
-instance storCert_pers {GF : BundledGFunctors} [FfiSyntax] [StorageModel GF] (st : Storage)
+instance storCert_pers {GF : BundledGFunctors} [GooseExts] [StorageModel GF] (st : Storage)
     (k : SnapTrip) : Persistent (storCert (GF := GF) st k) :=
   StorageModel.storCert_persistent st k
 
 section termAt
-variable [FfiSyntax]
+variable [GooseExts]
 
 /-- The term of index `i` in the log `prev :: ents`. `none` outside the range the
 storage can answer for. -/
@@ -316,7 +316,7 @@ def PendAbove (σ : StorState) (p : List EntryM) : Prop :=
 end termAt
 
 section proof
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF] [StorageModel GF]
 variable [sem : go.Semantics]

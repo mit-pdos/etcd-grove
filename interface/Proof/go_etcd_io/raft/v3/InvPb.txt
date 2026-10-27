@@ -7,6 +7,9 @@ theorem msgPtsC_From_acc [package_sem : Assumptions] (l : Loc) (dq dqe : DFrac) 
     l) p dq ∗ cellRO p ms.msg.From' ∗ (typedPointsto (structFieldRef raftpb.Message go!"From" l) p
     dq -∗ msgPtsC l dq dqe cap ms)
 
+theorem ownConfChange_persist [package_sem : Assumptions] (p : Loc) (dq : DFrac) (m : ConfChangeM) :
+    ownConfChange p dq m ⊢ |==> ownConfChange p DFrac.discard m
+
 def ccsPts (p : Loc) (dq : DFrac) (c : ConfChangeSingleM) : IProp GF :=
   iprop(∃ pt pn uf,
       "%Hnn" ∷ ⌜p ≠ null⌝ ∗
@@ -19,15 +22,7 @@ def ccsPts (p : Loc) (dq : DFrac) (c : ConfChangeSingleM) : IProp GF :=
 theorem snapOpt_split [package_sem : Assumptions] (p : Loc) (dq1 dq2 : DFrac) (o : Option SnapshotM)
     : snapOpt p (dq1 • dq2) o ⊢ snapOpt p dq1 o ∗ snapOpt p dq2 o
 
-def CCV1M.asV2 (m : CCV1M) : CCV2M :=
-  { transition := W32 0, changes := [{ Type' := m.type, NodeId' := m.nodeId }], context := m.context }
-
 theorem needsCap_of_ne {m : MessageM} (h : m.Type' ≠ MsgApp) : needsCap m = false
-
-theorem ownCCV1_of_struct [package_sem : Assumptions] (p : Loc) (v : raftpb.ConfChange) (m : CCV1M)
-    (E : CoPset) (Hu : v.unknownFields' = slice.nil) : typedPointsto p v (DFrac.own 1) ∗ cellRO
-    v.Type' m.type ∗ cellRO v.NodeId' m.nodeId ∗ cellRO v.Id' m.id ∗ ownSlice v.Context' m.context
-    DFrac.discard ⊢ |={E}=> ownCCV1 p (DFrac.own 1) m
 
 def entPts (l : Loc) (dq : DFrac) (e : EntryM) : IProp GF :=
   iprop(∃ pt pi pty ds uf,
@@ -51,12 +46,6 @@ def cellRO {V : Type} [ZeroVal V] [TypedPointsto V] (p : Loc) (v : V) : IProp GF
 
 def entRO (l : Loc) (e : EntryM) : IProp GF :=
   entPts l DFrac.discard e
-
-theorem ownCCV2_of_struct [package_sem : Assumptions] (p : Loc) (v : raftpb.ConfChangeV2) (m :
-    CCV2M) (ls : List Loc) (E : CoPset) (Hu : v.unknownFields' = slice.nil) : typedPointsto p v
-    (DFrac.own 1) ∗ cellRO v.Transition' m.transition ∗ ownSlice v.Changes' ls (DFrac.own 1) ∗
-    ([∗list] q;c ∈ ls;m.changes, ccsRO q c) ∗ ownSlice v.Context' m.context DFrac.discard ⊢ |={E}=>
-    ownCCV2 p (DFrac.own 1) m
 
 def hsRO (p : Loc) (hs : HardStateM) : IProp GF :=
   iprop(∃ pt pv pc uf,
@@ -82,12 +71,6 @@ def snapOpt (p : Loc) (dq : DFrac) : Option SnapshotM → IProp GF :=
 
 def msgIn (l : Loc) (dqe : DFrac) (ms : MsgSt) : IProp GF :=
   msgPtsC l (DFrac.own 1) dqe (needsCap ms.msg) ms
-
-def ownCCI (c : GoInterface) (dq : DFrac) : Option CCMsg → IProp GF :=
-  match x✝ with
-  | none => iprop(⌜c = GoInterface.nil⌝)
-  | some (CCMsg.v1 m) => iprop(∃ p, ⌜c = interface.mkOk raftpb.ConfChange.ty.PointerType (intoVal p)⌝ ∗ ownCCV1 p dq m)
-  | some (CCMsg.v2 m) => iprop(∃ p, ⌜c = interface.mkOk raftpb.ConfChangeV2.ty.PointerType (intoVal p)⌝ ∗ ownCCV2 p dq m)
 
 theorem cellRO_cases {V : Type} [ZeroVal V] [TypedPointsto V] (p : Loc) (v : V) : cellRO p v ⊢ ⌜p =
     null ∧ v = zero_val V⌝ ∨ typedPointsto p v DFrac.discard ∗ ⌜p ≠ null⌝
@@ -153,7 +136,9 @@ def msgPtsC (l : Loc) (dq dqe : DFrac) (cap : Bool) (ms : MsgSt) : IProp GF :=
                                                               "#Hcs" ∷ ownSlice cs ms.ctx DFrac.discard ∗
                                                                 "HRs" ∷
                                                                     typedPointsto
-                                                                      (structFieldRef raftpb.Message [82#8, 101#8, ⋯] l)
+                                                                      (structFieldRef raftpb.Message
+                                                                        go!"Responses"
+                                                                        l)
                                                                       rs dq ∗
                                                                   "Hrs" ∷ ownSlice rs ms.resps dq ∗
                                                                     "#Hpb" ∷ pbMsg raftpb.Message l uf)
@@ -181,6 +166,9 @@ structure MsgSt : Type where
 theorem csOpt_csOptA [package_sem : Assumptions] (p : Loc) (dq : DFrac) (c : ConfStateM) : csOpt p
     dq c ⊢ csOptA p dq c
 
+theorem ownConfChange_persistent (p : Loc) (m : ConfChangeM) : Persistent (ownConfChange p
+    DFrac.discard m)
+
 def msgOwn (l : Loc) (dq : DFrac) (ms : MsgSt) : IProp GF :=
   msgPts l dq DFrac.discard ms
 
@@ -196,6 +184,14 @@ def pbMsg (T : Type) (l : Loc) (uf : List w8) : IProp GF :=
                 us (DFrac.own 1) ∗
               ownSlice us uf (DFrac.own 1))
 
+def ConfChangeM.asV2 (m : ConfChangeM) : ConfChangeV2M :=
+  { transition := W32 0, changes := [{ Type' := m.type, NodeId' := m.nodeId }], context := m.context }
+
+theorem ownConfChange_of_struct [package_sem : Assumptions] (p : Loc) (v : raftpb.ConfChange) (m :
+    ConfChangeM) (E : CoPset) (Hu : v.unknownFields' = slice.nil) : typedPointsto p v (DFrac.own 1)
+    ∗ cellRO v.Type' m.type ∗ cellRO v.NodeId' m.nodeId ∗ cellRO v.Id' m.id ∗ ownSlice v.Context'
+    m.context DFrac.discard ⊢ |={E}=> ownConfChange p (DFrac.own 1) m
+
 theorem csPts_weaken [package_sem : Assumptions] (p : Loc) (dq : DFrac) (c : ConfStateM) (al : Bool)
     : csPts p dq c al ⊢ ownCSM p dq c
 
@@ -208,6 +204,32 @@ theorem smOpt_split [package_sem : Assumptions] (p : Loc) (dq1 dq2 : DFrac) (md 
     : smOpt p (dq1 • dq2) md ⊢ smOpt p dq1 md ∗ smOpt p dq2 md
 
 theorem cellRO_null {V : Type} [ZeroVal V] [TypedPointsto V] : ⊢ cellRO null (zero_val V)
+
+def ownConfChangeV2 (p : Loc) (dq : DFrac) (m : ConfChangeV2M) : IProp GF :=
+  iprop(∃ pt chs ls cs uf,
+      "%Hnn" ∷ ⌜p ≠ null⌝ ∗
+        "HT" ∷
+            typedPointsto
+              (structFieldRef raftpb.ConfChangeV2 go!"Transition" p)
+              pt dq ∗
+          "#cT" ∷ cellRO pt m.transition ∗
+            "HCh" ∷
+                typedPointsto (structFieldRef raftpb.ConfChangeV2 go!"Changes" p) chs
+                  dq ∗
+              "Hch" ∷ ownSlice chs ls dq ∗
+                ("#Hccs" ∷ [∗list] q;c ∈ ls;m.changes, ccsRO q c) ∗
+                  "HC" ∷
+                      typedPointsto
+                        (structFieldRef raftpb.ConfChangeV2 go!"Context" p) cs dq ∗
+                    "#Hcs" ∷ ownSlice cs m.context DFrac.discard ∗ "#Hpb" ∷ pbMsg raftpb.ConfChangeV2 p uf)
+
+def ownConfChangeI (c : GoInterface) (dq : DFrac) : Option ConfChangeIM → IProp GF :=
+  match x✝ with
+  | none => iprop(⌜c = GoInterface.nil⌝)
+  | some (ConfChangeIM.v1 m) =>
+    iprop(∃ p, ⌜c = interface.mkOk raftpb.ConfChange.ty.PointerType (intoVal p)⌝ ∗ ownConfChange p dq m)
+  | some (ConfChangeIM.v2 m) =>
+    iprop(∃ p, ⌜c = interface.mkOk raftpb.ConfChangeV2.ty.PointerType (intoVal p)⌝ ∗ ownConfChangeV2 p dq m)
 
 def entOwn (l : Loc) (e : EntryM) : IProp GF :=
   entPts l (DFrac.own 1) e
@@ -270,20 +292,6 @@ def CSLists.Perm (a b : CSLists) : Prop :=
 theorem csPts_nn [package_sem : Assumptions] (p : Loc) (dq : DFrac) (c : ConfStateM) (al : Bool) :
     csPts p dq c al ⊢ csPts p dq c al ∗ ⌜p ≠ null⌝
 
-def ownCCV1 (p : Loc) (dq : DFrac) (m : CCV1M) : IProp GF :=
-  iprop(∃ pt pn pi cs uf,
-      "%Hnn" ∷ ⌜p ≠ null⌝ ∗
-        "HT" ∷ typedPointsto (structFieldRef raftpb.ConfChange go!"Type" p) pt dq ∗
-          "#cT" ∷ cellRO pt m.type ∗
-            "HN" ∷ typedPointsto (structFieldRef raftpb.ConfChange go!"NodeId" p) pn dq ∗
-              "#cN" ∷ cellRO pn m.nodeId ∗
-                "HI" ∷ typedPointsto (structFieldRef raftpb.ConfChange go!"Id" p) pi dq ∗
-                  "#cI" ∷ cellRO pi m.id ∗
-                    "HC" ∷
-                        typedPointsto
-                          (structFieldRef raftpb.ConfChange go!"Context" p) cs dq ∗
-                      "#Hcs" ∷ ownSlice cs m.context DFrac.discard ∗ "#Hpb" ∷ pbMsg raftpb.ConfChange p uf)
-
 theorem sortedW64_iff_pairwise (xs : List w64) : SortedW64 xs ↔ List.Pairwise (fun a b => uint.Z a ≤
     uint.Z b) xs
 
@@ -305,8 +313,11 @@ theorem hsRO_of_struct [package_sem : Assumptions] (p : Loc) (v : raftpb.HardSta
     cellRO v.Term' hs.Term' ∗ cellRO v.Vote' hs.Vote' ∗ cellRO v.Commit' hs.Commit' ⊢ |={E}=> hsRO p
     hs
 
-theorem ownCCV1_persist [package_sem : Assumptions] (p : Loc) (dq : DFrac) (m : CCV1M) : ownCCV1 p
-    dq m ⊢ |==> ownCCV1 p DFrac.discard m
+theorem ownConfChangeV2_of_struct [package_sem : Assumptions] (p : Loc) (v : raftpb.ConfChangeV2) (m
+    : ConfChangeV2M) (ls : List Loc) (E : CoPset) (Hu : v.unknownFields' = slice.nil) :
+    typedPointsto p v (DFrac.own 1) ∗ cellRO v.Transition' m.transition ∗ ownSlice v.Changes' ls
+    (DFrac.own 1) ∗ ([∗list] q;c ∈ ls;m.changes, ccsRO q c) ∗ ownSlice v.Context' m.context
+    DFrac.discard ⊢ |={E}=> ownConfChangeV2 p (DFrac.own 1) m
 
 theorem smPts_split [package_sem : Assumptions] (p : Loc) (dq1 dq2 : DFrac) (md : SnapshotMetadataM)
     : smPts p (dq1 • dq2) md ⊢ smPts p dq1 md ∗ smPts p dq2 md
@@ -318,6 +329,20 @@ theorem pbMsg_alloc [package_sem : Assumptions] (T : Type) (l : Loc) (st :
     (E : CoPset) : typedPointsto (structFieldRef T go!"state" l) st (DFrac.own 1) ∗ typedPointsto
     (structFieldRef T go!"sizeCache" l) sc (DFrac.own 1) ∗ typedPointsto (structFieldRef T
     go!"unknownFields" l) us (DFrac.own 1) ∗ ownSlice us uf (DFrac.own 1) ⊢ |={E}=> pbMsg T l uf
+
+def ownConfChange (p : Loc) (dq : DFrac) (m : ConfChangeM) : IProp GF :=
+  iprop(∃ pt pn pi cs uf,
+      "%Hnn" ∷ ⌜p ≠ null⌝ ∗
+        "HT" ∷ typedPointsto (structFieldRef raftpb.ConfChange go!"Type" p) pt dq ∗
+          "#cT" ∷ cellRO pt m.type ∗
+            "HN" ∷ typedPointsto (structFieldRef raftpb.ConfChange go!"NodeId" p) pn dq ∗
+              "#cN" ∷ cellRO pn m.nodeId ∗
+                "HI" ∷ typedPointsto (structFieldRef raftpb.ConfChange go!"Id" p) pi dq ∗
+                  "#cI" ∷ cellRO pi m.id ∗
+                    "HC" ∷
+                        typedPointsto
+                          (structFieldRef raftpb.ConfChange go!"Context" p) cs dq ∗
+                      "#Hcs" ∷ ownSlice cs m.context DFrac.discard ∗ "#Hpb" ∷ pbMsg raftpb.ConfChange p uf)
 
 def SortedW64 (xs : List w64) : Prop :=
   ∀ (i j : Nat) (xi xj : w64), xs[i]? = some xi → xs[j]? = some xj → i < j → uint.Z xi ≤ uint.Z xj
@@ -345,8 +370,6 @@ theorem csPts_persistent (p : Loc) (c : ConfStateM) (al : Bool) : Persistent (cs
 theorem cellRO_alloc {V : Type} [ZeroVal V] [TypedPointsto V] (p : Loc) (v : V) : typedPointsto p v
     (DFrac.own 1) ⊢ |==> cellRO p v
 
-theorem ownCCV1_persistent (p : Loc) (m : CCV1M) : Persistent (ownCCV1 p DFrac.discard m)
-
 theorem entRO_persistent (l : Loc) (e : EntryM) : Persistent (entRO l e)
 
 def needsCap (m : MessageM) : Bool :=
@@ -356,24 +379,6 @@ theorem entOwn_of_struct [package_sem : Assumptions] (l : Loc) (v : raftpb.Entry
     CoPset) (Hu : v.unknownFields' = slice.nil) : typedPointsto l v (DFrac.own 1) ∗ cellRO v.Term'
     e.Term' ∗ cellRO v.Index' e.Index' ∗ cellRO v.Type' e.Type' ∗ ownSlice v.Data' e.Data'
     DFrac.discard ⊢ |={E}=> entOwn l e
-
-def ownCCV2 (p : Loc) (dq : DFrac) (m : CCV2M) : IProp GF :=
-  iprop(∃ pt chs ls cs uf,
-      "%Hnn" ∷ ⌜p ≠ null⌝ ∗
-        "HT" ∷
-            typedPointsto
-              (structFieldRef raftpb.ConfChangeV2 go!"Transition" p)
-              pt dq ∗
-          "#cT" ∷ cellRO pt m.transition ∗
-            "HCh" ∷
-                typedPointsto (structFieldRef raftpb.ConfChangeV2 go!"Changes" p) chs
-                  dq ∗
-              "Hch" ∷ ownSlice chs ls dq ∗
-                ("#Hccs" ∷ [∗list] q;c ∈ ls;m.changes, ccsRO q c) ∗
-                  "HC" ∷
-                      typedPointsto
-                        (structFieldRef raftpb.ConfChangeV2 go!"Context" p) cs dq ∗
-                    "#Hcs" ∷ ownSlice cs m.context DFrac.discard ∗ "#Hpb" ∷ pbMsg raftpb.ConfChangeV2 p uf)
 
 theorem msgOwn_split [package_sem : Assumptions] (l : Loc) (dq1 dq2 : DFrac) (ms : MsgSt) : msgOwn l
     (dq1 • dq2) ms ⊢ msgOwn l dq1 ms ∗ msgOwn l dq2 ms

@@ -42,7 +42,7 @@ namespace putget3
 open Iris Iris.BI go_etcd_io.etcd.server.v3.etcdserver go_etcd_io.raft.v3
 
 section pure
-variable [ext : FfiSyntax]
+variable [GooseExts]
 
 /-- **The server's conf-change policy for the cluster `ps`** (`srvCCPolicy`'s clauses, D19c; putget's
 `ccOk` at a set of members): a v1 conf change, a `ConfChange` encoding of id `0`, which changes
@@ -99,7 +99,7 @@ def dir3 (id₁ id₂ id₃ : w64) (id : w64) : List GoString :=
 end pure
 
 section defs
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]

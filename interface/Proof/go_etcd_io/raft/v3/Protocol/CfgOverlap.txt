@@ -2,9 +2,9 @@
 -- Every declaration also takes the ambient section variables (left out below): the Go semantics
 -- (`ext`, `ffi`, `go_gctx`, `sem`, the package's `Assumptions`), `GF`, `hG`, `StorageModel GF`, `AllG GF`.
 
-theorem ccStepB_removeVoter (V : GSet w64) (m : CCV1M) (Hty : m.type = W32 1) (h0 : m.nodeId ≠ W64
-    0) (hV : m.nodeId ∈ V) (hne : GMap.delete m.nodeId V ≠ ∅) (Hsz : GMap.size V < 2 ^ 62) : ccStepB
-    (ccV2Of (CCMsg.v1 m)) (cfgState V ∅) = some (cfgState (GMap.delete m.nodeId V) ∅)
+theorem ccStepB_removeVoter (V : GSet w64) (m : ConfChangeM) (Hty : m.type = W32 1) (h0 : m.nodeId ≠
+    W64 0) (hV : m.nodeId ∈ V) (hne : GMap.delete m.nodeId V ≠ ∅) (Hsz : GMap.size V < 2 ^ 62) :
+    ccStepB (ccV2Of (ConfChangeIM.v1 m)) (cfgState V ∅) = some (cfgState (GMap.delete m.nodeId V) ∅)
 
 theorem fold_adjacent (dec : CCDec) (l : List EntryM) (i j : Nat) (s0 si sj : CCState) (hij : i ≤ j)
     (hc : confCount (List.take j l) ≤ confCount (List.take i l) + 1) (h0 : CfgOk s0) (hi : cfgFold
@@ -47,9 +47,9 @@ theorem cfgFoldFrom_append (dec : CCDec) (pre : List EntryM) (s : CCState) (l1 l
 theorem maj_symdiff_overlap (l r q1 q2 : GSet w64) (hd : symdiffN l r ≤ 1) (h1 : IsQuorum l q1) (h2
     : IsQuorum r q2) : ∃ x, x ∈ q1 ∧ x ∈ q2
 
-theorem ccStepB_removeAbsent (V : GSet w64) (m : CCV1M) (Hty : m.type = W32 1) (h0 : m.nodeId ≠ W64
-    0) (hV : ¬m.nodeId ∈ V) (hne : V ≠ ∅) (Hsz : GMap.size V < 2 ^ 62) : ccStepB (ccV2Of (CCMsg.v1
-    m)) (cfgState V ∅) = some (cfgState V ∅)
+theorem ccStepB_removeAbsent (V : GSet w64) (m : ConfChangeM) (Hty : m.type = W32 1) (h0 : m.nodeId
+    ≠ W64 0) (hV : ¬m.nodeId ∈ V) (hne : V ≠ ∅) (Hsz : GMap.size V < 2 ^ 62) : ccStepB (ccV2Of
+    (ConfChangeIM.v1 m)) (cfgState V ∅) = some (cfgState V ∅)
 
 theorem simpleM_overlap {ccs : List ConfChangeSingleM} {s s' : CCState} (h : simpleM ccs s = some
     s') (hs : CfgOk s) (hb : GMap.size s'.cfg.ids < 2 ^ 62) : QOverlap s.cfg s'.cfg ∧ CfgOk s'

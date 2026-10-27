@@ -30,7 +30,7 @@ theorem lintestN_kvClockWN : (↑lintest.lintestN : CoPset) ⊆ ⊤ \ ↑kvClock
   mask_ndot_ne' nroot "lintest" "kv_clock" (by decide)
 
 section proof
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]

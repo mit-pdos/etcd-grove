@@ -89,7 +89,7 @@ structure HReq where
   body : List w8
 
 section fields
-variable [FfiSyntax] [GoGlobalContext] [GoSemanticsFunctions]
+variable [GooseExts] [GoGlobalContext] [GoSemanticsFunctions]
 
 /-- The field `f` of the `*http.Request` at `r`. -/
 abbrev reqF (f : GoString) (r : Loc) : Loc :=
@@ -106,7 +106,7 @@ abbrev respF (f : GoString) (r : Loc) : Loc :=
 end fields
 
 section defs
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
@@ -1016,7 +1016,7 @@ struct type) needs only `TypeRepr`, which instance search would take from those 
 (`IntoValTyped.type_repr`). These take it from the translation's own type assumptions
 (`Request.TypeAssumptions.type_repr`, in `net.http.Assumptions`) instead: no `sorry`, no axiom. -/
 section typeRepr
-variable [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions]
+variable [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions]
 variable [package_sem : _root_.Perennial.net.http.Assumptions]
 
 instance (priority := high) Request_typeRepr :

@@ -250,7 +250,7 @@ theorem stmOptsFold_take_succ (gs : List (STMOpts → STMOpts)) (o : STMOpts) (n
   foldl_apply_take_succ gs o n g h
 
 section addrs
-variable [FfiSyntax] [GoGlobalContext] [GoSemanticsFunctions]
+variable [GooseExts] [GoGlobalContext] [GoSemanticsFunctions]
 
 /-- The `stm` of the STM `p` of level `lvl`: `p` itself for a `*stm`, the embedded field for a
 `*stmSerializable`. -/
@@ -272,7 +272,7 @@ def stmAborted (r : val) : Prop := ∃ err, err ≠ GoInterface.nil ∧ r = stmA
 end addrs
 
 section defs
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [EM : EtcdModel GF]
@@ -589,7 +589,7 @@ end defs
 
 section lemmas
 open Iris.ProofMode
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [EM : EtcdModel GF]

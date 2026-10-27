@@ -101,7 +101,7 @@ open go_etcd_io.etcd.cache.v3
 /-! ## The environment -/
 
 section envs
-variable [ext : FfiSyntax]
+variable [GooseExts]
 
 /-- **What a watcher is over** (fixed by `NewWatchFromWatchClient`): the watch server's values
 (`R`: its store's names, its ids, its environment), the address it is served at and the client's
@@ -166,7 +166,7 @@ theorem WEnv.atIdx_atIdx (V : WEnv GF) (i j : Nat) : (V.atIdx i).atIdx j = V.atI
 end envs
 
 section addrs
-variable [ext : FfiSyntax] [go_gctx : GoGlobalContext] [GoSemanticsFunctions]
+variable [GooseExts] [go_gctx : GoGlobalContext] [GoSemanticsFunctions]
 
 /-- The stub as a `pb.WatchClient` interface value. -/
 abbrev wcIface (wc : Loc) : GoInterface :=
@@ -199,7 +199,7 @@ abbrev wrF (wr : Loc) (f : GoString) : Loc :=
 end addrs
 
 section defs
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]

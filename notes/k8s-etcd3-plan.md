@@ -232,8 +232,9 @@ translated `init` function, `after`). New trust-boundary axioms: the names-only 
 (`DefaultFeatureGate`, `DefaultFeatureSupportChecker`, `ErrTransactionConflict`). `sharding.toml`
 imports `runtime` (G4), so `storage.SelectionPredicate`'s `sharding.Selector` is concrete and no
 result reaches an axiomatized type's `sorry`. The `sorry`s the result rests on: `revRoom` (the
-revision bound, D30n), `clientErr_other` (item 5 below), `client_ctx_field` (item 6), and the
-store's `kvIs_ne_null` (item 3).
+revision bound, D30n), `client_ctx_field` (item 6), and the store's `kvIs_ne_null` (item 3);
+`clientErr_other` (item 5 below) was a fourth until 2026-10-26 (D37b: proved, over the new
+method-set premise `storageErrTyOk`).
 
 ## What blocks where
 
@@ -300,11 +301,12 @@ A driver without list traffic (phase 6 first, then lists) does not need it at al
 4. For the watcher, later: `prevKV` (the watch contract fixes it false), compaction cancels,
    watches under any prefix (the contract's `V.pfx` is fixed).
 5. (2026-10-22; partly landed 2026-10-23 as D37, `kvErr`/`errCellOk`: a client error is no
-   caller's `errors.New` value of another message, `kvErr_ne`. `clientErr_other` is still a marked
-   `sorry`: `errOut`'s `ErrOther` also needs the error's type not `*StorageError`, a method-set
-   fact (`isLeafError` is about the uninterpreted `methodSet`), and an `*errorString` error's value
-   a pointer, which nothing states; the client's specs now carry `kvErr`, the store's still
-   `clientErr ∗ statusErrOk`.) **A client error is not the driver's sentinel.** The driver's
+   caller's `errors.New` value of another message, `kvErr_ne`; **done 2026-10-26**, D37b:
+   `clientErr_other` proved. The kubernetes client's and the store's error cases carry
+   `errCellOk`, which now also says an `*errorString` error is a pointer (`errCellOk_ptr`); the
+   sentinels' cells are in the driver's package fact (`errVarOk x msg`); not a `*StorageError` by
+   `clientErr`'s leaf fact and the method-set premise `storageErrTyOk`, `*StorageError` has
+   `Unwrap`.) **A client error is not the driver's sentinel.** The driver's
    `errOut` (as the correctness test) classifies by identity: `*storage.StorageError` of code
    NotFound/Exists, then `err == errDeleteRejected || err == errUpdateRejected`, else `EOther`
    (outcome unknown, the prophecy's `false`). The store returns the client's errors unchanged

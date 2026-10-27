@@ -3,8 +3,8 @@
 -- (`ext`, `ffi`, `go_gctx`, `sem`, the package's `Assumptions`), `GF`, `hG`, `StorageModel GF`, `AllG GF`.
 
 def node.ApplyConfChange.spec : Prop :=
-  ∀ (γ : NodeNames) (id : w64) (n : Loc) (c : GoInterface) (o : CCMsg) (ds : List EntryM) (ca : Nat) (cfg : CCState)
-    (k : Nat) (e : EntryM) (cs' : CCState),
+  ∀ (γ : NodeNames) (id : w64) (n : Loc) (c : GoInterface) (o : ConfChangeIM) (ds : List EntryM) (ca : Nat)
+    (cfg : CCState) (k : Nat) (e : EntryM) (cs' : CCState),
     (γ.mode = RNMode.static → CCShrink γ.raft.reCfg (ccV2Of o).fst (ccV2Of o).snd) →
       (∀ (dec : CCDec) (c0 : CCState) (h0 : CfgOk c0) (h1 : CCGood c0),
           γ.mode = RNMode.dyn dec c0 h0 h1 → DynCCPreOp dec ds ca cfg (ccV2Of o) k e cs') →
@@ -12,7 +12,7 @@ def node.ApplyConfChange.spec : Prop :=
           ∀ Φ,
             isPkgInit pkg_id.go_etcd_io.raft.v3 ∗
                 isNode γ id n ∗
-                  ownCCI c DFrac.discard (some o) ∗ (⌜γ.mode = RNMode.static⌝ ∨ nodeCfg γ ca cfg ∗ dlvLb γ ds) -∗
+                  ownConfChangeI c DFrac.discard (some o) ∗ (⌜γ.mode = RNMode.static⌝ ∨ nodeCfg γ ca cfg ∗ dlvLb γ ds) -∗
               (▷
                   ∀ csp cs,
                     csPts csp (DFrac.own 1) cs true ∗

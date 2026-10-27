@@ -23,6 +23,7 @@ InvGrpcServer.lean`.
 -/
 module
 
+public import Perennial.Golang.Theory.TypeSet
 public import Proof.google_golang_org.grpc.InvGrpcServer
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.InvQuota
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.InvWatch
@@ -43,7 +44,7 @@ open Iris Iris.BI go_etcd_io.etcd.server.v3.etcdserver.api go_etcd_io.etcd.serve
   go_etcd_io.etcd.api.v3
 
 /-- **The service values' method sets** (see the file header). -/
-class v3rpc.ServerMethodSets [FfiSyntax] [GoGlobalContext] [GoLocalContext]
+class v3rpc.ServerMethodSets [GooseExts] [GoGlobalContext] [GoLocalContext]
     [GoSemanticsFunctions] : Prop where
   kv_impl : go.typeSetContains (go.GoType.PointerType v3rpc.quotaKVServer.ty)
     etcdserverpb.KVServer.ty = true
@@ -67,8 +68,13 @@ class v3rpc.ServerMethodSets [FfiSyntax] [GoGlobalContext] [GoLocalContext]
   maint_te : go.typeSetContains (go.GoType.PointerType v3rpc.authMaintenanceServer.ty)
     testEmbeddedIface = false
 
+/-- `ServerMethodSets` holds, from the method sets goose emits. -/
+instance v3rpc.serverMethodSets_inst [GooseExts] [GoGlobalContext] [GoLocalContext]
+    [sem : go.Semantics] [go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions] : v3rpc.ServerMethodSets := by
+  constructor <;> (try unfold testEmbeddedIface) <;> go_type_set
+
 section pure
-variable [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions]
+variable [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions]
 
 /-- The KV service's methods `v3rpc.Server` registers, with the `*quotaKVServer` `q`: the
 `(full name, MethodDesc.Handler, service value)` of `Put`, `Range`, `DeleteRange` and `Txn`
@@ -156,11 +162,11 @@ end pure
 `proto.Marshal(v.(proto.Message))` (golang/protobuf's, over protobuf-go's) and `Unmarshal(data, v)`
 is `proto.Unmarshal(data, v.(proto.Message))`, each also adding the byte count to a prometheus
 counter (`sentBytes`, `receivedBytes`); its `String()` is `"proto"`, the default codec's name. -/
-axiom v3rpc.codec_proto [FfiSyntax] [GoGlobalContext] (l : Loc) :
+axiom v3rpc.codec_proto [GooseExts] [GoGlobalContext] (l : Loc) :
   grpcProtoCodec (interface.mkOk (go.GoType.PointerType v3rpc.codec.ty) #l)
 
 section defs
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
@@ -172,7 +178,7 @@ environment `E`), its logger `lg` (`s.lg`), its configuration's logger `lg0` (`s
 `stopping` channel `ch`, tick and election settings `tm`, `et`, request size `m`, feature gate `fg`,
 metrics level `mt`, distributed tracing switch `tr` and options `tos` (in the slice `tsl`), and the
 `MaxConcurrentStreams` bound `mcs`. -/
-structure v3rpc.GrpcCfg (GF : BundledGFunctors) [FfiSyntax] where
+structure v3rpc.GrpcCfg (GF : BundledGFunctors) [GooseExts] where
   A : v3rpc.KVAns GF
   E : apply.AEnv GF
   γ : mvcc.WsNames

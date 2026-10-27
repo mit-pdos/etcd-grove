@@ -1,7 +1,7 @@
 /- Lean-first (no Rocq counterpart), 2026-10-13: reconfiguration stage D.
 
-raft v3.7 (2026-10-16, stage R5): the conf change is a pointer (`ownCCI`): a `*ConfChange`'s
-`AsV2` returns a fresh `*ConfChangeV2` (`ownCCV2 v 1 m.asV2`, whose transition and changes are
+raft v3.7 (2026-10-16, stage R5): the conf change is a pointer (`ownConfChangeI`): a `*ConfChange`'s
+`AsV2` returns a fresh `*ConfChangeV2` (`ownConfChangeV2 v 1 m.asV2`, whose transition and changes are
 `ccV2Of (.v1 m)` by definition), a `*ConfChangeV2`'s is itself; `applyConfChange` returns a fresh
 `*pb.ConfState` (`csPts cs 1 … true`), handed to the caller. -/
 module
@@ -25,7 +25,7 @@ open Iris Iris.BI Iris.ProofMode go_etcd_io.raft.v3
 open RawNodeOwnAccess
 
 section proof
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [StorageModel GF]
 variable [sem : go.Semantics]
@@ -47,7 +47,7 @@ theorem RawNode.ApplyConfChange.wp_proof
   rcases Hmode with ⟨dec, c0, h0, h1, hm⟩ | hm
   · have Hpre := Hdyn dec c0 h0 h1 hm
     rcases o with m | m
-    · simp only [ownCCI]
+    · simp only [ownConfChangeI]
       icases Hc with ⟨%p, %Hcv, Hc1⟩
       subst Hcv
       wp_auto_lc 1
@@ -62,7 +62,7 @@ theorem RawNode.ApplyConfChange.wp_proof
       simp only [named]
       iframe Hcs
       isplitl [Hc1]
-      · try simp only [ownCCI]
+      · try simp only [ownConfChangeI]
         iexists p
         iframe Hc1
         ipureintro; rfl
@@ -71,7 +71,7 @@ theorem RawNode.ApplyConfChange.wp_proof
       · ipureintro; rw [hm]; rfl
       iframe Hrn
       ipureintro; exact ⟨Hcs0.1, Hcs0.2.1, Hcs0.2.2.1, Hcs0.2.2.2, trivial⟩
-    · simp only [ownCCI]
+    · simp only [ownConfChangeI]
       icases Hc with ⟨%p, %Hcv, Hch⟩
       subst Hcv
       wp_auto_lc 1
@@ -86,7 +86,7 @@ theorem RawNode.ApplyConfChange.wp_proof
       simp only [named]
       iframe Hcs
       isplitl [Hch]
-      · try simp only [ownCCI]
+      · try simp only [ownConfChangeI]
         iexists p
         iframe Hch
         ipureintro; rfl
@@ -103,7 +103,7 @@ theorem RawNode.ApplyConfChange.wp_proof
   have Hin := Hin Hm
   rcases o with m | m
   · -- a `ConfChange`: `AsV2` makes the one change, a fresh `*ConfChangeV2`
-    simp only [ownCCI]
+    simp only [ownConfChangeI]
     icases Hc with ⟨%p, %Hcv, Hc1⟩
     subst Hcv
     wp_auto_lc 1
@@ -128,7 +128,7 @@ theorem RawNode.ApplyConfChange.wp_proof
       simp only [named]
       iframe Hcs
       isplitl [Hc1]
-      · try simp only [ownCCI]
+      · try simp only [ownConfChangeI]
         iexists p
         iframe Hc1
         ipureintro; rfl
@@ -171,7 +171,7 @@ theorem RawNode.ApplyConfChange.wp_proof
       simp only [named]
       iframe Hcs
       isplitl [Hc1]
-      · try simp only [ownCCI]
+      · try simp only [ownConfChangeI]
         iexists p
         iframe Hc1
         ipureintro; rfl
@@ -190,7 +190,7 @@ theorem RawNode.ApplyConfChange.wp_proof
       ipureintro
       exact ⟨HdL, Happ', Hcs0.1, Hcs0.2.1, Hcs0.2.2.1, Hcs0.2.2.2, rfl, Hok⟩
   · -- a `ConfChangeV2`: `AsV2` is itself
-    simp only [ownCCI]
+    simp only [ownConfChangeI]
     icases Hc with ⟨%p, %Hcv, Hch⟩
     subst Hcv
     wp_auto_lc 1
@@ -215,7 +215,7 @@ theorem RawNode.ApplyConfChange.wp_proof
       simp only [named]
       iframe Hcs
       isplitl [Hch]
-      · try simp only [ownCCI]
+      · try simp only [ownConfChangeI]
         iexists p
         iframe Hch
         ipureintro; rfl
@@ -258,7 +258,7 @@ theorem RawNode.ApplyConfChange.wp_proof
       simp only [named]
       iframe Hcs
       isplitl [Hch]
-      · try simp only [ownCCI]
+      · try simp only [ownConfChangeI]
         iexists p
         iframe Hch
         ipureintro; rfl

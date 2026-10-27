@@ -113,7 +113,7 @@ message needs that list as an argument.
 `index`/`logterm` of a `snap` are the snapshot's `Metadata.Index`/`Metadata.Term`, and
 `voters` its `Metadata.ConfState.Voters` -- all behind the pointer `Message.Snapshot`,
 read by `absSnap` (`Defs.lean`). Every other message has `voters = []`. -/
-structure Msg [FfiSyntax] where
+structure Msg [GooseExts] where
   mkV ::
   ty : MsgType
   /-- the sender (Go `m.From`) -/
@@ -139,7 +139,7 @@ structure Msg [FfiSyntax] where
   ctx : List w8
 
 section msgs
-variable [FfiSyntax]
+variable [GooseExts]
 
 /-- A message with no voters -- every message but a `snap`. Reducible, the analogue of
 Rocq's abbreviation: a message built with it is the constructor applied to `[]`, so
@@ -170,7 +170,7 @@ def fromLeader : MsgType → Bool
 A queued read-index request and the read-only object, as `InvMisc.lean`'s `ownReadOnly`
 sees them. -/
 
-structure ReadReq [FfiSyntax] where
+structure ReadReq [GooseExts] where
   index : w64
   src : w64
   ents : List EntryM
@@ -183,7 +183,7 @@ voter echoed in a heartbeat response; the context of a heartbeat is
 `pending`. The `option` (`ReadOnlySafe` or `ReadOnlyLeaseBased`) is not in it: no spec
 states it (`stepLeader` reads the field and case-splits on the value; until
 2026-10-08 a `safe` field recorded it). -/
-structure ReadOnly [FfiSyntax] where
+structure ReadOnly [GooseExts] where
   pending : List ReadReq
   acks : GMap w64 w64
   confirmed : w64
@@ -191,23 +191,23 @@ structure ReadOnly [FfiSyntax] where
 /-- The physical read-index state (2026-10-12): `r.readStates` (as `ReadStateM`s, D6),
 `r.readOnly` (as `ReadOnly`), and `r.pendingReadIndexMessages`, each with the entries
 its slice holds. -/
-structure RdState [FfiSyntax] where
+structure RdState [GooseExts] where
   states : List ReadStateM := []
   ro : ReadOnly := ⟨[], ∅, W64 0⟩
   pend : List (MessageM × List EntryM) := []
 
 /-- The read state with a fresh read-only object, what `reset` installs (and a non-leader's,
 in the protocol reading). -/
-def rdNL [FfiSyntax] (rd : RdState) : RdState := { rd with ro := ⟨[], ∅, W64 0⟩ }
+def rdNL [GooseExts] (rd : RdState) : RdState := { rd with ro := ⟨[], ∅, W64 0⟩ }
 
-@[simp] theorem rdNL_rdNL [FfiSyntax] (rd : RdState) : rdNL (rdNL rd) = rdNL rd := rfl
+@[simp] theorem rdNL_rdNL [GooseExts] (rd : RdState) : rdNL (rdNL rd) = rdNL rd := rfl
 
-@[simp] theorem rdNL_ite [FfiSyntax] (c : Prop) [Decidable c] (rd : RdState) :
+@[simp] theorem rdNL_ite [GooseExts] (c : Prop) [Decidable c] (rd : RdState) :
     rdNL (if c then rd else rdNL rd) = rdNL rd := by
   split <;> rfl
 
 section readonly_fns
-variable [FfiSyntax]
+variable [GooseExts]
 
 /-- Go's `min`/`max` builtins on `uint64`, exactly as Goose's `minⁱᵐᵖˡ`/`maxⁱᵐᵖˡ`
 compute them: `min x y = if x < y then x else y`, `max x y = if x > y then x else y`
@@ -375,7 +375,7 @@ node is leader**, and `∅` otherwise (a non-leader's `Progress` values are left
 from its last leadership and nothing reads them). The field is not called `match`,
 which is a keyword. -/
 
-structure PState [FfiSyntax] where
+structure PState [GooseExts] where
   /-- `raft.Term` -/
   term : w64
   /-- `raft.Vote`; `W64 0` is the Go code's `None` -/
@@ -519,7 +519,7 @@ theorem prefix_before_unique (L L0 L1 : List (List w8)) (d : List w8) (Hnd : L.N
     _ = L1 := e1.symm
 
 section pure
-variable [FfiSyntax]
+variable [GooseExts]
 
 def pos (i : w64) : Nat := (uint.Z i - 1).toNat
 
@@ -549,7 +549,7 @@ theorem plogLastIndexZ_nonneg (b : entryID) (es : List EntryM) :
     0 ≤ plogLastIndexZ b es := by
   unfold plogLastIndexZ; have := uint_Z_nonneg b.index'; omega
 
-omit [FfiSyntax] in
+omit [GooseExts] in
 theorem stamp_index_eq (L : Int) (k : Nat) :
     0 ≤ L → L + 1 + k < 2 ^ 64 →
     uint.Z (W64 L + W64 1 + W64 (k : Int)) = L + 1 + k := by
@@ -564,14 +564,14 @@ def AppPayloadOk (m : Msg) : Prop :=
   PlogWf (entryID.mk m.logterm m.index) m.entries ∧
   uint.Z m.index + (m.entries.length : Int) + 1 < 2 ^ 64
 
-omit [FfiSyntax] in
+omit [GooseExts] in
 /-- stdpp `drop_S`. -/
 theorem list_drop_S {A : Type _} (l : List A) (d : Nat) (e : A) (h : l[d]? = some e) :
     l.drop d = e :: l.drop (d + 1) := by
   obtain ⟨hlt, heq⟩ := List.getElem?_eq_some_iff.mp h
   rw [List.drop_eq_getElem_cons hlt, heq]
 
-omit [FfiSyntax] in
+omit [GooseExts] in
 /-- stdpp `prefix_lookup_Some`. -/
 theorem prefix_lookup_Some {A : Type _} {l1 l2 : List A} {k : Nat} {e : A}
     (hk : l1[k]? = some e) (h : l1 <+: l2) : l2[k]? = some e := by
@@ -1315,14 +1315,14 @@ def PtOk (F0 : List EntryM) (T : w64) (k : Int) (pt : w64) : Prop :=
 end pure
 
 section model
-variable [FfiSyntax]
+variable [GooseExts]
 
 -- `cfg` is the (fixed) set of voters; `id` the node being described.
 variable (cfg : GSet w64) (id : w64)
 
 def IsQuorum (q : GSet w64) : Prop := size cfg < 2 * size (q ∩ cfg)
 
-omit [FfiSyntax] in
+omit [GooseExts] in
 /-- Two quorums meet. This is the whole content of election safety; the same lemma,
 for the same `IsQuorum`, is proved in `readonly.lean`. -/
 theorem quorums_intersect (q1 q2 : GSet w64) :

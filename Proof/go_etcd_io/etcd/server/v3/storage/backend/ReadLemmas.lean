@@ -27,7 +27,7 @@ namespace backend
 open Iris Iris.BI Iris.ProofMode go_etcd_io.etcd.server.v3.storage.backend
 
 section lemmas
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
@@ -138,33 +138,33 @@ theorem ownMap_split (l : Loc) (q1 q2 : Qp) (m : GMap K V) :
   rw [ownMap_unseal]
   iintro H
   unfold ownMapDef
-  icases H with ⟨%mv, %mp, Hown, %Hm, %Ha, %Hd, %Hdef⟩
+  icases H with ⟨%mv, %ps, Hown, %Hrepr⟩
   icases ((heapPointsto_fractional l mv).fractional q1 q2).1 $$ Hown
     with ⟨H1, H2⟩
   isplitl [H1]
-  · iexists mv, mp; iframe H1; ipureintro; exact ⟨Hm, Ha, Hd, Hdef⟩
-  · iexists mv, mp; iframe H2; ipureintro; exact ⟨Hm, Ha, Hd, Hdef⟩
+  · iexists mv, ps; iframe H1; ipureintro; exact Hrepr
+  · iexists mv, ps; iframe H2; ipureintro; exact Hrepr
 
 theorem ownMap_combine (l : Loc) (q1 q2 : Qp) (m : GMap K V) :
     ownMap (GF := GF) l (DFrac.own q1) m ∗ ownMap l (DFrac.own q2) m ⊢
       ownMap l (DFrac.own (q1 + q2)) m := by
   rw [ownMap_unseal]
   unfold ownMapDef
-  iintro ⟨⟨%mv, %mp, H1, %Hm, %Ha, %Hd, %Hdef⟩, ⟨%mv2, %mp2, H2, -⟩⟩
+  iintro ⟨⟨%mv, %ps, H1, %Hrepr⟩, ⟨%mv2, %ps2, H2, -⟩⟩
   ihave %Hv := heapPointsto_agree _ _ _ _ _ $$ [H1 H2]
   · iframe
   subst Hv
-  iexists mv2, mp
+  iexists mv2, ps
   isplitl
   · iapply ((heapPointsto_fractional l mv2).fractional q1 q2).2
     iframe
-  ipureintro; exact ⟨Hm, Ha, Hd, Hdef⟩
+  ipureintro; exact Hrepr
 
 theorem ownMap_valid (l : Loc) (q : Qp) (m : GMap K V) :
     ownMap (GF := GF) l (DFrac.own q) m ⊢ ⌜q.val ≤ 1⌝ := by
   rw [ownMap_unseal]
   unfold ownMapDef
-  iintro ⟨%mv, %mp, H1, -⟩
+  iintro ⟨%mv, %ps, H1, -⟩
   iapply heapPointsto_frac_valid $$ H1
 
 end maps

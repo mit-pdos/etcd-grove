@@ -103,7 +103,7 @@ instance HistItem.countable : Pos.Countable HistItem :=
     (fun _ _ h => HistItem.enc_inj (Pos.encode_inj h))
 
 section reprs
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
@@ -864,7 +864,7 @@ end reprs
 
 
 section addrs
-variable [FfiSyntax] [GoGlobalContext] [GoSemanticsFunctions]
+variable [GooseExts] [GoGlobalContext] [GoSemanticsFunctions]
 
 /-- The address of the embedded `RWMutex`. -/
 abbrev idxMuAddr (ti : Loc) : Loc := structFieldRef treeIndex go!"RWMutex" ti
@@ -872,7 +872,7 @@ abbrev idxMuAddr (ti : Loc) : Loc := structFieldRef treeIndex go!"RWMutex" ti
 end addrs
 
 section reprs2
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]

@@ -262,15 +262,15 @@ def rqShape (rq : apply.IRRModel) : Prop :=
 /-- **What the KV invariant keeps of a committed entry** (D19c): a normal entry with data
 decodes to a request with an id, of a good shape; a conf change has the id `0` (raft's
 bootstrap's: `srvCCPolicy`). -/
-def entryShape [FfiSyntax] (m : EntryModel) : Prop :=
+def entryShape [GooseExts] (m : EntryModel) : Prop :=
   (m.typ = W32 0 → m.data = [] ∨ ∃ rq, apply.irrDecode m.data = some rq ∧
       (∃ id, apply.irrId rq = some id) ∧ rqShape rq) ∧
     (m.typ ≠ W32 0 → ccIdOf m.data = W64 0)
 
 /-- Every entry of a log has a good shape. -/
-def logShape [FfiSyntax] (L : List EntryModel) : Prop := ∀ m ∈ L, entryShape m
+def logShape [GooseExts] (L : List EntryModel) : Prop := ∀ m ∈ L, entryShape m
 
-theorem logShape_append [FfiSyntax] (A B : List EntryModel) :
+theorem logShape_append [GooseExts] (A B : List EntryModel) :
     logShape (A ++ B) ↔ logShape A ∧ logShape B := by
   unfold logShape
   simp only [List.mem_append]

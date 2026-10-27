@@ -93,7 +93,7 @@ namespace EtcdGrove
 open Iris Iris.BI Iris.ProofMode go_etcd_io.raft.v3
 
 section pure
-variable [FfiSyntax]
+variable [GooseExts]
 
 /-- What raft's view `σ` of the storage knows of its contents `σp` (2026-10-10): the
 boundary and the snapshot are the same, and the entries are `σ`'s or, with a batch
@@ -457,7 +457,7 @@ theorem CutOk.app {σ : StorState} {c : entryID} (h : CutOk σ c) (p : List Entr
 end pure
 
 section proof
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
@@ -959,6 +959,7 @@ def memCsArg (cs : Loc) (dq : DFrac) (oc : Option ConfStateM) : IProp GF :=
   | none => iprop(⌜cs = null⌝)
   | some c => ownCSM cs dq c
 
+omit package_sem in
 /-- **The token split** (D22 J3). -/
 theorem memSnapTok_split (ms : Loc) (γs : MemStorNames) (σ : StorState) :
     memSnapTok (GF := GF) ms γs σ ⊣⊢ memSnapRO ms γs ∗ memKey γs.ak ∗ memSnapTokG γs σ := by

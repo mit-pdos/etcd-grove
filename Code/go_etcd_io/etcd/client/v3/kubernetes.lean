@@ -26,72 +26,72 @@ end pkg_id
 
 namespace go_etcd_io.etcd.client.v3.kubernetes
 
-noncomputable def Client.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def Client.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/etcd/client/v3/kubernetes.Client" [])
 
 attribute [irreducible] Client.ty
 
-noncomputable def Interface.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def Interface.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/etcd/client/v3/kubernetes.Interface" [])
 
 attribute [irreducible] Interface.ty
 
-noncomputable def GetOptions.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def GetOptions.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/etcd/client/v3/kubernetes.GetOptions" [])
 
 attribute [irreducible] GetOptions.ty
 
-noncomputable def ListOptions.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def ListOptions.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/etcd/client/v3/kubernetes.ListOptions" [])
 
 attribute [irreducible] ListOptions.ty
 
-noncomputable def CountOptions.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def CountOptions.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/etcd/client/v3/kubernetes.CountOptions" [])
 
 attribute [irreducible] CountOptions.ty
 
-noncomputable def PutOptions.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def PutOptions.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/etcd/client/v3/kubernetes.PutOptions" [])
 
 attribute [irreducible] PutOptions.ty
 
-noncomputable def DeleteOptions.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def DeleteOptions.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/etcd/client/v3/kubernetes.DeleteOptions" [])
 
 attribute [irreducible] DeleteOptions.ty
 
-noncomputable def GetResponse.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def GetResponse.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/etcd/client/v3/kubernetes.GetResponse" [])
 
 attribute [irreducible] GetResponse.ty
 
-noncomputable def ListResponse.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def ListResponse.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/etcd/client/v3/kubernetes.ListResponse" [])
 
 attribute [irreducible] ListResponse.ty
 
-noncomputable def PutResponse.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def PutResponse.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/etcd/client/v3/kubernetes.PutResponse" [])
 
 attribute [irreducible] PutResponse.ty
 
-noncomputable def DeleteResponse.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def DeleteResponse.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/etcd/client/v3/kubernetes.DeleteResponse" [])
 
 attribute [irreducible] DeleteResponse.ty
 
-noncomputable def New [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def New [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/client/v3/kubernetes.New"
 
-noncomputable def kvFromTxnResponse [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def kvFromTxnResponse [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/client/v3/kubernetes.kvFromTxnResponse"
 
 /-- New creates Client from config.
     Caller is responsible to call Close() to clean up client.
 
     go: client.go:29:6 -/
-noncomputable def New.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def New.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "cfg"
   (App (Val exceptionDo)
   (Let "cfg" (App (Val (GoInstruction (GoAlloc _root_.Perennial.go_etcd_io.etcd.client.v3.Config.ty))) (Var "cfg"))
@@ -129,7 +129,7 @@ noncomputable def New.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.Client.ty)))) (Pair (Var "c") (Var "$r0")))))))))))))))
 
 /-- go: client.go:48:17 -/
-noncomputable def Client.Get.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def Client.Get.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "k"
   (Lam "ctx"
   (Lam "key"
@@ -199,7 +199,7 @@ noncomputable def Client.Get.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore _root_.Perennial.github_com.goose_lang.primitive.ProphId.ty))) (Pair (Var "p") (Var "$r0"))))))))))))))))))
 
 /-- go: client.go:70:17 -/
-noncomputable def Client.List.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def Client.List.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "k"
   (Lam "ctx"
   (Lam "prefix"
@@ -272,7 +272,7 @@ noncomputable def Client.List.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore go.string))) (Pair (Var "rangeStart") (Var "$r0"))))))))))))))))))
 
 /-- go: client.go:86:17 -/
-noncomputable def Client.Count.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def Client.Count.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "k"
   (Lam "ctx"
   (Lam "prefix"
@@ -309,7 +309,7 @@ noncomputable def Client.Count.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.GetResponse.ty)))) (Pair (Var "resp") (Var "$r0"))))))))))))))))))))
 
 /-- go: client.go:94:17 -/
-noncomputable def Client.OptimisticPut.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def Client.OptimisticPut.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "k"
   (Lam "ctx"
   (Lam "key"
@@ -403,7 +403,7 @@ noncomputable def Client.OptimisticPut.impl [FfiSyntax] [GoGlobalContext] : val 
   (App (Val (GoInstruction (GoStore _root_.Perennial.go_etcd_io.etcd.client.v3.Txn.ty))) (Pair (Var "txn") (Var "$r0"))))))))))))))))))))))
 
 /-- go: client.go:120:17 -/
-noncomputable def Client.OptimisticDelete.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def Client.OptimisticDelete.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "k"
   (Lam "ctx"
   (Lam "key"
@@ -482,7 +482,7 @@ noncomputable def Client.OptimisticDelete.impl [FfiSyntax] [GoGlobalContext] : v
   (App (Val (GoInstruction (GoStore _root_.Perennial.go_etcd_io.etcd.client.v3.Txn.ty))) (Pair (Var "txn") (Var "$r0"))))))))))))))))))))
 
 /-- go: client.go:141:6 -/
-noncomputable def kvFromTxnResponse.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def kvFromTxnResponse.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "resp"
   (App (Val exceptionDo)
   (Let "resp" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.ResponseOp.ty)))) (Var "resp"))
@@ -504,7 +504,7 @@ noncomputable def kvFromTxnResponse.impl [FfiSyntax] [GoGlobalContext] : val :=
 noncomputable instance info' : PkgInfo pkg_id.go_etcd_io.etcd.client.v3.kubernetes where
   pkgImportedPkgs := [pkg_id.context, pkg_id.fmt, pkg_id.github_com.goose_lang.primitive, pkg_id.go_etcd_io.etcd.api.v3.etcdserverpb, pkg_id.go_etcd_io.etcd.api.v3.mvccpb, pkg_id.go_etcd_io.etcd.client.v3]
 
-noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (App (Val (package.init pkg_id.go_etcd_io.etcd.client.v3.kubernetes)) (Lam BAnon
   (App (Val exceptionDo)
@@ -530,45 +530,51 @@ noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val _root_.Perennial.go_etcd_io.etcd.client.v3.initialize') (Val #()))))))))
 
-abbrev Interface [FfiSyntax] : Type := GoInterface
+abbrev Interface [GooseExts] : Type := GoInterface
 
-@[reducible] noncomputable def Interface.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def Interface.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"Count" (go.signature.Signature [_root_.Perennial.context.Context.ty, go.string, CountOptions.ty] false [go.int64, go.error])), (go.InterfaceElem.MethodElem go!"Get" (go.signature.Signature [_root_.Perennial.context.Context.ty, go.string, GetOptions.ty] false [GetResponse.ty, go.error])), (go.InterfaceElem.MethodElem go!"List" (go.signature.Signature [_root_.Perennial.context.Context.ty, go.string, ListOptions.ty] false [ListResponse.ty, go.error])), (go.InterfaceElem.MethodElem go!"OptimisticDelete" (go.signature.Signature [_root_.Perennial.context.Context.ty, go.string, go.int64, DeleteOptions.ty] false [DeleteResponse.ty, go.error])), (go.InterfaceElem.MethodElem go!"OptimisticPut" (go.signature.Signature [_root_.Perennial.context.Context.ty, go.string, (go.GoType.SliceType go.byte), go.int64, PutOptions.ty] false [PutResponse.ty, go.error]))])
 
-class Interface.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class Interface.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq Interface.ty Interface.underlying
+  method_set : go.MethodSetIs Interface.ty [(go!"Count", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.string, CountOptions.ty] false [go.int64, go.error]))), (go!"Get", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.string, GetOptions.ty] false [GetResponse.ty, go.error]))), (go!"List", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.string, ListOptions.ty] false [ListResponse.ty, go.error]))), (go!"OptimisticDelete", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.string, go.int64, DeleteOptions.ty] false [DeleteResponse.ty, go.error]))), (go!"OptimisticPut", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.string, (go.GoType.SliceType go.byte), go.int64, PutOptions.ty] false [PutResponse.ty, go.error])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType Interface.ty) []
 
 attribute [instance] Interface.TypeAssumptions.underlying
+  Interface.TypeAssumptions.method_set
+  Interface.TypeAssumptions.ptr_method_set
 
-structure Client [FfiSyntax] where
+structure Client [GooseExts] where
   mk ::
   Client' : Loc
   Kubernetes' : Interface
 
-noncomputable instance Client.zero_val [FfiSyntax] : ZeroVal Client :=
+noncomputable instance Client.zero_val [GooseExts] : ZeroVal Client :=
   ⟨Client.mk zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def Client.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def Client.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.EmbeddedField go!"Client" (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.Client.ty)),
 (go.field_decl.FieldDecl go!"Kubernetes" Interface.ty)]
 
-@[irreducible] noncomputable def Client.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def Client.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   Client.fieldsUnsealed
 
-noncomputable instance equals_unfold_Client [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_Client [GooseExts] [GoGlobalContext] :
     EqualsUnfold Client.fields Client.fieldsUnsealed :=
   ⟨by unfold Client.fields; rfl⟩
 
-@[reducible] noncomputable def Client.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def Client.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType Client.fields)
 
-class Client.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class Client.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying Client.underlying Client
   underlying : go.UnderlyingDirectedEq Client.ty Client.underlying
   get_Client : ∀ (x : Client), go.IsGoStepPureDetTagged under (StructFieldGet Client.underlying go!"Client") #x (Val #(x.Client'))
   set_Client : ∀ (x : Client) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet Client.underlying go!"Client") (PairV #x #y) (Val #(({ x with Client' := y } : Client)))
   get_Kubernetes : ∀ (x : Client), go.IsGoStepPureDetTagged under (StructFieldGet Client.underlying go!"Kubernetes") #x (Val #(x.Kubernetes'))
   set_Kubernetes : ∀ (x : Client) (y : Interface), go.IsGoStepPureDetTagged under (StructFieldSet Client.underlying go!"Kubernetes") (PairV #x #y) (Val #(({ x with Kubernetes' := y } : Client)))
+  method_set : go.MethodSetIs Client.ty [(go!"ActiveConnection", (some (go.signature.Signature [] false [(go.GoType.PointerType (go.GoType.Named go!"google.golang.org/grpc.ClientConn" []))]))), (go!"AlarmDisarm", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.AlarmMember.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.AlarmResponse.ty), go.error]))), (go!"AlarmList", (some (go.signature.Signature [_root_.Perennial.context.Context.ty] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.AlarmResponse.ty), go.error]))), (go!"AuthDisable", (some (go.signature.Signature [_root_.Perennial.context.Context.ty] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.AuthDisableResponse.ty), go.error]))), (go!"AuthEnable", (some (go.signature.Signature [_root_.Perennial.context.Context.ty] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.AuthEnableResponse.ty), go.error]))), (go!"AuthStatus", (some (go.signature.Signature [_root_.Perennial.context.Context.ty] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.AuthStatusResponse.ty), go.error]))), (go!"Authenticate", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.string, go.string] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.AuthenticateResponse.ty), go.error]))), (go!"Close", (some (go.signature.Signature [] false [go.error]))), (go!"Compact", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.int64, (go.GoType.SliceType _root_.Perennial.go_etcd_io.etcd.client.v3.CompactOption.ty)] true [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.CompactResponse.ty), go.error]))), (go!"Count", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.string, CountOptions.ty] false [go.int64, go.error]))), (go!"Ctx", (some (go.signature.Signature [] false [_root_.Perennial.context.Context.ty]))), (go!"Defragment", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.string] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.DefragmentResponse.ty), go.error]))), (go!"Delete", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.string, (go.GoType.SliceType _root_.Perennial.go_etcd_io.etcd.client.v3.OpOption.ty)] true [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.DeleteResponse.ty), go.error]))), (go!"Dial", (some (go.signature.Signature [go.string] false [(go.GoType.PointerType (go.GoType.Named go!"google.golang.org/grpc.ClientConn" [])), go.error]))), (go!"Do", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, _root_.Perennial.go_etcd_io.etcd.client.v3.Op.ty] false [_root_.Perennial.go_etcd_io.etcd.client.v3.OpResponse.ty, go.error]))), (go!"Downgrade", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, _root_.Perennial.go_etcd_io.etcd.client.v3.DowngradeAction.ty, go.string] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.DowngradeResponse.ty), go.error]))), (go!"Endpoints", (some (go.signature.Signature [] false [(go.GoType.SliceType go.string)]))), (go!"Get", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.string, GetOptions.ty] false [GetResponse.ty, go.error]))), (go!"GetLogger", (some (go.signature.Signature [] false [(go.GoType.PointerType (go.GoType.Named go!"go.uber.org/zap.Logger" []))]))), (go!"GetStream", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.string, (go.GoType.SliceType _root_.Perennial.go_etcd_io.etcd.client.v3.OpOption.ty)] true [_root_.Perennial.go_etcd_io.etcd.client.v3.GetStreamChan.ty, go.error]))), (go!"Grant", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.int64] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.LeaseGrantResponse.ty), go.error]))), (go!"HashKV", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.string, go.int64] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.HashKVResponse.ty), go.error]))), (go!"KeepAlive", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, _root_.Perennial.go_etcd_io.etcd.client.v3.LeaseID.ty] false [(go.GoType.ChannelType go.ChanDir.recvonly (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.LeaseKeepAliveResponse.ty)), go.error]))), (go!"KeepAliveOnce", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, _root_.Perennial.go_etcd_io.etcd.client.v3.LeaseID.ty] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.LeaseKeepAliveResponse.ty), go.error]))), (go!"Leases", (some (go.signature.Signature [_root_.Perennial.context.Context.ty] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.LeaseLeasesResponse.ty), go.error]))), (go!"List", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.string, ListOptions.ty] false [ListResponse.ty, go.error]))), (go!"MemberAdd", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.SliceType go.string)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.MemberAddResponse.ty), go.error]))), (go!"MemberAddAsLearner", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.SliceType go.string)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.MemberAddResponse.ty), go.error]))), (go!"MemberList", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.SliceType _root_.Perennial.go_etcd_io.etcd.client.v3.OpOption.ty)] true [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.MemberListResponse.ty), go.error]))), (go!"MemberPromote", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.uint64] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.MemberPromoteResponse.ty), go.error]))), (go!"MemberRemove", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.uint64] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.MemberRemoveResponse.ty), go.error]))), (go!"MemberUpdate", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.uint64, (go.GoType.SliceType go.string)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.MemberUpdateResponse.ty), go.error]))), (go!"MoveLeader", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.uint64] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.MoveLeaderResponse.ty), go.error]))), (go!"OptimisticDelete", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.string, go.int64, DeleteOptions.ty] false [DeleteResponse.ty, go.error]))), (go!"OptimisticPut", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.string, (go.GoType.SliceType go.byte), go.int64, PutOptions.ty] false [PutResponse.ty, go.error]))), (go!"Put", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.string, go.string, (go.GoType.SliceType _root_.Perennial.go_etcd_io.etcd.client.v3.OpOption.ty)] true [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.PutResponse.ty), go.error]))), (go!"RequestProgress", (some (go.signature.Signature [_root_.Perennial.context.Context.ty] false [go.error]))), (go!"Revoke", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, _root_.Perennial.go_etcd_io.etcd.client.v3.LeaseID.ty] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.LeaseRevokeResponse.ty), go.error]))), (go!"RoleAdd", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.string] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.AuthRoleAddResponse.ty), go.error]))), (go!"RoleDelete", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.string] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.AuthRoleDeleteResponse.ty), go.error]))), (go!"RoleGet", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.string] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.AuthRoleGetResponse.ty), go.error]))), (go!"RoleGrantPermission", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.string, go.string, go.string, _root_.Perennial.go_etcd_io.etcd.client.v3.PermissionType.ty] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.AuthRoleGrantPermissionResponse.ty), go.error]))), (go!"RoleList", (some (go.signature.Signature [_root_.Perennial.context.Context.ty] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.AuthRoleListResponse.ty), go.error]))), (go!"RoleRevokePermission", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.string, go.string, go.string] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.AuthRoleRevokePermissionResponse.ty), go.error]))), (go!"SetEndpoints", (some (go.signature.Signature [(go.GoType.SliceType go.string)] true []))), (go!"Snapshot", (some (go.signature.Signature [_root_.Perennial.context.Context.ty] false [(go.GoType.Named go!"io.ReadCloser" []), go.error]))), (go!"SnapshotWithVersion", (some (go.signature.Signature [_root_.Perennial.context.Context.ty] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.SnapshotResponse.ty), go.error]))), (go!"Status", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.string] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.StatusResponse.ty), go.error]))), (go!"Sync", (some (go.signature.Signature [_root_.Perennial.context.Context.ty] false [go.error]))), (go!"TimeToLive", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, _root_.Perennial.go_etcd_io.etcd.client.v3.LeaseID.ty, (go.GoType.SliceType _root_.Perennial.go_etcd_io.etcd.client.v3.LeaseOption.ty)] true [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.LeaseTimeToLiveResponse.ty), go.error]))), (go!"Txn", (some (go.signature.Signature [_root_.Perennial.context.Context.ty] false [_root_.Perennial.go_etcd_io.etcd.client.v3.Txn.ty]))), (go!"UserAdd", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.string, go.string] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.AuthUserAddResponse.ty), go.error]))), (go!"UserAddWithOptions", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.string, go.string, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.UserAddOptions.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.AuthUserAddResponse.ty), go.error]))), (go!"UserChangePassword", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.string, go.string] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.AuthUserChangePasswordResponse.ty), go.error]))), (go!"UserDelete", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.string] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.AuthUserDeleteResponse.ty), go.error]))), (go!"UserGet", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.string] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.AuthUserGetResponse.ty), go.error]))), (go!"UserGrantRole", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.string, go.string] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.AuthUserGrantRoleResponse.ty), go.error]))), (go!"UserList", (some (go.signature.Signature [_root_.Perennial.context.Context.ty] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.AuthUserListResponse.ty), go.error]))), (go!"UserRevokeRole", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.string, go.string] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.AuthUserRevokeRoleResponse.ty), go.error]))), (go!"Watch", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.string, (go.GoType.SliceType _root_.Perennial.go_etcd_io.etcd.client.v3.OpOption.ty)] true [_root_.Perennial.go_etcd_io.etcd.client.v3.WatchChan.ty]))), (go!"WithLogger", (some (go.signature.Signature [(go.GoType.PointerType (go.GoType.Named go!"go.uber.org/zap.Logger" []))] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.Client.ty)]))), (go!"go.etcd.io/etcd/client/v3.autoSync", (some (go.signature.Signature [] false []))), (go!"go.etcd.io/etcd/client/v3.checkVersion", (some (go.signature.Signature [] false [go.error]))), (go!"go.etcd.io/etcd/client/v3.credentialsForEndpoint", (some (go.signature.Signature [go.string] false [(go.GoType.Named go!"google.golang.org/grpc/credentials.TransportCredentials" [])]))), (go!"go.etcd.io/etcd/client/v3.dial", (some (go.signature.Signature [(go.GoType.Named go!"google.golang.org/grpc/credentials.TransportCredentials" []), (go.GoType.SliceType (go.GoType.Named go!"google.golang.org/grpc.DialOption" []))] true [(go.GoType.PointerType (go.GoType.Named go!"google.golang.org/grpc.ClientConn" [])), go.error]))), (go!"go.etcd.io/etcd/client/v3.dialSetupOpts", (some (go.signature.Signature [(go.GoType.Named go!"google.golang.org/grpc/credentials.TransportCredentials" []), (go.GoType.SliceType (go.GoType.Named go!"google.golang.org/grpc.DialOption" []))] true [(go.GoType.SliceType (go.GoType.Named go!"google.golang.org/grpc.DialOption" []))]))), (go!"go.etcd.io/etcd/client/v3.dialWithBalancer", (some (go.signature.Signature [(go.GoType.SliceType (go.GoType.Named go!"google.golang.org/grpc.DialOption" []))] true [(go.GoType.PointerType (go.GoType.Named go!"google.golang.org/grpc.ClientConn" [])), go.error]))), (go!"go.etcd.io/etcd/client/v3.getToken", (some (go.signature.Signature [_root_.Perennial.context.Context.ty] false [go.error]))), (go!"go.etcd.io/etcd/client/v3.refreshToken", (some (go.signature.Signature [_root_.Perennial.context.Context.ty] false [go.error]))), (go!"go.etcd.io/etcd/client/v3.roundRobinQuorumBackoff", (some (go.signature.Signature [(go.GoType.Named go!"time.Duration" []), go.float64] false [_root_.Perennial.go_etcd_io.etcd.client.v3.backoffFunc.ty]))), (go!"go.etcd.io/etcd/client/v3.shouldRefreshToken", (some (go.signature.Signature [go.error, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.options.ty)] false [go.bool]))), (go!"go.etcd.io/etcd/client/v3.streamClientInterceptor", (some (go.signature.Signature [(go.GoType.SliceType _root_.Perennial.go_etcd_io.etcd.client.v3.retryOption.ty)] true [(go.GoType.Named go!"google.golang.org/grpc.StreamClientInterceptor" [])]))), (go!"go.etcd.io/etcd/client/v3.unaryClientInterceptor", (some (go.signature.Signature [(go.GoType.SliceType _root_.Perennial.go_etcd_io.etcd.client.v3.retryOption.ty)] true [(go.GoType.Named go!"google.golang.org/grpc.UnaryClientInterceptor" [])])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType Client.ty) [(go!"ActiveConnection", (some (go.signature.Signature [] false [(go.GoType.PointerType (go.GoType.Named go!"google.golang.org/grpc.ClientConn" []))]))), (go!"AlarmDisarm", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.AlarmMember.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.AlarmResponse.ty), go.error]))), (go!"AlarmList", (some (go.signature.Signature [_root_.Perennial.context.Context.ty] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.AlarmResponse.ty), go.error]))), (go!"AuthDisable", (some (go.signature.Signature [_root_.Perennial.context.Context.ty] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.AuthDisableResponse.ty), go.error]))), (go!"AuthEnable", (some (go.signature.Signature [_root_.Perennial.context.Context.ty] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.AuthEnableResponse.ty), go.error]))), (go!"AuthStatus", (some (go.signature.Signature [_root_.Perennial.context.Context.ty] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.AuthStatusResponse.ty), go.error]))), (go!"Authenticate", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.string, go.string] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.AuthenticateResponse.ty), go.error]))), (go!"Close", (some (go.signature.Signature [] false [go.error]))), (go!"Compact", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.int64, (go.GoType.SliceType _root_.Perennial.go_etcd_io.etcd.client.v3.CompactOption.ty)] true [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.CompactResponse.ty), go.error]))), (go!"Count", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.string, CountOptions.ty] false [go.int64, go.error]))), (go!"Ctx", (some (go.signature.Signature [] false [_root_.Perennial.context.Context.ty]))), (go!"Defragment", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.string] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.DefragmentResponse.ty), go.error]))), (go!"Delete", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.string, (go.GoType.SliceType _root_.Perennial.go_etcd_io.etcd.client.v3.OpOption.ty)] true [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.DeleteResponse.ty), go.error]))), (go!"Dial", (some (go.signature.Signature [go.string] false [(go.GoType.PointerType (go.GoType.Named go!"google.golang.org/grpc.ClientConn" [])), go.error]))), (go!"Do", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, _root_.Perennial.go_etcd_io.etcd.client.v3.Op.ty] false [_root_.Perennial.go_etcd_io.etcd.client.v3.OpResponse.ty, go.error]))), (go!"Downgrade", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, _root_.Perennial.go_etcd_io.etcd.client.v3.DowngradeAction.ty, go.string] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.DowngradeResponse.ty), go.error]))), (go!"Endpoints", (some (go.signature.Signature [] false [(go.GoType.SliceType go.string)]))), (go!"Get", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.string, GetOptions.ty] false [GetResponse.ty, go.error]))), (go!"GetLogger", (some (go.signature.Signature [] false [(go.GoType.PointerType (go.GoType.Named go!"go.uber.org/zap.Logger" []))]))), (go!"GetStream", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.string, (go.GoType.SliceType _root_.Perennial.go_etcd_io.etcd.client.v3.OpOption.ty)] true [_root_.Perennial.go_etcd_io.etcd.client.v3.GetStreamChan.ty, go.error]))), (go!"Grant", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.int64] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.LeaseGrantResponse.ty), go.error]))), (go!"HashKV", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.string, go.int64] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.HashKVResponse.ty), go.error]))), (go!"KeepAlive", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, _root_.Perennial.go_etcd_io.etcd.client.v3.LeaseID.ty] false [(go.GoType.ChannelType go.ChanDir.recvonly (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.LeaseKeepAliveResponse.ty)), go.error]))), (go!"KeepAliveOnce", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, _root_.Perennial.go_etcd_io.etcd.client.v3.LeaseID.ty] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.LeaseKeepAliveResponse.ty), go.error]))), (go!"Leases", (some (go.signature.Signature [_root_.Perennial.context.Context.ty] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.LeaseLeasesResponse.ty), go.error]))), (go!"List", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.string, ListOptions.ty] false [ListResponse.ty, go.error]))), (go!"MemberAdd", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.SliceType go.string)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.MemberAddResponse.ty), go.error]))), (go!"MemberAddAsLearner", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.SliceType go.string)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.MemberAddResponse.ty), go.error]))), (go!"MemberList", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.SliceType _root_.Perennial.go_etcd_io.etcd.client.v3.OpOption.ty)] true [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.MemberListResponse.ty), go.error]))), (go!"MemberPromote", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.uint64] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.MemberPromoteResponse.ty), go.error]))), (go!"MemberRemove", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.uint64] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.MemberRemoveResponse.ty), go.error]))), (go!"MemberUpdate", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.uint64, (go.GoType.SliceType go.string)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.MemberUpdateResponse.ty), go.error]))), (go!"MoveLeader", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.uint64] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.MoveLeaderResponse.ty), go.error]))), (go!"OptimisticDelete", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.string, go.int64, DeleteOptions.ty] false [DeleteResponse.ty, go.error]))), (go!"OptimisticPut", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.string, (go.GoType.SliceType go.byte), go.int64, PutOptions.ty] false [PutResponse.ty, go.error]))), (go!"Put", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.string, go.string, (go.GoType.SliceType _root_.Perennial.go_etcd_io.etcd.client.v3.OpOption.ty)] true [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.PutResponse.ty), go.error]))), (go!"RequestProgress", (some (go.signature.Signature [_root_.Perennial.context.Context.ty] false [go.error]))), (go!"Revoke", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, _root_.Perennial.go_etcd_io.etcd.client.v3.LeaseID.ty] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.LeaseRevokeResponse.ty), go.error]))), (go!"RoleAdd", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.string] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.AuthRoleAddResponse.ty), go.error]))), (go!"RoleDelete", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.string] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.AuthRoleDeleteResponse.ty), go.error]))), (go!"RoleGet", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.string] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.AuthRoleGetResponse.ty), go.error]))), (go!"RoleGrantPermission", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.string, go.string, go.string, _root_.Perennial.go_etcd_io.etcd.client.v3.PermissionType.ty] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.AuthRoleGrantPermissionResponse.ty), go.error]))), (go!"RoleList", (some (go.signature.Signature [_root_.Perennial.context.Context.ty] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.AuthRoleListResponse.ty), go.error]))), (go!"RoleRevokePermission", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.string, go.string, go.string] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.AuthRoleRevokePermissionResponse.ty), go.error]))), (go!"SetEndpoints", (some (go.signature.Signature [(go.GoType.SliceType go.string)] true []))), (go!"Snapshot", (some (go.signature.Signature [_root_.Perennial.context.Context.ty] false [(go.GoType.Named go!"io.ReadCloser" []), go.error]))), (go!"SnapshotWithVersion", (some (go.signature.Signature [_root_.Perennial.context.Context.ty] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.SnapshotResponse.ty), go.error]))), (go!"Status", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.string] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.StatusResponse.ty), go.error]))), (go!"Sync", (some (go.signature.Signature [_root_.Perennial.context.Context.ty] false [go.error]))), (go!"TimeToLive", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, _root_.Perennial.go_etcd_io.etcd.client.v3.LeaseID.ty, (go.GoType.SliceType _root_.Perennial.go_etcd_io.etcd.client.v3.LeaseOption.ty)] true [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.LeaseTimeToLiveResponse.ty), go.error]))), (go!"Txn", (some (go.signature.Signature [_root_.Perennial.context.Context.ty] false [_root_.Perennial.go_etcd_io.etcd.client.v3.Txn.ty]))), (go!"UserAdd", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.string, go.string] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.AuthUserAddResponse.ty), go.error]))), (go!"UserAddWithOptions", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.string, go.string, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.UserAddOptions.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.AuthUserAddResponse.ty), go.error]))), (go!"UserChangePassword", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.string, go.string] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.AuthUserChangePasswordResponse.ty), go.error]))), (go!"UserDelete", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.string] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.AuthUserDeleteResponse.ty), go.error]))), (go!"UserGet", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.string] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.AuthUserGetResponse.ty), go.error]))), (go!"UserGrantRole", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.string, go.string] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.AuthUserGrantRoleResponse.ty), go.error]))), (go!"UserList", (some (go.signature.Signature [_root_.Perennial.context.Context.ty] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.AuthUserListResponse.ty), go.error]))), (go!"UserRevokeRole", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.string, go.string] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.AuthUserRevokeRoleResponse.ty), go.error]))), (go!"Watch", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.string, (go.GoType.SliceType _root_.Perennial.go_etcd_io.etcd.client.v3.OpOption.ty)] true [_root_.Perennial.go_etcd_io.etcd.client.v3.WatchChan.ty]))), (go!"WithLogger", (some (go.signature.Signature [(go.GoType.PointerType (go.GoType.Named go!"go.uber.org/zap.Logger" []))] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.Client.ty)]))), (go!"go.etcd.io/etcd/client/v3.autoSync", (some (go.signature.Signature [] false []))), (go!"go.etcd.io/etcd/client/v3.checkVersion", (some (go.signature.Signature [] false [go.error]))), (go!"go.etcd.io/etcd/client/v3.credentialsForEndpoint", (some (go.signature.Signature [go.string] false [(go.GoType.Named go!"google.golang.org/grpc/credentials.TransportCredentials" [])]))), (go!"go.etcd.io/etcd/client/v3.dial", (some (go.signature.Signature [(go.GoType.Named go!"google.golang.org/grpc/credentials.TransportCredentials" []), (go.GoType.SliceType (go.GoType.Named go!"google.golang.org/grpc.DialOption" []))] true [(go.GoType.PointerType (go.GoType.Named go!"google.golang.org/grpc.ClientConn" [])), go.error]))), (go!"go.etcd.io/etcd/client/v3.dialSetupOpts", (some (go.signature.Signature [(go.GoType.Named go!"google.golang.org/grpc/credentials.TransportCredentials" []), (go.GoType.SliceType (go.GoType.Named go!"google.golang.org/grpc.DialOption" []))] true [(go.GoType.SliceType (go.GoType.Named go!"google.golang.org/grpc.DialOption" []))]))), (go!"go.etcd.io/etcd/client/v3.dialWithBalancer", (some (go.signature.Signature [(go.GoType.SliceType (go.GoType.Named go!"google.golang.org/grpc.DialOption" []))] true [(go.GoType.PointerType (go.GoType.Named go!"google.golang.org/grpc.ClientConn" [])), go.error]))), (go!"go.etcd.io/etcd/client/v3.getToken", (some (go.signature.Signature [_root_.Perennial.context.Context.ty] false [go.error]))), (go!"go.etcd.io/etcd/client/v3.refreshToken", (some (go.signature.Signature [_root_.Perennial.context.Context.ty] false [go.error]))), (go!"go.etcd.io/etcd/client/v3.roundRobinQuorumBackoff", (some (go.signature.Signature [(go.GoType.Named go!"time.Duration" []), go.float64] false [_root_.Perennial.go_etcd_io.etcd.client.v3.backoffFunc.ty]))), (go!"go.etcd.io/etcd/client/v3.shouldRefreshToken", (some (go.signature.Signature [go.error, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.options.ty)] false [go.bool]))), (go!"go.etcd.io/etcd/client/v3.streamClientInterceptor", (some (go.signature.Signature [(go.GoType.SliceType _root_.Perennial.go_etcd_io.etcd.client.v3.retryOption.ty)] true [(go.GoType.Named go!"google.golang.org/grpc.StreamClientInterceptor" [])]))), (go!"go.etcd.io/etcd/client/v3.unaryClientInterceptor", (some (go.signature.Signature [(go.GoType.SliceType _root_.Perennial.go_etcd_io.etcd.client.v3.retryOption.ty)] true [(go.GoType.Named go!"google.golang.org/grpc.UnaryClientInterceptor" [])])))]
   ActiveConnection_unfold : MethodUnfold Client.ty go!"ActiveConnection" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.Client.ty) go!"ActiveConnection"))) (App (Val (GoInstruction (StructFieldGet Client.ty go!"Client"))) (Var "$r"))))
   AlarmDisarm_unfold : MethodUnfold Client.ty go!"AlarmDisarm" (LamV "$r"
@@ -863,6 +869,8 @@ attribute [instance] Client.TypeAssumptions.type_repr
   Client.TypeAssumptions.set_Client
   Client.TypeAssumptions.get_Kubernetes
   Client.TypeAssumptions.set_Kubernetes
+  Client.TypeAssumptions.method_set
+  Client.TypeAssumptions.ptr_method_set
   Client.TypeAssumptions.ActiveConnection_unfold
   Client.TypeAssumptions.AlarmDisarm_unfold
   Client.TypeAssumptions.AlarmList_unfold
@@ -1010,62 +1018,66 @@ attribute [instance] Client.TypeAssumptions.type_repr
   Client.TypeAssumptions.ptr_streamClientInterceptor_unfold
   Client.TypeAssumptions.ptr_unaryClientInterceptor_unfold
 
-structure GetOptions [FfiSyntax] where
+structure GetOptions [GooseExts] where
   mk ::
   Revision' : w64
 
-noncomputable instance GetOptions.zero_val [FfiSyntax] : ZeroVal GetOptions :=
+noncomputable instance GetOptions.zero_val [GooseExts] : ZeroVal GetOptions :=
   ⟨GetOptions.mk zeroValDef⟩
 
-@[reducible] noncomputable def GetOptions.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def GetOptions.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"Revision" go.int64)]
 
-@[irreducible] noncomputable def GetOptions.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def GetOptions.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   GetOptions.fieldsUnsealed
 
-noncomputable instance equals_unfold_GetOptions [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_GetOptions [GooseExts] [GoGlobalContext] :
     EqualsUnfold GetOptions.fields GetOptions.fieldsUnsealed :=
   ⟨by unfold GetOptions.fields; rfl⟩
 
-@[reducible] noncomputable def GetOptions.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def GetOptions.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType GetOptions.fields)
 
-class GetOptions.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class GetOptions.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying GetOptions.underlying GetOptions
   underlying : go.UnderlyingDirectedEq GetOptions.ty GetOptions.underlying
   get_Revision : ∀ (x : GetOptions), go.IsGoStepPureDetTagged under (StructFieldGet GetOptions.underlying go!"Revision") #x (Val #(x.Revision'))
   set_Revision : ∀ (x : GetOptions) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet GetOptions.underlying go!"Revision") (PairV #x #y) (Val #(({ x with Revision' := y } : GetOptions)))
+  method_set : go.MethodSetIs GetOptions.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType GetOptions.ty) []
 
 attribute [instance] GetOptions.TypeAssumptions.type_repr
   GetOptions.TypeAssumptions.underlying
   GetOptions.TypeAssumptions.get_Revision
   GetOptions.TypeAssumptions.set_Revision
+  GetOptions.TypeAssumptions.method_set
+  GetOptions.TypeAssumptions.ptr_method_set
 
-structure ListOptions [FfiSyntax] where
+structure ListOptions [GooseExts] where
   mk ::
   Revision' : w64
   Limit' : w64
   Continue' : GoString
 
-noncomputable instance ListOptions.zero_val [FfiSyntax] : ZeroVal ListOptions :=
+noncomputable instance ListOptions.zero_val [GooseExts] : ZeroVal ListOptions :=
   ⟨ListOptions.mk zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def ListOptions.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def ListOptions.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"Revision" go.int64),
 (go.field_decl.FieldDecl go!"Limit" go.int64),
 (go.field_decl.FieldDecl go!"Continue" go.string)]
 
-@[irreducible] noncomputable def ListOptions.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def ListOptions.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   ListOptions.fieldsUnsealed
 
-noncomputable instance equals_unfold_ListOptions [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_ListOptions [GooseExts] [GoGlobalContext] :
     EqualsUnfold ListOptions.fields ListOptions.fieldsUnsealed :=
   ⟨by unfold ListOptions.fields; rfl⟩
 
-@[reducible] noncomputable def ListOptions.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def ListOptions.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType ListOptions.fields)
 
-class ListOptions.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class ListOptions.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying ListOptions.underlying ListOptions
   underlying : go.UnderlyingDirectedEq ListOptions.ty ListOptions.underlying
   get_Revision : ∀ (x : ListOptions), go.IsGoStepPureDetTagged under (StructFieldGet ListOptions.underlying go!"Revision") #x (Val #(x.Revision'))
@@ -1074,6 +1086,8 @@ class ListOptions.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext]
   set_Limit : ∀ (x : ListOptions) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet ListOptions.underlying go!"Limit") (PairV #x #y) (Val #(({ x with Limit' := y } : ListOptions)))
   get_Continue : ∀ (x : ListOptions), go.IsGoStepPureDetTagged under (StructFieldGet ListOptions.underlying go!"Continue") #x (Val #(x.Continue'))
   set_Continue : ∀ (x : ListOptions) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet ListOptions.underlying go!"Continue") (PairV #x #y) (Val #(({ x with Continue' := y } : ListOptions)))
+  method_set : go.MethodSetIs ListOptions.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType ListOptions.ty) []
 
 attribute [instance] ListOptions.TypeAssumptions.type_repr
   ListOptions.TypeAssumptions.underlying
@@ -1083,62 +1097,70 @@ attribute [instance] ListOptions.TypeAssumptions.type_repr
   ListOptions.TypeAssumptions.set_Limit
   ListOptions.TypeAssumptions.get_Continue
   ListOptions.TypeAssumptions.set_Continue
+  ListOptions.TypeAssumptions.method_set
+  ListOptions.TypeAssumptions.ptr_method_set
 
-structure CountOptions [FfiSyntax] where
+structure CountOptions [GooseExts] where
   mk ::
 
-noncomputable instance CountOptions.zero_val [FfiSyntax] : ZeroVal CountOptions :=
+noncomputable instance CountOptions.zero_val [GooseExts] : ZeroVal CountOptions :=
   ⟨CountOptions.mk⟩
 
-@[reducible] noncomputable def CountOptions.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def CountOptions.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   []
 
-@[irreducible] noncomputable def CountOptions.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def CountOptions.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   CountOptions.fieldsUnsealed
 
-noncomputable instance equals_unfold_CountOptions [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_CountOptions [GooseExts] [GoGlobalContext] :
     EqualsUnfold CountOptions.fields CountOptions.fieldsUnsealed :=
   ⟨by unfold CountOptions.fields; rfl⟩
 
-@[reducible] noncomputable def CountOptions.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def CountOptions.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType CountOptions.fields)
 
-class CountOptions.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class CountOptions.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying CountOptions.underlying CountOptions
   underlying : go.UnderlyingDirectedEq CountOptions.ty CountOptions.underlying
+  method_set : go.MethodSetIs CountOptions.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType CountOptions.ty) []
 
 attribute [instance] CountOptions.TypeAssumptions.type_repr
   CountOptions.TypeAssumptions.underlying
+  CountOptions.TypeAssumptions.method_set
+  CountOptions.TypeAssumptions.ptr_method_set
 
-structure PutOptions [FfiSyntax] where
+structure PutOptions [GooseExts] where
   mk ::
   GetOnFailure' : Bool
   LeaseID' : _root_.Perennial.go_etcd_io.etcd.client.v3.LeaseID
 
-noncomputable instance PutOptions.zero_val [FfiSyntax] : ZeroVal PutOptions :=
+noncomputable instance PutOptions.zero_val [GooseExts] : ZeroVal PutOptions :=
   ⟨PutOptions.mk zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def PutOptions.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def PutOptions.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"GetOnFailure" go.bool),
 (go.field_decl.FieldDecl go!"LeaseID" _root_.Perennial.go_etcd_io.etcd.client.v3.LeaseID.ty)]
 
-@[irreducible] noncomputable def PutOptions.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def PutOptions.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   PutOptions.fieldsUnsealed
 
-noncomputable instance equals_unfold_PutOptions [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_PutOptions [GooseExts] [GoGlobalContext] :
     EqualsUnfold PutOptions.fields PutOptions.fieldsUnsealed :=
   ⟨by unfold PutOptions.fields; rfl⟩
 
-@[reducible] noncomputable def PutOptions.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def PutOptions.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType PutOptions.fields)
 
-class PutOptions.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class PutOptions.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying PutOptions.underlying PutOptions
   underlying : go.UnderlyingDirectedEq PutOptions.ty PutOptions.underlying
   get_GetOnFailure : ∀ (x : PutOptions), go.IsGoStepPureDetTagged under (StructFieldGet PutOptions.underlying go!"GetOnFailure") #x (Val #(x.GetOnFailure'))
   set_GetOnFailure : ∀ (x : PutOptions) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet PutOptions.underlying go!"GetOnFailure") (PairV #x #y) (Val #(({ x with GetOnFailure' := y } : PutOptions)))
   get_LeaseID : ∀ (x : PutOptions), go.IsGoStepPureDetTagged under (StructFieldGet PutOptions.underlying go!"LeaseID") #x (Val #(x.LeaseID'))
   set_LeaseID : ∀ (x : PutOptions) (y : _root_.Perennial.go_etcd_io.etcd.client.v3.LeaseID), go.IsGoStepPureDetTagged under (StructFieldSet PutOptions.underlying go!"LeaseID") (PairV #x #y) (Val #(({ x with LeaseID' := y } : PutOptions)))
+  method_set : go.MethodSetIs PutOptions.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType PutOptions.ty) []
 
 attribute [instance] PutOptions.TypeAssumptions.type_repr
   PutOptions.TypeAssumptions.underlying
@@ -1146,67 +1168,75 @@ attribute [instance] PutOptions.TypeAssumptions.type_repr
   PutOptions.TypeAssumptions.set_GetOnFailure
   PutOptions.TypeAssumptions.get_LeaseID
   PutOptions.TypeAssumptions.set_LeaseID
+  PutOptions.TypeAssumptions.method_set
+  PutOptions.TypeAssumptions.ptr_method_set
 
-structure DeleteOptions [FfiSyntax] where
+structure DeleteOptions [GooseExts] where
   mk ::
   GetOnFailure' : Bool
 
-noncomputable instance DeleteOptions.zero_val [FfiSyntax] : ZeroVal DeleteOptions :=
+noncomputable instance DeleteOptions.zero_val [GooseExts] : ZeroVal DeleteOptions :=
   ⟨DeleteOptions.mk zeroValDef⟩
 
-@[reducible] noncomputable def DeleteOptions.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def DeleteOptions.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"GetOnFailure" go.bool)]
 
-@[irreducible] noncomputable def DeleteOptions.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def DeleteOptions.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   DeleteOptions.fieldsUnsealed
 
-noncomputable instance equals_unfold_DeleteOptions [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_DeleteOptions [GooseExts] [GoGlobalContext] :
     EqualsUnfold DeleteOptions.fields DeleteOptions.fieldsUnsealed :=
   ⟨by unfold DeleteOptions.fields; rfl⟩
 
-@[reducible] noncomputable def DeleteOptions.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def DeleteOptions.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType DeleteOptions.fields)
 
-class DeleteOptions.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class DeleteOptions.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying DeleteOptions.underlying DeleteOptions
   underlying : go.UnderlyingDirectedEq DeleteOptions.ty DeleteOptions.underlying
   get_GetOnFailure : ∀ (x : DeleteOptions), go.IsGoStepPureDetTagged under (StructFieldGet DeleteOptions.underlying go!"GetOnFailure") #x (Val #(x.GetOnFailure'))
   set_GetOnFailure : ∀ (x : DeleteOptions) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet DeleteOptions.underlying go!"GetOnFailure") (PairV #x #y) (Val #(({ x with GetOnFailure' := y } : DeleteOptions)))
+  method_set : go.MethodSetIs DeleteOptions.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType DeleteOptions.ty) []
 
 attribute [instance] DeleteOptions.TypeAssumptions.type_repr
   DeleteOptions.TypeAssumptions.underlying
   DeleteOptions.TypeAssumptions.get_GetOnFailure
   DeleteOptions.TypeAssumptions.set_GetOnFailure
+  DeleteOptions.TypeAssumptions.method_set
+  DeleteOptions.TypeAssumptions.ptr_method_set
 
-structure GetResponse [FfiSyntax] where
+structure GetResponse [GooseExts] where
   mk ::
   KV' : Loc
   Revision' : w64
 
-noncomputable instance GetResponse.zero_val [FfiSyntax] : ZeroVal GetResponse :=
+noncomputable instance GetResponse.zero_val [GooseExts] : ZeroVal GetResponse :=
   ⟨GetResponse.mk zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def GetResponse.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def GetResponse.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"KV" (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.mvccpb.KeyValue.ty)),
 (go.field_decl.FieldDecl go!"Revision" go.int64)]
 
-@[irreducible] noncomputable def GetResponse.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def GetResponse.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   GetResponse.fieldsUnsealed
 
-noncomputable instance equals_unfold_GetResponse [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_GetResponse [GooseExts] [GoGlobalContext] :
     EqualsUnfold GetResponse.fields GetResponse.fieldsUnsealed :=
   ⟨by unfold GetResponse.fields; rfl⟩
 
-@[reducible] noncomputable def GetResponse.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def GetResponse.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType GetResponse.fields)
 
-class GetResponse.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class GetResponse.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying GetResponse.underlying GetResponse
   underlying : go.UnderlyingDirectedEq GetResponse.ty GetResponse.underlying
   get_KV : ∀ (x : GetResponse), go.IsGoStepPureDetTagged under (StructFieldGet GetResponse.underlying go!"KV") #x (Val #(x.KV'))
   set_KV : ∀ (x : GetResponse) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet GetResponse.underlying go!"KV") (PairV #x #y) (Val #(({ x with KV' := y } : GetResponse)))
   get_Revision : ∀ (x : GetResponse), go.IsGoStepPureDetTagged under (StructFieldGet GetResponse.underlying go!"Revision") #x (Val #(x.Revision'))
   set_Revision : ∀ (x : GetResponse) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet GetResponse.underlying go!"Revision") (PairV #x #y) (Val #(({ x with Revision' := y } : GetResponse)))
+  method_set : go.MethodSetIs GetResponse.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType GetResponse.ty) []
 
 attribute [instance] GetResponse.TypeAssumptions.type_repr
   GetResponse.TypeAssumptions.underlying
@@ -1214,32 +1244,34 @@ attribute [instance] GetResponse.TypeAssumptions.type_repr
   GetResponse.TypeAssumptions.set_KV
   GetResponse.TypeAssumptions.get_Revision
   GetResponse.TypeAssumptions.set_Revision
+  GetResponse.TypeAssumptions.method_set
+  GetResponse.TypeAssumptions.ptr_method_set
 
-structure ListResponse [FfiSyntax] where
+structure ListResponse [GooseExts] where
   mk ::
   Kvs' : GoSlice
   Count' : w64
   Revision' : w64
 
-noncomputable instance ListResponse.zero_val [FfiSyntax] : ZeroVal ListResponse :=
+noncomputable instance ListResponse.zero_val [GooseExts] : ZeroVal ListResponse :=
   ⟨ListResponse.mk zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def ListResponse.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def ListResponse.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"Kvs" (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.mvccpb.KeyValue.ty))),
 (go.field_decl.FieldDecl go!"Count" go.int64),
 (go.field_decl.FieldDecl go!"Revision" go.int64)]
 
-@[irreducible] noncomputable def ListResponse.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def ListResponse.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   ListResponse.fieldsUnsealed
 
-noncomputable instance equals_unfold_ListResponse [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_ListResponse [GooseExts] [GoGlobalContext] :
     EqualsUnfold ListResponse.fields ListResponse.fieldsUnsealed :=
   ⟨by unfold ListResponse.fields; rfl⟩
 
-@[reducible] noncomputable def ListResponse.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def ListResponse.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType ListResponse.fields)
 
-class ListResponse.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class ListResponse.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying ListResponse.underlying ListResponse
   underlying : go.UnderlyingDirectedEq ListResponse.ty ListResponse.underlying
   get_Kvs : ∀ (x : ListResponse), go.IsGoStepPureDetTagged under (StructFieldGet ListResponse.underlying go!"Kvs") #x (Val #(x.Kvs'))
@@ -1248,6 +1280,8 @@ class ListResponse.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext
   set_Count : ∀ (x : ListResponse) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet ListResponse.underlying go!"Count") (PairV #x #y) (Val #(({ x with Count' := y } : ListResponse)))
   get_Revision : ∀ (x : ListResponse), go.IsGoStepPureDetTagged under (StructFieldGet ListResponse.underlying go!"Revision") #x (Val #(x.Revision'))
   set_Revision : ∀ (x : ListResponse) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet ListResponse.underlying go!"Revision") (PairV #x #y) (Val #(({ x with Revision' := y } : ListResponse)))
+  method_set : go.MethodSetIs ListResponse.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType ListResponse.ty) []
 
 attribute [instance] ListResponse.TypeAssumptions.type_repr
   ListResponse.TypeAssumptions.underlying
@@ -1257,32 +1291,34 @@ attribute [instance] ListResponse.TypeAssumptions.type_repr
   ListResponse.TypeAssumptions.set_Count
   ListResponse.TypeAssumptions.get_Revision
   ListResponse.TypeAssumptions.set_Revision
+  ListResponse.TypeAssumptions.method_set
+  ListResponse.TypeAssumptions.ptr_method_set
 
-structure PutResponse [FfiSyntax] where
+structure PutResponse [GooseExts] where
   mk ::
   KV' : Loc
   Succeeded' : Bool
   Revision' : w64
 
-noncomputable instance PutResponse.zero_val [FfiSyntax] : ZeroVal PutResponse :=
+noncomputable instance PutResponse.zero_val [GooseExts] : ZeroVal PutResponse :=
   ⟨PutResponse.mk zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def PutResponse.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def PutResponse.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"KV" (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.mvccpb.KeyValue.ty)),
 (go.field_decl.FieldDecl go!"Succeeded" go.bool),
 (go.field_decl.FieldDecl go!"Revision" go.int64)]
 
-@[irreducible] noncomputable def PutResponse.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def PutResponse.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   PutResponse.fieldsUnsealed
 
-noncomputable instance equals_unfold_PutResponse [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_PutResponse [GooseExts] [GoGlobalContext] :
     EqualsUnfold PutResponse.fields PutResponse.fieldsUnsealed :=
   ⟨by unfold PutResponse.fields; rfl⟩
 
-@[reducible] noncomputable def PutResponse.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def PutResponse.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType PutResponse.fields)
 
-class PutResponse.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class PutResponse.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying PutResponse.underlying PutResponse
   underlying : go.UnderlyingDirectedEq PutResponse.ty PutResponse.underlying
   get_KV : ∀ (x : PutResponse), go.IsGoStepPureDetTagged under (StructFieldGet PutResponse.underlying go!"KV") #x (Val #(x.KV'))
@@ -1291,6 +1327,8 @@ class PutResponse.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext]
   set_Succeeded : ∀ (x : PutResponse) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet PutResponse.underlying go!"Succeeded") (PairV #x #y) (Val #(({ x with Succeeded' := y } : PutResponse)))
   get_Revision : ∀ (x : PutResponse), go.IsGoStepPureDetTagged under (StructFieldGet PutResponse.underlying go!"Revision") #x (Val #(x.Revision'))
   set_Revision : ∀ (x : PutResponse) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet PutResponse.underlying go!"Revision") (PairV #x #y) (Val #(({ x with Revision' := y } : PutResponse)))
+  method_set : go.MethodSetIs PutResponse.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType PutResponse.ty) []
 
 attribute [instance] PutResponse.TypeAssumptions.type_repr
   PutResponse.TypeAssumptions.underlying
@@ -1300,32 +1338,34 @@ attribute [instance] PutResponse.TypeAssumptions.type_repr
   PutResponse.TypeAssumptions.set_Succeeded
   PutResponse.TypeAssumptions.get_Revision
   PutResponse.TypeAssumptions.set_Revision
+  PutResponse.TypeAssumptions.method_set
+  PutResponse.TypeAssumptions.ptr_method_set
 
-structure DeleteResponse [FfiSyntax] where
+structure DeleteResponse [GooseExts] where
   mk ::
   KV' : Loc
   Succeeded' : Bool
   Revision' : w64
 
-noncomputable instance DeleteResponse.zero_val [FfiSyntax] : ZeroVal DeleteResponse :=
+noncomputable instance DeleteResponse.zero_val [GooseExts] : ZeroVal DeleteResponse :=
   ⟨DeleteResponse.mk zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def DeleteResponse.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def DeleteResponse.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"KV" (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.mvccpb.KeyValue.ty)),
 (go.field_decl.FieldDecl go!"Succeeded" go.bool),
 (go.field_decl.FieldDecl go!"Revision" go.int64)]
 
-@[irreducible] noncomputable def DeleteResponse.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def DeleteResponse.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   DeleteResponse.fieldsUnsealed
 
-noncomputable instance equals_unfold_DeleteResponse [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_DeleteResponse [GooseExts] [GoGlobalContext] :
     EqualsUnfold DeleteResponse.fields DeleteResponse.fieldsUnsealed :=
   ⟨by unfold DeleteResponse.fields; rfl⟩
 
-@[reducible] noncomputable def DeleteResponse.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def DeleteResponse.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType DeleteResponse.fields)
 
-class DeleteResponse.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class DeleteResponse.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying DeleteResponse.underlying DeleteResponse
   underlying : go.UnderlyingDirectedEq DeleteResponse.ty DeleteResponse.underlying
   get_KV : ∀ (x : DeleteResponse), go.IsGoStepPureDetTagged under (StructFieldGet DeleteResponse.underlying go!"KV") #x (Val #(x.KV'))
@@ -1334,6 +1374,8 @@ class DeleteResponse.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalConte
   set_Succeeded : ∀ (x : DeleteResponse) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet DeleteResponse.underlying go!"Succeeded") (PairV #x #y) (Val #(({ x with Succeeded' := y } : DeleteResponse)))
   get_Revision : ∀ (x : DeleteResponse), go.IsGoStepPureDetTagged under (StructFieldGet DeleteResponse.underlying go!"Revision") #x (Val #(x.Revision'))
   set_Revision : ∀ (x : DeleteResponse) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet DeleteResponse.underlying go!"Revision") (PairV #x #y) (Val #(({ x with Revision' := y } : DeleteResponse)))
+  method_set : go.MethodSetIs DeleteResponse.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType DeleteResponse.ty) []
 
 attribute [instance] DeleteResponse.TypeAssumptions.type_repr
   DeleteResponse.TypeAssumptions.underlying
@@ -1343,8 +1385,10 @@ attribute [instance] DeleteResponse.TypeAssumptions.type_repr
   DeleteResponse.TypeAssumptions.set_Succeeded
   DeleteResponse.TypeAssumptions.get_Revision
   DeleteResponse.TypeAssumptions.set_Revision
+  DeleteResponse.TypeAssumptions.method_set
+  DeleteResponse.TypeAssumptions.ptr_method_set
 
-class Assumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   Client_instance : Client.TypeAssumptions
   Interface_instance : Interface.TypeAssumptions
   GetOptions_instance : GetOptions.TypeAssumptions

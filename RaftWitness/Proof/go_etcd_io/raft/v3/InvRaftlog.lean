@@ -135,7 +135,7 @@ open Iris Iris.BI Iris.ProofMode go_etcd_io.raft.v3
 state `NState` contains one. -/
 
 /-- The log's entries are numbered consecutively from `prev.index + 1`. -/
-def LogIndicesOk [FfiSyntax] (prev : entryID) (ents : List EntryM) : Prop :=
+def LogIndicesOk [GooseExts] (prev : entryID) (ents : List EntryM) : Prop :=
   ∀ (k : Nat) (e : EntryM), ents[k]? = some e →
     uint.Z e.Index' = uint.Z prev.index' + ((k + 1 : Nat) : Int)
 
@@ -151,7 +151,7 @@ theorem forall_sublist_of {A : Type _} (P : A → Prop) (l es : List A) :
 suffix's entries `ents`, which start at index `offset`; `inprogress`
 (`u.offsetInProgress`), below which they have been handed to the application; and the
 pending snapshot's id `snap` (`ownSnap`). -/
-structure UnstableSt [FfiSyntax] where
+structure UnstableSt [GooseExts] where
   ents : List EntryM
   offset : w64
   inprogress : w64
@@ -168,12 +168,12 @@ record rather than a literal (since 2026-10-09; until then each call wrote
 that the reducible `rfl`/`assumption` of `reseal_raftLog` see through it to the log's
 fields; `omega` does not, and a proof hands it projections rewritten by `simp only
 [unstableOf]` (or uses `word`, which rewrites them with the projection lemmas). -/
-abbrev unstableOf [FfiSyntax] (lv : raftLog) (ls : LogState) : UnstableSt :=
+abbrev unstableOf [GooseExts] (lv : raftLog) (ls : LogState) : UnstableSt :=
   { ents := ls.uents, offset := lv.unstable'.offset', inprogress := ls.inprogress,
     snap := ls.snap, ksn := ls.ksn }
 
 section proof
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF] [StorageModel GF]
 variable [sem : go.Semantics]
@@ -1152,7 +1152,7 @@ macro "reseal_raftLog" : tactic =>
                | exact Hstor | exact Hpend | exact Hfl))
 
 section setCommitted
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF] [StorageModel GF]
 variable [sem : go.Semantics]

@@ -26,7 +26,7 @@ open RaftLink
 open Iris Iris.BI Iris.ProofMode go_etcd_io.etcd.server.v3.etcdserver go_etcd_io.raft.v3
 
 section proof
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [StorageModel GF]
 variable [sem : go.Semantics]
@@ -108,7 +108,7 @@ theorem bootstrappedRaft.newRaftNode.wp_proof
   ipersist cl
   -- `serverstorage.NewStorage(b.lg, wal, ss)`
   iunfold rnNewStorageOk at Hns
-  wp_apply Hns $$ %bv.lg' %wal %ss [] as %st #Hst
+  wp_apply Hns $$ %bv.lg' %wal %ss [] as %st ⟨#Hst, %Hstss⟩
   (try wp_auto)
   -- `newRaftNode(cfg)`
   wp_apply (wp_newRaftNode E γn cv.ID' n pre bv.storage' γs reg
@@ -128,14 +128,16 @@ theorem bootstrappedRaft.newRaftNode.wp_proof
     exact ⟨Hγraft, Hγbud, Hγstor, Hγmode, Hmd, h1, h2, h3, h4, h5,
       h6, h7⟩
   iframe Hnode Hdrv Hncfg Hst Hbuilt Hb Hpeers Htok
-  -- the closure meets `isRNIDRemoved`
-  iunfold isRNIDRemoved
-  iintro !> %id' %Φ' !> - HΦ'
-  (try wp_auto)
-  iunfold rnClusterOk at Hcl
-  wp_apply Hcl $$ %id' [] as %bb -
-  iapply HΦ'
-  first | itrivial | (ipureintro; trivial)
+  isplitr
+  · -- the closure meets `isRNIDRemoved`
+    iunfold isRNIDRemoved
+    iintro !> %id' %Φ' !> - HΦ'
+    (try wp_auto)
+    iunfold rnClusterOk at Hcl
+    wp_apply Hcl $$ %id' [] as %bb -
+    iapply HΦ'
+    first | itrivial | (ipureintro; trivial)
+  ipureintro; exact Hstss
 
 end proof
 

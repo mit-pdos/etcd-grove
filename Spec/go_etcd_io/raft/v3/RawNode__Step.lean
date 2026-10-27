@@ -74,7 +74,7 @@ open Iris Iris.BI go_etcd_io.raft.v3
 -- `DynNoSnap` and their lemmas moved to `InvRawnode.lean` (`node.go`'s `netP` states them).
 
 section spec
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 -- `hlc := HasLC.hasLC`, as in `Spec/raft__Step.lean`
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [StorageModel GF]

@@ -11,14 +11,15 @@ Go's `*errorString` and `deadlineExceededError`, whose methods are `Error`, `Tim
 `Temporary`).
 
 `errorsNewOk_of`: from Perennial's `errors.New` (a fresh `*errorString` whose `Error()` returns the
-message, `mvcc.wp_New_errorString`) and the method-set facts of `*errorString`, which the
-semantics leaves uninterpreted (premises, as Perennial's `context.ErrorStringIsError`): it is a
+message, `mvcc.wp_New_errorString`) and the method-set facts of `*errorString` (theorems of the
+method sets goose emits, `errorStringLeaf_inst`, `errorStringNoGRPCStatus_inst`): it is a
 leaf without `Is` (`ErrorStringLeaf`) and has no `GRPCStatus` method
 (`ErrorStringNoGRPCStatus`: Go's `errors` package defines only `Error`); and `rpctypes.EtcdError`
 implements `error` (`hAs`, the client's KV premise).
 -/
 module
 
+public import Perennial.Golang.Theory.TypeSet
 public import Proof.go_etcd_io.etcd.client.v3.InvWatch
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.Errorf
 public import Proof.errors.NewVar
@@ -37,15 +38,24 @@ namespace EtcdGrove
 
 /-- The method set of `*errors.errorString` has no `GRPCStatus` method (Go's `errors` package
 gives it only `Error`; grpc's `status.FromError` would call it). -/
-class ErrorStringNoGRPCStatus [FfiSyntax] [GoGlobalContext] [GoSemanticsFunctions] : Prop where
+class ErrorStringNoGRPCStatus [GooseExts] [GoGlobalContext] [GoSemanticsFunctions] : Prop where
   noGRPCStatus : methodSet (go.GoType.PointerType _root_.Perennial.errors.errorString.ty) !!
       go!"GRPCStatus" ≠
     some (go.Signature [] false
       [go.GoType.PointerType google_golang_org.grpc.internal.status.Status.ty])
 
+/-- `ErrorStringNoGRPCStatus` holds: `*errorString`'s method set (goose's `ptr_method_set`) is
+`Error` only. -/
+instance errorStringNoGRPCStatus_inst [GooseExts] [GoGlobalContext] [GoLocalContext]
+    [GoSemanticsFunctions] [_root_.Perennial.errors.Assumptions] : ErrorStringNoGRPCStatus := by
+  have h := go.method_set_is (t := go.GoType.PointerType _root_.Perennial.errors.errorString.ty)
+    go!"GRPCStatus"
+  simp only [go.methodSetLookup_cons, go.methodSetLookup_nil, gooseReduceIteDecide] at h
+  exact ⟨by simp [h]⟩
+
 section ctxClass
 open Iris Iris.BI
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
@@ -73,7 +83,7 @@ namespace client
 open Iris Iris.BI Iris.ProofMode go_etcd_io.etcd.api.v3 go_etcd_io.etcd.cache.v3
 
 section proofs
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
@@ -81,7 +91,7 @@ variable [errors_sem : _root_.Perennial.errors.Assumptions] [fmt_sem : _root_.Pe
 variable [rp_sem : go_etcd_io.etcd.api.v3.v3rpc.rpctypes.Assumptions]
 
 /-- **`errorsNewOk` holds** (see the file header). -/
-theorem errorsNewOk_of [ErrorStringLeaf] [ErrorStringNoGRPCStatus]
+theorem errorsNewOk_of
     (hAs : errors.AsTarget go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty) :
     ⊢ errorsNewOk (GF := GF) := by
   unfold errorsNewOk
@@ -166,7 +176,7 @@ theorem clientErr_statusErrOk_of_leaf (e : GoInterfaceOk) (hl : errors.isLeafErr
 `io.isInit` keeps `EOF`'s value, an `errors.New("EOF")` error (`io.eof_of_init`), a leaf
 `*errorString` without `Is` or `GRPCStatus` (`ErrorStringLeaf`, `ErrorStringNoGRPCStatus`) whose
 `Error()` returns. -/
-theorem eofOk_of_init [_root_.Perennial.io.Assumptions] [ErrorStringLeaf] [ErrorStringNoGRPCStatus]
+theorem eofOk_of_init [_root_.Perennial.io.Assumptions]
     (hAs : errors.AsTarget go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty) :
     isPkgInit (PROP := IProp GF) pkg_id.io ⊢ eofOk := by
   iintro #Hpkg
@@ -241,10 +251,8 @@ theorem ctxErrClientAllW_of (wp_ErrAny : context.ErrAny.spec (GF := GF) (hG := h
     iapply HΦ $$ Hpost
     · ipureintro; exact Hcd
     · iexact Hsd
-    · -- (D37) `DeadlineExceeded` is no `*errorString`
-      unfold go_etcd_io.etcd.cache.v3.errCellOk
-      iintro !> %y %hy
-      exact absurd hy (Hnd y)
+    · -- (D37) `DeadlineExceeded` is of no `*errorString` type
+      iapply go_etcd_io.etcd.cache.v3.errCellOk_of_ty ed (Hnd ed rfl)
 
 end proofs
 

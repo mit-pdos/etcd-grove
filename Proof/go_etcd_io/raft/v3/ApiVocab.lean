@@ -41,14 +41,14 @@ open Iris Iris.BI OFE CMRA Iris.ProofMode go_etcd_io.raft.v3
 -- from Proof/go_etcd_io/raft/v3/InvRaftPhys.lean
 section
 open Iris Iris.BI Iris.ProofMode go_etcd_io.raft.v3
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF] [StorageModel GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
 /-- A queued message: its pointer and the state it holds (stage R4). -/
-structure QMsg [FfiSyntax] where
+structure QMsg [GooseExts] where
   loc : Loc
   st : MsgSt
 
@@ -139,7 +139,7 @@ open Iris Iris.BI Iris.ProofMode go_etcd_io.raft.v3
   the `Ready` and the `Advance` moves the boundary, not `stored`;
 - `applyAck ents`: `MsgStorageApplyResp` carrying the committed entries handed out for
   applying. -/
-inductive Pending [FfiSyntax] where
+inductive Pending [GooseExts] where
   | self (pv : Bool) (t : w64)
   | appendAck (term : w64) (base : entryID) (last : Option entryID) (sn : Option SnapshotM)
   | applyAck (ents : List EntryM)
@@ -148,7 +148,7 @@ inductive Pending [FfiSyntax] where
 (the voters fixed at `γ.reCfg`, conf-change entries data) or dynamic (the configuration changes
 by applied conf entries: a decoder `dec` and an initial configuration `c0`; B5's
 `ownRaftGhostR`). -/
-inductive RNMode [FfiSyntax] where
+inductive RNMode [GooseExts] where
   | static
   | dyn (dec : CCDec) (c0 : CCState) (h0 : CfgOk c0) (h1 : CCGood c0)
 
@@ -158,14 +158,14 @@ at `ptr` (`rd.Snapshot`, half of it: the queued acknowledgement shares the point
 the committed log up to the snapshot (`dlv`, `isCommitted`); the application gives both back with
 `Advance` (`snapReceipt`), which steps the acknowledgement and hands the committed log over
 (`RNState.delivered := dlv`). -/
-structure SnapLoan [FfiSyntax] where
+structure SnapLoan [GooseExts] where
   ptr : Loc
   snap : SnapshotM
   fl : w64
   dlv : List EntryM
 
 /-- What the application sees of a `RawNode` (2026-10-09). -/
-structure RNState [FfiSyntax] where
+structure RNState [GooseExts] where
   /-- The committed log handed out so far, from the start (as `isCommitted` takes it):
   every `Ready`'s `CommittedEntries`, in order, after the entries applied before the
   node was built. -/
@@ -239,7 +239,7 @@ end
 
 section
 open Iris Iris.BI Iris.ProofMode go_etcd_io.raft.v3
-variable [FfiSyntax]
+variable [GooseExts]
 
 def RNMode.isDyn : RNMode → Bool
   | .static => false
@@ -346,7 +346,7 @@ end
 
 section
 open Iris Iris.BI Iris.ProofMode go_etcd_io.raft.v3
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [StorageModel GF]
 variable [sem : go.Semantics]
@@ -401,7 +401,7 @@ end
 -- from Proof/go_etcd_io/raft/v3/InvRawnodeReady.lean
 section
 open Iris Iris.BI Iris.ProofMode go_etcd_io.raft.v3
-variable [FfiSyntax]
+variable [GooseExts]
 
 /-- A response type: what `send` queues in `msgsAfterAppend` (`AAMsgOk`). -/
 def RespType (t : w32) : Prop := t = MsgAppResp ∨ t = MsgVoteResp ∨ t = MsgPreVoteResp
@@ -417,13 +417,13 @@ end
 
 section
 open Iris Iris.BI Iris.ProofMode go_etcd_io.raft.v3
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [StorageModel GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
-omit [FfiInterp ffi] [FfiSemantics ext ffi] go_gctx in
+omit [GooseInterp] [GooseSemantics] go_gctx in
 theorem mtypeOf_MsgReadIndex : mtypeOf MsgReadIndex = some .readIndex := rfl
 
 /-- A message's tickets: a proposal's entries'. -/
@@ -481,7 +481,7 @@ end
 -- from Proof/go_etcd_io/raft/v3/InvBoot.lean
 section
 open Iris Iris.BI go_etcd_io.raft.v3
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [StorageModel GF]
 variable [sem : go.Semantics]
@@ -501,11 +501,11 @@ instance peersCtx_persistent (pv : List Peer) (ctxs : List (List w8)) :
 `e.Data'` for `bootLog[k] = e`, with a `nil` error, and gives the message back. Persistent (one
 call per peer). -/
 def bootMarshal (ps : List w64) (ctxs : List (List w8)) (bootLog : List EntryM) : IProp GF :=
-  iprop(□ ∀ (k : Nat) (p : Loc) (dq : DFrac) (m : CCV1M) (e : EntryM)
+  iprop(□ ∀ (k : Nat) (p : Loc) (dq : DFrac) (m : ConfChangeM) (e : EntryM)
     (_ : ps[k]? = some m.nodeId ∧ ctxs[k]? = some m.context ∧ bootLog[k]? = some e ∧
       m.type = W32 0 ∧ m.id = W64 0) (Φ : val → IProp GF),
-    ownCCV1 p dq m -∗
-    (∀ (d : GoSlice), ownCCV1 p dq m -∗ d ↦* e.Data' -∗ Φ (PairV #d #interface.nil)) -∗
+    ownConfChange p dq m -∗
+    (∀ (d : GoSlice), ownConfChange p dq m -∗ d ↦* e.Data' -∗ Φ (PairV #d #interface.nil)) -∗
     WP (App (Val (@! google_golang_org.protobuf.proto.Marshal))
           (Val #(interface.mkOk (go.GoType.PointerType raftpb.ConfChange.ty) #p))) {{ Φ }})
 
@@ -530,7 +530,7 @@ end
 -- from Spec/go_etcd_io/raft/v3/newRaft.lean
 section
 open Iris Iris.BI go_etcd_io.raft.v3
-variable [FfiSyntax]
+variable [GooseExts]
 
 def HsEmpty (hs : HardStateM) : Prop :=
   hs.Term' = W64 0 ∧ hs.Vote' = W64 0 ∧ hs.Commit' = W64 0
@@ -540,7 +540,7 @@ end
 -- from Spec/go_etcd_io/raft/v3/Config__validate.lean
 section
 open Iris Iris.BI go_etcd_io.raft.v3
-variable [FfiSyntax]
+variable [GooseExts]
 
 /-- What `Config.validate` checks, as a proposition over the `Config`. Each conjunct is
 exactly the condition Go tests before one of its `return errors.New(...)`s, except
@@ -562,7 +562,7 @@ end
 -- from Spec/go_etcd_io/raft/v3/NewRawNode.lean
 section
 open Iris Iris.BI go_etcd_io.raft.v3
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [StorageModel GF]
 variable [sem : go.Semantics]
@@ -583,7 +583,7 @@ end
 -- from Spec/go_etcd_io/raft/v3/RawNode__ProposeConfChange.lean
 section
 open Iris Iris.BI Iris.ProofMode go_etcd_io.raft.v3
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [StorageModel GF]
 variable [sem : go.Semantics]
@@ -592,8 +592,8 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 /-- The conf change `o` is one the cluster admits (2026-10-15, stage N): the bytes it is
 marshaled to satisfy `γ.reCCOk` (`RaftNames.reCCOk`; always, for a cluster that admits every
 change). -/
-def CCAllowed (γ : RaftNames) (o : CCMsg) : Prop :=
-  ∀ bs, CCData (some o) bs → γ.reCCOk (ccEntryType (some o)) bs
+def CCAllowed (γ : RaftNames) (o : ConfChangeIM) : Prop :=
+  ∀ bs, MarshalsConfChange (some o) bs → γ.reCCOk (confChangeEntryType (some o)) bs
 
 end
 

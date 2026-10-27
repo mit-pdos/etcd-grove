@@ -5,13 +5,14 @@
 theorem raftpb.ConfChangeV2.GetChanges.wp_proof [package_sem : Assumptions] :
     raftpb.ConfChangeV2.GetChanges.spec
   -- `Perennial.EtcdGrove.raftpb.ConfChangeV2.GetChanges.spec`, unfolded:
-  (∀ (p : Loc) (dq : DFrac) (m : CCV2M),
+  (∀ (p : Loc) (dq : DFrac) (m : ConfChangeV2M),
       ⊢
         ∀ Φ,
-          isPkgInit pkg_id.go_etcd_io.raft.v3.raftpb ∗ ownCCV2 p dq m -∗
+          isPkgInit pkg_id.go_etcd_io.raft.v3.raftpb ∗ ownConfChangeV2 p dq m -∗
             (▷
                 ∀ chs ls,
-                  ownSlice chs ls dq ∗ ([∗list] q;c ∈ ls;m.changes, ccsRO q c) ∗ (ownSlice chs ls dq -∗ ownCCV2 p dq m) -∗
+                  ownSlice chs ls dq ∗
+                      ([∗list] q;c ∈ ls;m.changes, ccsRO q c) ∗ (ownSlice chs ls dq -∗ ownConfChangeV2 p dq m) -∗
                     Φ (intoVal chs)) -∗
               WP
                 ((intoVal

@@ -38,7 +38,7 @@ namespace EtcdGrove
 open Iris Iris.BI Iris.ProofMode go_etcd_io.etcd.server.v3.etcdserver
 
 section proof
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
@@ -445,6 +445,9 @@ theorem EtcdServer.run.wp_proof
   iapply Hsnap
   inext
   iintro %sn %pm0 %cs0 %sv %Hsv #Hsn #Hpm0 #Hcs0' #Hcsok ⟨%σ0, Htok0, %Hσ0⟩
+  -- (D22 J4) the token shared from here on: raft's goroutine (`s.r.start`, next) and the apply
+  -- job both use it
+  imod srvStorTok_alloc _ _ σ0 ⊤ Hσ0 $$ Htok0 with ⟨#Hro0, Hak0, %γss0, #Htinv0, #Hslb0⟩
   obtain ⟨Hsvi, Hsvt, Hpm0n, Hcs0n⟩ := Hsv
   -- the snapshot (raft's `ownSnapM`, read-only: nothing writes it), opened to its metadata `md`
   -- and the metadata's conf state `cs`, which `run` reads directly (the index and term through
@@ -665,7 +668,7 @@ theorem EtcdServer.run.wp_proof
     rw [← Hkc0.2, ← HEγr]; exact Hnm.2.2
   ihave HR0 : iprop(applyRes ⟨s, ep_ptr, γ, ci, b, E, γr, ai₀, c₀, x₀, ρ.wait, γn.ms, γn.γs, γp, ρ⟩ []) $$
       [appliedi appliedt confState diskSnapshotIndex memorySnapshotIndex Hfs Hst Hbe Happ Hlr' Hbr Hwr
-        HKV Hao Hkr HRS HAR Htok0]
+        HKV Hao Hkr HRS HAR Hak0]
   · iunfold applyRes
     iexists ⟨γ, TM, E, b⟩, st₀, ai₀, at₀, a₀, t₀, cs, x₀
     isplitr
@@ -682,7 +685,10 @@ theorem EtcdServer.run.wp_proof
       · ipureintro; exact ⟨Int.le_refl _, Int.le_refl _⟩
       isplitr
       · iexact Hms
-      ipureintro; exact ⟨Hσ0, by word⟩
+      iframe Hro0
+      iexists γss0
+      iframe Htinv0
+      iapply monoNatLbOwn_le (uint.nat (W64 0)) (by simp) $$ Hslb0
     iframe Hlog0
     isplitr
     · iexists uint.nat ai₀
@@ -734,7 +740,9 @@ theorem EtcdServer.run.wp_proof
       iexfalso; iexact Hf
     simp only [↓reduceIte]
     icases Hrecv with ⟨HP, Hcons⟩
-    icases rnApplyTok_recv Er γn rcv A apv $$ Hcons Hidx HP with
+    -- (D22 J6a) no snapshot payload in raft's no-snapshot mode (`isRaftNode`'s `rnEnvOk`)
+    ihave %Hns := isRaftNode_noSnap Er γn _ $$ Hrn
+    icases rnApplyTok_recv Er γn rcv A apv Hns $$ Hcons Hidx HP with
       ⟨%ce, %ceL, Happly, #Hents, #Hentsat, #HC, %Hsnap, Hnc, HG, #Hrac, #Hcl⟩
     -- (D43 M3) `notifyc` and the driver's view, at the apply side (`rnDv`)
     icases Hnc with ⟨%γnc, #Hncb0, Hnrc⟩
@@ -969,6 +977,9 @@ theorem EtcdServer.run.wp_proofOn
   iapply Hsnap
   inext
   iintro %sn %pm0 %cs0 %sv %Hsv #Hsn #Hpm0 #Hcs0' #Hcsok ⟨%σ0, Htok0, %Hσ0⟩
+  -- (D22 J4) the token shared from here on: raft's goroutine (`s.r.start`, next) and the apply
+  -- job both use it
+  imod srvStorTok_alloc _ _ σ0 ⊤ Hσ0 $$ Htok0 with ⟨#Hro0, Hak0, %γss0, #Htinv0, #Hslb0⟩
   obtain ⟨Hsvi, Hsvt, Hpm0n, Hcs0n⟩ := Hsv
   -- the snapshot (raft's `ownSnapM`, read-only: nothing writes it), opened to its metadata `md`
   -- and the metadata's conf state `cs`, which `run` reads directly (the index and term through
@@ -1189,7 +1200,7 @@ theorem EtcdServer.run.wp_proofOn
     rw [← Hkc0.2, ← HEγr]; exact Hnm.2.2
   ihave HR0 : iprop(applyResOn ⟨s, ep_ptr, γ, ci, b, E, γr, ai₀, c₀, x₀, ρ.wait, γn.ms, γn.γs, γp, ρ⟩ []) $$
       [appliedi appliedt confState diskSnapshotIndex memorySnapshotIndex Hfs Hst Hbe Happ Hlr' Hbr Hwr
-        HKV Hao Hkr HRS HAR Htok0]
+        HKV Hao Hkr HRS HAR Hak0]
   · iunfold applyResOn
     iexists ⟨γ, TM, E, b⟩, st₀, ai₀, at₀, a₀, t₀, cs, x₀, srvAuthSt0
     isplitr
@@ -1206,7 +1217,10 @@ theorem EtcdServer.run.wp_proofOn
       · ipureintro; exact ⟨Int.le_refl _, Int.le_refl _⟩
       isplitr
       · iexact Hms
-      ipureintro; exact ⟨Hσ0, by word⟩
+      iframe Hro0
+      iexists γss0
+      iframe Htinv0
+      iapply monoNatLbOwn_le (uint.nat (W64 0)) (by simp) $$ Hslb0
     iframe Hlog0
     isplitr
     · iexists uint.nat ai₀
@@ -1258,7 +1272,9 @@ theorem EtcdServer.run.wp_proofOn
       iexfalso; iexact Hf
     simp only [↓reduceIte]
     icases Hrecv with ⟨HP, Hcons⟩
-    icases rnApplyTok_recv Er γn rcv A apv $$ Hcons Hidx HP with
+    -- (D22 J6a) no snapshot payload in raft's no-snapshot mode (`isRaftNode`'s `rnEnvOk`)
+    ihave %Hns := isRaftNode_noSnap Er γn _ $$ Hrn
+    icases rnApplyTok_recv Er γn rcv A apv Hns $$ Hcons Hidx HP with
       ⟨%ce, %ceL, Happly, #Hents, #Hentsat, #HC, %Hsnap, Hnc, HG, #Hrac, #Hcl⟩
     -- (D43 M3) `notifyc` and the driver's view, at the apply side (`rnDv`)
     icases Hnc with ⟨%γnc, #Hncb0, Hnrc⟩

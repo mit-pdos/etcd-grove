@@ -17,7 +17,7 @@ namespace Perennial
 namespace EtcdGrove
 namespace apply
 
-instance notInterface_uint64 [FfiSyntax] : go.NotInterface go.uint64 :=
+instance notInterface_uint64 [GooseExts] : go.NotInterface go.uint64 :=
   ⟨by unfold go.uint64; trivial⟩
 
 end apply

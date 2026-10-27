@@ -10,6 +10,7 @@ empty object (`newObj`, by `reflNew_pointsto` at `Obj`'s Lean type).
 -/
 module
 
+public import Perennial.Golang.Theory.TypeSet
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8setcd3.Codec
 public import GeneratedProof.github_com.mit_pdos.etcd_grove.examples.k8setcd3
 
@@ -24,7 +25,7 @@ namespace k8setcd3
 open Iris Iris.BI Iris.ProofMode k8s
 
 section tyOk
-variable [ext : FfiSyntax] [go_gctx : GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions]
+variable [GooseExts] [go_gctx : GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions]
 
 /-- **The method-set fact the store asks of the driver's objects** (`ObjSpec.tyOk`, without the
 ghost state): `*Obj` is in `runtime.Object`'s type set (its methods `GetObjectKind` and
@@ -37,10 +38,37 @@ def objTyOk : Prop :=
     go.typeSetContains (go.GoType.PointerType github_com.mit_pdos.etcd_grove.examples.k8setcd3.Obj.ty)
       k8s_io.apimachinery.pkg.runtime.Unstructured.ty = false
 
+/-- **The method-set fact the driver's `errOut` asks of `*storage.StorageError`**: it has
+`Unwrap() error` (`k8s.io/apiserver/pkg/storage/errors.go`: `func (e *StorageError) Unwrap()
+error`), so it is no leaf error (`errors.isLeafError`), and so no error of the client
+(`clientErr`) is one: `errOut`'s type assertion `err.(*storage.StorageError)` fails on the client's
+errors (`clientErr_other`). `methodSet` is uninterpreted in the model, so this is a premise of the
+results (as `objTyOk`). -/
+def storageErrTyOk : Prop :=
+  methodSet (go.GoType.PointerType k8s_io.apiserver.pkg.storage.StorageError.ty) !! go!"Unwrap" =
+    some (go.Signature [] false [go.error])
+
 end tyOk
 
+section tyOkHolds
+variable [GooseExts] [go_gctx : GoGlobalContext] [GoLocalContext] [sem : go.Semantics]
+
+/-- `objTyOk` holds, from the method sets goose emits (`Obj`'s, and `runtime`'s interfaces). -/
+theorem objTyOk_holds [github_com.mit_pdos.etcd_grove.examples.k8setcd3.Assumptions]
+    [k8s_io.apimachinery.pkg.runtime.Assumptions] : objTyOk := by
+  unfold objTyOk; constructor <;> go_type_set
+
+/-- `storageErrTyOk` holds, from the method set goose emits for `*storage.StorageError`. -/
+theorem storageErrTyOk_holds [k8s_io.apiserver.pkg.storage.Assumptions] : storageErrTyOk := by
+  have h := go.method_set_is
+    (t := go.GoType.PointerType k8s_io.apiserver.pkg.storage.StorageError.ty) go!"Unwrap"
+  simp only [go.methodSetLookup_cons, go.methodSetLookup_nil, gooseReduceIteDecide] at h
+  exact h
+
+end tyOkHolds
+
 section defs
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
