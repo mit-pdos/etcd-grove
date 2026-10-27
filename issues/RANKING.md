@@ -426,6 +426,17 @@ fix (record the listed pods in the consistency store after an ambiguous error); 
 (2019) had accepted extra pods on this path for ReplicaSets, never for DaemonSets. Worth reporting
 to sig-apps and the KEP-5647 / #139657 author with the reproduction (draft in `upstream/`).
 
+For sig-api-machinery (client-go's work queue, found verifying it for the DaemonSet controller):
+[k8s-workqueue-done-without-get-duplicates](k8s-workqueue-done-without-get-duplicates.md)
+(2026-10-27): `Done` for an item that is queued but not being processed (a double `Done`) pushes a
+duplicate, after which two workers process the same key concurrently, the one guarantee the queue
+gives controllers. A caller bug, but undocumented and easy to write; a one-line guard with a Go
+reproduction, worth proposing (with the documentation) after the DaemonSet report.
+[k8s-workqueue-exponential-backoff-2to63](k8s-workqueue-exponential-backoff-2to63.md)
+(2026-10-27): an off-by-one cap in the exponential limiter gives a negative delay at exactly
+`2^63` ns; unreachable with the defaults (5 ms, 1 ms), so low priority, but a one-character fix
+with a test.
+
 ## How to bring them
 
 Each report or PR should be reviewed and submitted by a person, with its Go reproduction test
