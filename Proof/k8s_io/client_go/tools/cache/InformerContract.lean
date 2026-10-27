@@ -150,6 +150,24 @@ theorem InfP.popped_replaced (l : List Change) (s : InfP) (h : s.ok l) :
     ∀ M n, Delta.replaced M n ∈ s.popped → M = tableAt l n :=
   fun M n hc => chain_replaced_table l _ _ _ h.2 M n (List.mem_append_left _ hc)
 
+/-- The next change after `u` stays the next one in a longer log whose later changes are after a
+version `b` at least its own. -/
+theorem nextChange_extend (l l' : List Change) (u b : Nat) (c : Change) (hn : NextChange l u c)
+    (hcb : c.rv.toNat ≤ b) (hl' : ∀ d ∈ l', b < d.rv.toNat) : NextChange (l ++ l') u c := by
+  obtain ⟨hm, hu, hmin⟩ := hn
+  refine ⟨List.mem_append_left _ hm, hu, fun d hd hud => ?_⟩
+  rcases List.mem_append.1 hd with hd | hd
+  · exact hmin d hd hud
+  · have := hl' d hd; omega
+
+/-- A bookmark quiet in a log stays quiet in a longer one whose later changes are after it. -/
+theorem quiet_extend (l l' : List Change) (u v : Nat) (hq : Quiet l u v)
+    (hl' : ∀ d ∈ l', v < d.rv.toNat) : Quiet (l ++ l') u v := by
+  refine ⟨hq.1, fun d hd hud => ?_⟩
+  rcases List.mem_append.1 hd with hd | hd
+  · exact hq.2 d hd hud
+  · exact hl' d hd
+
 end model
 
 end informer

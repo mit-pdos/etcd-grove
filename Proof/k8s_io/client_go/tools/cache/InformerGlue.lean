@@ -10,6 +10,7 @@ module
 
 public import Proof.k8s_io.client_go.tools.cache.InformerInv
 public import Spec.k8s_io.client_go.tools.cache.RealFIFO__PopBatch
+public import Proof.github_com.mit_pdos.etcd_grove.examples.k8sdaemonset.apimodel.HistLemmas
 public import Proof.k8s_io.client_go.tools.cache.InformerDefs
 
 @[expose] public section
@@ -655,6 +656,258 @@ theorem infInv_register (γa : ApiNames) (r : Res) (γf : FifoNames) (γt : TsNa
     iexists o
     iframe #
     ipureintro; exact hres
+
+/-- **The reflector's last version** (its half; the invariant holds the other). -/
+def reflLast (γi : InfNames) (v : Option Nat) : IProp GF := ghostVar γi.last (1 : Qp).half v
+
+/-- Moving the invariant to a later past state: the log grows after the versions it has. -/
+theorem infP_ok_later (r : Res) (σp σ1 : apimodel.St) (s : InfP) (hle : St.le σp σ1)
+    (hok : s.ok (σp.tbl r).log) (hlast : rvLe s.last (some σp.rev.toNat)) :
+    s.ok (σ1.tbl r).log := by
+  obtain ⟨-, -, hlog⟩ := hle
+  obtain ⟨⟨l', hl'⟩, hlater⟩ := hlog r
+  rw [← hl'] at hlater ⊢
+  rw [List.drop_left] at hlater
+  exact InfP.ok_extend _ l' s σp.rev.toNat hok hlast hlater
+
+/-- **A watch event's change enqueued** (the reflector's `Add`/`Update`/`Delete` of the event's
+object), through the invariant: the change, the next one after the reflector's last version in the
+log of the past state `σ1` the event came from, is the queue's new last delta, and the reflector's
+last version becomes its. The FIFO's logically atomic update. -/
+theorem infInv_pushChangeAU (γa : ApiNames) (r : Res) (γf : FifoNames) (γt : TsNames)
+    (γi : InfNames) (u : Nat) (σ1 : apimodel.St) (c : Change) (x : GoInterface)
+    (hn : NextChange (σ1.tbl r).log u c) (hgood1 : ∀ c ∈ (σ1.tbl r).log, keyGood c.obj.key)
+    (hnil : x ≠ interface.nil) (K : IProp GF) :
+    ⊢ infInv γa r γf γt γi -∗ pastSt γa σ1 -∗ x ↪[γi.reg]□ c.obj -∗ reflLast γi (some u) -∗
+      (reflLast γi (some c.rv.toNat) -∗ K) -∗
+      |={⊤ \ ∅, ∅}=> ∃ q, fifoSt γf q ∗ (fifoSt γf (q.addObj (fdTypeOf c.typ) x) ={∅, ⊤ \ ∅}=∗ K) := by
+  iintro #Hinv #Hp1 #Hx Hl HK
+  rw [Iris.Std.LawfulSet.diff_empty]
+  iunfold infInv at Hinv
+  iinv Hinv with >Hi Hclose
+  iunfold infRes at Hi
+  icases Hi with ⟨%σp, %s, %q, %σs, %R, %pd, %ap, #Hp, Hreg, #Hsnap, #Hobjs, Hq, Hst, Hsw, Hlast,
+    Hpop, Hlb, %Hok⟩
+  obtain ⟨hok, hlast, hfifo, hpop, hst, hres, hgood, hfq, hpr⟩ := Hok
+  iunfold reflLast at Hl
+  icombine Hlast Hl gives % ⟨_, hu⟩
+  ihave %hxR := ghost_map_lookup (γ := γi.reg) $$ Hreg Hx
+  ihave %hcmp := pastSt_cmp γa σp σ1 $$ Hp Hp1
+  ihave #Hp1' := Hp1
+  iunfold pastSt at Hp1'
+  icases Hp1' with ⟨%H1, -, %hH1⟩
+  ihave #Hp' := Hp
+  iunfold pastSt at Hp'
+  icases Hp' with ⟨%Hp0, -, %hHp⟩
+  have hwf1 := hH1.2.1
+  have hwfp := hHp.2.1
+  have hc1 : c.rv.toNat ≤ σ1.rev.toNat := (hwf1.log_le r c hn.1).2
+  -- the state the invariant moves to, with the change pushed
+  have key : ∃ σq : apimodel.St, St.le σp σq ∧ (σq = σp ∨ σq = σ1) ∧
+      NextChange (σq.tbl r).log u c ∧ c.rv.toNat ≤ σq.rev.toNat ∧ s.ok (σq.tbl r).log ∧
+      rvLe s.last (some σq.rev.toNat) := by
+    rcases hcmp with hle | hle
+    · refine ⟨σ1, hle, Or.inr rfl, hn, hc1, infP_ok_later r σp σ1 s hle hok hlast, ?_⟩
+      cases hl : s.last with
+      | none => trivial
+      | some w =>
+        rw [hl] at hlast; simp only [rvLe] at hlast ⊢
+        have := hle.1; omega
+    · refine ⟨σp, St.le_refl σp, Or.inl rfl, ?_, by have := hle.1; omega, hok, hlast⟩
+      obtain ⟨-, -, hlog⟩ := hle
+      obtain ⟨⟨l', hl'⟩, hlater⟩ := hlog r
+      rw [← hl'] at hlater ⊢
+      rw [List.drop_left] at hlater
+      exact nextChange_extend _ l' u σ1.rev.toNat c hn hc1 hlater
+  obtain ⟨σq, hleq, hσq, hnq, hcq, hokq, hlastq⟩ := key
+  iapply fupd_mask_intro (show (∅ : CoPset) ⊆ ⊤ \ ↑infN from Std.LawfulSet.empty_subset)
+  iintro Hclose2
+  iexists q
+  iframe Hq
+  iintro Hq
+  imod ghostVar_update_halves (some c.rv.toNat) $$ Hlast Hl with ⟨Hlast, Hl⟩
+  imod Hclose2 with -
+  have hpush := ok_push_change (σq.tbl r).log ⟨s.store, s.popped ++ s.fifo, s.last⟩ u c hokq hu hnq
+  imod Hclose $$ [Hreg Hq Hst Hsw Hlast Hpop Hlb] with -
+  · inext
+    unfold infRes
+    iexists σq, ⟨s.store, s.popped, s.fifo ++ [.change c], some c.rv.toNat⟩,
+      q.addObj (fdTypeOf c.typ) x, σs, R, pd, ap
+    iframe
+    isplitr
+    · rcases hσq with rfl | rfl
+      · iexact Hp
+      · iexact Hp1
+    iframe #
+    ipureintro
+    refine ⟨InfP.ok_push _ s _ _ hpush, by simp only [rvLe]; exact hcq, ?_, hpop, hst, hres, ?_, ?_,
+      hpr⟩
+    · show List.Forall₂ (fdRel R) (q.items ++ [cache.FD.obj (fdTypeOf c.typ) x]) (s.fifo ++ [Delta.change c])
+      exact forall₂_snoc hfifo ⟨rfl, hxR, hnil⟩
+    · rcases hσq with rfl | rfl
+      · exact hgood
+      · exact hgood1
+    · refine ⟨fun h => absurd h (by simp [cache.FQ.addObj]), fun hlen => ?_⟩
+      obtain ⟨_, h2⟩ := hfq.2 hlen
+      exact ⟨rfl, h2⟩
+  imodintro
+  iapply HK
+  iunfold reflLast
+  iexact Hl
+
+/-- **The state the invariant moves to** at a push from a past state `σ1`: the later of `σ1` and
+the invariant's, whose log is `σ1`'s extended after `σ1`'s version. -/
+theorem later_state (r : Res) (σp σ1 : apimodel.St) (s : InfP)
+    (hcmp : St.le σp σ1 ∨ St.le σ1 σp) (hok : s.ok (σp.tbl r).log)
+    (hlast : rvLe s.last (some σp.rev.toNat)) :
+    ∃ σq : apimodel.St, St.le σp σq ∧ (σq = σp ∨ σq = σ1) ∧ s.ok (σq.tbl r).log ∧
+      rvLe s.last (some σq.rev.toNat) ∧ σ1.rev.toNat ≤ σq.rev.toNat ∧
+      ∃ l', (σq.tbl r).log = (σ1.tbl r).log ++ l' ∧ ∀ d ∈ l', σ1.rev.toNat < d.rv.toNat := by
+  rcases hcmp with hle | hle
+  · refine ⟨σ1, hle, Or.inr rfl, infP_ok_later r σp σ1 s hle hok hlast, ?_, Nat.le_refl _,
+      [], by simp, by simp⟩
+    cases hl : s.last with
+    | none => trivial
+    | some w =>
+      rw [hl] at hlast; simp only [rvLe] at hlast ⊢
+      have := hle.1; omega
+  · refine ⟨σp, St.le_refl σp, Or.inl rfl, hok, hlast, hle.1, ?_⟩
+    obtain ⟨-, -, hlog⟩ := hle
+    obtain ⟨⟨l', hl'⟩, hlater⟩ := hlog r
+    refine ⟨l', hl'.symm, ?_⟩
+    rw [← hl', List.drop_left] at hlater
+    exact hlater
+
+theorem FQ_replace_items (objs : List GoInterface) (rv : GoString) (q : cache.FQ) :
+    (q.replace objs rv).items = q.items ++ [.replaced objs rv] := by
+  unfold cache.FQ.replace; split <;> rfl
+
+/-- **A bookmark enqueued** (the reflector's `Bookmark` of a watch's bookmark event), through the
+invariant: no change of the log of the past state `σ1` the event came from between the reflector's
+last version and the bookmark's, which becomes the reflector's last. -/
+theorem infInv_pushBookmarkAU (γa : ApiNames) (r : Res) (γf : FifoNames) (γt : TsNames)
+    (γi : InfNames) (u : Nat) (σ1 : apimodel.St) (w : w64)
+    (hq : Quiet (σ1.tbl r).log u w.toNat) (hw : w.toNat ≤ σ1.rev.toNat)
+    (hgood1 : ∀ c ∈ (σ1.tbl r).log, keyGood c.obj.key) (K : IProp GF) :
+    ⊢ infInv γa r γf γt γi -∗ pastSt γa σ1 -∗ reflLast γi (some u) -∗
+      (reflLast γi (some w.toNat) -∗ K) -∗
+      |={⊤ \ ∅, ∅}=> ∃ q, fifoSt γf q ∗
+        (fifoSt γf { q with items := q.items ++ [.bookmark (rvStr w)] } ={∅, ⊤ \ ∅}=∗ K) := by
+  iintro #Hinv #Hp1 Hl HK
+  rw [Iris.Std.LawfulSet.diff_empty]
+  iunfold infInv at Hinv
+  iinv Hinv with >Hi Hclose
+  iunfold infRes at Hi
+  icases Hi with ⟨%σp, %s, %q, %σs, %R, %pd, %ap, #Hp, Hreg, #Hsnap, #Hobjs, Hq, Hst, Hsw, Hlast,
+    Hpop, Hlb, %Hok⟩
+  obtain ⟨hok, hlast, hfifo, hpop, hst, hres, hgood, hfq, hpr⟩ := Hok
+  iunfold reflLast at Hl
+  icombine Hlast Hl gives % ⟨_, hu⟩
+  ihave %hcmp := pastSt_cmp γa σp σ1 $$ Hp Hp1
+  obtain ⟨σq, hleq, hσq, hokq, hlastq, hrevq, l', hl', hl'gt⟩ := later_state r σp σ1 s hcmp hok hlast
+  have hqq : Quiet (σq.tbl r).log u w.toNat := by
+    rw [hl']; exact quiet_extend _ l' u w.toNat hq (fun d hd => by have := hl'gt d hd; omega)
+  iapply fupd_mask_intro (show (∅ : CoPset) ⊆ ⊤ \ ↑infN from Std.LawfulSet.empty_subset)
+  iintro Hclose2
+  iexists q
+  iframe Hq
+  iintro Hq
+  imod ghostVar_update_halves (some w.toNat) $$ Hlast Hl with ⟨Hlast, Hl⟩
+  imod Hclose2 with -
+  have hpush := ok_push_bookmark (σq.tbl r).log ⟨s.store, s.popped ++ s.fifo, s.last⟩ u w.toNat
+    hokq hu hqq
+  imod Hclose $$ [Hreg Hq Hst Hsw Hlast Hpop Hlb] with -
+  · inext
+    unfold infRes
+    iexists σq, ⟨s.store, s.popped, s.fifo ++ [.bookmark w.toNat], some w.toNat⟩,
+      { q with items := q.items ++ [.bookmark (rvStr w)] }, σs, R, pd, ap
+    iframe
+    isplitr
+    · rcases hσq with rfl | rfl
+      · iexact Hp
+      · iexact Hp1
+    iframe #
+    ipureintro
+    refine ⟨InfP.ok_push _ s _ _ hpush, by simp only [rvLe]; omega,
+      forall₂_snoc hfifo ⟨w, rfl, rfl⟩, hpop, hst, hres, ?_, ?_, hpr⟩
+    · rcases hσq with rfl | rfl
+      · exact hgood
+      · exact hgood1
+    · refine ⟨fun hp d hd => ?_, hfq.2⟩
+      rcases List.mem_append.1 hd with hd | hd
+      · exact hfq.1 hp d hd
+      · simp at hd; exact ⟨_, hd⟩
+  imodintro
+  iapply HK
+  iunfold reflLast
+  iexact Hl
+
+/-- **A relist's `Replace` enqueued**, through the invariant: the listed objects, registered
+(`R0`), are the table of the log of the listed past state `σ1` at the list's version `w`, at
+least the reflector's last version, which `w` becomes. -/
+theorem infInv_pushReplaceAU (γa : ApiNames) (r : Res) (γf : FifoNames) (γt : TsNames)
+    (γi : InfNames) (u : Option Nat) (σ1 : apimodel.St) (w : w64) (R0 : Reg)
+    (xs : List GoInterface) (hl : listRel R0 xs (tableAt (σ1.tbl r).log w.toNat))
+    (hw : w.toNat ≤ σ1.rev.toNat) (hu : rvLe u (some w.toNat))
+    (hgood1 : ∀ c ∈ (σ1.tbl r).log, keyGood c.obj.key) (K : IProp GF) :
+    ⊢ infInv γa r γf γt γi -∗ pastSt γa σ1 -∗ ([∗map] x ↦ o ∈ R0, x ↪[γi.reg]□ o) -∗
+      reflLast γi u -∗ (reflLast γi (some w.toNat) -∗ K) -∗
+      |={⊤ \ ∅, ∅}=> ∃ q, fifoSt γf q ∗ (fifoSt γf (q.replace xs (rvStr w)) ={∅, ⊤ \ ∅}=∗ K) := by
+  iintro #Hinv #Hp1 #Hs0 Hl HK
+  rw [Iris.Std.LawfulSet.diff_empty]
+  iunfold infInv at Hinv
+  iinv Hinv with >Hi Hclose
+  iunfold infRes at Hi
+  icases Hi with ⟨%σp, %s, %q, %σs, %R, %pd, %ap, #Hp, Hreg, #Hsnap, #Hobjs, Hq, Hst, Hsw, Hlast,
+    Hpop, Hlb, %Hok⟩
+  obtain ⟨hok, hlast, hfifo, hpop, hst, hres, hgood, hfq, hpr⟩ := Hok
+  iunfold reflLast at Hl
+  icombine Hlast Hl gives % ⟨_, hu'⟩
+  ihave ⟨%hsub, Hreg, -⟩ := reg_sub γi.reg R R0 $$ [$Hreg $Hs0]
+  ihave %hcmp := pastSt_cmp γa σp σ1 $$ Hp Hp1
+  obtain ⟨σq, hleq, hσq, hokq, hlastq, hrevq, l', hl', hl'gt⟩ := later_state r σp σ1 s hcmp hok hlast
+  have htab : tableAt (σq.tbl r).log w.toNat = tableAt (σ1.tbl r).log w.toNat := by
+    rw [hl']; exact tableAt_append _ l' σ1.rev.toNat w.toNat hw hl'gt
+  have hfd : fdRel R (.replaced xs (rvStr w)) (.replaced (tableAt (σq.tbl r).log w.toNat) w.toNat) :=
+    fdRel_mono hsub _ _ ⟨⟨w, rfl, rfl⟩, by rw [htab]; exact hl⟩
+  iapply fupd_mask_intro (show (∅ : CoPset) ⊆ ⊤ \ ↑infN from Std.LawfulSet.empty_subset)
+  iintro Hclose2
+  iexists q
+  iframe Hq
+  iintro Hq
+  imod ghostVar_update_halves (some w.toNat) $$ Hlast Hl with ⟨Hlast, Hl⟩
+  imod Hclose2 with -
+  have hpush := ok_push_replaced (σq.tbl r).log ⟨s.store, s.popped ++ s.fifo, s.last⟩ w.toNat
+    hokq (by rw [← hu'] at hu; exact hu)
+  imod Hclose $$ [Hreg Hq Hst Hsw Hlast Hpop Hlb] with -
+  · inext
+    unfold infRes
+    iexists σq, ⟨s.store, s.popped,
+        s.fifo ++ [.replaced (tableAt (σq.tbl r).log w.toNat) w.toNat], some w.toNat⟩,
+      q.replace xs (rvStr w), σs, R, pd, ap
+    iframe
+    isplitr
+    · rcases hσq with rfl | rfl
+      · iexact Hp
+      · iexact Hp1
+    iframe #
+    ipureintro
+    refine ⟨InfP.ok_push _ s _ _ hpush, by simp only [rvLe]; omega, ?_, hpop, hst, hres, ?_, ?_,
+      hpr⟩
+    · rw [FQ_replace_items]; exact forall₂_snoc hfifo hfd
+    · rcases hσq with rfl | rfl
+      · exact hgood
+      · exact hgood1
+    · unfold cache.FQ.replace
+      split
+      · rename_i hp
+        exact ⟨fun h => (by simp only at h; rw [hp] at h; cases h), hfq.2⟩
+      · rename_i hp
+        exact ⟨fun h => (by simp only at h; cases h), fun hl2 => absurd (hfq.2 hl2).1 hp⟩
+  imodintro
+  iapply HK
+  iunfold reflLast
+  iexact Hl
 
 end glue
 

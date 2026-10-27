@@ -823,6 +823,12 @@ theorem pdReg_mono {R R' : Reg} (h : regLe R R') (pd : List cache.FD) (hp : pdRe
     pdReg R' pd :=
   ⟨fun d hd x hx => by obtain ⟨o, ho⟩ := hp.1 d hd x hx; exact ⟨o, h _ _ ho⟩, hp.2⟩
 
+theorem forall₂_snoc {α β : Type _} {R : α → β → Prop} :
+    ∀ {l : List α} {m : List β} {a : α} {b : β}, List.Forall₂ R l m → R a b →
+      List.Forall₂ R (l ++ [a]) (m ++ [b])
+  | _, _, _, _, .nil, h => .cons h .nil
+  | _, _, _, _, .cons h1 h2, h => .cons h1 (forall₂_snoc h2 h)
+
 end model
 
 end informer
