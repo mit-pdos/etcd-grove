@@ -1,0 +1,46 @@
+/-
+`nodeLister.Get` (`listers/core/v1/node.go`, promoted from the embedded
+`listers.ResourceIndexer[*v1.Node]`): the generic lister's `Get`. Lean-first.
+-/
+module
+
+public import Spec.k8s_io.client_go.listers.ResourceIndexer__Get
+public import GeneratedProof.k8s_io.client_go.listers.core.v1
+
+@[expose] public section
+
+noncomputable section
+
+namespace Perennial
+namespace EtcdGrove
+namespace corelisters
+
+open Iris Iris.BI cache listers k8s_io.client_go.listers.core.v1
+
+section spec
+variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [sem : go.Semantics]
+variable [package_sem : k8s_io.client_go.listers.core.v1.Assumptions]
+variable [package_sem' : k8s_io.client_go.listers.Assumptions]
+
+/-- **`l.Get`** for the Node lister `l` (a `*nodeLister`) over the cache `ca`, not namespaced: `ResourceIndexer.Get`'s spec at `X = v1.Node`. -/
+abbrev nodeLister.Get.spec : Prop :=
+  ∀ (ca ts : Loc) (γ : TsNames) (OK : GoInterface → IProp GF) (Fam : Nat → Fn)
+    (kf : GoFunc) (res : k8s_io.apimachinery.pkg.runtime.schema.GroupResource) (l : Loc) (name : GoString),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.k8s_io.client_go.listers.core.v1 ∗ isCache ca ts γ OK Fam kf ∗
+      tsReader ts γ OK Fam ∗ typedOK OK k8s_io.api.core.v1.Node.ty ∗
+      l.[nodeLister, go!"ResourceIndexer"] ↦□ riVal ca res [] }}
+  <<{ ∀∀ σ, storeSt γ σ ∗ ⌜noNil σ.items⌝ }>>
+    (App (Val (l @!! go.GoType.PointerType nodeLister.ty @!! go!"Get")) (Val #name))
+    @@ ∅
+  <<{ storeSt γ σ ∗ ⌜noNil σ.items⌝ }>>
+  {{ (r : Loc) (err : GoInterface), RET (PairV #r #err);
+      getPost OK k8s_io.api.core.v1.Node.ty σ (nsKey ([] : GoString) name) r err ∗ tsReader ts γ OK Fam }}
+
+end spec
+
+end corelisters
+end EtcdGrove
+end Perennial

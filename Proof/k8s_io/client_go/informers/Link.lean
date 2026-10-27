@@ -8,17 +8,29 @@ hand.
 -/
 module
 
+public import Proof.k8s_io.client_go.listers.apps.v1.NewControllerRevisionLister
 public import Proof.k8s_io.client_go.listers.apps.v1.NewDaemonSetLister
 public import Proof.k8s_io.client_go.listers.NewNamespaced
+public import Proof.k8s_io.client_go.listers.core.v1.NewNodeLister
 public import Proof.k8s_io.apimachinery.pkg.api.errors.NewNotFound
+public import Proof.k8s_io.client_go.listers.core.v1.NewPodLister
 public import Proof.k8s_io.client_go.listers.ResourceIndexer__Get
 public import Proof.k8s_io.client_go.listers.ResourceIndexer__List
+public import Proof.k8s_io.api.apps.v1.Resource
+public import Proof.k8s_io.client_go.listers.apps.v1.controllerRevisionLister__ControllerRevisions
+public import Proof.k8s_io.client_go.listers.apps.v1.controllerRevisionNamespaceLister__Get
+public import Proof.k8s_io.client_go.listers.apps.v1.controllerRevisionNamespaceLister__List
+public import Proof.k8s_io.api.core.v1.Resource
 public import Proof.k8s_io.client_go.listers.apps.v1.daemonSetLister__DaemonSets
 public import Proof.k8s_io.client_go.listers.apps.v1.daemonSetNamespaceLister__Get
 public import Proof.k8s_io.client_go.listers.apps.v1.daemonSetNamespaceLister__List
 public import Proof.k8s_io.client_go.listers.New
+public import Proof.k8s_io.client_go.listers.core.v1.nodeLister__Get
+public import Proof.k8s_io.client_go.listers.core.v1.nodeLister__List
+public import Proof.k8s_io.client_go.listers.core.v1.podLister__Pods
+public import Proof.k8s_io.client_go.listers.core.v1.podNamespaceLister__Get
+public import Proof.k8s_io.client_go.listers.core.v1.podNamespaceLister__List
 public import Proof.k8s_io.apimachinery.pkg.runtime.schema.GroupResource__String_ptr
-public import Proof.k8s_io.api.apps.v1.Resource
 public import GeneratedProof.k8s_io.client_go.informers
 public import Proof.k8s_io.client_go.Base
 public import Proof.k8s_io.client_go.tools.cache.Link
@@ -59,6 +71,10 @@ theorem listers.wp_New :
     EtcdGrove.listers.New.spec (GF := GF) (hG := hG) :=
   EtcdGrove.listers.New.wp_proof
 
+theorem appslisters.wp_NewControllerRevisionLister :
+    EtcdGrove.appslisters.NewControllerRevisionLister.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.appslisters.NewControllerRevisionLister.wp_proof appsv1.wp_Resource listers.wp_New
+
 theorem appslisters.wp_NewDaemonSetLister :
     EtcdGrove.appslisters.NewDaemonSetLister.spec (GF := GF) (hG := hG) :=
   EtcdGrove.appslisters.NewDaemonSetLister.wp_proof appsv1.wp_Resource listers.wp_New
@@ -66,6 +82,14 @@ theorem appslisters.wp_NewDaemonSetLister :
 theorem listers.wp_NewNamespaced :
     EtcdGrove.listers.NewNamespaced.spec (GF := GF) (hG := hG) :=
   EtcdGrove.listers.NewNamespaced.wp_proof
+
+theorem corev1.wp_Resource :
+    EtcdGrove.corev1.Resource.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.corev1.Resource.wp_proof
+
+theorem corelisters.wp_NewNodeLister :
+    EtcdGrove.corelisters.NewNodeLister.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.corelisters.NewNodeLister.wp_proof corev1.wp_Resource listers.wp_New
 
 theorem schema.GroupResource.wp_String_ptr :
     EtcdGrove.schema.GroupResource.String_ptr.spec (GF := GF) (hG := hG) :=
@@ -75,6 +99,10 @@ theorem apierrors.wp_NewNotFound :
     EtcdGrove.apierrors.NewNotFound.spec (GF := GF) (hG := hG) :=
   EtcdGrove.apierrors.NewNotFound.wp_proof schema.GroupResource.wp_String_ptr
 
+theorem corelisters.wp_NewPodLister :
+    EtcdGrove.corelisters.NewPodLister.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.corelisters.NewPodLister.wp_proof corev1.wp_Resource listers.wp_New
+
 theorem listers.ResourceIndexer.wp_Get :
     EtcdGrove.listers.ResourceIndexer.Get.spec (GF := GF) (hG := hG) :=
   EtcdGrove.listers.ResourceIndexer.Get.wp_proof k8scache.cache.cache.wp_GetByKey apierrors.wp_NewNotFound
@@ -82,6 +110,18 @@ theorem listers.ResourceIndexer.wp_Get :
 theorem listers.ResourceIndexer.wp_List :
     EtcdGrove.listers.ResourceIndexer.List.spec (GF := GF) (hG := hG) :=
   EtcdGrove.listers.ResourceIndexer.List.wp_proof k8scache.cache.wp_ListAllByNamespace
+
+theorem appslisters.controllerRevisionLister.wp_ControllerRevisions :
+    EtcdGrove.appslisters.controllerRevisionLister.ControllerRevisions.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.appslisters.controllerRevisionLister.ControllerRevisions.wp_proof listers.wp_NewNamespaced
+
+theorem appslisters.controllerRevisionNamespaceLister.wp_Get :
+    EtcdGrove.appslisters.controllerRevisionNamespaceLister.Get.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.appslisters.controllerRevisionNamespaceLister.Get.wp_proof listers.ResourceIndexer.wp_Get
+
+theorem appslisters.controllerRevisionNamespaceLister.wp_List :
+    EtcdGrove.appslisters.controllerRevisionNamespaceLister.List.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.appslisters.controllerRevisionNamespaceLister.List.wp_proof listers.ResourceIndexer.wp_List
 
 theorem appslisters.daemonSetLister.wp_DaemonSets :
     EtcdGrove.appslisters.daemonSetLister.DaemonSets.spec (GF := GF) (hG := hG) :=
@@ -94,6 +134,26 @@ theorem appslisters.daemonSetNamespaceLister.wp_Get :
 theorem appslisters.daemonSetNamespaceLister.wp_List :
     EtcdGrove.appslisters.daemonSetNamespaceLister.List.spec (GF := GF) (hG := hG) :=
   EtcdGrove.appslisters.daemonSetNamespaceLister.List.wp_proof listers.ResourceIndexer.wp_List
+
+theorem corelisters.nodeLister.wp_Get :
+    EtcdGrove.corelisters.nodeLister.Get.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.corelisters.nodeLister.Get.wp_proof listers.ResourceIndexer.wp_Get
+
+theorem corelisters.nodeLister.wp_List :
+    EtcdGrove.corelisters.nodeLister.List.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.corelisters.nodeLister.List.wp_proof listers.ResourceIndexer.wp_List
+
+theorem corelisters.podLister.wp_Pods :
+    EtcdGrove.corelisters.podLister.Pods.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.corelisters.podLister.Pods.wp_proof listers.wp_NewNamespaced
+
+theorem corelisters.podNamespaceLister.wp_Get :
+    EtcdGrove.corelisters.podNamespaceLister.Get.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.corelisters.podNamespaceLister.Get.wp_proof listers.ResourceIndexer.wp_Get
+
+theorem corelisters.podNamespaceLister.wp_List :
+    EtcdGrove.corelisters.podNamespaceLister.List.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.corelisters.podNamespaceLister.List.wp_proof listers.ResourceIndexer.wp_List
 
 end links_hasLC
 

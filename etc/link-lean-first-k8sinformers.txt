@@ -17,15 +17,31 @@ NewNotFound: schema_GroupResource__String_ptr
 ResourceIndexer__Get: cache__GetByKey NewNotFound
 ResourceIndexer__List: ListAllByNamespace
 #
-# the trust boundary: k8s.io/api's names-only `Resource` (apps/v1)
-v1_Resource:
+# the trust boundary: k8s.io/api's names-only `Resource` (apps/v1, core/v1)
+apps_v1_Resource:
+core_v1_Resource:
 #
 # the generic lister's constructors (`listers/generic_helpers.go`)
 listers_New:
 NewNamespaced:
 #
 # the DaemonSet lister (`listers/apps/v1/daemonset.go`), its namespace lister's promoted methods
-NewDaemonSetLister: v1_Resource listers_New
+NewDaemonSetLister: apps_v1_Resource listers_New
 daemonSetLister__DaemonSets: NewNamespaced
 daemonSetNamespaceLister__Get: ResourceIndexer__Get
 daemonSetNamespaceLister__List: ResourceIndexer__List
+#
+# the ControllerRevision lister (`listers/apps/v1/controllerrevision.go`)
+NewControllerRevisionLister: apps_v1_Resource listers_New
+controllerRevisionLister__ControllerRevisions: NewNamespaced
+controllerRevisionNamespaceLister__Get: ResourceIndexer__Get
+controllerRevisionNamespaceLister__List: ResourceIndexer__List
+#
+# the Pod and Node listers (`listers/core/v1/pod.go`, `node.go`; Node's not namespaced)
+NewPodLister: core_v1_Resource listers_New
+podLister__Pods: NewNamespaced
+podNamespaceLister__Get: ResourceIndexer__Get
+podNamespaceLister__List: ResourceIndexer__List
+NewNodeLister: core_v1_Resource listers_New
+nodeLister__Get: ResourceIndexer__Get
+nodeLister__List: ResourceIndexer__List
