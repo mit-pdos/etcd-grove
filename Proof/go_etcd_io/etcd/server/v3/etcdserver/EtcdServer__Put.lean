@@ -314,7 +314,7 @@ theorem EtcdServer.Put.wp_proofOn
     · iapply putPermitOn_reqPropOk ρ.kv op Q γc $$ Hperm
     iexists _; iexact Header
   (try wp_auto)
-  icases Hres with (⟨%Herr, %hm, %rq', %Lq, %Hwire, #HLq, Hok, #HQq⟩ | ⟨%Hre, #HaE, Hfail⟩)
+  icases Hres with (⟨%Herr, %hm, %rq', %Lq, %Hwire, #HLq, Hok, #HpAf, #HQq⟩ | ⟨%Hre, #HaE, Hfail⟩)
   · subst Herr
     have Hrq : rq' = apply.withHeader (irrPut op) hm := by
       refine (Hwire.2.2.2 ?_)
@@ -352,7 +352,8 @@ theorem EtcdServer.Put.wp_proofOn
     iframe Hpo Hhdr Hcert HMint Hwit Hcok
     isplitr
     · ipureintro; exact ⟨Hstep, ⟨log', rfl⟩, Hfl' log' false rfl⟩
-    iexact HQ
+    iframe HQ
+    iexists Lq; iexact HpAf
   · obtain ⟨rfl, Hne⟩ := Hre
     (try wp_auto)
     rcases err with ei | _

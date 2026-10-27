@@ -11,6 +11,10 @@ What the server keeps of its auth store's invariant for the apply thread, with a
 - **the range check at a reader's lower bound** (`authStoreLbM`, E3s): with auth on, the store's
   `IsRangePermitted` with its verdict no older than any lower bound of the published index
   (`apply.isAuthStoreRangeLb_of_authInv`); from the same construction, kept beside the above;
+- **publication** (`authPublishM`, E3t): with auth on, the apply thread raising the published index
+  to its history's latest one (E3j's `authPublishT`, of the store's invariant), from the same
+  construction, kept beside the above; what it gets, a published index whose recorded state is
+  the latest one (`authPubAt`), is what the waiter's reply carries;
 - **the admin steps' resource** (E3f's blocker 1, the user's decision 2026-10-27: a separate row).
   The store's half of its `be` field stays in the server's rest (`authBeOn stl bel`, in
   `srvObjsOn`, whose text and D22's `Recover` premise are unchanged) and an admin entry's
@@ -178,7 +182,127 @@ def srvAuthApplyResB (s : Loc) (E : apply.AEnv GF) (st : auth.AuthState) : IProp
       go!"authStore" s ↦□ (auth.authIface stl) ∗ authApplyResB E.authMode stl st bel E.P E.f ∗
     rwLens E.RW (authBeOn stl bel) ∗ roLendsAuthBe E.RO stl bel)
 
+/-- **Publication, in the mode `M`** (the auth plan's E3t, 2026-10-27; persistent): in the mode
+`on γa`, for any non-empty history `hs` of the authority with the tie of the store `stl`'s flag and
+cache halves to its latest state (`auth.tieRes`), raising the published index to the latest one,
+`hs.length - 1` (E3j's `auth.authPublishT`, of the store's invariant: `authPublishM_of_authInv`);
+`True` in the other modes. -/
+def authPublishM (M : auth.AuthMode) (stl : Loc) : IProp GF :=
+  match M with
+  | .on γa => iprop(□ ∀ hs : List auth.AuthState, ⌜hs ≠ []⌝ -∗ auth.authOwn (.on γa) hs -∗
+      auth.tieRes stl (.on γa) hs ={⊤}=∗ auth.authOwn (.on γa) hs ∗ auth.tieRes stl (.on γa) hs ∗
+      auth.authPubLb γa (hs.length - 1))
+  | _ => iprop(True)
+
+instance authPublishM_persistent (M : auth.AuthMode) (stl : Loc) :
+    Persistent (authPublishM (GF := GF) M stl) := by
+  cases M <;> unfold authPublishM <;> infer_instance
+
+/-- **A published index whose recorded state is `st`, in the mode `M`** (E3t; persistent): in the
+mode `on γa`, a lower bound `i` of the published index (`auth.authPubLb`) at which the history
+records `st` (`auth.authStateAt`); `True` in the other modes. What the apply thread hands the waiter
+with an entry's result (`st` the model's auth state after the entry): a reader holding it is checked
+at states no older than that one (`Range.specOn`). -/
+def authPubAt (M : auth.AuthMode) (st : auth.AuthState) : IProp GF :=
+  match M with
+  | .on γa => iprop(∃ i : Nat, auth.authPubLb γa i ∗ auth.authStateAt γa i st)
+  | _ => iprop(True)
+
+instance authPubAt_persistent (M : auth.AuthMode) (st : auth.AuthState) :
+    Persistent (authPubAt (GF := GF) M st) := by
+  cases M <;> unfold authPubAt <;> infer_instance
+
+/-- A published index's lower bound, forgetting its state. -/
+theorem authPubLbM_of_pubAt (γa : auth.AuthNames) (st : auth.AuthState) :
+    authPubAt (GF := GF) (.on γa) st ⊢ ∃ i : Nat, auth.authPubLbM (.on γa) i := by
+  unfold authPubAt auth.authPubLbM
+  iintro ⟨%i, #Hlb, -⟩
+  iexists i
+  iexact Hlb
+
 end defs
+
+section publish
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [sem : go.Semantics]
+variable [auth_sem : go_etcd_io.etcd.server.v3.auth.Assumptions]
+
+open Iris.ProofMode
+
+/-- **Publication from the store's invariant** (E3t): `auth.authPublishT` at the tie's flag and
+cache halves. -/
+theorem authPublishM_of_authInv (stl : Loc) (R : IProp GF) (γa : auth.AuthNames) :
+    auth.authInv stl R (.on γa) ⊢ authPublishM (.on γa) stl := by
+  iintro #Hinv
+  unfold authPublishM
+  iintro !> %hs %hne Ho Ht
+  iunfold auth.tieRes at Ht
+  icases Ht with ⟨%b, %sc, Hfl, #Hev, Hca, #Hsn, %Htie⟩
+  obtain ⟨stl', hl⟩ : ∃ x, hs.getLast? = some x := by
+    cases h : hs.getLast? with
+    | none => exact absurd (List.getLast?_eq_none_iff.1 h) hne
+    | some x => exact ⟨x, rfl⟩
+  imod auth.authPublishT stl R (.on γa) hs b sc stl' (fun _ _ => hl) Htie $$ Hinv Ho Hfl Hca
+    with ⟨Ho, Hfl, Hca, #Hlb⟩
+  imodintro
+  iframe Ho
+  isplitl [Hfl Hca]
+  · iunfold auth.tieRes
+    iexists b, sc
+    iframe Hfl Hev Hca Hsn
+    ipureintro; exact Htie
+  iunfold auth.authPubLbM at Hlb
+  iexact Hlb
+
+omit auth_sem in
+/-- A state recorded at `i` is the authority's history's `i`th. -/
+theorem authOwn_stateAt_lookup (γa : auth.AuthNames) (hs : List auth.AuthState) (i : Nat)
+    (st : auth.AuthState) :
+    auth.authOwn (GF := GF) (.on γa) hs ∗ auth.authStateAt γa i st ⊢
+      auth.authOwn (.on γa) hs ∗ ⌜hs[i]? = some st⌝ := by
+  simp only [auth.authOwn]
+  have key : auth.authHistHalf (GF := GF) γa hs ∗ auth.authStateAt γa i st ⊢
+      auth.authHistHalf γa hs ∗ ⌜hs[i]? = some st⌝ :=
+    (and_intro (by iintro ⟨H, -⟩; iexact H) (auth.authHistHalf_lookup γa hs i st)).trans
+      persistent_and_sep_mp
+  iintro ⟨⟨Hh, Hc⟩, #Hs⟩
+  ihave ⟨Hh, %Hi⟩ := key $$ [Hh]
+  · iframe Hh Hs
+  iframe Hh Hc
+  ipureintro; exact Hi
+
+omit auth_sem in
+/-- **Publishing the authority's latest state** (E3t): with the capability, a non-empty history's
+latest state `st` gets a published index (`authPubAt`). -/
+theorem authPubAt_publish (γa : auth.AuthNames) (stl : Loc) (hs : List auth.AuthState)
+    (st : auth.AuthState) (hl : hs.getLast? = some st) :
+    authPublishM (GF := GF) (.on γa) stl ⊢ auth.authOwn (.on γa) hs -∗
+      auth.tieRes stl (.on γa) hs ={⊤}=∗ auth.authOwn (.on γa) hs ∗ auth.tieRes stl (.on γa) hs ∗
+      authPubAt (.on γa) st := by
+  iintro #Hp Ho Ht
+  have hne : hs ≠ [] := by intro h; subst h; cases hl
+  unfold authPublishM
+  imod Hp $$ %hs %hne Ho Ht with ⟨Ho, Ht, #Hlb⟩
+  ihave ⟨Ho, #Hsn⟩ := auth.authOwn_latestSnap (.on γa) hs $$ Ho
+  unfold auth.latestSnap
+  icases Hsn with ⟨%i, %st', %hl', #Hst⟩
+  rw [hl] at hl'
+  cases hl'
+  ihave ⟨Ho, %Hi⟩ := authOwn_stateAt_lookup γa hs i st $$ [Ho Hst]
+  · iframe Ho Hst
+  have hi : i ≤ hs.length - 1 := by
+    have := (List.getElem?_eq_some_iff.1 Hi).1
+    omega
+  ihave #Hlb' := auth.authPubLb_le γa i hi $$ Hlb
+  imodintro
+  iframe Ho Ht
+  unfold authPubAt
+  iexists i
+  iframe Hlb' Hst
+
+end publish
 
 section lemmas
 variable [GooseExts] [GooseSemantics] [GooseInterp]

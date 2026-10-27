@@ -44,7 +44,7 @@ local macro "rr_ok" : tactic => `(tactic| (
   iexists hm, rq', L
   isplitr
   · ipureintro; exact Hwire
-  iframe HL
+  iframe HL HpAf
   isplitr [HQL]
   · iunfold appliedOkM
     iexists y, y', o, skip
@@ -76,7 +76,7 @@ theorem EtcdServer.raftRequest.wp_proofM (on : Bool)
   wp_apply hP s E ρ ctx cd p rq Qh F Hid0 $$ [Hrd Hard Hcred Hhdr Hok] as %res %err ⟨Hrd, Hard, Hres⟩
   · iframe # Hrd Hard Hcred Hhdr Hok
   (try wp_auto)
-  icases Hres with (⟨%Herr, %hm, %rq', %Hwire, HTr, %L, #HL, Hri, HQL⟩ | ⟨%Hres, #HaE, Hdep⟩)
+  icases Hres with (⟨%Herr, %hm, %rq', %Hwire, HTr, %L, #HL, Hri, #HpAf, HQL⟩ | ⟨%Hres, #HaE, Hdep⟩)
   · subst Herr
     (try wp_auto)
     iunfold resPostM at Hri
@@ -243,6 +243,8 @@ theorem EtcdServer.processInternalRaftRequestOnce.specM_false_of_spec
     · ipureintro; exact Hw
     iexists L
     iframe HL HQ
+    isplitl [Hri]; rotate_left
+    · unfold pubAfterM; itrivial
     iunfold resultIsW at Hri
     icases Hri with ⟨%Hnn, %y, %y', %out, %Hst, Hr1, Hr2, Hr3, Hr4, Hr5⟩
     iunfold resPostM
@@ -277,7 +279,7 @@ theorem EtcdServer.raftRequest.wp_proof
   iintro !> %resp %err ⟨Hrd, Hard, Hpost⟩
   iapply HΦ
   iframe Hrd Hard
-  icases Hpost with (⟨%He, %hm, %rq', %L, %Hw, #HL, Hok, #HQ⟩ | Herr)
+  icases Hpost with (⟨%He, %hm, %rq', %L, %Hw, #HL, Hok, -, #HQ⟩ | Herr)
   · ileft
     isplitr
     · ipureintro; exact He

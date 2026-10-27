@@ -319,7 +319,7 @@ theorem EtcdServer.DeleteRange.wp_proofOn
     · iapply deletePermitOn_reqPropOk ρ.kv op Q γc $$ Hnp
     iexists _; iexact Header
   (try wp_auto)
-  icases Hres with (⟨%Herr, %hm, %rq', %Lq, %Hwire, #HLq, Hok, #HQq⟩ | ⟨%Hre, #HaE, Hfail⟩)
+  icases Hres with (⟨%Herr, %hm, %rq', %Lq, %Hwire, #HLq, Hok, #HpAf, #HQq⟩ | ⟨%Hre, #HaE, Hfail⟩)
   · subst Herr
     iunfold appliedOkM at Hok
     icases Hok with ⟨%x, %x', %o, %skip, %Hstep0, Hans, #Hcert, HMint, #Hwit, #Hcok⟩
@@ -356,7 +356,7 @@ theorem EtcdServer.DeleteRange.wp_proofOn
     iframe Hpo Hhdr Hcert HMint Hwit Hcok
     isplitr
     rotate_left
-    · iexact HQ
+    · iframe HQ; iexists Lq; iexact HpAf
     ipureintro
     refine ⟨Hwire, Hop', ?_, Hstep, ⟨log', rfl⟩,
       Hfl' log' false rfl⟩

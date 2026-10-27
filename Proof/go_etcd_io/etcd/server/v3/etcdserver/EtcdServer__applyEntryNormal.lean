@@ -843,7 +843,10 @@ local macro "tail_on" sa':term : tactic => `(tactic| (
     rw [hl2]; iapply kvCert_certOk γr.kv E.γ Hcok $$ Hkc
   ihave Hka : kvAppliedLOn γr.raft γr.kv srvAuthSt0 (A ++ [m]) ($sa', x'.log) $$ [Hka]
   · rw [hmod]; iexact Hka
+  ihave ⟨Hka, -, %Hafter⟩ := kvAppliedLOn_cert _ _ _ _ _ $$ Hka
   ihave ⟨Hka, #HkL⟩ := kvApplied_nextOn γr A m x' $sa' m.index hiA (hc'.trans Hxch) $$ Hka
+  -- (E3t) the auth state after the entry published, for the waiter
+  imod srvAuthApplyResB_publish s ua E γa $sa' hM $$ Hb HAR with ⟨HAR, #HpA⟩
   imod applied_predepositM true s E γr v m.index x.log x'.log Hvi
     (applyStep_prefix rq true x x' out Hstep0.1) $$ Hainv Hao HLv HkL with Hpre
   icases srvAppliedPre_log γr v m.index x'.log $$ Hpre with ⟨Hpre, #HLpre⟩
@@ -888,14 +891,18 @@ local macro "tail_on" sa':term : tactic => `(tactic| (
   subst Hid
   -- the entry at its position after the applied raft log `A`, whose mode-`on` model is the
   -- auth state and the log the entry met
-  ihave #HeW : iprop(entryWitOn ρ rq x.log sa) $$ []
+  ihave #HeW : iprop(entryWitOn E.authMode ρ rq x.log sa) $$ []
   · iunfold entryWitOn
     iexists A ++ [m], A.length, m, id, γf
     simp only [ReqNames.raft, ReqNames.kv, Hrd]
     iframe HAm Hcl0
-    ipureintro
-    refine ⟨by simp, Htyp, hdec, hid, ?_⟩
-    rw [List.take_left' rfl, ← Hxl]
+    isplitr
+    · ipureintro
+      refine ⟨by simp, Htyp, hdec, hid, ?_⟩
+      rw [List.take_left' rfl, ← Hxl]
+    have htk : (A ++ [m]).take (A.length + 1) = A ++ [m] := List.take_of_length_le (by simp)
+    rw [htk, ← Hafter]
+    iexact HpA
   (try wp_auto)
   rw [Hwi]
   (try wp_auto)

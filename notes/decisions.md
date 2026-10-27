@@ -23852,3 +23852,36 @@ the audit (D19l (iv), stopped, latent), refuted by `etc/spec-test/bbolt` (step 2
 The axioms are the same (`ownWTx` and its two laws replaced by `ownWTxG` and its two laws,
 `ownWTx_live` proved); `etc/spec-test/bbolt` now tests the new statements (no refutation in
 10 000 runs; `-old-wbkt` for the old ones).
+
+## E3t of the auth plan: a reader's lower bound from its own write (2026-10-27 · `notes/auth-plan.md`, E3s's first left item)
+
+Where a reader's lower bound of the published index (`Range.specOn`'s `auth.authPubLbM E.authMode n`)
+comes from: a write it saw. After every entry the apply thread publishes (E3j's `authPublishT`, its
+call site), so the auth state the entry left is published, and that publication rides back to the
+proposer with the entry's result and on to the client in the handler's post.
+
+**Publication.** `authPublishM M stl` (`StoreLatest.lean`): with auth on, the persistent ghost update
+`authOwn hs ∗ tieRes stl hs ={⊤}=∗ authOwn hs ∗ tieRes stl hs ∗ authPubLb γa (hs.length - 1)`, of the
+store's invariant (`authPublishM_of_authInv`, through `authPublishT`). It is produced where
+`authStoreLbM` is (`authStoreKit`'s post) and kept by the built part beside it (`srvUberBase`, one more
+conjunct). `authPubAt M st` (`∃ i, authPubLb γa i ∗ authStateAt γa i st`): the state `st` is recorded
+at an index no greater than the published one; `authPubAt_publish` gives it of the latest state;
+`authPubLbM_of_pubAt` the bound a reader takes. The apply thread's row: `srvAuthApplyResB_publish`
+(`ApplyNormalOn.lean`) opens it, publishes, and recloses it.
+
+**The path to the client.** `applyEntryNormal`'s mode-`on` tail publishes after the entry's KV step
+(the row's state is the model's after the entry, `kvAppliedLOn_cert`), and the waiter's witness carries
+it (`entryWitOn M`, one more conjunct: `authPubAt M` of the model's auth state after the entry). Then:
+`processInternalRaftRequestOnce.specM`'s and `raftRequest.specM`'s success posts add `pubAfterM on E ρ
+rq' L` (`ReqOn.lean`: at `true`, an entry `e` after `L` in the committed raft log, decoding to the
+request `rq'`, with the model's auth state after `L ++ [e]` published; `True` at `false`, so the
+mode-off specs are unchanged up to it). `Put.specOn`, `DeleteRange.specOn` and `Txn.specOn` (writing)
+add it to their success posts (`∃ L, pubAfterM true E ρ rq' L`, at the request's wire form; `Txn`'s
+beside `txnAppliedOk`, which the mode-off spec shares). Statement changes: `authStoreKit`'s post,
+`srvUberBase`, `entryWitOn`'s (and so `resultΨOn`), the proposers' and the three handlers' posts (one
+conjunct each).
+
+**Not done (in order).** A server-kept bound for a reader that saw no write (`srvAuthLb` could carry
+`authPubLb γa 0` from the construction); the read-only `Txn` with auth on (`Txn.specOn`'s read branch
+over E3m's `apply_check_txn_auth_lb`); the admin proposers (their answer, and the same `pubAfterM`),
+the Auth handlers, `setupAuthOk`; `examples/authkv` and the closed theorem.
