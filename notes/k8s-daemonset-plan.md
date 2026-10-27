@@ -251,6 +251,12 @@ theorem's program runs with it off, the premise "a failed write had no effect" (
    (the DS controller's node-name index; changes `fnIds`), `Transaction` (C4; the AtomicFIFO
    informer's write path), `IndexKeys`, `ListIndexFuncValues`, `GetIndexers` (unlocked read),
    `LastStoreSyncResourceVersion` (feature gates, C7), options/metrics providers.
+   **C2 follow-up waits on the Perennial bump** (2026-10-27): the Goose fix for C2 is on
+   Perennial's `lean` (`ddb0a1239`, Case 18 of its `fix-semantics` examples); the user does the
+   pin bump elsewhere (`f73703285` on etcd-grove's `lean` -> a commit with `ddb0a1239`). After it
+   lands on `lean`: merge `lean` into the DaemonSet branches, drop the promoted-method exclusions
+   in `Code/k8s_io/client_go/util/workqueue.toml`, regenerate, and prove the 14 promoted methods
+   (forwards to the proved ones; now hypotheses in the workqueue's `Link.lean`).
 3. **The model API server's spec and proof.** Logically atomic triples over an abstract state of
    resources and its change log (compare D44-D48's KV state and its watches: a watch is repeated
    reads of the log).
