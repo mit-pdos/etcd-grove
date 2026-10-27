@@ -696,6 +696,133 @@ theorem forall₂_singleton {α β : Type _} {R : α → β → Prop} {a : α} {
   cases h with
   | cons hab hrest => cases hrest; exact ⟨_, rfl, hab⟩
 
+/-! ### The registry grows -/
+
+/-- `R'` extends `R`. -/
+def regLe (R R' : Reg) : Prop := ∀ x o, R !! x = some o → R' !! x = some o
+
+theorem fdRel_mono {R R' : Reg} (h : regLe R R') (d : cache.FD) (a : Delta) (hd : fdRel R d a) :
+    fdRel R' d a := by
+  cases d with
+  | obj t x =>
+    cases a with
+    | change c => exact ⟨hd.1, h _ _ hd.2.1, hd.2.2⟩
+    | _ => exact absurd hd id
+  | replaced xs rvs =>
+    cases a with
+    | replaced M n =>
+      obtain ⟨hrv, h1, h2⟩ := hd
+      refine ⟨hrv, fun x hx => ?_, fun key o ho => ?_⟩
+      · obtain ⟨o, ho, hm⟩ := h1 x hx; exact ⟨o, h _ _ ho, hm⟩
+      · obtain ⟨x, hx, hxo⟩ := h2 key o ho; exact ⟨x, hx, h _ _ hxo⟩
+    | _ => exact absurd hd id
+  | bookmark rvs =>
+    cases a with
+    | bookmark n => exact hd
+    | _ => exact absurd hd id
+
+theorem forall₂_fdRel_mono {R R' : Reg} (h : regLe R R') {ds : List cache.FD} {abs : List Delta}
+    (hd : List.Forall₂ (fdRel R) ds abs) : List.Forall₂ (fdRel R') ds abs := by
+  induction hd with
+  | nil => exact .nil
+  | cons h1 _ ih => exact .cons (fdRel_mono h _ _ h1) ih
+
+theorem storeRel_mono {R R' : Reg} (h : regLe R R') (σs : cache.St) (v : View)
+    (hR : storeRel R σs v) : storeRel R' σs v := by
+  obtain ⟨hrv, hg, hkd, hit⟩ := hR
+  refine ⟨hrv, hg, hkd, fun k => ?_⟩
+  rcases hit k with ⟨x, o, hx, hro, hko, hvo⟩ | hn
+  · exact Or.inl ⟨x, o, hx, h _ _ hro, hko, hvo⟩
+  · exact Or.inr hn
+
+/-- The objects of the popped deltas are registered (and a batch of several is of object
+deltas). -/
+def pdReg (R : Reg) (pd : List cache.FD) : Prop :=
+  (∀ d ∈ pd, ∀ x ∈ d.objs, ∃ o, R !! x = some o) ∧ (2 ≤ pd.length → ∀ d ∈ pd, ∃ t x, d = .obj t x)
+
+theorem regKF_mono {R R' : Reg} (h : regLe R R') (x : GoInterface) (hx : ∃ o, R !! x = some o) :
+    regKF R x = regKF R' x := by
+  obtain ⟨o, ho⟩ := hx; simp [regKF, ho, h x o ho]
+
+theorem regRv_mono {R R' : Reg} (h : regLe R R') (x : GoInterface) (hx : ∃ o, R !! x = some o) :
+    regRv R x = regRv R' x := by
+  obtain ⟨o, ho⟩ := hx; simp [regRv, ho, h x o ho]
+
+theorem fdObjs_objs (ds : List cache.FD) (hobj : ∀ d ∈ ds, ∃ t x, d = .obj t x)
+    (x : GoInterface) (hx : x ∈ fdObjs ds) : ∃ d ∈ ds, x ∈ d.objs := by
+  obtain ⟨d, hd, rfl⟩ := List.mem_map.1 hx
+  obtain ⟨t, y, rfl⟩ := hobj _ hd
+  exact ⟨_, hd, by simp [cache.FD.obj?, cache.FD.objs]⟩
+
+theorem popStep_mono {R R' : Reg} (h : regLe R R') (σ : cache.St) (pd : List cache.FD)
+    (hreg : pdReg R pd) : popStep (regKF R) (regRv R) σ pd = popStep (regKF R') (regRv R') σ pd := by
+  match pd with
+  | [d] =>
+    exact storeStepFD_congr _ _ _ _ σ d (fun x hx => regKF_mono h x (hreg.1 d (by simp) x hx))
+      (fun x hx => regRv_mono h x (hreg.1 d (by simp) x hx))
+  | [] => rfl
+  | d1 :: d2 :: ds =>
+    rw [popStep_batch _ _ _ _ (by simp), popStep_batch _ _ _ _ (by simp)]
+    have hobj := hreg.2 (by simp)
+    exact batchStore_congr _ _ _ _ σ _ (fun x hx => by
+        obtain ⟨d, hd, hxd⟩ := fdObjs_objs _ hobj x hx
+        exact regKF_mono h x (hreg.1 d hd x hxd))
+      (fun x hx => by
+        obtain ⟨d, hd, hxd⟩ := fdObjs_objs _ hobj x hx
+        exact regRv_mono h x (hreg.1 d hd x hxd))
+
+theorem poppedRel_mono {R R' : Reg} (h : regLe R R') (σs : cache.St) (pd : List cache.FD)
+    (ap : Bool) (popped : List Delta) (hreg : pdReg R pd) (hp : poppedRel R σs pd ap popped) :
+    poppedRel R' σs pd ap popped := by
+  unfold poppedRel at hp ⊢
+  cases ap with
+  | true =>
+    simp only [↓reduceIte] at hp ⊢
+    obtain ⟨h1, σ0, h2⟩ := hp
+    exact ⟨h1, σ0, by rw [h2, popStep_mono h σ0 pd hreg]⟩
+  | false =>
+    simp only [Bool.false_eq_true, ↓reduceIte] at hp ⊢
+    exact forall₂_fdRel_mono h hp
+
+theorem fdRel_reg (R : Reg) (ds : List cache.FD) (abs : List Delta)
+    (h : List.Forall₂ (fdRel R) ds abs) : ∀ d ∈ ds, ∀ x ∈ d.objs, ∃ o, R !! x = some o := by
+  induction h with
+  | nil => intro d hd; simp at hd
+  | @cons d a ds' abs' hda hrest ih =>
+    intro d' hd' x hx
+    rcases List.mem_cons.1 hd' with rfl | hd'
+    · cases d' with
+      | obj t y =>
+        cases a with
+        | change c =>
+          simp only [cache.FD.objs, List.mem_singleton] at hx
+          subst hx; exact ⟨_, hda.2.1⟩
+        | _ => exact absurd hda id
+      | replaced xs rvs =>
+        cases a with
+        | replaced M n =>
+          obtain ⟨o, ho, -⟩ := hda.2.1 x (by simpa [cache.FD.objs] using hx)
+          exact ⟨o, ho⟩
+        | _ => exact absurd hda id
+      | bookmark _ => simp [cache.FD.objs] at hx
+    · exact ih d' hd' x hx
+
+theorem pdReg_batch (R : Reg) (q : cache.FQ) (abs : List Delta)
+    (h : List.Forall₂ (fdRel R) q.batch abs) : pdReg R q.batch :=
+  ⟨fdRel_reg R _ abs h, fun hlen d hd => batchable_obj d (batch_batchable q hlen d hd)⟩
+
+theorem regLe_insert (R : Reg) (x : GoInterface) (o : Obj) (h : R !! x = none) :
+    regLe R (<[x := o]> R) := by
+  intro y o' hy
+  rw [GMap.lookup_insert_eq_iff]
+  by_cases he : x = y
+  · subst he; rw [h] at hy; cases hy
+  · simp [he, hy]
+
+theorem pdReg_mono {R R' : Reg} (h : regLe R R') (pd : List cache.FD) (hp : pdReg R pd) :
+    pdReg R' pd :=
+  ⟨fun d hd x hx => by obtain ⟨o, ho⟩ := hp.1 d hd x hx; exact ⟨o, h _ _ ho⟩, hp.2⟩
+
 end model
 
 end informer

@@ -39,7 +39,7 @@ theorem infInv_readAU (γa : ApiNames) (r : Res) (γf : FifoNames) (γt : TsName
   iunfold infInv at Hinv
   iinv Hinv with >Hi Hclose
   iunfold infRes at Hi
-  icases Hi with ⟨%σp, %s, %q, %σs, %R, %pd, %ap, #Hp, Hreg, #Hsnap, Hq, Hst, Hsw, Hlast, Hpop, Hlb,
+  icases Hi with ⟨%σp, %s, %q, %σs, %R, %pd, %ap, #Hp, Hreg, #Hsnap, #Hobjs, Hq, Hst, Hsw, Hlast, Hpop, Hlb,
     %Hok⟩
   ihave #Hlb' := monoNatLbOwn_get γi.rvlb 1 (rvNat s.store.rv) $$ Hlb
   iapply fupd_mask_intro (show (∅ : CoPset) ⊆ ⊤ \ ↑infN from Std.LawfulSet.empty_subset)
@@ -82,7 +82,7 @@ theorem infInv_popBatchAU (γa : ApiNames) (r : Res) (γf : FifoNames) (γt : Ts
   iunfold infInv at Hinv
   iinv Hinv with >Hi Hclose
   iunfold infRes at Hi
-  icases Hi with ⟨%σp, %s, %q, %σs, %R, %pd, %ap, #Hp, Hreg, #Hsnap, Hq, Hst, Hsw, Hlast, Hpop, Hlb,
+  icases Hi with ⟨%σp, %s, %q, %σs, %R, %pd, %ap, #Hp, Hreg, #Hsnap, #Hobjs, Hq, Hst, Hsw, Hlast, Hpop, Hlb,
     %Hok⟩
   iunfold procIdle at Hidle
   icombine Hpop Hidle gives % ⟨_, hpd⟩
@@ -108,7 +108,7 @@ theorem infInv_popBatchAU (γa : ApiNames) (r : Res) (γf : FifoNames) (γt : Ts
     iunfold procIdle
     iexact Hidle
   · iintro %hne Hq
-    obtain ⟨hok, hlast, hfifo, hpop, hst, hres, hgood, hfq⟩ := Hok
+    obtain ⟨hok, hlast, hfifo, hpop, hst, hres, hgood, hfq, hpr⟩ := Hok
     have hpop0 : s.popped = [] := by
       unfold poppedRel at hpop; simp only [Bool.false_eq_true, ↓reduceIte] at hpop
       exact forall₂_nil_left hpop
@@ -125,13 +125,14 @@ theorem infInv_popBatchAU (γa : ApiNames) (r : Res) (γf : FifoNames) (γt : Ts
       iframe
       iframe #
       ipureintro
-      refine ⟨?_, hlast, ?_, ?_, hst, hres, hgood, fqOk_pop q hfq hne⟩
+      refine ⟨?_, hlast, ?_, ?_, hst, hres, hgood, fqOk_pop q hfq hne, ?_⟩
       · have := InfP.ok_pop _ s m1 m2 hm hok
         rw [hpop0, List.nil_append] at this
         exact this
       · show List.Forall₂ (fdRel R) (q.items.drop q.batch.length) m2
         rw [← hrest, List.drop_left]; exact h2
       · unfold poppedRel; simp only [Bool.false_eq_true, ↓reduceIte]; exact h1
+      · exact pdReg_batch R q m1 h1
     imodintro
     iunfold procPopped
     iexact Hidle
@@ -172,7 +173,7 @@ theorem infInv_batchWriter (γa : ApiNames) (r : Res) (γf : FifoNames) (γt : T
   iunfold infInv at Hinv
   iinv Hinv with >Hi Hclose
   iunfold infRes at Hi
-  icases Hi with ⟨%σp, %s, %q, %σs, %R, %pd, %ap, #Hp, Hreg, #Hsnap', Hq, Hst, Hsw, Hlast, Hpop,
+  icases Hi with ⟨%σp, %s, %q, %σs, %R, %pd, %ap, #Hp, Hreg, #Hsnap', #Hobjs, Hq, Hst, Hsw, Hlast, Hpop,
     Hlb, %Hok⟩
   icombine Hsw Hsw' gives % ⟨_, hσ⟩
   subst hσ
@@ -184,7 +185,7 @@ theorem infInv_batchWriter (γa : ApiNames) (r : Res) (γf : FifoNames) (γt : T
   iintro Hclose2
   iframe Hst
   iintro %σ' %hRw Hst
-  obtain ⟨hok, hlast, hfifo, hpop, hst, hres, hgood, hfq⟩ := Hok
+  obtain ⟨hok, hlast, hfifo, hpop, hst, hres, hgood, hfq, hpr⟩ := Hok
   have hkf : ∀ x ∈ fdObjs pd, regKF R0 x = regKF R x := by
     intro x hx; obtain ⟨o, ho⟩ := hreg x hx; simp [regKF, ho, hsub x o ho]
   have hrvf : ∀ x ∈ fdObjs pd, regRv R0 x = regRv R x := by
@@ -199,7 +200,7 @@ theorem infInv_batchWriter (γa : ApiNames) (r : Res) (γf : FifoNames) (γt : T
       iexists σp, s, q, σs, R, pd, ap
       iframe
       iframe #
-      ipureintro; exact ⟨hok, hlast, hfifo, hpop, hst, hres, hgood, hfq⟩
+      ipureintro; exact ⟨hok, hlast, hfifo, hpop, hst, hres, hgood, hfq, hpr⟩
     imodintro
     unfold procWriter
     iframe
@@ -222,7 +223,7 @@ theorem infInv_batchWriter (γa : ApiNames) (r : Res) (γf : FifoNames) (γt : T
         iframe
         iframe #
         ipureintro
-        refine ⟨hok, hlast, hfifo, ?_, hst, hres, hgood, hfq⟩
+        refine ⟨hok, hlast, hfifo, ?_, hst, hres, hgood, hfq, hpr⟩
         unfold poppedRel; simp only [↓reduceIte]; exact ⟨hpz, σ0, hσ0⟩
       imodintro
       unfold procWriter
@@ -233,7 +234,7 @@ theorem infInv_batchWriter (γa : ApiNames) (r : Res) (γf : FifoNames) (γt : T
       ihave #Hp2 := Hp
       iunfold pastSt at Hp2
       icases Hp2 with ⟨%Hh, -, %hH⟩
-      have hwf := hH.2
+      have hwf := hH.2.1
       have hchg : ∀ a ∈ s.popped, ∃ c, a = .change c ∧ keyGood c.obj.key ∧
           c.obj.meta.ResourceVersion' = rvStr c.rv := by
         intro a ha
@@ -258,7 +259,7 @@ theorem infInv_batchWriter (γa : ApiNames) (r : Res) (γf : FifoNames) (γt : T
         iframe
         iframe #
         ipureintro
-        refine ⟨hok', hlast, hfifo, ?_, hst', hres, hgood, hfq⟩
+        refine ⟨hok', hlast, hfifo, ?_, hst', hres, hgood, hfq, hpr⟩
         unfold poppedRel
         simp only [↓reduceIte]
         refine ⟨trivial, σs, ?_⟩
@@ -285,7 +286,7 @@ theorem infInv_batchFinish (γa : ApiNames) (r : Res) (γf : FifoNames) (γt : T
   iunfold infInv at Hinv
   iinv Hinv with >Hi Hclose
   iunfold infRes at Hi
-  icases Hi with ⟨%σp, %s, %q, %σs, %R, %pd, %ap, #Hp, Hreg, #Hsnap', Hq, Hst, Hsw, Hlast, Hpop,
+  icases Hi with ⟨%σp, %s, %q, %σs, %R, %pd, %ap, #Hp, Hreg, #Hsnap', #Hobjs, Hq, Hst, Hsw, Hlast, Hpop,
     Hlb, %Hok⟩
   icombine Hsw Hsw' gives % ⟨_, hσ⟩
   subst hσ
@@ -293,7 +294,7 @@ theorem infInv_batchFinish (γa : ApiNames) (r : Res) (γf : FifoNames) (γt : T
   simp only [Prod.mk.injEq] at hpd
   obtain ⟨rfl, rfl⟩ := hpd
   ihave ⟨%hsub, Hreg, -⟩ := reg_sub γi.reg R R0 $$ [$Hreg $Hsnap]
-  obtain ⟨hok, hlast, hfifo, hpop, hst, hres, hgood, hfq⟩ := Hok
+  obtain ⟨hok, hlast, hfifo, hpop, hst, hres, hgood, hfq, hpr⟩ := Hok
   have hkf : ∀ x ∈ fdObjs pd, regKF R0 x = regKF R x := by
     intro x hx; obtain ⟨o, ho⟩ := hreg x hx; simp [regKF, ho, hsub x o ho]
   have hrvf : ∀ x ∈ fdObjs pd, regRv R0 x = regRv R x := by
@@ -306,7 +307,7 @@ theorem infInv_batchFinish (γa : ApiNames) (r : Res) (γf : FifoNames) (γt : T
       iexists σp, s, q, σs, R, pd, true
       iframe
       iframe #
-      ipureintro; exact ⟨hok, hlast, hfifo, hpop, hst, hres, hgood, hfq⟩
+      ipureintro; exact ⟨hok, hlast, hfifo, hpop, hst, hres, hgood, hfq, hpr⟩
     imodintro
     unfold procDone
     iframe
@@ -316,7 +317,7 @@ theorem infInv_batchFinish (γa : ApiNames) (r : Res) (γf : FifoNames) (γt : T
     ihave #Hp2 := Hp
     iunfold pastSt at Hp2
     icases Hp2 with ⟨%Hh, -, %hH⟩
-    have hwf := hH.2
+    have hwf := hH.2.1
     have hchg : ∀ a ∈ s.popped, ∃ c, a = .change c ∧ keyGood c.obj.key ∧
         c.obj.meta.ResourceVersion' = rvStr c.rv := by
       intro a ha
@@ -340,7 +341,7 @@ theorem infInv_batchFinish (γa : ApiNames) (r : Res) (γf : FifoNames) (γt : T
       iframe
       iframe #
       ipureintro
-      refine ⟨hok', hlast, hfifo, ?_, hst', hres, hgood, hfq⟩
+      refine ⟨hok', hlast, hfifo, ?_, hst', hres, hgood, hfq, hpr⟩
       unfold poppedRel
       simp only [↓reduceIte]
       refine ⟨trivial, σ, ?_⟩
@@ -363,13 +364,13 @@ theorem infInv_doneBatchAU (γa : ApiNames) (r : Res) (γf : FifoNames) (γt : T
   iunfold infInv at Hinv
   iinv Hinv with >Hi Hclose
   iunfold infRes at Hi
-  icases Hi with ⟨%σp, %s, %q, %σs, %R, %pd, %ap, #Hp, Hreg, #Hsnap', Hq, Hst, Hsw, Hlast, Hpop,
+  icases Hi with ⟨%σp, %s, %q, %σs, %R, %pd, %ap, #Hp, Hreg, #Hsnap', #Hobjs, Hq, Hst, Hsw, Hlast, Hpop,
     Hlb, %Hok⟩
   iunfold procDone at Hdone
   icombine Hpop Hdone gives % ⟨_, hpd⟩
   simp only [Prod.mk.injEq] at hpd
   obtain ⟨rfl, rfl⟩ := hpd
-  obtain ⟨hok, hlast, hfifo, hpop, hst, hres, hgood, hfq⟩ := Hok
+  obtain ⟨hok, hlast, hfifo, hpop, hst, hres, hgood, hfq, hpr⟩ := Hok
   unfold poppedRel at hpop
   simp only [↓reduceIte] at hpop
   obtain ⟨hpz, -⟩ := hpop
@@ -398,7 +399,7 @@ theorem infInv_doneBatchAU (γa : ApiNames) (r : Res) (γf : FifoNames) (γt : T
     refine ⟨hok, hlast, ?_, ?_, hst, hres, hgood, ?_⟩
     · unfold cache.FQ.popDoneN; split <;> exact hfifo
     · unfold poppedRel; simp only [Bool.false_eq_true, ↓reduceIte, hpz]; exact .nil
-    · refine ⟨?_, fun h => absurd h (by simp)⟩
+    · refine ⟨⟨?_, fun h => absurd h (by simp)⟩, by simp [pdReg]⟩
       unfold cache.FQ.popDoneN; split <;> exact hfq.1
   imodintro
   iapply (hΩ err)
@@ -438,7 +439,7 @@ theorem infInv_singleWriter (γa : ApiNames) (r : Res) (γf : FifoNames) (γt : 
   iunfold infInv at Hinv
   iinv Hinv with >Hi Hclose
   iunfold infRes at Hi
-  icases Hi with ⟨%σp, %s, %q, %σs, %R, %pd, %ap, #Hp, Hreg, #Hsnap', Hq, Hst, Hsw, Hlast, Hpop,
+  icases Hi with ⟨%σp, %s, %q, %σs, %R, %pd, %ap, #Hp, Hreg, #Hsnap', #Hobjs, Hq, Hst, Hsw, Hlast, Hpop,
     Hlb, %Hok⟩
   icombine Hsw Hsw' gives % ⟨_, hσ⟩
   subst hσ
@@ -450,7 +451,7 @@ theorem infInv_singleWriter (γa : ApiNames) (r : Res) (γf : FifoNames) (γt : 
   iintro Hclose2
   iframe Hst
   iintro %σ' %hRw Hst
-  obtain ⟨hok, hlast, hfifo, hpop, hst, hres, hgood, hfq⟩ := Hok
+  obtain ⟨hok, hlast, hfifo, hpop, hst, hres, hgood, hfq, hpr⟩ := Hok
   have hkf : ∀ x ∈ d.objs, regKF R0 x = regKF R x := by
     intro x hx; obtain ⟨o, ho⟩ := hreg x hx; simp [regKF, ho, hsub x o ho]
   have hrvf : ∀ x ∈ d.objs, regRv R0 x = regRv R x := by
@@ -464,7 +465,7 @@ theorem infInv_singleWriter (γa : ApiNames) (r : Res) (γf : FifoNames) (γt : 
       iexists σp, s, q, σs, R, [d], ap
       iframe
       iframe #
-      ipureintro; exact ⟨hok, hlast, hfifo, hpop, hst, hres, hgood, hfq⟩
+      ipureintro; exact ⟨hok, hlast, hfifo, hpop, hst, hres, hgood, hfq, hpr⟩
     imodintro
     unfold procWriter
     iframe
@@ -486,7 +487,7 @@ theorem infInv_singleWriter (γa : ApiNames) (r : Res) (γf : FifoNames) (γt : 
         iframe
         iframe #
         ipureintro
-        refine ⟨hok, hlast, hfifo, ?_, hst, hres, hgood, hfq⟩
+        refine ⟨hok, hlast, hfifo, ?_, hst, hres, hgood, hfq, hpr⟩
         unfold poppedRel; simp only [↓reduceIte]; exact ⟨hpz, σ0, hσ0⟩
       imodintro
       unfold procWriter
@@ -497,7 +498,7 @@ theorem infInv_singleWriter (γa : ApiNames) (r : Res) (γf : FifoNames) (γt : 
       ihave #Hp2 := Hp
       iunfold pastSt at Hp2
       icases Hp2 with ⟨%Hh, -, %hH⟩
-      have hwf := hH.2
+      have hwf := hH.2.1
       obtain ⟨a, hpa, hda⟩ := forall₂_singleton hpop
       · obtain ⟨hchg, hrep⟩ := single_facts _ s hok
           (fun c hc => ⟨hgood c hc, (hwf.log_obj r c hc).2⟩) a (by rw [hpa]; simp)
@@ -520,7 +521,7 @@ theorem infInv_singleWriter (γa : ApiNames) (r : Res) (γf : FifoNames) (γt : 
           iframe
           iframe #
           ipureintro
-          refine ⟨hok', hlast, hfifo, ?_, by rw [happ]; exact hst', hres, hgood, hfq⟩
+          refine ⟨hok', hlast, hfifo, ?_, by rw [happ]; exact hst', hres, hgood, hfq, hpr⟩
           unfold poppedRel
           simp only [↓reduceIte]
           refine ⟨trivial, σs, ?_⟩
@@ -541,7 +542,7 @@ theorem infInv_singleFinish (γa : ApiNames) (r : Res) (γf : FifoNames) (γt : 
   iunfold infInv at Hinv
   iinv Hinv with >Hi Hclose
   iunfold infRes at Hi
-  icases Hi with ⟨%σp, %s, %q, %σs, %R, %pd, %ap, #Hp, Hreg, #Hsnap', Hq, Hst, Hsw, Hlast, Hpop,
+  icases Hi with ⟨%σp, %s, %q, %σs, %R, %pd, %ap, #Hp, Hreg, #Hsnap', #Hobjs, Hq, Hst, Hsw, Hlast, Hpop,
     Hlb, %Hok⟩
   icombine Hsw Hsw' gives % ⟨_, hσ⟩
   subst hσ
@@ -549,7 +550,7 @@ theorem infInv_singleFinish (γa : ApiNames) (r : Res) (γf : FifoNames) (γt : 
   simp only [Prod.mk.injEq] at hpd
   obtain ⟨rfl, rfl⟩ := hpd
   ihave ⟨%hsub, Hreg, -⟩ := reg_sub γi.reg R R0 $$ [$Hreg $Hsnap]
-  obtain ⟨hok, hlast, hfifo, hpop, hst, hres, hgood, hfq⟩ := Hok
+  obtain ⟨hok, hlast, hfifo, hpop, hst, hres, hgood, hfq, hpr⟩ := Hok
   have hkf : ∀ x ∈ d.objs, regKF R0 x = regKF R x := by
     intro x hx; obtain ⟨o, ho⟩ := hreg x hx; simp [regKF, ho, hsub x o ho]
   have hrvf : ∀ x ∈ d.objs, regRv R0 x = regRv R x := by
@@ -562,7 +563,7 @@ theorem infInv_singleFinish (γa : ApiNames) (r : Res) (γf : FifoNames) (γt : 
       iexists σp, s, q, σs, R, [d], true
       iframe
       iframe #
-      ipureintro; exact ⟨hok, hlast, hfifo, hpop, hst, hres, hgood, hfq⟩
+      ipureintro; exact ⟨hok, hlast, hfifo, hpop, hst, hres, hgood, hfq, hpr⟩
     imodintro
     unfold procDone
     iframe
@@ -572,7 +573,7 @@ theorem infInv_singleFinish (γa : ApiNames) (r : Res) (γf : FifoNames) (γt : 
     ihave #Hp2 := Hp
     iunfold pastSt at Hp2
     icases Hp2 with ⟨%Hh, -, %hH⟩
-    have hwf := hH.2
+    have hwf := hH.2.1
     obtain ⟨a, hpa, hda⟩ := forall₂_singleton hpop
     obtain ⟨hchg, hrep⟩ := single_facts _ s hok
       (fun c hc => ⟨hgood c hc, (hwf.log_obj r c hc).2⟩) a (by rw [hpa]; simp)
@@ -593,7 +594,7 @@ theorem infInv_singleFinish (γa : ApiNames) (r : Res) (γf : FifoNames) (γt : 
       iframe
       iframe #
       ipureintro
-      refine ⟨hok', hlast, hfifo, ?_, by rw [happ]; exact hst', hres, hgood, hfq⟩
+      refine ⟨hok', hlast, hfifo, ?_, by rw [happ]; exact hst', hres, hgood, hfq, hpr⟩
       unfold poppedRel
       simp only [↓reduceIte]
       refine ⟨trivial, σ, ?_⟩
@@ -602,6 +603,58 @@ theorem infInv_singleFinish (γa : ApiNames) (r : Res) (γf : FifoNames) (γt : 
     imodintro
     unfold procDone
     iframe
+
+/-- **Registering a fresh object** with the informer (the reflector, for each object a list or a
+watch event gives it): it becomes read-only and registered with its model object (`infObj`, the
+FIFO's and the store's contract). An object owned exclusively is not registered yet
+(`objAt_excl`). -/
+theorem infInv_register (γa : ApiNames) (r : Res) (γf : FifoNames) (γt : TsNames)
+    (γi : InfNames) (x : GoInterface) (o : Obj) (hres : o.res = r) :
+    ⊢ infInv (GF := GF) γa r γf γt γi -∗ apimodel.objAt x (DFrac.own 1) o ={⊤}=∗ infObj γi r x := by
+  iintro #Hinv Hx
+  iunfold infInv at Hinv
+  iinv Hinv with >Hi Hclose
+  iunfold infRes at Hi
+  icases Hi with ⟨%σp, %s, %q, %σs, %R, %pd, %ap, #Hp, Hreg, #Hsnap, #Hobjs, Hq, Hst, Hsw, Hlast,
+    Hpop, Hlb, %Hok⟩
+  obtain ⟨hok, hlast, hfifo, hpop, hst, hres', hgood, hfq, hpr⟩ := Hok
+  cases hx : R !! x with
+  | some o' =>
+    ihave #Ho' := BigSepM.bigSepM_lookup (Φ := fun x o => iprop(□ apimodel.objAt x DFrac.discard o))
+      hx $$ Hobjs
+    ihave %hf := objAt_excl x o o' $$ [$Hx $Ho']
+    exact hf.elim
+  | none =>
+    imod ghost_map_insert_persist (γ := γi.reg) x o hx $$ Hreg with ⟨Hreg, #Hel⟩
+    imod objAt_persist x (DFrac.own 1) o $$ Hx with #Hx
+    have hle := regLe_insert R x o hx
+    imod Hclose $$ [Hreg Hq Hst Hsw Hlast Hpop Hlb] with -
+    · inext
+      unfold infRes
+      iexists σp, s, q, σs, <[x := o]> R, pd, ap
+      iframe
+      isplitr
+      · iframe #
+      isplitr
+      · iapply (BigSepM.bigSepM_insert (Φ := fun x o => iprop(x ↪[γi.reg]□ o)) hx).2
+        iframe #
+      isplitr
+      · iapply (BigSepM.bigSepM_insert (Φ := fun x o => iprop(□ apimodel.objAt x DFrac.discard o))
+          hx).2
+        iframe #
+      ipureintro
+      refine ⟨hok, hlast, forall₂_fdRel_mono hle hfifo, poppedRel_mono hle σs pd ap s.popped hpr hpop,
+        storeRel_mono hle σs s.store hst, ?_, hgood, hfq, pdReg_mono hle pd hpr⟩
+      intro y o' hy
+      rw [GMap.lookup_insert_eq_iff] at hy
+      split at hy
+      · cases hy; exact hres
+      · exact hres' y o' hy
+    imodintro
+    unfold infObj
+    iexists o
+    iframe #
+    ipureintro; exact hres
 
 end glue
 

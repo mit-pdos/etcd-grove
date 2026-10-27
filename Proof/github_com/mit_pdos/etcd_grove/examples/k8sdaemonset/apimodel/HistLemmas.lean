@@ -93,7 +93,33 @@ theorem pastSt_of_auth (γ : ApiNames) (q : Qp) (H : List St) (σ : St) (hok : h
   iexists (H ++ [σ])
   iframe #
   ipureintro
-  exact ⟨by simp, histOk_last_wf hok⟩
+  exact ⟨by simp, histOk_last_wf hok, hok⟩
+
+theorem pairwise_cmp {R : St → St → Prop} (hrefl : ∀ a, R a a) :
+    ∀ (l : List St), l.Pairwise R → ∀ a ∈ l, ∀ b ∈ l, R a b ∨ R b a
+  | [], _, a, ha, _, _ => by simp at ha
+  | x :: l, h, a, ha, b, hb => by
+    rw [List.pairwise_cons] at h
+    rcases List.mem_cons.1 ha with h1 | ha
+    · rcases List.mem_cons.1 hb with h2 | hb
+      · rw [h1, h2]; exact Or.inl (hrefl _)
+      · rw [h1]; exact Or.inl (h.1 b hb)
+    · rcases List.mem_cons.1 hb with h2 | hb
+      · rw [h2]; exact Or.inr (h.1 a ha)
+      · exact pairwise_cmp hrefl l h.2 a ha b hb
+
+/-- **Two past states are ordered** (the history is a chain). -/
+theorem pastSt_cmp (γ : ApiNames) (a b : St) :
+    ⊢ pastSt (GF := GF) γ a -∗ pastSt γ b -∗ ⌜St.le a b ∨ St.le b a⌝ := by
+  iintro Hpa Hpb
+  iunfold pastSt at Hpa Hpb
+  icases Hpa with ⟨%Ha, Hla, %ha⟩
+  icases Hpb with ⟨%Hb, Hlb, %hb⟩
+  ihave %hp := mono_list_lb_valid γ.hist Ha Hb $$ Hla Hlb
+  ipureintro
+  rcases hp with hp | hp
+  · exact pairwise_cmp St.le_refl Hb hb.2.2.2 a (hp.subset ha.1) b hb.1
+  · exact pairwise_cmp St.le_refl Ha ha.2.2.2 a ha.1 b (hp.subset hb.1)
 
 /-- **A read's linearization point**: the caller's update fires at the state `σ` the lock
 invariant holds. -/

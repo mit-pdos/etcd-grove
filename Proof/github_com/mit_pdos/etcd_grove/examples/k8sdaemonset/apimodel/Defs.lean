@@ -112,7 +112,7 @@ def apiState (γ : ApiNames) (σ : St) : IProp GF :=
 
 /-- **A state the server was in** (persistent): well formed, and before every later one. -/
 def pastSt (γ : ApiNames) (σ : St) : IProp GF :=
-  iprop(∃ H : List St, monoListLbOwn γ.hist H ∗ ⌜σ ∈ H ∧ σ.wf⌝)
+  iprop(∃ H : List St, monoListLbOwn γ.hist H ∗ ⌜σ ∈ H ∧ σ.wf ∧ histOk H⌝)
 
 instance pastSt_persistent (γ : ApiNames) (σ : St) : Persistent (pastSt (GF := GF) γ σ) := by
   unfold pastSt; infer_instance

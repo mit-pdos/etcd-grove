@@ -3105,6 +3105,23 @@ theorem kd.meta.TypeMeta.own_zero_of (v : _root_.Perennial.k8s_io.apimachinery.p
   · ipureintro; rfl
   ipureintro; rfl
 
+instance kd.meta.TypeMeta.own_timeless (v : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.TypeMeta) (dq : DFrac) (d : kd.meta.TypeMeta) :
+    Timeless (kd.meta.TypeMeta.own (GF := GF) v dq d) := by
+  unfold kd.meta.TypeMeta.own; infer_instance
+
+instance kd.meta.TypeMeta.own_persistent (v : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.TypeMeta) (d : kd.meta.TypeMeta) :
+    Persistent (kd.meta.TypeMeta.own (GF := GF) v DFrac.discard d) := by
+  unfold kd.meta.TypeMeta.own; infer_instance
+
+/-- A `TypeMeta` owned at any fraction can be made read-only. -/
+instance kd.meta.TypeMeta.own_deepPersist : DeepPersist (GF := GF) kd.meta.TypeMeta.own where
+  persist := by
+    intro v dq d
+    unfold kd.meta.TypeMeta.own
+    iintro ⟨H0, H1⟩
+    imodintro
+    iframe
+
 /-- The deep ownership of a `OwnerReference` value with deep value `d`. -/
 def kd.meta.OwnerReference.own (v : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.OwnerReference) (dq : DFrac) (d : kd.meta.OwnerReference) : IProp GF :=
   iprop("APIVersion" ∷ ⌜v.APIVersion' = d.APIVersion'⌝ ∗
@@ -3131,6 +3148,25 @@ theorem kd.meta.OwnerReference.own_zero_of (v : _root_.Perennial.k8s_io.apimachi
   isplitr
   · iapply (ownPtrD_none_of _ _ (by rfl) dq)
   iapply (ownPtrD_none_of _ _ (by rfl) dq)
+
+instance kd.meta.OwnerReference.own_timeless (v : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.OwnerReference) (dq : DFrac) (d : kd.meta.OwnerReference) :
+    Timeless (kd.meta.OwnerReference.own (GF := GF) v dq d) := by
+  unfold kd.meta.OwnerReference.own; infer_instance
+
+instance kd.meta.OwnerReference.own_persistent (v : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.OwnerReference) (d : kd.meta.OwnerReference) :
+    Persistent (kd.meta.OwnerReference.own (GF := GF) v DFrac.discard d) := by
+  unfold kd.meta.OwnerReference.own; infer_instance
+
+/-- A `OwnerReference` owned at any fraction can be made read-only. -/
+instance kd.meta.OwnerReference.own_deepPersist : DeepPersist (GF := GF) kd.meta.OwnerReference.own where
+  persist := by
+    intro v dq d
+    unfold kd.meta.OwnerReference.own
+    iintro ⟨H0, H1, H2, H3, H4, H5⟩
+    imod (DeepPersist.persist (GF := GF) (inner := (ownPtrD (V := Bool) ownBaseD)) _ _ _) $$ H4 with H4
+    imod (DeepPersist.persist (GF := GF) (inner := (ownPtrD (V := Bool) ownBaseD)) _ _ _) $$ H5 with H5
+    imodintro
+    iframe
 
 /-- The deep ownership of a `ManagedFieldsEntry` value with deep value `d`. -/
 def kd.meta.ManagedFieldsEntry.own (v : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ManagedFieldsEntry) (dq : DFrac) (d : kd.meta.ManagedFieldsEntry) : IProp GF :=
@@ -3161,6 +3197,24 @@ theorem kd.meta.ManagedFieldsEntry.own_zero_of (v : _root_.Perennial.k8s_io.apim
   isplitr
   · iapply (ownOpaquePtrD_none_of _ (by rfl))
   ipureintro; rfl
+
+instance kd.meta.ManagedFieldsEntry.own_timeless (v : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ManagedFieldsEntry) (dq : DFrac) (d : kd.meta.ManagedFieldsEntry) :
+    Timeless (kd.meta.ManagedFieldsEntry.own (GF := GF) v dq d) := by
+  unfold kd.meta.ManagedFieldsEntry.own; infer_instance
+
+instance kd.meta.ManagedFieldsEntry.own_persistent (v : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ManagedFieldsEntry) (d : kd.meta.ManagedFieldsEntry) :
+    Persistent (kd.meta.ManagedFieldsEntry.own (GF := GF) v DFrac.discard d) := by
+  unfold kd.meta.ManagedFieldsEntry.own; infer_instance
+
+/-- A `ManagedFieldsEntry` owned at any fraction can be made read-only. -/
+instance kd.meta.ManagedFieldsEntry.own_deepPersist : DeepPersist (GF := GF) kd.meta.ManagedFieldsEntry.own where
+  persist := by
+    intro v dq d
+    unfold kd.meta.ManagedFieldsEntry.own
+    iintro ⟨H0, H1, H2, H3, H4, H5, H6⟩
+    imod (DeepPersist.persist (GF := GF) (inner := (ownPtrD (V := _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.Time) ownBaseD)) _ _ _) $$ H3 with H3
+    imodintro
+    iframe
 
 /-- The deep ownership of a `ObjectMeta` value with deep value `d`. -/
 def kd.meta.ObjectMeta.own (v : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ObjectMeta) (dq : DFrac) (d : kd.meta.ObjectMeta) : IProp GF :=
@@ -3216,6 +3270,30 @@ theorem kd.meta.ObjectMeta.own_zero_of (v : _root_.Perennial.k8s_io.apimachinery
   · iapply (ownSliceD_nil_of _ _ (by rfl) dq)
   iapply (ownSliceD_nil_of _ _ (by rfl) dq)
 
+instance kd.meta.ObjectMeta.own_timeless (v : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ObjectMeta) (dq : DFrac) (d : kd.meta.ObjectMeta) :
+    Timeless (kd.meta.ObjectMeta.own (GF := GF) v dq d) := by
+  unfold kd.meta.ObjectMeta.own; infer_instance
+
+instance kd.meta.ObjectMeta.own_persistent (v : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ObjectMeta) (d : kd.meta.ObjectMeta) :
+    Persistent (kd.meta.ObjectMeta.own (GF := GF) v DFrac.discard d) := by
+  unfold kd.meta.ObjectMeta.own; infer_instance
+
+/-- A `ObjectMeta` owned at any fraction can be made read-only. -/
+instance kd.meta.ObjectMeta.own_deepPersist : DeepPersist (GF := GF) kd.meta.ObjectMeta.own where
+  persist := by
+    intro v dq d
+    unfold kd.meta.ObjectMeta.own
+    iintro ⟨H0, H1, H2, H3, H4, H5, H6, H7, H8, H9, H10, H11, H12, H13, H14⟩
+    imod (DeepPersist.persist (GF := GF) (inner := (ownPtrD (V := _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.Time) ownBaseD)) _ _ _) $$ H8 with H8
+    imod (DeepPersist.persist (GF := GF) (inner := (ownPtrD (V := w64) ownBaseD)) _ _ _) $$ H9 with H9
+    imod (DeepPersist.persist (GF := GF) (inner := (ownMapD (K := GoString) (V := GoString))) _ _ _) $$ H10 with H10
+    imod (DeepPersist.persist (GF := GF) (inner := (ownMapD (K := GoString) (V := GoString))) _ _ _) $$ H11 with H11
+    imod (DeepPersist.persist (GF := GF) (inner := (ownSliceD (V := _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.OwnerReference) kd.meta.OwnerReference.own)) _ _ _) $$ H12 with H12
+    imod (DeepPersist.persist (GF := GF) (inner := (ownSliceD (V := GoString) ownBaseD)) _ _ _) $$ H13 with H13
+    imod (DeepPersist.persist (GF := GF) (inner := (ownSliceD (V := _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ManagedFieldsEntry) kd.meta.ManagedFieldsEntry.own)) _ _ _) $$ H14 with H14
+    imodintro
+    iframe
+
 /-- The deep ownership of a `HostPathVolumeSource` value with deep value `d`. -/
 def kd.core.HostPathVolumeSource.own (v : _root_.Perennial.k8s_io.api.core.v1.HostPathVolumeSource) (dq : DFrac) (d : kd.core.HostPathVolumeSource) : IProp GF :=
   iprop("Path" ∷ ⌜v.Path' = d.Path'⌝ ∗
@@ -3230,6 +3308,24 @@ theorem kd.core.HostPathVolumeSource.own_zero_of (v : _root_.Perennial.k8s_io.ap
   isplitr
   · ipureintro; rfl
   iapply (ownPtrD_none_of _ _ (by rfl) dq)
+
+instance kd.core.HostPathVolumeSource.own_timeless (v : _root_.Perennial.k8s_io.api.core.v1.HostPathVolumeSource) (dq : DFrac) (d : kd.core.HostPathVolumeSource) :
+    Timeless (kd.core.HostPathVolumeSource.own (GF := GF) v dq d) := by
+  unfold kd.core.HostPathVolumeSource.own; infer_instance
+
+instance kd.core.HostPathVolumeSource.own_persistent (v : _root_.Perennial.k8s_io.api.core.v1.HostPathVolumeSource) (d : kd.core.HostPathVolumeSource) :
+    Persistent (kd.core.HostPathVolumeSource.own (GF := GF) v DFrac.discard d) := by
+  unfold kd.core.HostPathVolumeSource.own; infer_instance
+
+/-- A `HostPathVolumeSource` owned at any fraction can be made read-only. -/
+instance kd.core.HostPathVolumeSource.own_deepPersist : DeepPersist (GF := GF) kd.core.HostPathVolumeSource.own where
+  persist := by
+    intro v dq d
+    unfold kd.core.HostPathVolumeSource.own
+    iintro ⟨H0, H1⟩
+    imod (DeepPersist.persist (GF := GF) (inner := (ownPtrD (V := _root_.Perennial.k8s_io.api.core.v1.HostPathType) ownBaseD)) _ _ _) $$ H1 with H1
+    imodintro
+    iframe
 
 /-- The deep ownership of a `EmptyDirVolumeSource` value with deep value `d`. -/
 def kd.core.EmptyDirVolumeSource.own (v : _root_.Perennial.k8s_io.api.core.v1.EmptyDirVolumeSource) (dq : DFrac) (d : kd.core.EmptyDirVolumeSource) : IProp GF :=
@@ -3248,6 +3344,24 @@ theorem kd.core.EmptyDirVolumeSource.own_zero_of (v : _root_.Perennial.k8s_io.ap
   isplitr
   · iapply (ownOpaquePtrD_none_of _ (by rfl))
   iapply (ownPtrD_none_of _ _ (by rfl) dq)
+
+instance kd.core.EmptyDirVolumeSource.own_timeless (v : _root_.Perennial.k8s_io.api.core.v1.EmptyDirVolumeSource) (dq : DFrac) (d : kd.core.EmptyDirVolumeSource) :
+    Timeless (kd.core.EmptyDirVolumeSource.own (GF := GF) v dq d) := by
+  unfold kd.core.EmptyDirVolumeSource.own; infer_instance
+
+instance kd.core.EmptyDirVolumeSource.own_persistent (v : _root_.Perennial.k8s_io.api.core.v1.EmptyDirVolumeSource) (d : kd.core.EmptyDirVolumeSource) :
+    Persistent (kd.core.EmptyDirVolumeSource.own (GF := GF) v DFrac.discard d) := by
+  unfold kd.core.EmptyDirVolumeSource.own; infer_instance
+
+/-- A `EmptyDirVolumeSource` owned at any fraction can be made read-only. -/
+instance kd.core.EmptyDirVolumeSource.own_deepPersist : DeepPersist (GF := GF) kd.core.EmptyDirVolumeSource.own where
+  persist := by
+    intro v dq d
+    unfold kd.core.EmptyDirVolumeSource.own
+    iintro ⟨H0, H1, H2⟩
+    imod (DeepPersist.persist (GF := GF) (inner := (ownPtrD (V := w32) ownBaseD)) _ _ _) $$ H2 with H2
+    imodintro
+    iframe
 
 /-- The deep ownership of a `GCEPersistentDiskVolumeSource` value with deep value `d`. -/
 def kd.core.GCEPersistentDiskVolumeSource.own (v : _root_.Perennial.k8s_io.api.core.v1.GCEPersistentDiskVolumeSource) (dq : DFrac) (d : kd.core.GCEPersistentDiskVolumeSource) : IProp GF :=
@@ -3270,6 +3384,23 @@ theorem kd.core.GCEPersistentDiskVolumeSource.own_zero_of (v : _root_.Perennial.
   · ipureintro; rfl
   ipureintro; rfl
 
+instance kd.core.GCEPersistentDiskVolumeSource.own_timeless (v : _root_.Perennial.k8s_io.api.core.v1.GCEPersistentDiskVolumeSource) (dq : DFrac) (d : kd.core.GCEPersistentDiskVolumeSource) :
+    Timeless (kd.core.GCEPersistentDiskVolumeSource.own (GF := GF) v dq d) := by
+  unfold kd.core.GCEPersistentDiskVolumeSource.own; infer_instance
+
+instance kd.core.GCEPersistentDiskVolumeSource.own_persistent (v : _root_.Perennial.k8s_io.api.core.v1.GCEPersistentDiskVolumeSource) (d : kd.core.GCEPersistentDiskVolumeSource) :
+    Persistent (kd.core.GCEPersistentDiskVolumeSource.own (GF := GF) v DFrac.discard d) := by
+  unfold kd.core.GCEPersistentDiskVolumeSource.own; infer_instance
+
+/-- A `GCEPersistentDiskVolumeSource` owned at any fraction can be made read-only. -/
+instance kd.core.GCEPersistentDiskVolumeSource.own_deepPersist : DeepPersist (GF := GF) kd.core.GCEPersistentDiskVolumeSource.own where
+  persist := by
+    intro v dq d
+    unfold kd.core.GCEPersistentDiskVolumeSource.own
+    iintro ⟨H0, H1, H2, H3⟩
+    imodintro
+    iframe
+
 /-- The deep ownership of a `AWSElasticBlockStoreVolumeSource` value with deep value `d`. -/
 def kd.core.AWSElasticBlockStoreVolumeSource.own (v : _root_.Perennial.k8s_io.api.core.v1.AWSElasticBlockStoreVolumeSource) (dq : DFrac) (d : kd.core.AWSElasticBlockStoreVolumeSource) : IProp GF :=
   iprop("VolumeID" ∷ ⌜v.VolumeID' = d.VolumeID'⌝ ∗
@@ -3291,6 +3422,23 @@ theorem kd.core.AWSElasticBlockStoreVolumeSource.own_zero_of (v : _root_.Perenni
   · ipureintro; rfl
   ipureintro; rfl
 
+instance kd.core.AWSElasticBlockStoreVolumeSource.own_timeless (v : _root_.Perennial.k8s_io.api.core.v1.AWSElasticBlockStoreVolumeSource) (dq : DFrac) (d : kd.core.AWSElasticBlockStoreVolumeSource) :
+    Timeless (kd.core.AWSElasticBlockStoreVolumeSource.own (GF := GF) v dq d) := by
+  unfold kd.core.AWSElasticBlockStoreVolumeSource.own; infer_instance
+
+instance kd.core.AWSElasticBlockStoreVolumeSource.own_persistent (v : _root_.Perennial.k8s_io.api.core.v1.AWSElasticBlockStoreVolumeSource) (d : kd.core.AWSElasticBlockStoreVolumeSource) :
+    Persistent (kd.core.AWSElasticBlockStoreVolumeSource.own (GF := GF) v DFrac.discard d) := by
+  unfold kd.core.AWSElasticBlockStoreVolumeSource.own; infer_instance
+
+/-- A `AWSElasticBlockStoreVolumeSource` owned at any fraction can be made read-only. -/
+instance kd.core.AWSElasticBlockStoreVolumeSource.own_deepPersist : DeepPersist (GF := GF) kd.core.AWSElasticBlockStoreVolumeSource.own where
+  persist := by
+    intro v dq d
+    unfold kd.core.AWSElasticBlockStoreVolumeSource.own
+    iintro ⟨H0, H1, H2, H3⟩
+    imodintro
+    iframe
+
 /-- The deep ownership of a `GitRepoVolumeSource` value with deep value `d`. -/
 def kd.core.GitRepoVolumeSource.own (v : _root_.Perennial.k8s_io.api.core.v1.GitRepoVolumeSource) (dq : DFrac) (d : kd.core.GitRepoVolumeSource) : IProp GF :=
   iprop("Repository" ∷ ⌜v.Repository' = d.Repository'⌝ ∗
@@ -3308,6 +3456,23 @@ theorem kd.core.GitRepoVolumeSource.own_zero_of (v : _root_.Perennial.k8s_io.api
   isplitr
   · ipureintro; rfl
   ipureintro; rfl
+
+instance kd.core.GitRepoVolumeSource.own_timeless (v : _root_.Perennial.k8s_io.api.core.v1.GitRepoVolumeSource) (dq : DFrac) (d : kd.core.GitRepoVolumeSource) :
+    Timeless (kd.core.GitRepoVolumeSource.own (GF := GF) v dq d) := by
+  unfold kd.core.GitRepoVolumeSource.own; infer_instance
+
+instance kd.core.GitRepoVolumeSource.own_persistent (v : _root_.Perennial.k8s_io.api.core.v1.GitRepoVolumeSource) (d : kd.core.GitRepoVolumeSource) :
+    Persistent (kd.core.GitRepoVolumeSource.own (GF := GF) v DFrac.discard d) := by
+  unfold kd.core.GitRepoVolumeSource.own; infer_instance
+
+/-- A `GitRepoVolumeSource` owned at any fraction can be made read-only. -/
+instance kd.core.GitRepoVolumeSource.own_deepPersist : DeepPersist (GF := GF) kd.core.GitRepoVolumeSource.own where
+  persist := by
+    intro v dq d
+    unfold kd.core.GitRepoVolumeSource.own
+    iintro ⟨H0, H1, H2⟩
+    imodintro
+    iframe
 
 /-- The deep ownership of a `KeyToPath` value with deep value `d`. -/
 def kd.core.KeyToPath.own (v : _root_.Perennial.k8s_io.api.core.v1.KeyToPath) (dq : DFrac) (d : kd.core.KeyToPath) : IProp GF :=
@@ -3329,6 +3494,25 @@ theorem kd.core.KeyToPath.own_zero_of (v : _root_.Perennial.k8s_io.api.core.v1.K
   isplitr
   · iapply (ownPtrD_none_of _ _ (by rfl) dq)
   iapply (ownPtrD_none_of _ _ (by rfl) dq)
+
+instance kd.core.KeyToPath.own_timeless (v : _root_.Perennial.k8s_io.api.core.v1.KeyToPath) (dq : DFrac) (d : kd.core.KeyToPath) :
+    Timeless (kd.core.KeyToPath.own (GF := GF) v dq d) := by
+  unfold kd.core.KeyToPath.own; infer_instance
+
+instance kd.core.KeyToPath.own_persistent (v : _root_.Perennial.k8s_io.api.core.v1.KeyToPath) (d : kd.core.KeyToPath) :
+    Persistent (kd.core.KeyToPath.own (GF := GF) v DFrac.discard d) := by
+  unfold kd.core.KeyToPath.own; infer_instance
+
+/-- A `KeyToPath` owned at any fraction can be made read-only. -/
+instance kd.core.KeyToPath.own_deepPersist : DeepPersist (GF := GF) kd.core.KeyToPath.own where
+  persist := by
+    intro v dq d
+    unfold kd.core.KeyToPath.own
+    iintro ⟨H0, H1, H2, H3⟩
+    imod (DeepPersist.persist (GF := GF) (inner := (ownPtrD (V := w32) ownBaseD)) _ _ _) $$ H2 with H2
+    imod (DeepPersist.persist (GF := GF) (inner := (ownPtrD (V := w64) ownBaseD)) _ _ _) $$ H3 with H3
+    imodintro
+    iframe
 
 /-- The deep ownership of a `SecretVolumeSource` value with deep value `d`. -/
 def kd.core.SecretVolumeSource.own (v : _root_.Perennial.k8s_io.api.core.v1.SecretVolumeSource) (dq : DFrac) (d : kd.core.SecretVolumeSource) : IProp GF :=
@@ -3354,6 +3538,27 @@ theorem kd.core.SecretVolumeSource.own_zero_of (v : _root_.Perennial.k8s_io.api.
   · iapply (ownPtrD_none_of _ _ (by rfl) dq)
   iapply (ownPtrD_none_of _ _ (by rfl) dq)
 
+instance kd.core.SecretVolumeSource.own_timeless (v : _root_.Perennial.k8s_io.api.core.v1.SecretVolumeSource) (dq : DFrac) (d : kd.core.SecretVolumeSource) :
+    Timeless (kd.core.SecretVolumeSource.own (GF := GF) v dq d) := by
+  unfold kd.core.SecretVolumeSource.own; infer_instance
+
+instance kd.core.SecretVolumeSource.own_persistent (v : _root_.Perennial.k8s_io.api.core.v1.SecretVolumeSource) (d : kd.core.SecretVolumeSource) :
+    Persistent (kd.core.SecretVolumeSource.own (GF := GF) v DFrac.discard d) := by
+  unfold kd.core.SecretVolumeSource.own; infer_instance
+
+/-- A `SecretVolumeSource` owned at any fraction can be made read-only. -/
+instance kd.core.SecretVolumeSource.own_deepPersist : DeepPersist (GF := GF) kd.core.SecretVolumeSource.own where
+  persist := by
+    intro v dq d
+    unfold kd.core.SecretVolumeSource.own
+    iintro ⟨H0, H1, H2, H3, H4⟩
+    imod (DeepPersist.persist (GF := GF) (inner := (ownSliceD (V := _root_.Perennial.k8s_io.api.core.v1.KeyToPath) kd.core.KeyToPath.own)) _ _ _) $$ H1 with H1
+    imod (DeepPersist.persist (GF := GF) (inner := (ownPtrD (V := w32) ownBaseD)) _ _ _) $$ H2 with H2
+    imod (DeepPersist.persist (GF := GF) (inner := (ownPtrD (V := Bool) ownBaseD)) _ _ _) $$ H3 with H3
+    imod (DeepPersist.persist (GF := GF) (inner := (ownPtrD (V := w64) ownBaseD)) _ _ _) $$ H4 with H4
+    imodintro
+    iframe
+
 /-- The deep ownership of a `NFSVolumeSource` value with deep value `d`. -/
 def kd.core.NFSVolumeSource.own (v : _root_.Perennial.k8s_io.api.core.v1.NFSVolumeSource) (dq : DFrac) (d : kd.core.NFSVolumeSource) : IProp GF :=
   iprop("Server" ∷ ⌜v.Server' = d.Server'⌝ ∗
@@ -3372,6 +3577,23 @@ theorem kd.core.NFSVolumeSource.own_zero_of (v : _root_.Perennial.k8s_io.api.cor
   · ipureintro; rfl
   ipureintro; rfl
 
+instance kd.core.NFSVolumeSource.own_timeless (v : _root_.Perennial.k8s_io.api.core.v1.NFSVolumeSource) (dq : DFrac) (d : kd.core.NFSVolumeSource) :
+    Timeless (kd.core.NFSVolumeSource.own (GF := GF) v dq d) := by
+  unfold kd.core.NFSVolumeSource.own; infer_instance
+
+instance kd.core.NFSVolumeSource.own_persistent (v : _root_.Perennial.k8s_io.api.core.v1.NFSVolumeSource) (d : kd.core.NFSVolumeSource) :
+    Persistent (kd.core.NFSVolumeSource.own (GF := GF) v DFrac.discard d) := by
+  unfold kd.core.NFSVolumeSource.own; infer_instance
+
+/-- A `NFSVolumeSource` owned at any fraction can be made read-only. -/
+instance kd.core.NFSVolumeSource.own_deepPersist : DeepPersist (GF := GF) kd.core.NFSVolumeSource.own where
+  persist := by
+    intro v dq d
+    unfold kd.core.NFSVolumeSource.own
+    iintro ⟨H0, H1, H2⟩
+    imodintro
+    iframe
+
 /-- The deep ownership of a `LocalObjectReference` value with deep value `d`. -/
 def kd.core.LocalObjectReference.own (v : _root_.Perennial.k8s_io.api.core.v1.LocalObjectReference) (dq : DFrac) (d : kd.core.LocalObjectReference) : IProp GF :=
   iprop("Name" ∷ ⌜v.Name' = d.Name'⌝)
@@ -3383,6 +3605,23 @@ theorem kd.core.LocalObjectReference.own_zero_of (v : _root_.Perennial.k8s_io.ap
   unfold kd.core.LocalObjectReference.own
   try unfold kd.core.LocalObjectReference.zero
   ipureintro; rfl
+
+instance kd.core.LocalObjectReference.own_timeless (v : _root_.Perennial.k8s_io.api.core.v1.LocalObjectReference) (dq : DFrac) (d : kd.core.LocalObjectReference) :
+    Timeless (kd.core.LocalObjectReference.own (GF := GF) v dq d) := by
+  unfold kd.core.LocalObjectReference.own; infer_instance
+
+instance kd.core.LocalObjectReference.own_persistent (v : _root_.Perennial.k8s_io.api.core.v1.LocalObjectReference) (d : kd.core.LocalObjectReference) :
+    Persistent (kd.core.LocalObjectReference.own (GF := GF) v DFrac.discard d) := by
+  unfold kd.core.LocalObjectReference.own; infer_instance
+
+/-- A `LocalObjectReference` owned at any fraction can be made read-only. -/
+instance kd.core.LocalObjectReference.own_deepPersist : DeepPersist (GF := GF) kd.core.LocalObjectReference.own where
+  persist := by
+    intro v dq d
+    unfold kd.core.LocalObjectReference.own
+    iintro H0
+    imodintro
+    iframe
 
 /-- The deep ownership of a `ISCSIVolumeSource` value with deep value `d`. -/
 def kd.core.ISCSIVolumeSource.own (v : _root_.Perennial.k8s_io.api.core.v1.ISCSIVolumeSource) (dq : DFrac) (d : kd.core.ISCSIVolumeSource) : IProp GF :=
@@ -3426,6 +3665,26 @@ theorem kd.core.ISCSIVolumeSource.own_zero_of (v : _root_.Perennial.k8s_io.api.c
   · iapply (ownPtrD_none_of _ _ (by rfl) dq)
   iapply (ownPtrD_none_of _ _ (by rfl) dq)
 
+instance kd.core.ISCSIVolumeSource.own_timeless (v : _root_.Perennial.k8s_io.api.core.v1.ISCSIVolumeSource) (dq : DFrac) (d : kd.core.ISCSIVolumeSource) :
+    Timeless (kd.core.ISCSIVolumeSource.own (GF := GF) v dq d) := by
+  unfold kd.core.ISCSIVolumeSource.own; infer_instance
+
+instance kd.core.ISCSIVolumeSource.own_persistent (v : _root_.Perennial.k8s_io.api.core.v1.ISCSIVolumeSource) (d : kd.core.ISCSIVolumeSource) :
+    Persistent (kd.core.ISCSIVolumeSource.own (GF := GF) v DFrac.discard d) := by
+  unfold kd.core.ISCSIVolumeSource.own; infer_instance
+
+/-- A `ISCSIVolumeSource` owned at any fraction can be made read-only. -/
+instance kd.core.ISCSIVolumeSource.own_deepPersist : DeepPersist (GF := GF) kd.core.ISCSIVolumeSource.own where
+  persist := by
+    intro v dq d
+    unfold kd.core.ISCSIVolumeSource.own
+    iintro ⟨H0, H1, H2, H3, H4, H5, H6, H7, H8, H9, H10⟩
+    imod (DeepPersist.persist (GF := GF) (inner := (ownSliceD (V := GoString) ownBaseD)) _ _ _) $$ H6 with H6
+    imod (DeepPersist.persist (GF := GF) (inner := (ownPtrD (V := _root_.Perennial.k8s_io.api.core.v1.LocalObjectReference) kd.core.LocalObjectReference.own)) _ _ _) $$ H9 with H9
+    imod (DeepPersist.persist (GF := GF) (inner := (ownPtrD (V := GoString) ownBaseD)) _ _ _) $$ H10 with H10
+    imodintro
+    iframe
+
 /-- The deep ownership of a `GlusterfsVolumeSource` value with deep value `d`. -/
 def kd.core.GlusterfsVolumeSource.own (v : _root_.Perennial.k8s_io.api.core.v1.GlusterfsVolumeSource) (dq : DFrac) (d : kd.core.GlusterfsVolumeSource) : IProp GF :=
   iprop("EndpointsName" ∷ ⌜v.EndpointsName' = d.EndpointsName'⌝ ∗
@@ -3444,6 +3703,23 @@ theorem kd.core.GlusterfsVolumeSource.own_zero_of (v : _root_.Perennial.k8s_io.a
   · ipureintro; rfl
   ipureintro; rfl
 
+instance kd.core.GlusterfsVolumeSource.own_timeless (v : _root_.Perennial.k8s_io.api.core.v1.GlusterfsVolumeSource) (dq : DFrac) (d : kd.core.GlusterfsVolumeSource) :
+    Timeless (kd.core.GlusterfsVolumeSource.own (GF := GF) v dq d) := by
+  unfold kd.core.GlusterfsVolumeSource.own; infer_instance
+
+instance kd.core.GlusterfsVolumeSource.own_persistent (v : _root_.Perennial.k8s_io.api.core.v1.GlusterfsVolumeSource) (d : kd.core.GlusterfsVolumeSource) :
+    Persistent (kd.core.GlusterfsVolumeSource.own (GF := GF) v DFrac.discard d) := by
+  unfold kd.core.GlusterfsVolumeSource.own; infer_instance
+
+/-- A `GlusterfsVolumeSource` owned at any fraction can be made read-only. -/
+instance kd.core.GlusterfsVolumeSource.own_deepPersist : DeepPersist (GF := GF) kd.core.GlusterfsVolumeSource.own where
+  persist := by
+    intro v dq d
+    unfold kd.core.GlusterfsVolumeSource.own
+    iintro ⟨H0, H1, H2⟩
+    imodintro
+    iframe
+
 /-- The deep ownership of a `PersistentVolumeClaimVolumeSource` value with deep value `d`. -/
 def kd.core.PersistentVolumeClaimVolumeSource.own (v : _root_.Perennial.k8s_io.api.core.v1.PersistentVolumeClaimVolumeSource) (dq : DFrac) (d : kd.core.PersistentVolumeClaimVolumeSource) : IProp GF :=
   iprop("ClaimName" ∷ ⌜v.ClaimName' = d.ClaimName'⌝ ∗
@@ -3458,6 +3734,23 @@ theorem kd.core.PersistentVolumeClaimVolumeSource.own_zero_of (v : _root_.Perenn
   isplitr
   · ipureintro; rfl
   ipureintro; rfl
+
+instance kd.core.PersistentVolumeClaimVolumeSource.own_timeless (v : _root_.Perennial.k8s_io.api.core.v1.PersistentVolumeClaimVolumeSource) (dq : DFrac) (d : kd.core.PersistentVolumeClaimVolumeSource) :
+    Timeless (kd.core.PersistentVolumeClaimVolumeSource.own (GF := GF) v dq d) := by
+  unfold kd.core.PersistentVolumeClaimVolumeSource.own; infer_instance
+
+instance kd.core.PersistentVolumeClaimVolumeSource.own_persistent (v : _root_.Perennial.k8s_io.api.core.v1.PersistentVolumeClaimVolumeSource) (d : kd.core.PersistentVolumeClaimVolumeSource) :
+    Persistent (kd.core.PersistentVolumeClaimVolumeSource.own (GF := GF) v DFrac.discard d) := by
+  unfold kd.core.PersistentVolumeClaimVolumeSource.own; infer_instance
+
+/-- A `PersistentVolumeClaimVolumeSource` owned at any fraction can be made read-only. -/
+instance kd.core.PersistentVolumeClaimVolumeSource.own_deepPersist : DeepPersist (GF := GF) kd.core.PersistentVolumeClaimVolumeSource.own where
+  persist := by
+    intro v dq d
+    unfold kd.core.PersistentVolumeClaimVolumeSource.own
+    iintro ⟨H0, H1⟩
+    imodintro
+    iframe
 
 /-- The deep ownership of a `RBDVolumeSource` value with deep value `d`. -/
 def kd.core.RBDVolumeSource.own (v : _root_.Perennial.k8s_io.api.core.v1.RBDVolumeSource) (dq : DFrac) (d : kd.core.RBDVolumeSource) : IProp GF :=
@@ -3492,6 +3785,25 @@ theorem kd.core.RBDVolumeSource.own_zero_of (v : _root_.Perennial.k8s_io.api.cor
   · iapply (ownPtrD_none_of _ _ (by rfl) dq)
   ipureintro; rfl
 
+instance kd.core.RBDVolumeSource.own_timeless (v : _root_.Perennial.k8s_io.api.core.v1.RBDVolumeSource) (dq : DFrac) (d : kd.core.RBDVolumeSource) :
+    Timeless (kd.core.RBDVolumeSource.own (GF := GF) v dq d) := by
+  unfold kd.core.RBDVolumeSource.own; infer_instance
+
+instance kd.core.RBDVolumeSource.own_persistent (v : _root_.Perennial.k8s_io.api.core.v1.RBDVolumeSource) (d : kd.core.RBDVolumeSource) :
+    Persistent (kd.core.RBDVolumeSource.own (GF := GF) v DFrac.discard d) := by
+  unfold kd.core.RBDVolumeSource.own; infer_instance
+
+/-- A `RBDVolumeSource` owned at any fraction can be made read-only. -/
+instance kd.core.RBDVolumeSource.own_deepPersist : DeepPersist (GF := GF) kd.core.RBDVolumeSource.own where
+  persist := by
+    intro v dq d
+    unfold kd.core.RBDVolumeSource.own
+    iintro ⟨H0, H1, H2, H3, H4, H5, H6, H7⟩
+    imod (DeepPersist.persist (GF := GF) (inner := (ownSliceD (V := GoString) ownBaseD)) _ _ _) $$ H0 with H0
+    imod (DeepPersist.persist (GF := GF) (inner := (ownPtrD (V := _root_.Perennial.k8s_io.api.core.v1.LocalObjectReference) kd.core.LocalObjectReference.own)) _ _ _) $$ H6 with H6
+    imodintro
+    iframe
+
 /-- The deep ownership of a `FlexVolumeSource` value with deep value `d`. -/
 def kd.core.FlexVolumeSource.own (v : _root_.Perennial.k8s_io.api.core.v1.FlexVolumeSource) (dq : DFrac) (d : kd.core.FlexVolumeSource) : IProp GF :=
   iprop("Driver" ∷ ⌜v.Driver' = d.Driver'⌝ ∗
@@ -3516,6 +3828,25 @@ theorem kd.core.FlexVolumeSource.own_zero_of (v : _root_.Perennial.k8s_io.api.co
   · ipureintro; rfl
   iapply (ownMapD_none_of _ (by rfl) dq)
 
+instance kd.core.FlexVolumeSource.own_timeless (v : _root_.Perennial.k8s_io.api.core.v1.FlexVolumeSource) (dq : DFrac) (d : kd.core.FlexVolumeSource) :
+    Timeless (kd.core.FlexVolumeSource.own (GF := GF) v dq d) := by
+  unfold kd.core.FlexVolumeSource.own; infer_instance
+
+instance kd.core.FlexVolumeSource.own_persistent (v : _root_.Perennial.k8s_io.api.core.v1.FlexVolumeSource) (d : kd.core.FlexVolumeSource) :
+    Persistent (kd.core.FlexVolumeSource.own (GF := GF) v DFrac.discard d) := by
+  unfold kd.core.FlexVolumeSource.own; infer_instance
+
+/-- A `FlexVolumeSource` owned at any fraction can be made read-only. -/
+instance kd.core.FlexVolumeSource.own_deepPersist : DeepPersist (GF := GF) kd.core.FlexVolumeSource.own where
+  persist := by
+    intro v dq d
+    unfold kd.core.FlexVolumeSource.own
+    iintro ⟨H0, H1, H2, H3, H4⟩
+    imod (DeepPersist.persist (GF := GF) (inner := (ownPtrD (V := _root_.Perennial.k8s_io.api.core.v1.LocalObjectReference) kd.core.LocalObjectReference.own)) _ _ _) $$ H2 with H2
+    imod (DeepPersist.persist (GF := GF) (inner := (ownMapD (K := GoString) (V := GoString))) _ _ _) $$ H4 with H4
+    imodintro
+    iframe
+
 /-- The deep ownership of a `CinderVolumeSource` value with deep value `d`. -/
 def kd.core.CinderVolumeSource.own (v : _root_.Perennial.k8s_io.api.core.v1.CinderVolumeSource) (dq : DFrac) (d : kd.core.CinderVolumeSource) : IProp GF :=
   iprop("VolumeID" ∷ ⌜v.VolumeID' = d.VolumeID'⌝ ∗
@@ -3536,6 +3867,24 @@ theorem kd.core.CinderVolumeSource.own_zero_of (v : _root_.Perennial.k8s_io.api.
   isplitr
   · ipureintro; rfl
   iapply (ownPtrD_none_of _ _ (by rfl) dq)
+
+instance kd.core.CinderVolumeSource.own_timeless (v : _root_.Perennial.k8s_io.api.core.v1.CinderVolumeSource) (dq : DFrac) (d : kd.core.CinderVolumeSource) :
+    Timeless (kd.core.CinderVolumeSource.own (GF := GF) v dq d) := by
+  unfold kd.core.CinderVolumeSource.own; infer_instance
+
+instance kd.core.CinderVolumeSource.own_persistent (v : _root_.Perennial.k8s_io.api.core.v1.CinderVolumeSource) (d : kd.core.CinderVolumeSource) :
+    Persistent (kd.core.CinderVolumeSource.own (GF := GF) v DFrac.discard d) := by
+  unfold kd.core.CinderVolumeSource.own; infer_instance
+
+/-- A `CinderVolumeSource` owned at any fraction can be made read-only. -/
+instance kd.core.CinderVolumeSource.own_deepPersist : DeepPersist (GF := GF) kd.core.CinderVolumeSource.own where
+  persist := by
+    intro v dq d
+    unfold kd.core.CinderVolumeSource.own
+    iintro ⟨H0, H1, H2, H3⟩
+    imod (DeepPersist.persist (GF := GF) (inner := (ownPtrD (V := _root_.Perennial.k8s_io.api.core.v1.LocalObjectReference) kd.core.LocalObjectReference.own)) _ _ _) $$ H3 with H3
+    imodintro
+    iframe
 
 /-- The deep ownership of a `CephFSVolumeSource` value with deep value `d`. -/
 def kd.core.CephFSVolumeSource.own (v : _root_.Perennial.k8s_io.api.core.v1.CephFSVolumeSource) (dq : DFrac) (d : kd.core.CephFSVolumeSource) : IProp GF :=
@@ -3564,6 +3913,25 @@ theorem kd.core.CephFSVolumeSource.own_zero_of (v : _root_.Perennial.k8s_io.api.
   · iapply (ownPtrD_none_of _ _ (by rfl) dq)
   ipureintro; rfl
 
+instance kd.core.CephFSVolumeSource.own_timeless (v : _root_.Perennial.k8s_io.api.core.v1.CephFSVolumeSource) (dq : DFrac) (d : kd.core.CephFSVolumeSource) :
+    Timeless (kd.core.CephFSVolumeSource.own (GF := GF) v dq d) := by
+  unfold kd.core.CephFSVolumeSource.own; infer_instance
+
+instance kd.core.CephFSVolumeSource.own_persistent (v : _root_.Perennial.k8s_io.api.core.v1.CephFSVolumeSource) (d : kd.core.CephFSVolumeSource) :
+    Persistent (kd.core.CephFSVolumeSource.own (GF := GF) v DFrac.discard d) := by
+  unfold kd.core.CephFSVolumeSource.own; infer_instance
+
+/-- A `CephFSVolumeSource` owned at any fraction can be made read-only. -/
+instance kd.core.CephFSVolumeSource.own_deepPersist : DeepPersist (GF := GF) kd.core.CephFSVolumeSource.own where
+  persist := by
+    intro v dq d
+    unfold kd.core.CephFSVolumeSource.own
+    iintro ⟨H0, H1, H2, H3, H4, H5⟩
+    imod (DeepPersist.persist (GF := GF) (inner := (ownSliceD (V := GoString) ownBaseD)) _ _ _) $$ H0 with H0
+    imod (DeepPersist.persist (GF := GF) (inner := (ownPtrD (V := _root_.Perennial.k8s_io.api.core.v1.LocalObjectReference) kd.core.LocalObjectReference.own)) _ _ _) $$ H4 with H4
+    imodintro
+    iframe
+
 /-- The deep ownership of a `FlockerVolumeSource` value with deep value `d`. -/
 def kd.core.FlockerVolumeSource.own (v : _root_.Perennial.k8s_io.api.core.v1.FlockerVolumeSource) (dq : DFrac) (d : kd.core.FlockerVolumeSource) : IProp GF :=
   iprop("DatasetName" ∷ ⌜v.DatasetName' = d.DatasetName'⌝ ∗
@@ -3579,6 +3947,23 @@ theorem kd.core.FlockerVolumeSource.own_zero_of (v : _root_.Perennial.k8s_io.api
   · ipureintro; rfl
   ipureintro; rfl
 
+instance kd.core.FlockerVolumeSource.own_timeless (v : _root_.Perennial.k8s_io.api.core.v1.FlockerVolumeSource) (dq : DFrac) (d : kd.core.FlockerVolumeSource) :
+    Timeless (kd.core.FlockerVolumeSource.own (GF := GF) v dq d) := by
+  unfold kd.core.FlockerVolumeSource.own; infer_instance
+
+instance kd.core.FlockerVolumeSource.own_persistent (v : _root_.Perennial.k8s_io.api.core.v1.FlockerVolumeSource) (d : kd.core.FlockerVolumeSource) :
+    Persistent (kd.core.FlockerVolumeSource.own (GF := GF) v DFrac.discard d) := by
+  unfold kd.core.FlockerVolumeSource.own; infer_instance
+
+/-- A `FlockerVolumeSource` owned at any fraction can be made read-only. -/
+instance kd.core.FlockerVolumeSource.own_deepPersist : DeepPersist (GF := GF) kd.core.FlockerVolumeSource.own where
+  persist := by
+    intro v dq d
+    unfold kd.core.FlockerVolumeSource.own
+    iintro ⟨H0, H1⟩
+    imodintro
+    iframe
+
 /-- The deep ownership of a `ObjectFieldSelector` value with deep value `d`. -/
 def kd.core.ObjectFieldSelector.own (v : _root_.Perennial.k8s_io.api.core.v1.ObjectFieldSelector) (dq : DFrac) (d : kd.core.ObjectFieldSelector) : IProp GF :=
   iprop("APIVersion" ∷ ⌜v.APIVersion' = d.APIVersion'⌝ ∗
@@ -3593,6 +3978,23 @@ theorem kd.core.ObjectFieldSelector.own_zero_of (v : _root_.Perennial.k8s_io.api
   isplitr
   · ipureintro; rfl
   ipureintro; rfl
+
+instance kd.core.ObjectFieldSelector.own_timeless (v : _root_.Perennial.k8s_io.api.core.v1.ObjectFieldSelector) (dq : DFrac) (d : kd.core.ObjectFieldSelector) :
+    Timeless (kd.core.ObjectFieldSelector.own (GF := GF) v dq d) := by
+  unfold kd.core.ObjectFieldSelector.own; infer_instance
+
+instance kd.core.ObjectFieldSelector.own_persistent (v : _root_.Perennial.k8s_io.api.core.v1.ObjectFieldSelector) (d : kd.core.ObjectFieldSelector) :
+    Persistent (kd.core.ObjectFieldSelector.own (GF := GF) v DFrac.discard d) := by
+  unfold kd.core.ObjectFieldSelector.own; infer_instance
+
+/-- A `ObjectFieldSelector` owned at any fraction can be made read-only. -/
+instance kd.core.ObjectFieldSelector.own_deepPersist : DeepPersist (GF := GF) kd.core.ObjectFieldSelector.own where
+  persist := by
+    intro v dq d
+    unfold kd.core.ObjectFieldSelector.own
+    iintro ⟨H0, H1⟩
+    imodintro
+    iframe
 
 /-- The deep ownership of a `DownwardAPIVolumeFile` value with deep value `d`. -/
 def kd.core.DownwardAPIVolumeFile.own (v : _root_.Perennial.k8s_io.api.core.v1.DownwardAPIVolumeFile) (dq : DFrac) (d : kd.core.DownwardAPIVolumeFile) : IProp GF :=
@@ -3618,6 +4020,26 @@ theorem kd.core.DownwardAPIVolumeFile.own_zero_of (v : _root_.Perennial.k8s_io.a
   · iapply (ownPtrD_none_of _ _ (by rfl) dq)
   iapply (ownPtrD_none_of _ _ (by rfl) dq)
 
+instance kd.core.DownwardAPIVolumeFile.own_timeless (v : _root_.Perennial.k8s_io.api.core.v1.DownwardAPIVolumeFile) (dq : DFrac) (d : kd.core.DownwardAPIVolumeFile) :
+    Timeless (kd.core.DownwardAPIVolumeFile.own (GF := GF) v dq d) := by
+  unfold kd.core.DownwardAPIVolumeFile.own; infer_instance
+
+instance kd.core.DownwardAPIVolumeFile.own_persistent (v : _root_.Perennial.k8s_io.api.core.v1.DownwardAPIVolumeFile) (d : kd.core.DownwardAPIVolumeFile) :
+    Persistent (kd.core.DownwardAPIVolumeFile.own (GF := GF) v DFrac.discard d) := by
+  unfold kd.core.DownwardAPIVolumeFile.own; infer_instance
+
+/-- A `DownwardAPIVolumeFile` owned at any fraction can be made read-only. -/
+instance kd.core.DownwardAPIVolumeFile.own_deepPersist : DeepPersist (GF := GF) kd.core.DownwardAPIVolumeFile.own where
+  persist := by
+    intro v dq d
+    unfold kd.core.DownwardAPIVolumeFile.own
+    iintro ⟨H0, H1, H2, H3, H4⟩
+    imod (DeepPersist.persist (GF := GF) (inner := (ownPtrD (V := _root_.Perennial.k8s_io.api.core.v1.ObjectFieldSelector) kd.core.ObjectFieldSelector.own)) _ _ _) $$ H1 with H1
+    imod (DeepPersist.persist (GF := GF) (inner := (ownPtrD (V := w32) ownBaseD)) _ _ _) $$ H3 with H3
+    imod (DeepPersist.persist (GF := GF) (inner := (ownPtrD (V := w64) ownBaseD)) _ _ _) $$ H4 with H4
+    imodintro
+    iframe
+
 /-- The deep ownership of a `DownwardAPIVolumeSource` value with deep value `d`. -/
 def kd.core.DownwardAPIVolumeSource.own (v : _root_.Perennial.k8s_io.api.core.v1.DownwardAPIVolumeSource) (dq : DFrac) (d : kd.core.DownwardAPIVolumeSource) : IProp GF :=
   iprop("Items" ∷ (ownSliceD (V := _root_.Perennial.k8s_io.api.core.v1.DownwardAPIVolumeFile) kd.core.DownwardAPIVolumeFile.own) v.Items' dq d.Items' ∗
@@ -3635,6 +4057,26 @@ theorem kd.core.DownwardAPIVolumeSource.own_zero_of (v : _root_.Perennial.k8s_io
   isplitr
   · iapply (ownPtrD_none_of _ _ (by rfl) dq)
   iapply (ownPtrD_none_of _ _ (by rfl) dq)
+
+instance kd.core.DownwardAPIVolumeSource.own_timeless (v : _root_.Perennial.k8s_io.api.core.v1.DownwardAPIVolumeSource) (dq : DFrac) (d : kd.core.DownwardAPIVolumeSource) :
+    Timeless (kd.core.DownwardAPIVolumeSource.own (GF := GF) v dq d) := by
+  unfold kd.core.DownwardAPIVolumeSource.own; infer_instance
+
+instance kd.core.DownwardAPIVolumeSource.own_persistent (v : _root_.Perennial.k8s_io.api.core.v1.DownwardAPIVolumeSource) (d : kd.core.DownwardAPIVolumeSource) :
+    Persistent (kd.core.DownwardAPIVolumeSource.own (GF := GF) v DFrac.discard d) := by
+  unfold kd.core.DownwardAPIVolumeSource.own; infer_instance
+
+/-- A `DownwardAPIVolumeSource` owned at any fraction can be made read-only. -/
+instance kd.core.DownwardAPIVolumeSource.own_deepPersist : DeepPersist (GF := GF) kd.core.DownwardAPIVolumeSource.own where
+  persist := by
+    intro v dq d
+    unfold kd.core.DownwardAPIVolumeSource.own
+    iintro ⟨H0, H1, H2⟩
+    imod (DeepPersist.persist (GF := GF) (inner := (ownSliceD (V := _root_.Perennial.k8s_io.api.core.v1.DownwardAPIVolumeFile) kd.core.DownwardAPIVolumeFile.own)) _ _ _) $$ H0 with H0
+    imod (DeepPersist.persist (GF := GF) (inner := (ownPtrD (V := w32) ownBaseD)) _ _ _) $$ H1 with H1
+    imod (DeepPersist.persist (GF := GF) (inner := (ownPtrD (V := w64) ownBaseD)) _ _ _) $$ H2 with H2
+    imodintro
+    iframe
 
 /-- The deep ownership of a `FCVolumeSource` value with deep value `d`. -/
 def kd.core.FCVolumeSource.own (v : _root_.Perennial.k8s_io.api.core.v1.FCVolumeSource) (dq : DFrac) (d : kd.core.FCVolumeSource) : IProp GF :=
@@ -3660,6 +4102,26 @@ theorem kd.core.FCVolumeSource.own_zero_of (v : _root_.Perennial.k8s_io.api.core
   · ipureintro; rfl
   iapply (ownSliceD_nil_of _ _ (by rfl) dq)
 
+instance kd.core.FCVolumeSource.own_timeless (v : _root_.Perennial.k8s_io.api.core.v1.FCVolumeSource) (dq : DFrac) (d : kd.core.FCVolumeSource) :
+    Timeless (kd.core.FCVolumeSource.own (GF := GF) v dq d) := by
+  unfold kd.core.FCVolumeSource.own; infer_instance
+
+instance kd.core.FCVolumeSource.own_persistent (v : _root_.Perennial.k8s_io.api.core.v1.FCVolumeSource) (d : kd.core.FCVolumeSource) :
+    Persistent (kd.core.FCVolumeSource.own (GF := GF) v DFrac.discard d) := by
+  unfold kd.core.FCVolumeSource.own; infer_instance
+
+/-- A `FCVolumeSource` owned at any fraction can be made read-only. -/
+instance kd.core.FCVolumeSource.own_deepPersist : DeepPersist (GF := GF) kd.core.FCVolumeSource.own where
+  persist := by
+    intro v dq d
+    unfold kd.core.FCVolumeSource.own
+    iintro ⟨H0, H1, H2, H3, H4⟩
+    imod (DeepPersist.persist (GF := GF) (inner := (ownSliceD (V := GoString) ownBaseD)) _ _ _) $$ H0 with H0
+    imod (DeepPersist.persist (GF := GF) (inner := (ownPtrD (V := w32) ownBaseD)) _ _ _) $$ H1 with H1
+    imod (DeepPersist.persist (GF := GF) (inner := (ownSliceD (V := GoString) ownBaseD)) _ _ _) $$ H4 with H4
+    imodintro
+    iframe
+
 /-- The deep ownership of a `AzureFileVolumeSource` value with deep value `d`. -/
 def kd.core.AzureFileVolumeSource.own (v : _root_.Perennial.k8s_io.api.core.v1.AzureFileVolumeSource) (dq : DFrac) (d : kd.core.AzureFileVolumeSource) : IProp GF :=
   iprop("SecretName" ∷ ⌜v.SecretName' = d.SecretName'⌝ ∗
@@ -3677,6 +4139,23 @@ theorem kd.core.AzureFileVolumeSource.own_zero_of (v : _root_.Perennial.k8s_io.a
   isplitr
   · ipureintro; rfl
   ipureintro; rfl
+
+instance kd.core.AzureFileVolumeSource.own_timeless (v : _root_.Perennial.k8s_io.api.core.v1.AzureFileVolumeSource) (dq : DFrac) (d : kd.core.AzureFileVolumeSource) :
+    Timeless (kd.core.AzureFileVolumeSource.own (GF := GF) v dq d) := by
+  unfold kd.core.AzureFileVolumeSource.own; infer_instance
+
+instance kd.core.AzureFileVolumeSource.own_persistent (v : _root_.Perennial.k8s_io.api.core.v1.AzureFileVolumeSource) (d : kd.core.AzureFileVolumeSource) :
+    Persistent (kd.core.AzureFileVolumeSource.own (GF := GF) v DFrac.discard d) := by
+  unfold kd.core.AzureFileVolumeSource.own; infer_instance
+
+/-- A `AzureFileVolumeSource` owned at any fraction can be made read-only. -/
+instance kd.core.AzureFileVolumeSource.own_deepPersist : DeepPersist (GF := GF) kd.core.AzureFileVolumeSource.own where
+  persist := by
+    intro v dq d
+    unfold kd.core.AzureFileVolumeSource.own
+    iintro ⟨H0, H1, H2⟩
+    imodintro
+    iframe
 
 /-- The deep ownership of a `ConfigMapVolumeSource` value with deep value `d`. -/
 def kd.core.ConfigMapVolumeSource.own (v : _root_.Perennial.k8s_io.api.core.v1.ConfigMapVolumeSource) (dq : DFrac) (d : kd.core.ConfigMapVolumeSource) : IProp GF :=
@@ -3702,6 +4181,28 @@ theorem kd.core.ConfigMapVolumeSource.own_zero_of (v : _root_.Perennial.k8s_io.a
   · iapply (ownPtrD_none_of _ _ (by rfl) dq)
   iapply (ownPtrD_none_of _ _ (by rfl) dq)
 
+instance kd.core.ConfigMapVolumeSource.own_timeless (v : _root_.Perennial.k8s_io.api.core.v1.ConfigMapVolumeSource) (dq : DFrac) (d : kd.core.ConfigMapVolumeSource) :
+    Timeless (kd.core.ConfigMapVolumeSource.own (GF := GF) v dq d) := by
+  unfold kd.core.ConfigMapVolumeSource.own; infer_instance
+
+instance kd.core.ConfigMapVolumeSource.own_persistent (v : _root_.Perennial.k8s_io.api.core.v1.ConfigMapVolumeSource) (d : kd.core.ConfigMapVolumeSource) :
+    Persistent (kd.core.ConfigMapVolumeSource.own (GF := GF) v DFrac.discard d) := by
+  unfold kd.core.ConfigMapVolumeSource.own; infer_instance
+
+/-- A `ConfigMapVolumeSource` owned at any fraction can be made read-only. -/
+instance kd.core.ConfigMapVolumeSource.own_deepPersist : DeepPersist (GF := GF) kd.core.ConfigMapVolumeSource.own where
+  persist := by
+    intro v dq d
+    unfold kd.core.ConfigMapVolumeSource.own
+    iintro ⟨H0, H1, H2, H3, H4⟩
+    imod (DeepPersist.persist (GF := GF) (inner := kd.core.LocalObjectReference.own) _ _ _) $$ H0 with H0
+    imod (DeepPersist.persist (GF := GF) (inner := (ownSliceD (V := _root_.Perennial.k8s_io.api.core.v1.KeyToPath) kd.core.KeyToPath.own)) _ _ _) $$ H1 with H1
+    imod (DeepPersist.persist (GF := GF) (inner := (ownPtrD (V := w32) ownBaseD)) _ _ _) $$ H2 with H2
+    imod (DeepPersist.persist (GF := GF) (inner := (ownPtrD (V := Bool) ownBaseD)) _ _ _) $$ H3 with H3
+    imod (DeepPersist.persist (GF := GF) (inner := (ownPtrD (V := w64) ownBaseD)) _ _ _) $$ H4 with H4
+    imodintro
+    iframe
+
 /-- The deep ownership of a `VsphereVirtualDiskVolumeSource` value with deep value `d`. -/
 def kd.core.VsphereVirtualDiskVolumeSource.own (v : _root_.Perennial.k8s_io.api.core.v1.VsphereVirtualDiskVolumeSource) (dq : DFrac) (d : kd.core.VsphereVirtualDiskVolumeSource) : IProp GF :=
   iprop("VolumePath" ∷ ⌜v.VolumePath' = d.VolumePath'⌝ ∗
@@ -3722,6 +4223,23 @@ theorem kd.core.VsphereVirtualDiskVolumeSource.own_zero_of (v : _root_.Perennial
   isplitr
   · ipureintro; rfl
   ipureintro; rfl
+
+instance kd.core.VsphereVirtualDiskVolumeSource.own_timeless (v : _root_.Perennial.k8s_io.api.core.v1.VsphereVirtualDiskVolumeSource) (dq : DFrac) (d : kd.core.VsphereVirtualDiskVolumeSource) :
+    Timeless (kd.core.VsphereVirtualDiskVolumeSource.own (GF := GF) v dq d) := by
+  unfold kd.core.VsphereVirtualDiskVolumeSource.own; infer_instance
+
+instance kd.core.VsphereVirtualDiskVolumeSource.own_persistent (v : _root_.Perennial.k8s_io.api.core.v1.VsphereVirtualDiskVolumeSource) (d : kd.core.VsphereVirtualDiskVolumeSource) :
+    Persistent (kd.core.VsphereVirtualDiskVolumeSource.own (GF := GF) v DFrac.discard d) := by
+  unfold kd.core.VsphereVirtualDiskVolumeSource.own; infer_instance
+
+/-- A `VsphereVirtualDiskVolumeSource` owned at any fraction can be made read-only. -/
+instance kd.core.VsphereVirtualDiskVolumeSource.own_deepPersist : DeepPersist (GF := GF) kd.core.VsphereVirtualDiskVolumeSource.own where
+  persist := by
+    intro v dq d
+    unfold kd.core.VsphereVirtualDiskVolumeSource.own
+    iintro ⟨H0, H1, H2, H3⟩
+    imodintro
+    iframe
 
 /-- The deep ownership of a `QuobyteVolumeSource` value with deep value `d`. -/
 def kd.core.QuobyteVolumeSource.own (v : _root_.Perennial.k8s_io.api.core.v1.QuobyteVolumeSource) (dq : DFrac) (d : kd.core.QuobyteVolumeSource) : IProp GF :=
@@ -3750,6 +4268,23 @@ theorem kd.core.QuobyteVolumeSource.own_zero_of (v : _root_.Perennial.k8s_io.api
   · ipureintro; rfl
   ipureintro; rfl
 
+instance kd.core.QuobyteVolumeSource.own_timeless (v : _root_.Perennial.k8s_io.api.core.v1.QuobyteVolumeSource) (dq : DFrac) (d : kd.core.QuobyteVolumeSource) :
+    Timeless (kd.core.QuobyteVolumeSource.own (GF := GF) v dq d) := by
+  unfold kd.core.QuobyteVolumeSource.own; infer_instance
+
+instance kd.core.QuobyteVolumeSource.own_persistent (v : _root_.Perennial.k8s_io.api.core.v1.QuobyteVolumeSource) (d : kd.core.QuobyteVolumeSource) :
+    Persistent (kd.core.QuobyteVolumeSource.own (GF := GF) v DFrac.discard d) := by
+  unfold kd.core.QuobyteVolumeSource.own; infer_instance
+
+/-- A `QuobyteVolumeSource` owned at any fraction can be made read-only. -/
+instance kd.core.QuobyteVolumeSource.own_deepPersist : DeepPersist (GF := GF) kd.core.QuobyteVolumeSource.own where
+  persist := by
+    intro v dq d
+    unfold kd.core.QuobyteVolumeSource.own
+    iintro ⟨H0, H1, H2, H3, H4, H5⟩
+    imodintro
+    iframe
+
 /-- The deep ownership of a `AzureDiskVolumeSource` value with deep value `d`. -/
 def kd.core.AzureDiskVolumeSource.own (v : _root_.Perennial.k8s_io.api.core.v1.AzureDiskVolumeSource) (dq : DFrac) (d : kd.core.AzureDiskVolumeSource) : IProp GF :=
   iprop("DiskName" ∷ ⌜v.DiskName' = d.DiskName'⌝ ∗
@@ -3777,6 +4312,27 @@ theorem kd.core.AzureDiskVolumeSource.own_zero_of (v : _root_.Perennial.k8s_io.a
   · iapply (ownPtrD_none_of _ _ (by rfl) dq)
   iapply (ownPtrD_none_of _ _ (by rfl) dq)
 
+instance kd.core.AzureDiskVolumeSource.own_timeless (v : _root_.Perennial.k8s_io.api.core.v1.AzureDiskVolumeSource) (dq : DFrac) (d : kd.core.AzureDiskVolumeSource) :
+    Timeless (kd.core.AzureDiskVolumeSource.own (GF := GF) v dq d) := by
+  unfold kd.core.AzureDiskVolumeSource.own; infer_instance
+
+instance kd.core.AzureDiskVolumeSource.own_persistent (v : _root_.Perennial.k8s_io.api.core.v1.AzureDiskVolumeSource) (d : kd.core.AzureDiskVolumeSource) :
+    Persistent (kd.core.AzureDiskVolumeSource.own (GF := GF) v DFrac.discard d) := by
+  unfold kd.core.AzureDiskVolumeSource.own; infer_instance
+
+/-- A `AzureDiskVolumeSource` owned at any fraction can be made read-only. -/
+instance kd.core.AzureDiskVolumeSource.own_deepPersist : DeepPersist (GF := GF) kd.core.AzureDiskVolumeSource.own where
+  persist := by
+    intro v dq d
+    unfold kd.core.AzureDiskVolumeSource.own
+    iintro ⟨H0, H1, H2, H3, H4, H5⟩
+    imod (DeepPersist.persist (GF := GF) (inner := (ownPtrD (V := _root_.Perennial.k8s_io.api.core.v1.AzureDataDiskCachingMode) ownBaseD)) _ _ _) $$ H2 with H2
+    imod (DeepPersist.persist (GF := GF) (inner := (ownPtrD (V := GoString) ownBaseD)) _ _ _) $$ H3 with H3
+    imod (DeepPersist.persist (GF := GF) (inner := (ownPtrD (V := Bool) ownBaseD)) _ _ _) $$ H4 with H4
+    imod (DeepPersist.persist (GF := GF) (inner := (ownPtrD (V := _root_.Perennial.k8s_io.api.core.v1.AzureDataDiskKind) ownBaseD)) _ _ _) $$ H5 with H5
+    imodintro
+    iframe
+
 /-- The deep ownership of a `PhotonPersistentDiskVolumeSource` value with deep value `d`. -/
 def kd.core.PhotonPersistentDiskVolumeSource.own (v : _root_.Perennial.k8s_io.api.core.v1.PhotonPersistentDiskVolumeSource) (dq : DFrac) (d : kd.core.PhotonPersistentDiskVolumeSource) : IProp GF :=
   iprop("PdID" ∷ ⌜v.PdID' = d.PdID'⌝ ∗
@@ -3791,6 +4347,23 @@ theorem kd.core.PhotonPersistentDiskVolumeSource.own_zero_of (v : _root_.Perenni
   isplitr
   · ipureintro; rfl
   ipureintro; rfl
+
+instance kd.core.PhotonPersistentDiskVolumeSource.own_timeless (v : _root_.Perennial.k8s_io.api.core.v1.PhotonPersistentDiskVolumeSource) (dq : DFrac) (d : kd.core.PhotonPersistentDiskVolumeSource) :
+    Timeless (kd.core.PhotonPersistentDiskVolumeSource.own (GF := GF) v dq d) := by
+  unfold kd.core.PhotonPersistentDiskVolumeSource.own; infer_instance
+
+instance kd.core.PhotonPersistentDiskVolumeSource.own_persistent (v : _root_.Perennial.k8s_io.api.core.v1.PhotonPersistentDiskVolumeSource) (d : kd.core.PhotonPersistentDiskVolumeSource) :
+    Persistent (kd.core.PhotonPersistentDiskVolumeSource.own (GF := GF) v DFrac.discard d) := by
+  unfold kd.core.PhotonPersistentDiskVolumeSource.own; infer_instance
+
+/-- A `PhotonPersistentDiskVolumeSource` owned at any fraction can be made read-only. -/
+instance kd.core.PhotonPersistentDiskVolumeSource.own_deepPersist : DeepPersist (GF := GF) kd.core.PhotonPersistentDiskVolumeSource.own where
+  persist := by
+    intro v dq d
+    unfold kd.core.PhotonPersistentDiskVolumeSource.own
+    iintro ⟨H0, H1⟩
+    imodintro
+    iframe
 
 /-- The deep ownership of a `SecretProjection` value with deep value `d`. -/
 def kd.core.SecretProjection.own (v : _root_.Perennial.k8s_io.api.core.v1.SecretProjection) (dq : DFrac) (d : kd.core.SecretProjection) : IProp GF :=
@@ -3810,6 +4383,26 @@ theorem kd.core.SecretProjection.own_zero_of (v : _root_.Perennial.k8s_io.api.co
   · iapply (ownSliceD_nil_of _ _ (by rfl) dq)
   iapply (ownPtrD_none_of _ _ (by rfl) dq)
 
+instance kd.core.SecretProjection.own_timeless (v : _root_.Perennial.k8s_io.api.core.v1.SecretProjection) (dq : DFrac) (d : kd.core.SecretProjection) :
+    Timeless (kd.core.SecretProjection.own (GF := GF) v dq d) := by
+  unfold kd.core.SecretProjection.own; infer_instance
+
+instance kd.core.SecretProjection.own_persistent (v : _root_.Perennial.k8s_io.api.core.v1.SecretProjection) (d : kd.core.SecretProjection) :
+    Persistent (kd.core.SecretProjection.own (GF := GF) v DFrac.discard d) := by
+  unfold kd.core.SecretProjection.own; infer_instance
+
+/-- A `SecretProjection` owned at any fraction can be made read-only. -/
+instance kd.core.SecretProjection.own_deepPersist : DeepPersist (GF := GF) kd.core.SecretProjection.own where
+  persist := by
+    intro v dq d
+    unfold kd.core.SecretProjection.own
+    iintro ⟨H0, H1, H2⟩
+    imod (DeepPersist.persist (GF := GF) (inner := kd.core.LocalObjectReference.own) _ _ _) $$ H0 with H0
+    imod (DeepPersist.persist (GF := GF) (inner := (ownSliceD (V := _root_.Perennial.k8s_io.api.core.v1.KeyToPath) kd.core.KeyToPath.own)) _ _ _) $$ H1 with H1
+    imod (DeepPersist.persist (GF := GF) (inner := (ownPtrD (V := Bool) ownBaseD)) _ _ _) $$ H2 with H2
+    imodintro
+    iframe
+
 /-- The deep ownership of a `DownwardAPIProjection` value with deep value `d`. -/
 def kd.core.DownwardAPIProjection.own (v : _root_.Perennial.k8s_io.api.core.v1.DownwardAPIProjection) (dq : DFrac) (d : kd.core.DownwardAPIProjection) : IProp GF :=
   iprop("Items" ∷ (ownSliceD (V := _root_.Perennial.k8s_io.api.core.v1.DownwardAPIVolumeFile) kd.core.DownwardAPIVolumeFile.own) v.Items' dq d.Items')
@@ -3821,6 +4414,24 @@ theorem kd.core.DownwardAPIProjection.own_zero_of (v : _root_.Perennial.k8s_io.a
   unfold kd.core.DownwardAPIProjection.own
   try unfold kd.core.DownwardAPIProjection.zero
   iapply (ownSliceD_nil_of _ _ (by rfl) dq)
+
+instance kd.core.DownwardAPIProjection.own_timeless (v : _root_.Perennial.k8s_io.api.core.v1.DownwardAPIProjection) (dq : DFrac) (d : kd.core.DownwardAPIProjection) :
+    Timeless (kd.core.DownwardAPIProjection.own (GF := GF) v dq d) := by
+  unfold kd.core.DownwardAPIProjection.own; infer_instance
+
+instance kd.core.DownwardAPIProjection.own_persistent (v : _root_.Perennial.k8s_io.api.core.v1.DownwardAPIProjection) (d : kd.core.DownwardAPIProjection) :
+    Persistent (kd.core.DownwardAPIProjection.own (GF := GF) v DFrac.discard d) := by
+  unfold kd.core.DownwardAPIProjection.own; infer_instance
+
+/-- A `DownwardAPIProjection` owned at any fraction can be made read-only. -/
+instance kd.core.DownwardAPIProjection.own_deepPersist : DeepPersist (GF := GF) kd.core.DownwardAPIProjection.own where
+  persist := by
+    intro v dq d
+    unfold kd.core.DownwardAPIProjection.own
+    iintro H0
+    imod (DeepPersist.persist (GF := GF) (inner := (ownSliceD (V := _root_.Perennial.k8s_io.api.core.v1.DownwardAPIVolumeFile) kd.core.DownwardAPIVolumeFile.own)) _ _ _) $$ H0 with H0
+    imodintro
+    iframe
 
 /-- The deep ownership of a `ConfigMapProjection` value with deep value `d`. -/
 def kd.core.ConfigMapProjection.own (v : _root_.Perennial.k8s_io.api.core.v1.ConfigMapProjection) (dq : DFrac) (d : kd.core.ConfigMapProjection) : IProp GF :=
@@ -3839,6 +4450,26 @@ theorem kd.core.ConfigMapProjection.own_zero_of (v : _root_.Perennial.k8s_io.api
   isplitr
   · iapply (ownSliceD_nil_of _ _ (by rfl) dq)
   iapply (ownPtrD_none_of _ _ (by rfl) dq)
+
+instance kd.core.ConfigMapProjection.own_timeless (v : _root_.Perennial.k8s_io.api.core.v1.ConfigMapProjection) (dq : DFrac) (d : kd.core.ConfigMapProjection) :
+    Timeless (kd.core.ConfigMapProjection.own (GF := GF) v dq d) := by
+  unfold kd.core.ConfigMapProjection.own; infer_instance
+
+instance kd.core.ConfigMapProjection.own_persistent (v : _root_.Perennial.k8s_io.api.core.v1.ConfigMapProjection) (d : kd.core.ConfigMapProjection) :
+    Persistent (kd.core.ConfigMapProjection.own (GF := GF) v DFrac.discard d) := by
+  unfold kd.core.ConfigMapProjection.own; infer_instance
+
+/-- A `ConfigMapProjection` owned at any fraction can be made read-only. -/
+instance kd.core.ConfigMapProjection.own_deepPersist : DeepPersist (GF := GF) kd.core.ConfigMapProjection.own where
+  persist := by
+    intro v dq d
+    unfold kd.core.ConfigMapProjection.own
+    iintro ⟨H0, H1, H2⟩
+    imod (DeepPersist.persist (GF := GF) (inner := kd.core.LocalObjectReference.own) _ _ _) $$ H0 with H0
+    imod (DeepPersist.persist (GF := GF) (inner := (ownSliceD (V := _root_.Perennial.k8s_io.api.core.v1.KeyToPath) kd.core.KeyToPath.own)) _ _ _) $$ H1 with H1
+    imod (DeepPersist.persist (GF := GF) (inner := (ownPtrD (V := Bool) ownBaseD)) _ _ _) $$ H2 with H2
+    imodintro
+    iframe
 
 /-- The deep ownership of a `ServiceAccountTokenProjection` value with deep value `d`. -/
 def kd.core.ServiceAccountTokenProjection.own (v : _root_.Perennial.k8s_io.api.core.v1.ServiceAccountTokenProjection) (dq : DFrac) (d : kd.core.ServiceAccountTokenProjection) : IProp GF :=
@@ -3861,6 +4492,25 @@ theorem kd.core.ServiceAccountTokenProjection.own_zero_of (v : _root_.Perennial.
   · ipureintro; rfl
   iapply (ownPtrD_none_of _ _ (by rfl) dq)
 
+instance kd.core.ServiceAccountTokenProjection.own_timeless (v : _root_.Perennial.k8s_io.api.core.v1.ServiceAccountTokenProjection) (dq : DFrac) (d : kd.core.ServiceAccountTokenProjection) :
+    Timeless (kd.core.ServiceAccountTokenProjection.own (GF := GF) v dq d) := by
+  unfold kd.core.ServiceAccountTokenProjection.own; infer_instance
+
+instance kd.core.ServiceAccountTokenProjection.own_persistent (v : _root_.Perennial.k8s_io.api.core.v1.ServiceAccountTokenProjection) (d : kd.core.ServiceAccountTokenProjection) :
+    Persistent (kd.core.ServiceAccountTokenProjection.own (GF := GF) v DFrac.discard d) := by
+  unfold kd.core.ServiceAccountTokenProjection.own; infer_instance
+
+/-- A `ServiceAccountTokenProjection` owned at any fraction can be made read-only. -/
+instance kd.core.ServiceAccountTokenProjection.own_deepPersist : DeepPersist (GF := GF) kd.core.ServiceAccountTokenProjection.own where
+  persist := by
+    intro v dq d
+    unfold kd.core.ServiceAccountTokenProjection.own
+    iintro ⟨H0, H1, H2, H3⟩
+    imod (DeepPersist.persist (GF := GF) (inner := (ownPtrD (V := w64) ownBaseD)) _ _ _) $$ H1 with H1
+    imod (DeepPersist.persist (GF := GF) (inner := (ownPtrD (V := w64) ownBaseD)) _ _ _) $$ H3 with H3
+    imodintro
+    iframe
+
 /-- The deep ownership of a `LabelSelectorRequirement` value with deep value `d`. -/
 def kd.meta.LabelSelectorRequirement.own (v : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.LabelSelectorRequirement) (dq : DFrac) (d : kd.meta.LabelSelectorRequirement) : IProp GF :=
   iprop("Key" ∷ ⌜v.Key' = d.Key'⌝ ∗
@@ -3879,6 +4529,24 @@ theorem kd.meta.LabelSelectorRequirement.own_zero_of (v : _root_.Perennial.k8s_i
   · ipureintro; rfl
   iapply (ownSliceD_nil_of _ _ (by rfl) dq)
 
+instance kd.meta.LabelSelectorRequirement.own_timeless (v : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.LabelSelectorRequirement) (dq : DFrac) (d : kd.meta.LabelSelectorRequirement) :
+    Timeless (kd.meta.LabelSelectorRequirement.own (GF := GF) v dq d) := by
+  unfold kd.meta.LabelSelectorRequirement.own; infer_instance
+
+instance kd.meta.LabelSelectorRequirement.own_persistent (v : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.LabelSelectorRequirement) (d : kd.meta.LabelSelectorRequirement) :
+    Persistent (kd.meta.LabelSelectorRequirement.own (GF := GF) v DFrac.discard d) := by
+  unfold kd.meta.LabelSelectorRequirement.own; infer_instance
+
+/-- A `LabelSelectorRequirement` owned at any fraction can be made read-only. -/
+instance kd.meta.LabelSelectorRequirement.own_deepPersist : DeepPersist (GF := GF) kd.meta.LabelSelectorRequirement.own where
+  persist := by
+    intro v dq d
+    unfold kd.meta.LabelSelectorRequirement.own
+    iintro ⟨H0, H1, H2⟩
+    imod (DeepPersist.persist (GF := GF) (inner := (ownSliceD (V := GoString) ownBaseD)) _ _ _) $$ H2 with H2
+    imodintro
+    iframe
+
 /-- The deep ownership of a `LabelSelector` value with deep value `d`. -/
 def kd.meta.LabelSelector.own (v : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.LabelSelector) (dq : DFrac) (d : kd.meta.LabelSelector) : IProp GF :=
   iprop("MatchLabels" ∷ (ownMapD (K := GoString) (V := GoString)) v.MatchLabels' dq d.MatchLabels' ∗
@@ -3893,6 +4561,25 @@ theorem kd.meta.LabelSelector.own_zero_of (v : _root_.Perennial.k8s_io.apimachin
   isplitr
   · iapply (ownMapD_none_of _ (by rfl) dq)
   iapply (ownSliceD_nil_of _ _ (by rfl) dq)
+
+instance kd.meta.LabelSelector.own_timeless (v : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.LabelSelector) (dq : DFrac) (d : kd.meta.LabelSelector) :
+    Timeless (kd.meta.LabelSelector.own (GF := GF) v dq d) := by
+  unfold kd.meta.LabelSelector.own; infer_instance
+
+instance kd.meta.LabelSelector.own_persistent (v : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.LabelSelector) (d : kd.meta.LabelSelector) :
+    Persistent (kd.meta.LabelSelector.own (GF := GF) v DFrac.discard d) := by
+  unfold kd.meta.LabelSelector.own; infer_instance
+
+/-- A `LabelSelector` owned at any fraction can be made read-only. -/
+instance kd.meta.LabelSelector.own_deepPersist : DeepPersist (GF := GF) kd.meta.LabelSelector.own where
+  persist := by
+    intro v dq d
+    unfold kd.meta.LabelSelector.own
+    iintro ⟨H0, H1⟩
+    imod (DeepPersist.persist (GF := GF) (inner := (ownMapD (K := GoString) (V := GoString))) _ _ _) $$ H0 with H0
+    imod (DeepPersist.persist (GF := GF) (inner := (ownSliceD (V := _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.LabelSelectorRequirement) kd.meta.LabelSelectorRequirement.own)) _ _ _) $$ H1 with H1
+    imodintro
+    iframe
 
 /-- The deep ownership of a `ClusterTrustBundleProjection` value with deep value `d`. -/
 def kd.core.ClusterTrustBundleProjection.own (v : _root_.Perennial.k8s_io.api.core.v1.ClusterTrustBundleProjection) (dq : DFrac) (d : kd.core.ClusterTrustBundleProjection) : IProp GF :=
@@ -3920,6 +4607,28 @@ theorem kd.core.ClusterTrustBundleProjection.own_zero_of (v : _root_.Perennial.k
   isplitr
   · ipureintro; rfl
   iapply (ownPtrD_none_of _ _ (by rfl) dq)
+
+instance kd.core.ClusterTrustBundleProjection.own_timeless (v : _root_.Perennial.k8s_io.api.core.v1.ClusterTrustBundleProjection) (dq : DFrac) (d : kd.core.ClusterTrustBundleProjection) :
+    Timeless (kd.core.ClusterTrustBundleProjection.own (GF := GF) v dq d) := by
+  unfold kd.core.ClusterTrustBundleProjection.own; infer_instance
+
+instance kd.core.ClusterTrustBundleProjection.own_persistent (v : _root_.Perennial.k8s_io.api.core.v1.ClusterTrustBundleProjection) (d : kd.core.ClusterTrustBundleProjection) :
+    Persistent (kd.core.ClusterTrustBundleProjection.own (GF := GF) v DFrac.discard d) := by
+  unfold kd.core.ClusterTrustBundleProjection.own; infer_instance
+
+/-- A `ClusterTrustBundleProjection` owned at any fraction can be made read-only. -/
+instance kd.core.ClusterTrustBundleProjection.own_deepPersist : DeepPersist (GF := GF) kd.core.ClusterTrustBundleProjection.own where
+  persist := by
+    intro v dq d
+    unfold kd.core.ClusterTrustBundleProjection.own
+    iintro ⟨H0, H1, H2, H3, H4, H5⟩
+    imod (DeepPersist.persist (GF := GF) (inner := (ownPtrD (V := GoString) ownBaseD)) _ _ _) $$ H0 with H0
+    imod (DeepPersist.persist (GF := GF) (inner := (ownPtrD (V := GoString) ownBaseD)) _ _ _) $$ H1 with H1
+    imod (DeepPersist.persist (GF := GF) (inner := (ownPtrD (V := _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.LabelSelector) kd.meta.LabelSelector.own)) _ _ _) $$ H2 with H2
+    imod (DeepPersist.persist (GF := GF) (inner := (ownPtrD (V := Bool) ownBaseD)) _ _ _) $$ H3 with H3
+    imod (DeepPersist.persist (GF := GF) (inner := (ownPtrD (V := w64) ownBaseD)) _ _ _) $$ H5 with H5
+    imodintro
+    iframe
 
 /-- The deep ownership of a `PodCertificateProjection` value with deep value `d`. -/
 def kd.core.PodCertificateProjection.own (v : _root_.Perennial.k8s_io.api.core.v1.PodCertificateProjection) (dq : DFrac) (d : kd.core.PodCertificateProjection) : IProp GF :=
@@ -3954,6 +4663,26 @@ theorem kd.core.PodCertificateProjection.own_zero_of (v : _root_.Perennial.k8s_i
   · iapply (ownMapD_none_of _ (by rfl) dq)
   iapply (ownPtrD_none_of _ _ (by rfl) dq)
 
+instance kd.core.PodCertificateProjection.own_timeless (v : _root_.Perennial.k8s_io.api.core.v1.PodCertificateProjection) (dq : DFrac) (d : kd.core.PodCertificateProjection) :
+    Timeless (kd.core.PodCertificateProjection.own (GF := GF) v dq d) := by
+  unfold kd.core.PodCertificateProjection.own; infer_instance
+
+instance kd.core.PodCertificateProjection.own_persistent (v : _root_.Perennial.k8s_io.api.core.v1.PodCertificateProjection) (d : kd.core.PodCertificateProjection) :
+    Persistent (kd.core.PodCertificateProjection.own (GF := GF) v DFrac.discard d) := by
+  unfold kd.core.PodCertificateProjection.own; infer_instance
+
+/-- A `PodCertificateProjection` owned at any fraction can be made read-only. -/
+instance kd.core.PodCertificateProjection.own_deepPersist : DeepPersist (GF := GF) kd.core.PodCertificateProjection.own where
+  persist := by
+    intro v dq d
+    unfold kd.core.PodCertificateProjection.own
+    iintro ⟨H0, H1, H2, H3, H4, H5, H6, H7⟩
+    imod (DeepPersist.persist (GF := GF) (inner := (ownPtrD (V := w32) ownBaseD)) _ _ _) $$ H2 with H2
+    imod (DeepPersist.persist (GF := GF) (inner := (ownMapD (K := GoString) (V := GoString))) _ _ _) $$ H6 with H6
+    imod (DeepPersist.persist (GF := GF) (inner := (ownPtrD (V := w64) ownBaseD)) _ _ _) $$ H7 with H7
+    imodintro
+    iframe
+
 /-- The deep ownership of a `VolumeProjection` value with deep value `d`. -/
 def kd.core.VolumeProjection.own (v : _root_.Perennial.k8s_io.api.core.v1.VolumeProjection) (dq : DFrac) (d : kd.core.VolumeProjection) : IProp GF :=
   iprop("Secret" ∷ (ownPtrD (V := _root_.Perennial.k8s_io.api.core.v1.SecretProjection) kd.core.SecretProjection.own) v.Secret' dq d.Secret' ∗
@@ -3981,6 +4710,29 @@ theorem kd.core.VolumeProjection.own_zero_of (v : _root_.Perennial.k8s_io.api.co
   · iapply (ownPtrD_none_of _ _ (by rfl) dq)
   iapply (ownPtrD_none_of _ _ (by rfl) dq)
 
+instance kd.core.VolumeProjection.own_timeless (v : _root_.Perennial.k8s_io.api.core.v1.VolumeProjection) (dq : DFrac) (d : kd.core.VolumeProjection) :
+    Timeless (kd.core.VolumeProjection.own (GF := GF) v dq d) := by
+  unfold kd.core.VolumeProjection.own; infer_instance
+
+instance kd.core.VolumeProjection.own_persistent (v : _root_.Perennial.k8s_io.api.core.v1.VolumeProjection) (d : kd.core.VolumeProjection) :
+    Persistent (kd.core.VolumeProjection.own (GF := GF) v DFrac.discard d) := by
+  unfold kd.core.VolumeProjection.own; infer_instance
+
+/-- A `VolumeProjection` owned at any fraction can be made read-only. -/
+instance kd.core.VolumeProjection.own_deepPersist : DeepPersist (GF := GF) kd.core.VolumeProjection.own where
+  persist := by
+    intro v dq d
+    unfold kd.core.VolumeProjection.own
+    iintro ⟨H0, H1, H2, H3, H4, H5⟩
+    imod (DeepPersist.persist (GF := GF) (inner := (ownPtrD (V := _root_.Perennial.k8s_io.api.core.v1.SecretProjection) kd.core.SecretProjection.own)) _ _ _) $$ H0 with H0
+    imod (DeepPersist.persist (GF := GF) (inner := (ownPtrD (V := _root_.Perennial.k8s_io.api.core.v1.DownwardAPIProjection) kd.core.DownwardAPIProjection.own)) _ _ _) $$ H1 with H1
+    imod (DeepPersist.persist (GF := GF) (inner := (ownPtrD (V := _root_.Perennial.k8s_io.api.core.v1.ConfigMapProjection) kd.core.ConfigMapProjection.own)) _ _ _) $$ H2 with H2
+    imod (DeepPersist.persist (GF := GF) (inner := (ownPtrD (V := _root_.Perennial.k8s_io.api.core.v1.ServiceAccountTokenProjection) kd.core.ServiceAccountTokenProjection.own)) _ _ _) $$ H3 with H3
+    imod (DeepPersist.persist (GF := GF) (inner := (ownPtrD (V := _root_.Perennial.k8s_io.api.core.v1.ClusterTrustBundleProjection) kd.core.ClusterTrustBundleProjection.own)) _ _ _) $$ H4 with H4
+    imod (DeepPersist.persist (GF := GF) (inner := (ownPtrD (V := _root_.Perennial.k8s_io.api.core.v1.PodCertificateProjection) kd.core.PodCertificateProjection.own)) _ _ _) $$ H5 with H5
+    imodintro
+    iframe
+
 /-- The deep ownership of a `ProjectedVolumeSource` value with deep value `d`. -/
 def kd.core.ProjectedVolumeSource.own (v : _root_.Perennial.k8s_io.api.core.v1.ProjectedVolumeSource) (dq : DFrac) (d : kd.core.ProjectedVolumeSource) : IProp GF :=
   iprop("Sources" ∷ (ownSliceD (V := _root_.Perennial.k8s_io.api.core.v1.VolumeProjection) kd.core.VolumeProjection.own) v.Sources' dq d.Sources' ∗
@@ -3999,6 +4751,26 @@ theorem kd.core.ProjectedVolumeSource.own_zero_of (v : _root_.Perennial.k8s_io.a
   · iapply (ownPtrD_none_of _ _ (by rfl) dq)
   iapply (ownPtrD_none_of _ _ (by rfl) dq)
 
+instance kd.core.ProjectedVolumeSource.own_timeless (v : _root_.Perennial.k8s_io.api.core.v1.ProjectedVolumeSource) (dq : DFrac) (d : kd.core.ProjectedVolumeSource) :
+    Timeless (kd.core.ProjectedVolumeSource.own (GF := GF) v dq d) := by
+  unfold kd.core.ProjectedVolumeSource.own; infer_instance
+
+instance kd.core.ProjectedVolumeSource.own_persistent (v : _root_.Perennial.k8s_io.api.core.v1.ProjectedVolumeSource) (d : kd.core.ProjectedVolumeSource) :
+    Persistent (kd.core.ProjectedVolumeSource.own (GF := GF) v DFrac.discard d) := by
+  unfold kd.core.ProjectedVolumeSource.own; infer_instance
+
+/-- A `ProjectedVolumeSource` owned at any fraction can be made read-only. -/
+instance kd.core.ProjectedVolumeSource.own_deepPersist : DeepPersist (GF := GF) kd.core.ProjectedVolumeSource.own where
+  persist := by
+    intro v dq d
+    unfold kd.core.ProjectedVolumeSource.own
+    iintro ⟨H0, H1, H2⟩
+    imod (DeepPersist.persist (GF := GF) (inner := (ownSliceD (V := _root_.Perennial.k8s_io.api.core.v1.VolumeProjection) kd.core.VolumeProjection.own)) _ _ _) $$ H0 with H0
+    imod (DeepPersist.persist (GF := GF) (inner := (ownPtrD (V := w32) ownBaseD)) _ _ _) $$ H1 with H1
+    imod (DeepPersist.persist (GF := GF) (inner := (ownPtrD (V := w64) ownBaseD)) _ _ _) $$ H2 with H2
+    imodintro
+    iframe
+
 /-- The deep ownership of a `PortworxVolumeSource` value with deep value `d`. -/
 def kd.core.PortworxVolumeSource.own (v : _root_.Perennial.k8s_io.api.core.v1.PortworxVolumeSource) (dq : DFrac) (d : kd.core.PortworxVolumeSource) : IProp GF :=
   iprop("VolumeID" ∷ ⌜v.VolumeID' = d.VolumeID'⌝ ∗
@@ -4016,6 +4788,23 @@ theorem kd.core.PortworxVolumeSource.own_zero_of (v : _root_.Perennial.k8s_io.ap
   isplitr
   · ipureintro; rfl
   ipureintro; rfl
+
+instance kd.core.PortworxVolumeSource.own_timeless (v : _root_.Perennial.k8s_io.api.core.v1.PortworxVolumeSource) (dq : DFrac) (d : kd.core.PortworxVolumeSource) :
+    Timeless (kd.core.PortworxVolumeSource.own (GF := GF) v dq d) := by
+  unfold kd.core.PortworxVolumeSource.own; infer_instance
+
+instance kd.core.PortworxVolumeSource.own_persistent (v : _root_.Perennial.k8s_io.api.core.v1.PortworxVolumeSource) (d : kd.core.PortworxVolumeSource) :
+    Persistent (kd.core.PortworxVolumeSource.own (GF := GF) v DFrac.discard d) := by
+  unfold kd.core.PortworxVolumeSource.own; infer_instance
+
+/-- A `PortworxVolumeSource` owned at any fraction can be made read-only. -/
+instance kd.core.PortworxVolumeSource.own_deepPersist : DeepPersist (GF := GF) kd.core.PortworxVolumeSource.own where
+  persist := by
+    intro v dq d
+    unfold kd.core.PortworxVolumeSource.own
+    iintro ⟨H0, H1, H2⟩
+    imodintro
+    iframe
 
 /-- The deep ownership of a `ScaleIOVolumeSource` value with deep value `d`. -/
 def kd.core.ScaleIOVolumeSource.own (v : _root_.Perennial.k8s_io.api.core.v1.ScaleIOVolumeSource) (dq : DFrac) (d : kd.core.ScaleIOVolumeSource) : IProp GF :=
@@ -4056,6 +4845,24 @@ theorem kd.core.ScaleIOVolumeSource.own_zero_of (v : _root_.Perennial.k8s_io.api
   · ipureintro; rfl
   ipureintro; rfl
 
+instance kd.core.ScaleIOVolumeSource.own_timeless (v : _root_.Perennial.k8s_io.api.core.v1.ScaleIOVolumeSource) (dq : DFrac) (d : kd.core.ScaleIOVolumeSource) :
+    Timeless (kd.core.ScaleIOVolumeSource.own (GF := GF) v dq d) := by
+  unfold kd.core.ScaleIOVolumeSource.own; infer_instance
+
+instance kd.core.ScaleIOVolumeSource.own_persistent (v : _root_.Perennial.k8s_io.api.core.v1.ScaleIOVolumeSource) (d : kd.core.ScaleIOVolumeSource) :
+    Persistent (kd.core.ScaleIOVolumeSource.own (GF := GF) v DFrac.discard d) := by
+  unfold kd.core.ScaleIOVolumeSource.own; infer_instance
+
+/-- A `ScaleIOVolumeSource` owned at any fraction can be made read-only. -/
+instance kd.core.ScaleIOVolumeSource.own_deepPersist : DeepPersist (GF := GF) kd.core.ScaleIOVolumeSource.own where
+  persist := by
+    intro v dq d
+    unfold kd.core.ScaleIOVolumeSource.own
+    iintro ⟨H0, H1, H2, H3, H4, H5, H6, H7, H8, H9⟩
+    imod (DeepPersist.persist (GF := GF) (inner := (ownPtrD (V := _root_.Perennial.k8s_io.api.core.v1.LocalObjectReference) kd.core.LocalObjectReference.own)) _ _ _) $$ H2 with H2
+    imodintro
+    iframe
+
 /-- The deep ownership of a `StorageOSVolumeSource` value with deep value `d`. -/
 def kd.core.StorageOSVolumeSource.own (v : _root_.Perennial.k8s_io.api.core.v1.StorageOSVolumeSource) (dq : DFrac) (d : kd.core.StorageOSVolumeSource) : IProp GF :=
   iprop("VolumeName" ∷ ⌜v.VolumeName' = d.VolumeName'⌝ ∗
@@ -4079,6 +4886,24 @@ theorem kd.core.StorageOSVolumeSource.own_zero_of (v : _root_.Perennial.k8s_io.a
   isplitr
   · ipureintro; rfl
   iapply (ownPtrD_none_of _ _ (by rfl) dq)
+
+instance kd.core.StorageOSVolumeSource.own_timeless (v : _root_.Perennial.k8s_io.api.core.v1.StorageOSVolumeSource) (dq : DFrac) (d : kd.core.StorageOSVolumeSource) :
+    Timeless (kd.core.StorageOSVolumeSource.own (GF := GF) v dq d) := by
+  unfold kd.core.StorageOSVolumeSource.own; infer_instance
+
+instance kd.core.StorageOSVolumeSource.own_persistent (v : _root_.Perennial.k8s_io.api.core.v1.StorageOSVolumeSource) (d : kd.core.StorageOSVolumeSource) :
+    Persistent (kd.core.StorageOSVolumeSource.own (GF := GF) v DFrac.discard d) := by
+  unfold kd.core.StorageOSVolumeSource.own; infer_instance
+
+/-- A `StorageOSVolumeSource` owned at any fraction can be made read-only. -/
+instance kd.core.StorageOSVolumeSource.own_deepPersist : DeepPersist (GF := GF) kd.core.StorageOSVolumeSource.own where
+  persist := by
+    intro v dq d
+    unfold kd.core.StorageOSVolumeSource.own
+    iintro ⟨H0, H1, H2, H3, H4⟩
+    imod (DeepPersist.persist (GF := GF) (inner := (ownPtrD (V := _root_.Perennial.k8s_io.api.core.v1.LocalObjectReference) kd.core.LocalObjectReference.own)) _ _ _) $$ H4 with H4
+    imodintro
+    iframe
 
 /-- The deep ownership of a `CSIVolumeSource` value with deep value `d`. -/
 def kd.core.CSIVolumeSource.own (v : _root_.Perennial.k8s_io.api.core.v1.CSIVolumeSource) (dq : DFrac) (d : kd.core.CSIVolumeSource) : IProp GF :=
@@ -4104,6 +4929,27 @@ theorem kd.core.CSIVolumeSource.own_zero_of (v : _root_.Perennial.k8s_io.api.cor
   · iapply (ownMapD_none_of _ (by rfl) dq)
   iapply (ownPtrD_none_of _ _ (by rfl) dq)
 
+instance kd.core.CSIVolumeSource.own_timeless (v : _root_.Perennial.k8s_io.api.core.v1.CSIVolumeSource) (dq : DFrac) (d : kd.core.CSIVolumeSource) :
+    Timeless (kd.core.CSIVolumeSource.own (GF := GF) v dq d) := by
+  unfold kd.core.CSIVolumeSource.own; infer_instance
+
+instance kd.core.CSIVolumeSource.own_persistent (v : _root_.Perennial.k8s_io.api.core.v1.CSIVolumeSource) (d : kd.core.CSIVolumeSource) :
+    Persistent (kd.core.CSIVolumeSource.own (GF := GF) v DFrac.discard d) := by
+  unfold kd.core.CSIVolumeSource.own; infer_instance
+
+/-- A `CSIVolumeSource` owned at any fraction can be made read-only. -/
+instance kd.core.CSIVolumeSource.own_deepPersist : DeepPersist (GF := GF) kd.core.CSIVolumeSource.own where
+  persist := by
+    intro v dq d
+    unfold kd.core.CSIVolumeSource.own
+    iintro ⟨H0, H1, H2, H3, H4⟩
+    imod (DeepPersist.persist (GF := GF) (inner := (ownPtrD (V := Bool) ownBaseD)) _ _ _) $$ H1 with H1
+    imod (DeepPersist.persist (GF := GF) (inner := (ownPtrD (V := GoString) ownBaseD)) _ _ _) $$ H2 with H2
+    imod (DeepPersist.persist (GF := GF) (inner := (ownMapD (K := GoString) (V := GoString))) _ _ _) $$ H3 with H3
+    imod (DeepPersist.persist (GF := GF) (inner := (ownPtrD (V := _root_.Perennial.k8s_io.api.core.v1.LocalObjectReference) kd.core.LocalObjectReference.own)) _ _ _) $$ H4 with H4
+    imodintro
+    iframe
+
 /-- The deep ownership of a `VolumeResourceRequirements` value with deep value `d`. -/
 def kd.core.VolumeResourceRequirements.own (v : _root_.Perennial.k8s_io.api.core.v1.VolumeResourceRequirements) (dq : DFrac) (d : kd.core.VolumeResourceRequirements) : IProp GF :=
   iprop("Limits" ∷ ownNilMapD v.Limits' ∗
@@ -4118,6 +4964,23 @@ theorem kd.core.VolumeResourceRequirements.own_zero_of (v : _root_.Perennial.k8s
   isplitr
   · iapply (ownNilMapD_of _ (by rfl))
   iapply (ownNilMapD_of _ (by rfl))
+
+instance kd.core.VolumeResourceRequirements.own_timeless (v : _root_.Perennial.k8s_io.api.core.v1.VolumeResourceRequirements) (dq : DFrac) (d : kd.core.VolumeResourceRequirements) :
+    Timeless (kd.core.VolumeResourceRequirements.own (GF := GF) v dq d) := by
+  unfold kd.core.VolumeResourceRequirements.own; infer_instance
+
+instance kd.core.VolumeResourceRequirements.own_persistent (v : _root_.Perennial.k8s_io.api.core.v1.VolumeResourceRequirements) (d : kd.core.VolumeResourceRequirements) :
+    Persistent (kd.core.VolumeResourceRequirements.own (GF := GF) v DFrac.discard d) := by
+  unfold kd.core.VolumeResourceRequirements.own; infer_instance
+
+/-- A `VolumeResourceRequirements` owned at any fraction can be made read-only. -/
+instance kd.core.VolumeResourceRequirements.own_deepPersist : DeepPersist (GF := GF) kd.core.VolumeResourceRequirements.own where
+  persist := by
+    intro v dq d
+    unfold kd.core.VolumeResourceRequirements.own
+    iintro ⟨H0, H1⟩
+    imodintro
+    iframe
 
 /-- The deep ownership of a `TypedLocalObjectReference` value with deep value `d`. -/
 def kd.core.TypedLocalObjectReference.own (v : _root_.Perennial.k8s_io.api.core.v1.TypedLocalObjectReference) (dq : DFrac) (d : kd.core.TypedLocalObjectReference) : IProp GF :=
@@ -4136,6 +4999,24 @@ theorem kd.core.TypedLocalObjectReference.own_zero_of (v : _root_.Perennial.k8s_
   isplitr
   · ipureintro; rfl
   ipureintro; rfl
+
+instance kd.core.TypedLocalObjectReference.own_timeless (v : _root_.Perennial.k8s_io.api.core.v1.TypedLocalObjectReference) (dq : DFrac) (d : kd.core.TypedLocalObjectReference) :
+    Timeless (kd.core.TypedLocalObjectReference.own (GF := GF) v dq d) := by
+  unfold kd.core.TypedLocalObjectReference.own; infer_instance
+
+instance kd.core.TypedLocalObjectReference.own_persistent (v : _root_.Perennial.k8s_io.api.core.v1.TypedLocalObjectReference) (d : kd.core.TypedLocalObjectReference) :
+    Persistent (kd.core.TypedLocalObjectReference.own (GF := GF) v DFrac.discard d) := by
+  unfold kd.core.TypedLocalObjectReference.own; infer_instance
+
+/-- A `TypedLocalObjectReference` owned at any fraction can be made read-only. -/
+instance kd.core.TypedLocalObjectReference.own_deepPersist : DeepPersist (GF := GF) kd.core.TypedLocalObjectReference.own where
+  persist := by
+    intro v dq d
+    unfold kd.core.TypedLocalObjectReference.own
+    iintro ⟨H0, H1, H2⟩
+    imod (DeepPersist.persist (GF := GF) (inner := (ownPtrD (V := GoString) ownBaseD)) _ _ _) $$ H0 with H0
+    imodintro
+    iframe
 
 /-- The deep ownership of a `TypedObjectReference` value with deep value `d`. -/
 def kd.core.TypedObjectReference.own (v : _root_.Perennial.k8s_io.api.core.v1.TypedObjectReference) (dq : DFrac) (d : kd.core.TypedObjectReference) : IProp GF :=
@@ -4157,6 +5038,25 @@ theorem kd.core.TypedObjectReference.own_zero_of (v : _root_.Perennial.k8s_io.ap
   isplitr
   · ipureintro; rfl
   iapply (ownPtrD_none_of _ _ (by rfl) dq)
+
+instance kd.core.TypedObjectReference.own_timeless (v : _root_.Perennial.k8s_io.api.core.v1.TypedObjectReference) (dq : DFrac) (d : kd.core.TypedObjectReference) :
+    Timeless (kd.core.TypedObjectReference.own (GF := GF) v dq d) := by
+  unfold kd.core.TypedObjectReference.own; infer_instance
+
+instance kd.core.TypedObjectReference.own_persistent (v : _root_.Perennial.k8s_io.api.core.v1.TypedObjectReference) (d : kd.core.TypedObjectReference) :
+    Persistent (kd.core.TypedObjectReference.own (GF := GF) v DFrac.discard d) := by
+  unfold kd.core.TypedObjectReference.own; infer_instance
+
+/-- A `TypedObjectReference` owned at any fraction can be made read-only. -/
+instance kd.core.TypedObjectReference.own_deepPersist : DeepPersist (GF := GF) kd.core.TypedObjectReference.own where
+  persist := by
+    intro v dq d
+    unfold kd.core.TypedObjectReference.own
+    iintro ⟨H0, H1, H2, H3⟩
+    imod (DeepPersist.persist (GF := GF) (inner := (ownPtrD (V := GoString) ownBaseD)) _ _ _) $$ H0 with H0
+    imod (DeepPersist.persist (GF := GF) (inner := (ownPtrD (V := GoString) ownBaseD)) _ _ _) $$ H3 with H3
+    imodintro
+    iframe
 
 /-- The deep ownership of a `PersistentVolumeClaimSpec` value with deep value `d`. -/
 def kd.core.PersistentVolumeClaimSpec.own (v : _root_.Perennial.k8s_io.api.core.v1.PersistentVolumeClaimSpec) (dq : DFrac) (d : kd.core.PersistentVolumeClaimSpec) : IProp GF :=
@@ -4194,6 +5094,31 @@ theorem kd.core.PersistentVolumeClaimSpec.own_zero_of (v : _root_.Perennial.k8s_
   · iapply (ownPtrD_none_of _ _ (by rfl) dq)
   iapply (ownPtrD_none_of _ _ (by rfl) dq)
 
+instance kd.core.PersistentVolumeClaimSpec.own_timeless (v : _root_.Perennial.k8s_io.api.core.v1.PersistentVolumeClaimSpec) (dq : DFrac) (d : kd.core.PersistentVolumeClaimSpec) :
+    Timeless (kd.core.PersistentVolumeClaimSpec.own (GF := GF) v dq d) := by
+  unfold kd.core.PersistentVolumeClaimSpec.own; infer_instance
+
+instance kd.core.PersistentVolumeClaimSpec.own_persistent (v : _root_.Perennial.k8s_io.api.core.v1.PersistentVolumeClaimSpec) (d : kd.core.PersistentVolumeClaimSpec) :
+    Persistent (kd.core.PersistentVolumeClaimSpec.own (GF := GF) v DFrac.discard d) := by
+  unfold kd.core.PersistentVolumeClaimSpec.own; infer_instance
+
+/-- A `PersistentVolumeClaimSpec` owned at any fraction can be made read-only. -/
+instance kd.core.PersistentVolumeClaimSpec.own_deepPersist : DeepPersist (GF := GF) kd.core.PersistentVolumeClaimSpec.own where
+  persist := by
+    intro v dq d
+    unfold kd.core.PersistentVolumeClaimSpec.own
+    iintro ⟨H0, H1, H2, H3, H4, H5, H6, H7, H8⟩
+    imod (DeepPersist.persist (GF := GF) (inner := (ownSliceD (V := _root_.Perennial.k8s_io.api.core.v1.PersistentVolumeAccessMode) ownBaseD)) _ _ _) $$ H0 with H0
+    imod (DeepPersist.persist (GF := GF) (inner := (ownPtrD (V := _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.LabelSelector) kd.meta.LabelSelector.own)) _ _ _) $$ H1 with H1
+    imod (DeepPersist.persist (GF := GF) (inner := kd.core.VolumeResourceRequirements.own) _ _ _) $$ H2 with H2
+    imod (DeepPersist.persist (GF := GF) (inner := (ownPtrD (V := GoString) ownBaseD)) _ _ _) $$ H4 with H4
+    imod (DeepPersist.persist (GF := GF) (inner := (ownPtrD (V := _root_.Perennial.k8s_io.api.core.v1.PersistentVolumeMode) ownBaseD)) _ _ _) $$ H5 with H5
+    imod (DeepPersist.persist (GF := GF) (inner := (ownPtrD (V := _root_.Perennial.k8s_io.api.core.v1.TypedLocalObjectReference) kd.core.TypedLocalObjectReference.own)) _ _ _) $$ H6 with H6
+    imod (DeepPersist.persist (GF := GF) (inner := (ownPtrD (V := _root_.Perennial.k8s_io.api.core.v1.TypedObjectReference) kd.core.TypedObjectReference.own)) _ _ _) $$ H7 with H7
+    imod (DeepPersist.persist (GF := GF) (inner := (ownPtrD (V := GoString) ownBaseD)) _ _ _) $$ H8 with H8
+    imodintro
+    iframe
+
 /-- The deep ownership of a `PersistentVolumeClaimTemplate` value with deep value `d`. -/
 def kd.core.PersistentVolumeClaimTemplate.own (v : _root_.Perennial.k8s_io.api.core.v1.PersistentVolumeClaimTemplate) (dq : DFrac) (d : kd.core.PersistentVolumeClaimTemplate) : IProp GF :=
   iprop("ObjectMeta" ∷ kd.meta.ObjectMeta.own v.ObjectMeta' dq d.ObjectMeta' ∗
@@ -4209,6 +5134,25 @@ theorem kd.core.PersistentVolumeClaimTemplate.own_zero_of (v : _root_.Perennial.
   · iapply (kd.meta.ObjectMeta.own_zero_of _ (by rfl) dq)
   iapply (kd.core.PersistentVolumeClaimSpec.own_zero_of _ (by rfl) dq)
 
+instance kd.core.PersistentVolumeClaimTemplate.own_timeless (v : _root_.Perennial.k8s_io.api.core.v1.PersistentVolumeClaimTemplate) (dq : DFrac) (d : kd.core.PersistentVolumeClaimTemplate) :
+    Timeless (kd.core.PersistentVolumeClaimTemplate.own (GF := GF) v dq d) := by
+  unfold kd.core.PersistentVolumeClaimTemplate.own; infer_instance
+
+instance kd.core.PersistentVolumeClaimTemplate.own_persistent (v : _root_.Perennial.k8s_io.api.core.v1.PersistentVolumeClaimTemplate) (d : kd.core.PersistentVolumeClaimTemplate) :
+    Persistent (kd.core.PersistentVolumeClaimTemplate.own (GF := GF) v DFrac.discard d) := by
+  unfold kd.core.PersistentVolumeClaimTemplate.own; infer_instance
+
+/-- A `PersistentVolumeClaimTemplate` owned at any fraction can be made read-only. -/
+instance kd.core.PersistentVolumeClaimTemplate.own_deepPersist : DeepPersist (GF := GF) kd.core.PersistentVolumeClaimTemplate.own where
+  persist := by
+    intro v dq d
+    unfold kd.core.PersistentVolumeClaimTemplate.own
+    iintro ⟨H0, H1⟩
+    imod (DeepPersist.persist (GF := GF) (inner := kd.meta.ObjectMeta.own) _ _ _) $$ H0 with H0
+    imod (DeepPersist.persist (GF := GF) (inner := kd.core.PersistentVolumeClaimSpec.own) _ _ _) $$ H1 with H1
+    imodintro
+    iframe
+
 /-- The deep ownership of a `EphemeralVolumeSource` value with deep value `d`. -/
 def kd.core.EphemeralVolumeSource.own (v : _root_.Perennial.k8s_io.api.core.v1.EphemeralVolumeSource) (dq : DFrac) (d : kd.core.EphemeralVolumeSource) : IProp GF :=
   iprop("VolumeClaimTemplate" ∷ (ownPtrD (V := _root_.Perennial.k8s_io.api.core.v1.PersistentVolumeClaimTemplate) kd.core.PersistentVolumeClaimTemplate.own) v.VolumeClaimTemplate' dq d.VolumeClaimTemplate')
@@ -4220,6 +5164,24 @@ theorem kd.core.EphemeralVolumeSource.own_zero_of (v : _root_.Perennial.k8s_io.a
   unfold kd.core.EphemeralVolumeSource.own
   try unfold kd.core.EphemeralVolumeSource.zero
   iapply (ownPtrD_none_of _ _ (by rfl) dq)
+
+instance kd.core.EphemeralVolumeSource.own_timeless (v : _root_.Perennial.k8s_io.api.core.v1.EphemeralVolumeSource) (dq : DFrac) (d : kd.core.EphemeralVolumeSource) :
+    Timeless (kd.core.EphemeralVolumeSource.own (GF := GF) v dq d) := by
+  unfold kd.core.EphemeralVolumeSource.own; infer_instance
+
+instance kd.core.EphemeralVolumeSource.own_persistent (v : _root_.Perennial.k8s_io.api.core.v1.EphemeralVolumeSource) (d : kd.core.EphemeralVolumeSource) :
+    Persistent (kd.core.EphemeralVolumeSource.own (GF := GF) v DFrac.discard d) := by
+  unfold kd.core.EphemeralVolumeSource.own; infer_instance
+
+/-- A `EphemeralVolumeSource` owned at any fraction can be made read-only. -/
+instance kd.core.EphemeralVolumeSource.own_deepPersist : DeepPersist (GF := GF) kd.core.EphemeralVolumeSource.own where
+  persist := by
+    intro v dq d
+    unfold kd.core.EphemeralVolumeSource.own
+    iintro H0
+    imod (DeepPersist.persist (GF := GF) (inner := (ownPtrD (V := _root_.Perennial.k8s_io.api.core.v1.PersistentVolumeClaimTemplate) kd.core.PersistentVolumeClaimTemplate.own)) _ _ _) $$ H0 with H0
+    imodintro
+    iframe
 
 /-- The deep ownership of a `ImageVolumeSource` value with deep value `d`. -/
 def kd.core.ImageVolumeSource.own (v : _root_.Perennial.k8s_io.api.core.v1.ImageVolumeSource) (dq : DFrac) (d : kd.core.ImageVolumeSource) : IProp GF :=
@@ -4235,6 +5197,23 @@ theorem kd.core.ImageVolumeSource.own_zero_of (v : _root_.Perennial.k8s_io.api.c
   isplitr
   · ipureintro; rfl
   ipureintro; rfl
+
+instance kd.core.ImageVolumeSource.own_timeless (v : _root_.Perennial.k8s_io.api.core.v1.ImageVolumeSource) (dq : DFrac) (d : kd.core.ImageVolumeSource) :
+    Timeless (kd.core.ImageVolumeSource.own (GF := GF) v dq d) := by
+  unfold kd.core.ImageVolumeSource.own; infer_instance
+
+instance kd.core.ImageVolumeSource.own_persistent (v : _root_.Perennial.k8s_io.api.core.v1.ImageVolumeSource) (d : kd.core.ImageVolumeSource) :
+    Persistent (kd.core.ImageVolumeSource.own (GF := GF) v DFrac.discard d) := by
+  unfold kd.core.ImageVolumeSource.own; infer_instance
+
+/-- A `ImageVolumeSource` owned at any fraction can be made read-only. -/
+instance kd.core.ImageVolumeSource.own_deepPersist : DeepPersist (GF := GF) kd.core.ImageVolumeSource.own where
+  persist := by
+    intro v dq d
+    unfold kd.core.ImageVolumeSource.own
+    iintro ⟨H0, H1⟩
+    imodintro
+    iframe
 
 /-- The deep ownership of a `VolumeSource` value with deep value `d`. -/
 def kd.core.VolumeSource.own (v : _root_.Perennial.k8s_io.api.core.v1.VolumeSource) (dq : DFrac) (d : kd.core.VolumeSource) : IProp GF :=
@@ -4335,6 +5314,53 @@ theorem kd.core.VolumeSource.own_zero_of (v : _root_.Perennial.k8s_io.api.core.v
   · iapply (ownPtrD_none_of _ _ (by rfl) dq)
   iapply (ownPtrD_none_of _ _ (by rfl) dq)
 
+instance kd.core.VolumeSource.own_timeless (v : _root_.Perennial.k8s_io.api.core.v1.VolumeSource) (dq : DFrac) (d : kd.core.VolumeSource) :
+    Timeless (kd.core.VolumeSource.own (GF := GF) v dq d) := by
+  unfold kd.core.VolumeSource.own; infer_instance
+
+instance kd.core.VolumeSource.own_persistent (v : _root_.Perennial.k8s_io.api.core.v1.VolumeSource) (d : kd.core.VolumeSource) :
+    Persistent (kd.core.VolumeSource.own (GF := GF) v DFrac.discard d) := by
+  unfold kd.core.VolumeSource.own; infer_instance
+
+/-- A `VolumeSource` owned at any fraction can be made read-only. -/
+instance kd.core.VolumeSource.own_deepPersist : DeepPersist (GF := GF) kd.core.VolumeSource.own where
+  persist := by
+    intro v dq d
+    unfold kd.core.VolumeSource.own
+    iintro ⟨H0, H1, H2, H3, H4, H5, H6, H7, H8, H9, H10, H11, H12, H13, H14, H15, H16, H17, H18, H19, H20, H21, H22, H23, H24, H25, H26, H27, H28, H29⟩
+    imod (DeepPersist.persist (GF := GF) (inner := (ownPtrD (V := _root_.Perennial.k8s_io.api.core.v1.HostPathVolumeSource) kd.core.HostPathVolumeSource.own)) _ _ _) $$ H0 with H0
+    imod (DeepPersist.persist (GF := GF) (inner := (ownPtrD (V := _root_.Perennial.k8s_io.api.core.v1.EmptyDirVolumeSource) kd.core.EmptyDirVolumeSource.own)) _ _ _) $$ H1 with H1
+    imod (DeepPersist.persist (GF := GF) (inner := (ownPtrD (V := _root_.Perennial.k8s_io.api.core.v1.GCEPersistentDiskVolumeSource) kd.core.GCEPersistentDiskVolumeSource.own)) _ _ _) $$ H2 with H2
+    imod (DeepPersist.persist (GF := GF) (inner := (ownPtrD (V := _root_.Perennial.k8s_io.api.core.v1.AWSElasticBlockStoreVolumeSource) kd.core.AWSElasticBlockStoreVolumeSource.own)) _ _ _) $$ H3 with H3
+    imod (DeepPersist.persist (GF := GF) (inner := (ownPtrD (V := _root_.Perennial.k8s_io.api.core.v1.GitRepoVolumeSource) kd.core.GitRepoVolumeSource.own)) _ _ _) $$ H4 with H4
+    imod (DeepPersist.persist (GF := GF) (inner := (ownPtrD (V := _root_.Perennial.k8s_io.api.core.v1.SecretVolumeSource) kd.core.SecretVolumeSource.own)) _ _ _) $$ H5 with H5
+    imod (DeepPersist.persist (GF := GF) (inner := (ownPtrD (V := _root_.Perennial.k8s_io.api.core.v1.NFSVolumeSource) kd.core.NFSVolumeSource.own)) _ _ _) $$ H6 with H6
+    imod (DeepPersist.persist (GF := GF) (inner := (ownPtrD (V := _root_.Perennial.k8s_io.api.core.v1.ISCSIVolumeSource) kd.core.ISCSIVolumeSource.own)) _ _ _) $$ H7 with H7
+    imod (DeepPersist.persist (GF := GF) (inner := (ownPtrD (V := _root_.Perennial.k8s_io.api.core.v1.GlusterfsVolumeSource) kd.core.GlusterfsVolumeSource.own)) _ _ _) $$ H8 with H8
+    imod (DeepPersist.persist (GF := GF) (inner := (ownPtrD (V := _root_.Perennial.k8s_io.api.core.v1.PersistentVolumeClaimVolumeSource) kd.core.PersistentVolumeClaimVolumeSource.own)) _ _ _) $$ H9 with H9
+    imod (DeepPersist.persist (GF := GF) (inner := (ownPtrD (V := _root_.Perennial.k8s_io.api.core.v1.RBDVolumeSource) kd.core.RBDVolumeSource.own)) _ _ _) $$ H10 with H10
+    imod (DeepPersist.persist (GF := GF) (inner := (ownPtrD (V := _root_.Perennial.k8s_io.api.core.v1.FlexVolumeSource) kd.core.FlexVolumeSource.own)) _ _ _) $$ H11 with H11
+    imod (DeepPersist.persist (GF := GF) (inner := (ownPtrD (V := _root_.Perennial.k8s_io.api.core.v1.CinderVolumeSource) kd.core.CinderVolumeSource.own)) _ _ _) $$ H12 with H12
+    imod (DeepPersist.persist (GF := GF) (inner := (ownPtrD (V := _root_.Perennial.k8s_io.api.core.v1.CephFSVolumeSource) kd.core.CephFSVolumeSource.own)) _ _ _) $$ H13 with H13
+    imod (DeepPersist.persist (GF := GF) (inner := (ownPtrD (V := _root_.Perennial.k8s_io.api.core.v1.FlockerVolumeSource) kd.core.FlockerVolumeSource.own)) _ _ _) $$ H14 with H14
+    imod (DeepPersist.persist (GF := GF) (inner := (ownPtrD (V := _root_.Perennial.k8s_io.api.core.v1.DownwardAPIVolumeSource) kd.core.DownwardAPIVolumeSource.own)) _ _ _) $$ H15 with H15
+    imod (DeepPersist.persist (GF := GF) (inner := (ownPtrD (V := _root_.Perennial.k8s_io.api.core.v1.FCVolumeSource) kd.core.FCVolumeSource.own)) _ _ _) $$ H16 with H16
+    imod (DeepPersist.persist (GF := GF) (inner := (ownPtrD (V := _root_.Perennial.k8s_io.api.core.v1.AzureFileVolumeSource) kd.core.AzureFileVolumeSource.own)) _ _ _) $$ H17 with H17
+    imod (DeepPersist.persist (GF := GF) (inner := (ownPtrD (V := _root_.Perennial.k8s_io.api.core.v1.ConfigMapVolumeSource) kd.core.ConfigMapVolumeSource.own)) _ _ _) $$ H18 with H18
+    imod (DeepPersist.persist (GF := GF) (inner := (ownPtrD (V := _root_.Perennial.k8s_io.api.core.v1.VsphereVirtualDiskVolumeSource) kd.core.VsphereVirtualDiskVolumeSource.own)) _ _ _) $$ H19 with H19
+    imod (DeepPersist.persist (GF := GF) (inner := (ownPtrD (V := _root_.Perennial.k8s_io.api.core.v1.QuobyteVolumeSource) kd.core.QuobyteVolumeSource.own)) _ _ _) $$ H20 with H20
+    imod (DeepPersist.persist (GF := GF) (inner := (ownPtrD (V := _root_.Perennial.k8s_io.api.core.v1.AzureDiskVolumeSource) kd.core.AzureDiskVolumeSource.own)) _ _ _) $$ H21 with H21
+    imod (DeepPersist.persist (GF := GF) (inner := (ownPtrD (V := _root_.Perennial.k8s_io.api.core.v1.PhotonPersistentDiskVolumeSource) kd.core.PhotonPersistentDiskVolumeSource.own)) _ _ _) $$ H22 with H22
+    imod (DeepPersist.persist (GF := GF) (inner := (ownPtrD (V := _root_.Perennial.k8s_io.api.core.v1.ProjectedVolumeSource) kd.core.ProjectedVolumeSource.own)) _ _ _) $$ H23 with H23
+    imod (DeepPersist.persist (GF := GF) (inner := (ownPtrD (V := _root_.Perennial.k8s_io.api.core.v1.PortworxVolumeSource) kd.core.PortworxVolumeSource.own)) _ _ _) $$ H24 with H24
+    imod (DeepPersist.persist (GF := GF) (inner := (ownPtrD (V := _root_.Perennial.k8s_io.api.core.v1.ScaleIOVolumeSource) kd.core.ScaleIOVolumeSource.own)) _ _ _) $$ H25 with H25
+    imod (DeepPersist.persist (GF := GF) (inner := (ownPtrD (V := _root_.Perennial.k8s_io.api.core.v1.StorageOSVolumeSource) kd.core.StorageOSVolumeSource.own)) _ _ _) $$ H26 with H26
+    imod (DeepPersist.persist (GF := GF) (inner := (ownPtrD (V := _root_.Perennial.k8s_io.api.core.v1.CSIVolumeSource) kd.core.CSIVolumeSource.own)) _ _ _) $$ H27 with H27
+    imod (DeepPersist.persist (GF := GF) (inner := (ownPtrD (V := _root_.Perennial.k8s_io.api.core.v1.EphemeralVolumeSource) kd.core.EphemeralVolumeSource.own)) _ _ _) $$ H28 with H28
+    imod (DeepPersist.persist (GF := GF) (inner := (ownPtrD (V := _root_.Perennial.k8s_io.api.core.v1.ImageVolumeSource) kd.core.ImageVolumeSource.own)) _ _ _) $$ H29 with H29
+    imodintro
+    iframe
+
 /-- The deep ownership of a `Volume` value with deep value `d`. -/
 def kd.core.Volume.own (v : _root_.Perennial.k8s_io.api.core.v1.Volume) (dq : DFrac) (d : kd.core.Volume) : IProp GF :=
   iprop("Name" ∷ ⌜v.Name' = d.Name'⌝ ∗
@@ -4349,6 +5375,24 @@ theorem kd.core.Volume.own_zero_of (v : _root_.Perennial.k8s_io.api.core.v1.Volu
   isplitr
   · ipureintro; rfl
   iapply (kd.core.VolumeSource.own_zero_of _ (by rfl) dq)
+
+instance kd.core.Volume.own_timeless (v : _root_.Perennial.k8s_io.api.core.v1.Volume) (dq : DFrac) (d : kd.core.Volume) :
+    Timeless (kd.core.Volume.own (GF := GF) v dq d) := by
+  unfold kd.core.Volume.own; infer_instance
+
+instance kd.core.Volume.own_persistent (v : _root_.Perennial.k8s_io.api.core.v1.Volume) (d : kd.core.Volume) :
+    Persistent (kd.core.Volume.own (GF := GF) v DFrac.discard d) := by
+  unfold kd.core.Volume.own; infer_instance
+
+/-- A `Volume` owned at any fraction can be made read-only. -/
+instance kd.core.Volume.own_deepPersist : DeepPersist (GF := GF) kd.core.Volume.own where
+  persist := by
+    intro v dq d
+    unfold kd.core.Volume.own
+    iintro ⟨H0, H1⟩
+    imod (DeepPersist.persist (GF := GF) (inner := kd.core.VolumeSource.own) _ _ _) $$ H1 with H1
+    imodintro
+    iframe
 
 /-- The deep ownership of a `ContainerPort` value with deep value `d`. -/
 def kd.core.ContainerPort.own (v : _root_.Perennial.k8s_io.api.core.v1.ContainerPort) (dq : DFrac) (d : kd.core.ContainerPort) : IProp GF :=
@@ -4374,6 +5418,23 @@ theorem kd.core.ContainerPort.own_zero_of (v : _root_.Perennial.k8s_io.api.core.
   · ipureintro; rfl
   ipureintro; rfl
 
+instance kd.core.ContainerPort.own_timeless (v : _root_.Perennial.k8s_io.api.core.v1.ContainerPort) (dq : DFrac) (d : kd.core.ContainerPort) :
+    Timeless (kd.core.ContainerPort.own (GF := GF) v dq d) := by
+  unfold kd.core.ContainerPort.own; infer_instance
+
+instance kd.core.ContainerPort.own_persistent (v : _root_.Perennial.k8s_io.api.core.v1.ContainerPort) (d : kd.core.ContainerPort) :
+    Persistent (kd.core.ContainerPort.own (GF := GF) v DFrac.discard d) := by
+  unfold kd.core.ContainerPort.own; infer_instance
+
+/-- A `ContainerPort` owned at any fraction can be made read-only. -/
+instance kd.core.ContainerPort.own_deepPersist : DeepPersist (GF := GF) kd.core.ContainerPort.own where
+  persist := by
+    intro v dq d
+    unfold kd.core.ContainerPort.own
+    iintro ⟨H0, H1, H2, H3, H4⟩
+    imodintro
+    iframe
+
 /-- The deep ownership of a `ConfigMapEnvSource` value with deep value `d`. -/
 def kd.core.ConfigMapEnvSource.own (v : _root_.Perennial.k8s_io.api.core.v1.ConfigMapEnvSource) (dq : DFrac) (d : kd.core.ConfigMapEnvSource) : IProp GF :=
   iprop("LocalObjectReference" ∷ kd.core.LocalObjectReference.own v.LocalObjectReference' dq d.LocalObjectReference' ∗
@@ -4389,6 +5450,25 @@ theorem kd.core.ConfigMapEnvSource.own_zero_of (v : _root_.Perennial.k8s_io.api.
   · iapply (kd.core.LocalObjectReference.own_zero_of _ (by rfl) dq)
   iapply (ownPtrD_none_of _ _ (by rfl) dq)
 
+instance kd.core.ConfigMapEnvSource.own_timeless (v : _root_.Perennial.k8s_io.api.core.v1.ConfigMapEnvSource) (dq : DFrac) (d : kd.core.ConfigMapEnvSource) :
+    Timeless (kd.core.ConfigMapEnvSource.own (GF := GF) v dq d) := by
+  unfold kd.core.ConfigMapEnvSource.own; infer_instance
+
+instance kd.core.ConfigMapEnvSource.own_persistent (v : _root_.Perennial.k8s_io.api.core.v1.ConfigMapEnvSource) (d : kd.core.ConfigMapEnvSource) :
+    Persistent (kd.core.ConfigMapEnvSource.own (GF := GF) v DFrac.discard d) := by
+  unfold kd.core.ConfigMapEnvSource.own; infer_instance
+
+/-- A `ConfigMapEnvSource` owned at any fraction can be made read-only. -/
+instance kd.core.ConfigMapEnvSource.own_deepPersist : DeepPersist (GF := GF) kd.core.ConfigMapEnvSource.own where
+  persist := by
+    intro v dq d
+    unfold kd.core.ConfigMapEnvSource.own
+    iintro ⟨H0, H1⟩
+    imod (DeepPersist.persist (GF := GF) (inner := kd.core.LocalObjectReference.own) _ _ _) $$ H0 with H0
+    imod (DeepPersist.persist (GF := GF) (inner := (ownPtrD (V := Bool) ownBaseD)) _ _ _) $$ H1 with H1
+    imodintro
+    iframe
+
 /-- The deep ownership of a `SecretEnvSource` value with deep value `d`. -/
 def kd.core.SecretEnvSource.own (v : _root_.Perennial.k8s_io.api.core.v1.SecretEnvSource) (dq : DFrac) (d : kd.core.SecretEnvSource) : IProp GF :=
   iprop("LocalObjectReference" ∷ kd.core.LocalObjectReference.own v.LocalObjectReference' dq d.LocalObjectReference' ∗
@@ -4403,6 +5483,25 @@ theorem kd.core.SecretEnvSource.own_zero_of (v : _root_.Perennial.k8s_io.api.cor
   isplitr
   · iapply (kd.core.LocalObjectReference.own_zero_of _ (by rfl) dq)
   iapply (ownPtrD_none_of _ _ (by rfl) dq)
+
+instance kd.core.SecretEnvSource.own_timeless (v : _root_.Perennial.k8s_io.api.core.v1.SecretEnvSource) (dq : DFrac) (d : kd.core.SecretEnvSource) :
+    Timeless (kd.core.SecretEnvSource.own (GF := GF) v dq d) := by
+  unfold kd.core.SecretEnvSource.own; infer_instance
+
+instance kd.core.SecretEnvSource.own_persistent (v : _root_.Perennial.k8s_io.api.core.v1.SecretEnvSource) (d : kd.core.SecretEnvSource) :
+    Persistent (kd.core.SecretEnvSource.own (GF := GF) v DFrac.discard d) := by
+  unfold kd.core.SecretEnvSource.own; infer_instance
+
+/-- A `SecretEnvSource` owned at any fraction can be made read-only. -/
+instance kd.core.SecretEnvSource.own_deepPersist : DeepPersist (GF := GF) kd.core.SecretEnvSource.own where
+  persist := by
+    intro v dq d
+    unfold kd.core.SecretEnvSource.own
+    iintro ⟨H0, H1⟩
+    imod (DeepPersist.persist (GF := GF) (inner := kd.core.LocalObjectReference.own) _ _ _) $$ H0 with H0
+    imod (DeepPersist.persist (GF := GF) (inner := (ownPtrD (V := Bool) ownBaseD)) _ _ _) $$ H1 with H1
+    imodintro
+    iframe
 
 /-- The deep ownership of a `EnvFromSource` value with deep value `d`. -/
 def kd.core.EnvFromSource.own (v : _root_.Perennial.k8s_io.api.core.v1.EnvFromSource) (dq : DFrac) (d : kd.core.EnvFromSource) : IProp GF :=
@@ -4422,6 +5521,25 @@ theorem kd.core.EnvFromSource.own_zero_of (v : _root_.Perennial.k8s_io.api.core.
   · iapply (ownPtrD_none_of _ _ (by rfl) dq)
   iapply (ownPtrD_none_of _ _ (by rfl) dq)
 
+instance kd.core.EnvFromSource.own_timeless (v : _root_.Perennial.k8s_io.api.core.v1.EnvFromSource) (dq : DFrac) (d : kd.core.EnvFromSource) :
+    Timeless (kd.core.EnvFromSource.own (GF := GF) v dq d) := by
+  unfold kd.core.EnvFromSource.own; infer_instance
+
+instance kd.core.EnvFromSource.own_persistent (v : _root_.Perennial.k8s_io.api.core.v1.EnvFromSource) (d : kd.core.EnvFromSource) :
+    Persistent (kd.core.EnvFromSource.own (GF := GF) v DFrac.discard d) := by
+  unfold kd.core.EnvFromSource.own; infer_instance
+
+/-- A `EnvFromSource` owned at any fraction can be made read-only. -/
+instance kd.core.EnvFromSource.own_deepPersist : DeepPersist (GF := GF) kd.core.EnvFromSource.own where
+  persist := by
+    intro v dq d
+    unfold kd.core.EnvFromSource.own
+    iintro ⟨H0, H1, H2⟩
+    imod (DeepPersist.persist (GF := GF) (inner := (ownPtrD (V := _root_.Perennial.k8s_io.api.core.v1.ConfigMapEnvSource) kd.core.ConfigMapEnvSource.own)) _ _ _) $$ H1 with H1
+    imod (DeepPersist.persist (GF := GF) (inner := (ownPtrD (V := _root_.Perennial.k8s_io.api.core.v1.SecretEnvSource) kd.core.SecretEnvSource.own)) _ _ _) $$ H2 with H2
+    imodintro
+    iframe
+
 /-- The deep ownership of a `ConfigMapKeySelector` value with deep value `d`. -/
 def kd.core.ConfigMapKeySelector.own (v : _root_.Perennial.k8s_io.api.core.v1.ConfigMapKeySelector) (dq : DFrac) (d : kd.core.ConfigMapKeySelector) : IProp GF :=
   iprop("LocalObjectReference" ∷ kd.core.LocalObjectReference.own v.LocalObjectReference' dq d.LocalObjectReference' ∗
@@ -4440,6 +5558,25 @@ theorem kd.core.ConfigMapKeySelector.own_zero_of (v : _root_.Perennial.k8s_io.ap
   · ipureintro; rfl
   iapply (ownPtrD_none_of _ _ (by rfl) dq)
 
+instance kd.core.ConfigMapKeySelector.own_timeless (v : _root_.Perennial.k8s_io.api.core.v1.ConfigMapKeySelector) (dq : DFrac) (d : kd.core.ConfigMapKeySelector) :
+    Timeless (kd.core.ConfigMapKeySelector.own (GF := GF) v dq d) := by
+  unfold kd.core.ConfigMapKeySelector.own; infer_instance
+
+instance kd.core.ConfigMapKeySelector.own_persistent (v : _root_.Perennial.k8s_io.api.core.v1.ConfigMapKeySelector) (d : kd.core.ConfigMapKeySelector) :
+    Persistent (kd.core.ConfigMapKeySelector.own (GF := GF) v DFrac.discard d) := by
+  unfold kd.core.ConfigMapKeySelector.own; infer_instance
+
+/-- A `ConfigMapKeySelector` owned at any fraction can be made read-only. -/
+instance kd.core.ConfigMapKeySelector.own_deepPersist : DeepPersist (GF := GF) kd.core.ConfigMapKeySelector.own where
+  persist := by
+    intro v dq d
+    unfold kd.core.ConfigMapKeySelector.own
+    iintro ⟨H0, H1, H2⟩
+    imod (DeepPersist.persist (GF := GF) (inner := kd.core.LocalObjectReference.own) _ _ _) $$ H0 with H0
+    imod (DeepPersist.persist (GF := GF) (inner := (ownPtrD (V := Bool) ownBaseD)) _ _ _) $$ H2 with H2
+    imodintro
+    iframe
+
 /-- The deep ownership of a `SecretKeySelector` value with deep value `d`. -/
 def kd.core.SecretKeySelector.own (v : _root_.Perennial.k8s_io.api.core.v1.SecretKeySelector) (dq : DFrac) (d : kd.core.SecretKeySelector) : IProp GF :=
   iprop("LocalObjectReference" ∷ kd.core.LocalObjectReference.own v.LocalObjectReference' dq d.LocalObjectReference' ∗
@@ -4457,6 +5594,25 @@ theorem kd.core.SecretKeySelector.own_zero_of (v : _root_.Perennial.k8s_io.api.c
   isplitr
   · ipureintro; rfl
   iapply (ownPtrD_none_of _ _ (by rfl) dq)
+
+instance kd.core.SecretKeySelector.own_timeless (v : _root_.Perennial.k8s_io.api.core.v1.SecretKeySelector) (dq : DFrac) (d : kd.core.SecretKeySelector) :
+    Timeless (kd.core.SecretKeySelector.own (GF := GF) v dq d) := by
+  unfold kd.core.SecretKeySelector.own; infer_instance
+
+instance kd.core.SecretKeySelector.own_persistent (v : _root_.Perennial.k8s_io.api.core.v1.SecretKeySelector) (d : kd.core.SecretKeySelector) :
+    Persistent (kd.core.SecretKeySelector.own (GF := GF) v DFrac.discard d) := by
+  unfold kd.core.SecretKeySelector.own; infer_instance
+
+/-- A `SecretKeySelector` owned at any fraction can be made read-only. -/
+instance kd.core.SecretKeySelector.own_deepPersist : DeepPersist (GF := GF) kd.core.SecretKeySelector.own where
+  persist := by
+    intro v dq d
+    unfold kd.core.SecretKeySelector.own
+    iintro ⟨H0, H1, H2⟩
+    imod (DeepPersist.persist (GF := GF) (inner := kd.core.LocalObjectReference.own) _ _ _) $$ H0 with H0
+    imod (DeepPersist.persist (GF := GF) (inner := (ownPtrD (V := Bool) ownBaseD)) _ _ _) $$ H2 with H2
+    imodintro
+    iframe
 
 /-- The deep ownership of a `FileKeySelector` value with deep value `d`. -/
 def kd.core.FileKeySelector.own (v : _root_.Perennial.k8s_io.api.core.v1.FileKeySelector) (dq : DFrac) (d : kd.core.FileKeySelector) : IProp GF :=
@@ -4478,6 +5634,24 @@ theorem kd.core.FileKeySelector.own_zero_of (v : _root_.Perennial.k8s_io.api.cor
   isplitr
   · ipureintro; rfl
   iapply (ownPtrD_none_of _ _ (by rfl) dq)
+
+instance kd.core.FileKeySelector.own_timeless (v : _root_.Perennial.k8s_io.api.core.v1.FileKeySelector) (dq : DFrac) (d : kd.core.FileKeySelector) :
+    Timeless (kd.core.FileKeySelector.own (GF := GF) v dq d) := by
+  unfold kd.core.FileKeySelector.own; infer_instance
+
+instance kd.core.FileKeySelector.own_persistent (v : _root_.Perennial.k8s_io.api.core.v1.FileKeySelector) (d : kd.core.FileKeySelector) :
+    Persistent (kd.core.FileKeySelector.own (GF := GF) v DFrac.discard d) := by
+  unfold kd.core.FileKeySelector.own; infer_instance
+
+/-- A `FileKeySelector` owned at any fraction can be made read-only. -/
+instance kd.core.FileKeySelector.own_deepPersist : DeepPersist (GF := GF) kd.core.FileKeySelector.own where
+  persist := by
+    intro v dq d
+    unfold kd.core.FileKeySelector.own
+    iintro ⟨H0, H1, H2, H3⟩
+    imod (DeepPersist.persist (GF := GF) (inner := (ownPtrD (V := Bool) ownBaseD)) _ _ _) $$ H3 with H3
+    imodintro
+    iframe
 
 /-- The deep ownership of a `EnvVarSource` value with deep value `d`. -/
 def kd.core.EnvVarSource.own (v : _root_.Perennial.k8s_io.api.core.v1.EnvVarSource) (dq : DFrac) (d : kd.core.EnvVarSource) : IProp GF :=
@@ -4503,6 +5677,27 @@ theorem kd.core.EnvVarSource.own_zero_of (v : _root_.Perennial.k8s_io.api.core.v
   · iapply (ownPtrD_none_of _ _ (by rfl) dq)
   iapply (ownPtrD_none_of _ _ (by rfl) dq)
 
+instance kd.core.EnvVarSource.own_timeless (v : _root_.Perennial.k8s_io.api.core.v1.EnvVarSource) (dq : DFrac) (d : kd.core.EnvVarSource) :
+    Timeless (kd.core.EnvVarSource.own (GF := GF) v dq d) := by
+  unfold kd.core.EnvVarSource.own; infer_instance
+
+instance kd.core.EnvVarSource.own_persistent (v : _root_.Perennial.k8s_io.api.core.v1.EnvVarSource) (d : kd.core.EnvVarSource) :
+    Persistent (kd.core.EnvVarSource.own (GF := GF) v DFrac.discard d) := by
+  unfold kd.core.EnvVarSource.own; infer_instance
+
+/-- A `EnvVarSource` owned at any fraction can be made read-only. -/
+instance kd.core.EnvVarSource.own_deepPersist : DeepPersist (GF := GF) kd.core.EnvVarSource.own where
+  persist := by
+    intro v dq d
+    unfold kd.core.EnvVarSource.own
+    iintro ⟨H0, H1, H2, H3, H4⟩
+    imod (DeepPersist.persist (GF := GF) (inner := (ownPtrD (V := _root_.Perennial.k8s_io.api.core.v1.ObjectFieldSelector) kd.core.ObjectFieldSelector.own)) _ _ _) $$ H0 with H0
+    imod (DeepPersist.persist (GF := GF) (inner := (ownPtrD (V := _root_.Perennial.k8s_io.api.core.v1.ConfigMapKeySelector) kd.core.ConfigMapKeySelector.own)) _ _ _) $$ H2 with H2
+    imod (DeepPersist.persist (GF := GF) (inner := (ownPtrD (V := _root_.Perennial.k8s_io.api.core.v1.SecretKeySelector) kd.core.SecretKeySelector.own)) _ _ _) $$ H3 with H3
+    imod (DeepPersist.persist (GF := GF) (inner := (ownPtrD (V := _root_.Perennial.k8s_io.api.core.v1.FileKeySelector) kd.core.FileKeySelector.own)) _ _ _) $$ H4 with H4
+    imodintro
+    iframe
+
 /-- The deep ownership of a `EnvVar` value with deep value `d`. -/
 def kd.core.EnvVar.own (v : _root_.Perennial.k8s_io.api.core.v1.EnvVar) (dq : DFrac) (d : kd.core.EnvVar) : IProp GF :=
   iprop("Name" ∷ ⌜v.Name' = d.Name'⌝ ∗
@@ -4521,6 +5716,24 @@ theorem kd.core.EnvVar.own_zero_of (v : _root_.Perennial.k8s_io.api.core.v1.EnvV
   · ipureintro; rfl
   iapply (ownPtrD_none_of _ _ (by rfl) dq)
 
+instance kd.core.EnvVar.own_timeless (v : _root_.Perennial.k8s_io.api.core.v1.EnvVar) (dq : DFrac) (d : kd.core.EnvVar) :
+    Timeless (kd.core.EnvVar.own (GF := GF) v dq d) := by
+  unfold kd.core.EnvVar.own; infer_instance
+
+instance kd.core.EnvVar.own_persistent (v : _root_.Perennial.k8s_io.api.core.v1.EnvVar) (d : kd.core.EnvVar) :
+    Persistent (kd.core.EnvVar.own (GF := GF) v DFrac.discard d) := by
+  unfold kd.core.EnvVar.own; infer_instance
+
+/-- A `EnvVar` owned at any fraction can be made read-only. -/
+instance kd.core.EnvVar.own_deepPersist : DeepPersist (GF := GF) kd.core.EnvVar.own where
+  persist := by
+    intro v dq d
+    unfold kd.core.EnvVar.own
+    iintro ⟨H0, H1, H2⟩
+    imod (DeepPersist.persist (GF := GF) (inner := (ownPtrD (V := _root_.Perennial.k8s_io.api.core.v1.EnvVarSource) kd.core.EnvVarSource.own)) _ _ _) $$ H2 with H2
+    imodintro
+    iframe
+
 /-- The deep ownership of a `ResourceClaim` value with deep value `d`. -/
 def kd.core.ResourceClaim.own (v : _root_.Perennial.k8s_io.api.core.v1.ResourceClaim) (dq : DFrac) (d : kd.core.ResourceClaim) : IProp GF :=
   iprop("Name" ∷ ⌜v.Name' = d.Name'⌝ ∗
@@ -4535,6 +5748,23 @@ theorem kd.core.ResourceClaim.own_zero_of (v : _root_.Perennial.k8s_io.api.core.
   isplitr
   · ipureintro; rfl
   ipureintro; rfl
+
+instance kd.core.ResourceClaim.own_timeless (v : _root_.Perennial.k8s_io.api.core.v1.ResourceClaim) (dq : DFrac) (d : kd.core.ResourceClaim) :
+    Timeless (kd.core.ResourceClaim.own (GF := GF) v dq d) := by
+  unfold kd.core.ResourceClaim.own; infer_instance
+
+instance kd.core.ResourceClaim.own_persistent (v : _root_.Perennial.k8s_io.api.core.v1.ResourceClaim) (d : kd.core.ResourceClaim) :
+    Persistent (kd.core.ResourceClaim.own (GF := GF) v DFrac.discard d) := by
+  unfold kd.core.ResourceClaim.own; infer_instance
+
+/-- A `ResourceClaim` owned at any fraction can be made read-only. -/
+instance kd.core.ResourceClaim.own_deepPersist : DeepPersist (GF := GF) kd.core.ResourceClaim.own where
+  persist := by
+    intro v dq d
+    unfold kd.core.ResourceClaim.own
+    iintro ⟨H0, H1⟩
+    imodintro
+    iframe
 
 /-- The deep ownership of a `ResourceRequirements` value with deep value `d`. -/
 def kd.core.ResourceRequirements.own (v : _root_.Perennial.k8s_io.api.core.v1.ResourceRequirements) (dq : DFrac) (d : kd.core.ResourceRequirements) : IProp GF :=
@@ -4554,6 +5784,24 @@ theorem kd.core.ResourceRequirements.own_zero_of (v : _root_.Perennial.k8s_io.ap
   · iapply (ownNilMapD_of _ (by rfl))
   iapply (ownSliceD_nil_of _ _ (by rfl) dq)
 
+instance kd.core.ResourceRequirements.own_timeless (v : _root_.Perennial.k8s_io.api.core.v1.ResourceRequirements) (dq : DFrac) (d : kd.core.ResourceRequirements) :
+    Timeless (kd.core.ResourceRequirements.own (GF := GF) v dq d) := by
+  unfold kd.core.ResourceRequirements.own; infer_instance
+
+instance kd.core.ResourceRequirements.own_persistent (v : _root_.Perennial.k8s_io.api.core.v1.ResourceRequirements) (d : kd.core.ResourceRequirements) :
+    Persistent (kd.core.ResourceRequirements.own (GF := GF) v DFrac.discard d) := by
+  unfold kd.core.ResourceRequirements.own; infer_instance
+
+/-- A `ResourceRequirements` owned at any fraction can be made read-only. -/
+instance kd.core.ResourceRequirements.own_deepPersist : DeepPersist (GF := GF) kd.core.ResourceRequirements.own where
+  persist := by
+    intro v dq d
+    unfold kd.core.ResourceRequirements.own
+    iintro ⟨H0, H1, H2⟩
+    imod (DeepPersist.persist (GF := GF) (inner := (ownSliceD (V := _root_.Perennial.k8s_io.api.core.v1.ResourceClaim) kd.core.ResourceClaim.own)) _ _ _) $$ H2 with H2
+    imodintro
+    iframe
+
 /-- The deep ownership of a `ContainerResizePolicy` value with deep value `d`. -/
 def kd.core.ContainerResizePolicy.own (v : _root_.Perennial.k8s_io.api.core.v1.ContainerResizePolicy) (dq : DFrac) (d : kd.core.ContainerResizePolicy) : IProp GF :=
   iprop("ResourceName" ∷ ⌜v.ResourceName' = d.ResourceName'⌝ ∗
@@ -4568,6 +5816,23 @@ theorem kd.core.ContainerResizePolicy.own_zero_of (v : _root_.Perennial.k8s_io.a
   isplitr
   · ipureintro; rfl
   ipureintro; rfl
+
+instance kd.core.ContainerResizePolicy.own_timeless (v : _root_.Perennial.k8s_io.api.core.v1.ContainerResizePolicy) (dq : DFrac) (d : kd.core.ContainerResizePolicy) :
+    Timeless (kd.core.ContainerResizePolicy.own (GF := GF) v dq d) := by
+  unfold kd.core.ContainerResizePolicy.own; infer_instance
+
+instance kd.core.ContainerResizePolicy.own_persistent (v : _root_.Perennial.k8s_io.api.core.v1.ContainerResizePolicy) (d : kd.core.ContainerResizePolicy) :
+    Persistent (kd.core.ContainerResizePolicy.own (GF := GF) v DFrac.discard d) := by
+  unfold kd.core.ContainerResizePolicy.own; infer_instance
+
+/-- A `ContainerResizePolicy` owned at any fraction can be made read-only. -/
+instance kd.core.ContainerResizePolicy.own_deepPersist : DeepPersist (GF := GF) kd.core.ContainerResizePolicy.own where
+  persist := by
+    intro v dq d
+    unfold kd.core.ContainerResizePolicy.own
+    iintro ⟨H0, H1⟩
+    imodintro
+    iframe
 
 /-- The deep ownership of a `ContainerRestartRuleOnExitCodes` value with deep value `d`. -/
 def kd.core.ContainerRestartRuleOnExitCodes.own (v : _root_.Perennial.k8s_io.api.core.v1.ContainerRestartRuleOnExitCodes) (dq : DFrac) (d : kd.core.ContainerRestartRuleOnExitCodes) : IProp GF :=
@@ -4584,6 +5849,24 @@ theorem kd.core.ContainerRestartRuleOnExitCodes.own_zero_of (v : _root_.Perennia
   · ipureintro; rfl
   iapply (ownSliceD_nil_of _ _ (by rfl) dq)
 
+instance kd.core.ContainerRestartRuleOnExitCodes.own_timeless (v : _root_.Perennial.k8s_io.api.core.v1.ContainerRestartRuleOnExitCodes) (dq : DFrac) (d : kd.core.ContainerRestartRuleOnExitCodes) :
+    Timeless (kd.core.ContainerRestartRuleOnExitCodes.own (GF := GF) v dq d) := by
+  unfold kd.core.ContainerRestartRuleOnExitCodes.own; infer_instance
+
+instance kd.core.ContainerRestartRuleOnExitCodes.own_persistent (v : _root_.Perennial.k8s_io.api.core.v1.ContainerRestartRuleOnExitCodes) (d : kd.core.ContainerRestartRuleOnExitCodes) :
+    Persistent (kd.core.ContainerRestartRuleOnExitCodes.own (GF := GF) v DFrac.discard d) := by
+  unfold kd.core.ContainerRestartRuleOnExitCodes.own; infer_instance
+
+/-- A `ContainerRestartRuleOnExitCodes` owned at any fraction can be made read-only. -/
+instance kd.core.ContainerRestartRuleOnExitCodes.own_deepPersist : DeepPersist (GF := GF) kd.core.ContainerRestartRuleOnExitCodes.own where
+  persist := by
+    intro v dq d
+    unfold kd.core.ContainerRestartRuleOnExitCodes.own
+    iintro ⟨H0, H1⟩
+    imod (DeepPersist.persist (GF := GF) (inner := (ownSliceD (V := w32) ownBaseD)) _ _ _) $$ H1 with H1
+    imodintro
+    iframe
+
 /-- The deep ownership of a `ContainerRestartRule` value with deep value `d`. -/
 def kd.core.ContainerRestartRule.own (v : _root_.Perennial.k8s_io.api.core.v1.ContainerRestartRule) (dq : DFrac) (d : kd.core.ContainerRestartRule) : IProp GF :=
   iprop("Action" ∷ ⌜v.Action' = d.Action'⌝ ∗
@@ -4598,6 +5881,24 @@ theorem kd.core.ContainerRestartRule.own_zero_of (v : _root_.Perennial.k8s_io.ap
   isplitr
   · ipureintro; rfl
   iapply (ownPtrD_none_of _ _ (by rfl) dq)
+
+instance kd.core.ContainerRestartRule.own_timeless (v : _root_.Perennial.k8s_io.api.core.v1.ContainerRestartRule) (dq : DFrac) (d : kd.core.ContainerRestartRule) :
+    Timeless (kd.core.ContainerRestartRule.own (GF := GF) v dq d) := by
+  unfold kd.core.ContainerRestartRule.own; infer_instance
+
+instance kd.core.ContainerRestartRule.own_persistent (v : _root_.Perennial.k8s_io.api.core.v1.ContainerRestartRule) (d : kd.core.ContainerRestartRule) :
+    Persistent (kd.core.ContainerRestartRule.own (GF := GF) v DFrac.discard d) := by
+  unfold kd.core.ContainerRestartRule.own; infer_instance
+
+/-- A `ContainerRestartRule` owned at any fraction can be made read-only. -/
+instance kd.core.ContainerRestartRule.own_deepPersist : DeepPersist (GF := GF) kd.core.ContainerRestartRule.own where
+  persist := by
+    intro v dq d
+    unfold kd.core.ContainerRestartRule.own
+    iintro ⟨H0, H1⟩
+    imod (DeepPersist.persist (GF := GF) (inner := (ownPtrD (V := _root_.Perennial.k8s_io.api.core.v1.ContainerRestartRuleOnExitCodes) kd.core.ContainerRestartRuleOnExitCodes.own)) _ _ _) $$ H1 with H1
+    imodintro
+    iframe
 
 /-- The deep ownership of a `VolumeMount` value with deep value `d`. -/
 def kd.core.VolumeMount.own (v : _root_.Perennial.k8s_io.api.core.v1.VolumeMount) (dq : DFrac) (d : kd.core.VolumeMount) : IProp GF :=
@@ -4632,6 +5933,26 @@ theorem kd.core.VolumeMount.own_zero_of (v : _root_.Perennial.k8s_io.api.core.v1
   · ipureintro; rfl
   iapply (ownSliceD_nil_of _ _ (by rfl) dq)
 
+instance kd.core.VolumeMount.own_timeless (v : _root_.Perennial.k8s_io.api.core.v1.VolumeMount) (dq : DFrac) (d : kd.core.VolumeMount) :
+    Timeless (kd.core.VolumeMount.own (GF := GF) v dq d) := by
+  unfold kd.core.VolumeMount.own; infer_instance
+
+instance kd.core.VolumeMount.own_persistent (v : _root_.Perennial.k8s_io.api.core.v1.VolumeMount) (d : kd.core.VolumeMount) :
+    Persistent (kd.core.VolumeMount.own (GF := GF) v DFrac.discard d) := by
+  unfold kd.core.VolumeMount.own; infer_instance
+
+/-- A `VolumeMount` owned at any fraction can be made read-only. -/
+instance kd.core.VolumeMount.own_deepPersist : DeepPersist (GF := GF) kd.core.VolumeMount.own where
+  persist := by
+    intro v dq d
+    unfold kd.core.VolumeMount.own
+    iintro ⟨H0, H1, H2, H3, H4, H5, H6, H7⟩
+    imod (DeepPersist.persist (GF := GF) (inner := (ownPtrD (V := _root_.Perennial.k8s_io.api.core.v1.RecursiveReadOnlyMode) ownBaseD)) _ _ _) $$ H2 with H2
+    imod (DeepPersist.persist (GF := GF) (inner := (ownPtrD (V := _root_.Perennial.k8s_io.api.core.v1.MountPropagationMode) ownBaseD)) _ _ _) $$ H5 with H5
+    imod (DeepPersist.persist (GF := GF) (inner := (ownSliceD (V := GoString) ownBaseD)) _ _ _) $$ H7 with H7
+    imodintro
+    iframe
+
 /-- The deep ownership of a `VolumeDevice` value with deep value `d`. -/
 def kd.core.VolumeDevice.own (v : _root_.Perennial.k8s_io.api.core.v1.VolumeDevice) (dq : DFrac) (d : kd.core.VolumeDevice) : IProp GF :=
   iprop("Name" ∷ ⌜v.Name' = d.Name'⌝ ∗
@@ -4647,6 +5968,23 @@ theorem kd.core.VolumeDevice.own_zero_of (v : _root_.Perennial.k8s_io.api.core.v
   · ipureintro; rfl
   ipureintro; rfl
 
+instance kd.core.VolumeDevice.own_timeless (v : _root_.Perennial.k8s_io.api.core.v1.VolumeDevice) (dq : DFrac) (d : kd.core.VolumeDevice) :
+    Timeless (kd.core.VolumeDevice.own (GF := GF) v dq d) := by
+  unfold kd.core.VolumeDevice.own; infer_instance
+
+instance kd.core.VolumeDevice.own_persistent (v : _root_.Perennial.k8s_io.api.core.v1.VolumeDevice) (d : kd.core.VolumeDevice) :
+    Persistent (kd.core.VolumeDevice.own (GF := GF) v DFrac.discard d) := by
+  unfold kd.core.VolumeDevice.own; infer_instance
+
+/-- A `VolumeDevice` owned at any fraction can be made read-only. -/
+instance kd.core.VolumeDevice.own_deepPersist : DeepPersist (GF := GF) kd.core.VolumeDevice.own where
+  persist := by
+    intro v dq d
+    unfold kd.core.VolumeDevice.own
+    iintro ⟨H0, H1⟩
+    imodintro
+    iframe
+
 /-- The deep ownership of a `ExecAction` value with deep value `d`. -/
 def kd.core.ExecAction.own (v : _root_.Perennial.k8s_io.api.core.v1.ExecAction) (dq : DFrac) (d : kd.core.ExecAction) : IProp GF :=
   iprop("Command" ∷ (ownSliceD (V := GoString) ownBaseD) v.Command' dq d.Command')
@@ -4658,6 +5996,24 @@ theorem kd.core.ExecAction.own_zero_of (v : _root_.Perennial.k8s_io.api.core.v1.
   unfold kd.core.ExecAction.own
   try unfold kd.core.ExecAction.zero
   iapply (ownSliceD_nil_of _ _ (by rfl) dq)
+
+instance kd.core.ExecAction.own_timeless (v : _root_.Perennial.k8s_io.api.core.v1.ExecAction) (dq : DFrac) (d : kd.core.ExecAction) :
+    Timeless (kd.core.ExecAction.own (GF := GF) v dq d) := by
+  unfold kd.core.ExecAction.own; infer_instance
+
+instance kd.core.ExecAction.own_persistent (v : _root_.Perennial.k8s_io.api.core.v1.ExecAction) (d : kd.core.ExecAction) :
+    Persistent (kd.core.ExecAction.own (GF := GF) v DFrac.discard d) := by
+  unfold kd.core.ExecAction.own; infer_instance
+
+/-- A `ExecAction` owned at any fraction can be made read-only. -/
+instance kd.core.ExecAction.own_deepPersist : DeepPersist (GF := GF) kd.core.ExecAction.own where
+  persist := by
+    intro v dq d
+    unfold kd.core.ExecAction.own
+    iintro H0
+    imod (DeepPersist.persist (GF := GF) (inner := (ownSliceD (V := GoString) ownBaseD)) _ _ _) $$ H0 with H0
+    imodintro
+    iframe
 
 /-- The deep ownership of a `GRPCAction` value with deep value `d`. -/
 def kd.core.GRPCAction.own (v : _root_.Perennial.k8s_io.api.core.v1.GRPCAction) (dq : DFrac) (d : kd.core.GRPCAction) : IProp GF :=
@@ -4676,6 +6032,25 @@ theorem kd.core.GRPCAction.own_zero_of (v : _root_.Perennial.k8s_io.api.core.v1.
   isplitr
   · iapply (ownPtrD_none_of _ _ (by rfl) dq)
   iapply (ownPtrD_none_of _ _ (by rfl) dq)
+
+instance kd.core.GRPCAction.own_timeless (v : _root_.Perennial.k8s_io.api.core.v1.GRPCAction) (dq : DFrac) (d : kd.core.GRPCAction) :
+    Timeless (kd.core.GRPCAction.own (GF := GF) v dq d) := by
+  unfold kd.core.GRPCAction.own; infer_instance
+
+instance kd.core.GRPCAction.own_persistent (v : _root_.Perennial.k8s_io.api.core.v1.GRPCAction) (d : kd.core.GRPCAction) :
+    Persistent (kd.core.GRPCAction.own (GF := GF) v DFrac.discard d) := by
+  unfold kd.core.GRPCAction.own; infer_instance
+
+/-- A `GRPCAction` owned at any fraction can be made read-only. -/
+instance kd.core.GRPCAction.own_deepPersist : DeepPersist (GF := GF) kd.core.GRPCAction.own where
+  persist := by
+    intro v dq d
+    unfold kd.core.GRPCAction.own
+    iintro ⟨H0, H1, H2⟩
+    imod (DeepPersist.persist (GF := GF) (inner := (ownPtrD (V := GoString) ownBaseD)) _ _ _) $$ H1 with H1
+    imod (DeepPersist.persist (GF := GF) (inner := (ownPtrD (V := _root_.Perennial.k8s_io.api.core.v1.GRPCProbeMode) ownBaseD)) _ _ _) $$ H2 with H2
+    imodintro
+    iframe
 
 /-- The deep ownership of a `ProbeHandler` value with deep value `d`. -/
 def kd.core.ProbeHandler.own (v : _root_.Perennial.k8s_io.api.core.v1.ProbeHandler) (dq : DFrac) (d : kd.core.ProbeHandler) : IProp GF :=
@@ -4697,6 +6072,25 @@ theorem kd.core.ProbeHandler.own_zero_of (v : _root_.Perennial.k8s_io.api.core.v
   isplitr
   · iapply (ownOpaquePtrD_none_of _ (by rfl))
   iapply (ownPtrD_none_of _ _ (by rfl) dq)
+
+instance kd.core.ProbeHandler.own_timeless (v : _root_.Perennial.k8s_io.api.core.v1.ProbeHandler) (dq : DFrac) (d : kd.core.ProbeHandler) :
+    Timeless (kd.core.ProbeHandler.own (GF := GF) v dq d) := by
+  unfold kd.core.ProbeHandler.own; infer_instance
+
+instance kd.core.ProbeHandler.own_persistent (v : _root_.Perennial.k8s_io.api.core.v1.ProbeHandler) (d : kd.core.ProbeHandler) :
+    Persistent (kd.core.ProbeHandler.own (GF := GF) v DFrac.discard d) := by
+  unfold kd.core.ProbeHandler.own; infer_instance
+
+/-- A `ProbeHandler` owned at any fraction can be made read-only. -/
+instance kd.core.ProbeHandler.own_deepPersist : DeepPersist (GF := GF) kd.core.ProbeHandler.own where
+  persist := by
+    intro v dq d
+    unfold kd.core.ProbeHandler.own
+    iintro ⟨H0, H1, H2, H3⟩
+    imod (DeepPersist.persist (GF := GF) (inner := (ownPtrD (V := _root_.Perennial.k8s_io.api.core.v1.ExecAction) kd.core.ExecAction.own)) _ _ _) $$ H0 with H0
+    imod (DeepPersist.persist (GF := GF) (inner := (ownPtrD (V := _root_.Perennial.k8s_io.api.core.v1.GRPCAction) kd.core.GRPCAction.own)) _ _ _) $$ H3 with H3
+    imodintro
+    iframe
 
 /-- The deep ownership of a `Probe` value with deep value `d`. -/
 def kd.core.Probe.own (v : _root_.Perennial.k8s_io.api.core.v1.Probe) (dq : DFrac) (d : kd.core.Probe) : IProp GF :=
@@ -4728,6 +6122,25 @@ theorem kd.core.Probe.own_zero_of (v : _root_.Perennial.k8s_io.api.core.v1.Probe
   · ipureintro; rfl
   iapply (ownPtrD_none_of _ _ (by rfl) dq)
 
+instance kd.core.Probe.own_timeless (v : _root_.Perennial.k8s_io.api.core.v1.Probe) (dq : DFrac) (d : kd.core.Probe) :
+    Timeless (kd.core.Probe.own (GF := GF) v dq d) := by
+  unfold kd.core.Probe.own; infer_instance
+
+instance kd.core.Probe.own_persistent (v : _root_.Perennial.k8s_io.api.core.v1.Probe) (d : kd.core.Probe) :
+    Persistent (kd.core.Probe.own (GF := GF) v DFrac.discard d) := by
+  unfold kd.core.Probe.own; infer_instance
+
+/-- A `Probe` owned at any fraction can be made read-only. -/
+instance kd.core.Probe.own_deepPersist : DeepPersist (GF := GF) kd.core.Probe.own where
+  persist := by
+    intro v dq d
+    unfold kd.core.Probe.own
+    iintro ⟨H0, H1, H2, H3, H4, H5, H6⟩
+    imod (DeepPersist.persist (GF := GF) (inner := kd.core.ProbeHandler.own) _ _ _) $$ H0 with H0
+    imod (DeepPersist.persist (GF := GF) (inner := (ownPtrD (V := w64) ownBaseD)) _ _ _) $$ H6 with H6
+    imodintro
+    iframe
+
 /-- The deep ownership of a `SleepAction` value with deep value `d`. -/
 def kd.core.SleepAction.own (v : _root_.Perennial.k8s_io.api.core.v1.SleepAction) (dq : DFrac) (d : kd.core.SleepAction) : IProp GF :=
   iprop("Seconds" ∷ ⌜v.Seconds' = d.Seconds'⌝)
@@ -4739,6 +6152,23 @@ theorem kd.core.SleepAction.own_zero_of (v : _root_.Perennial.k8s_io.api.core.v1
   unfold kd.core.SleepAction.own
   try unfold kd.core.SleepAction.zero
   ipureintro; rfl
+
+instance kd.core.SleepAction.own_timeless (v : _root_.Perennial.k8s_io.api.core.v1.SleepAction) (dq : DFrac) (d : kd.core.SleepAction) :
+    Timeless (kd.core.SleepAction.own (GF := GF) v dq d) := by
+  unfold kd.core.SleepAction.own; infer_instance
+
+instance kd.core.SleepAction.own_persistent (v : _root_.Perennial.k8s_io.api.core.v1.SleepAction) (d : kd.core.SleepAction) :
+    Persistent (kd.core.SleepAction.own (GF := GF) v DFrac.discard d) := by
+  unfold kd.core.SleepAction.own; infer_instance
+
+/-- A `SleepAction` owned at any fraction can be made read-only. -/
+instance kd.core.SleepAction.own_deepPersist : DeepPersist (GF := GF) kd.core.SleepAction.own where
+  persist := by
+    intro v dq d
+    unfold kd.core.SleepAction.own
+    iintro H0
+    imodintro
+    iframe
 
 /-- The deep ownership of a `LifecycleHandler` value with deep value `d`. -/
 def kd.core.LifecycleHandler.own (v : _root_.Perennial.k8s_io.api.core.v1.LifecycleHandler) (dq : DFrac) (d : kd.core.LifecycleHandler) : IProp GF :=
@@ -4761,6 +6191,25 @@ theorem kd.core.LifecycleHandler.own_zero_of (v : _root_.Perennial.k8s_io.api.co
   · iapply (ownOpaquePtrD_none_of _ (by rfl))
   iapply (ownPtrD_none_of _ _ (by rfl) dq)
 
+instance kd.core.LifecycleHandler.own_timeless (v : _root_.Perennial.k8s_io.api.core.v1.LifecycleHandler) (dq : DFrac) (d : kd.core.LifecycleHandler) :
+    Timeless (kd.core.LifecycleHandler.own (GF := GF) v dq d) := by
+  unfold kd.core.LifecycleHandler.own; infer_instance
+
+instance kd.core.LifecycleHandler.own_persistent (v : _root_.Perennial.k8s_io.api.core.v1.LifecycleHandler) (d : kd.core.LifecycleHandler) :
+    Persistent (kd.core.LifecycleHandler.own (GF := GF) v DFrac.discard d) := by
+  unfold kd.core.LifecycleHandler.own; infer_instance
+
+/-- A `LifecycleHandler` owned at any fraction can be made read-only. -/
+instance kd.core.LifecycleHandler.own_deepPersist : DeepPersist (GF := GF) kd.core.LifecycleHandler.own where
+  persist := by
+    intro v dq d
+    unfold kd.core.LifecycleHandler.own
+    iintro ⟨H0, H1, H2, H3⟩
+    imod (DeepPersist.persist (GF := GF) (inner := (ownPtrD (V := _root_.Perennial.k8s_io.api.core.v1.ExecAction) kd.core.ExecAction.own)) _ _ _) $$ H0 with H0
+    imod (DeepPersist.persist (GF := GF) (inner := (ownPtrD (V := _root_.Perennial.k8s_io.api.core.v1.SleepAction) kd.core.SleepAction.own)) _ _ _) $$ H3 with H3
+    imodintro
+    iframe
+
 /-- The deep ownership of a `Lifecycle` value with deep value `d`. -/
 def kd.core.Lifecycle.own (v : _root_.Perennial.k8s_io.api.core.v1.Lifecycle) (dq : DFrac) (d : kd.core.Lifecycle) : IProp GF :=
   iprop("PostStart" ∷ (ownPtrD (V := _root_.Perennial.k8s_io.api.core.v1.LifecycleHandler) kd.core.LifecycleHandler.own) v.PostStart' dq d.PostStart' ∗
@@ -4779,6 +6228,26 @@ theorem kd.core.Lifecycle.own_zero_of (v : _root_.Perennial.k8s_io.api.core.v1.L
   · iapply (ownPtrD_none_of _ _ (by rfl) dq)
   iapply (ownPtrD_none_of _ _ (by rfl) dq)
 
+instance kd.core.Lifecycle.own_timeless (v : _root_.Perennial.k8s_io.api.core.v1.Lifecycle) (dq : DFrac) (d : kd.core.Lifecycle) :
+    Timeless (kd.core.Lifecycle.own (GF := GF) v dq d) := by
+  unfold kd.core.Lifecycle.own; infer_instance
+
+instance kd.core.Lifecycle.own_persistent (v : _root_.Perennial.k8s_io.api.core.v1.Lifecycle) (d : kd.core.Lifecycle) :
+    Persistent (kd.core.Lifecycle.own (GF := GF) v DFrac.discard d) := by
+  unfold kd.core.Lifecycle.own; infer_instance
+
+/-- A `Lifecycle` owned at any fraction can be made read-only. -/
+instance kd.core.Lifecycle.own_deepPersist : DeepPersist (GF := GF) kd.core.Lifecycle.own where
+  persist := by
+    intro v dq d
+    unfold kd.core.Lifecycle.own
+    iintro ⟨H0, H1, H2⟩
+    imod (DeepPersist.persist (GF := GF) (inner := (ownPtrD (V := _root_.Perennial.k8s_io.api.core.v1.LifecycleHandler) kd.core.LifecycleHandler.own)) _ _ _) $$ H0 with H0
+    imod (DeepPersist.persist (GF := GF) (inner := (ownPtrD (V := _root_.Perennial.k8s_io.api.core.v1.LifecycleHandler) kd.core.LifecycleHandler.own)) _ _ _) $$ H1 with H1
+    imod (DeepPersist.persist (GF := GF) (inner := (ownPtrD (V := _root_.Perennial.k8s_io.api.core.v1.Signal) ownBaseD)) _ _ _) $$ H2 with H2
+    imodintro
+    iframe
+
 /-- The deep ownership of a `Capabilities` value with deep value `d`. -/
 def kd.core.Capabilities.own (v : _root_.Perennial.k8s_io.api.core.v1.Capabilities) (dq : DFrac) (d : kd.core.Capabilities) : IProp GF :=
   iprop("Add" ∷ (ownSliceD (V := _root_.Perennial.k8s_io.api.core.v1.Capability) ownBaseD) v.Add' dq d.Add' ∗
@@ -4793,6 +6262,25 @@ theorem kd.core.Capabilities.own_zero_of (v : _root_.Perennial.k8s_io.api.core.v
   isplitr
   · iapply (ownSliceD_nil_of _ _ (by rfl) dq)
   iapply (ownSliceD_nil_of _ _ (by rfl) dq)
+
+instance kd.core.Capabilities.own_timeless (v : _root_.Perennial.k8s_io.api.core.v1.Capabilities) (dq : DFrac) (d : kd.core.Capabilities) :
+    Timeless (kd.core.Capabilities.own (GF := GF) v dq d) := by
+  unfold kd.core.Capabilities.own; infer_instance
+
+instance kd.core.Capabilities.own_persistent (v : _root_.Perennial.k8s_io.api.core.v1.Capabilities) (d : kd.core.Capabilities) :
+    Persistent (kd.core.Capabilities.own (GF := GF) v DFrac.discard d) := by
+  unfold kd.core.Capabilities.own; infer_instance
+
+/-- A `Capabilities` owned at any fraction can be made read-only. -/
+instance kd.core.Capabilities.own_deepPersist : DeepPersist (GF := GF) kd.core.Capabilities.own where
+  persist := by
+    intro v dq d
+    unfold kd.core.Capabilities.own
+    iintro ⟨H0, H1⟩
+    imod (DeepPersist.persist (GF := GF) (inner := (ownSliceD (V := _root_.Perennial.k8s_io.api.core.v1.Capability) ownBaseD)) _ _ _) $$ H0 with H0
+    imod (DeepPersist.persist (GF := GF) (inner := (ownSliceD (V := _root_.Perennial.k8s_io.api.core.v1.Capability) ownBaseD)) _ _ _) $$ H1 with H1
+    imodintro
+    iframe
 
 /-- The deep ownership of a `SELinuxOptions` value with deep value `d`. -/
 def kd.core.SELinuxOptions.own (v : _root_.Perennial.k8s_io.api.core.v1.SELinuxOptions) (dq : DFrac) (d : kd.core.SELinuxOptions) : IProp GF :=
@@ -4815,6 +6303,23 @@ theorem kd.core.SELinuxOptions.own_zero_of (v : _root_.Perennial.k8s_io.api.core
   · ipureintro; rfl
   ipureintro; rfl
 
+instance kd.core.SELinuxOptions.own_timeless (v : _root_.Perennial.k8s_io.api.core.v1.SELinuxOptions) (dq : DFrac) (d : kd.core.SELinuxOptions) :
+    Timeless (kd.core.SELinuxOptions.own (GF := GF) v dq d) := by
+  unfold kd.core.SELinuxOptions.own; infer_instance
+
+instance kd.core.SELinuxOptions.own_persistent (v : _root_.Perennial.k8s_io.api.core.v1.SELinuxOptions) (d : kd.core.SELinuxOptions) :
+    Persistent (kd.core.SELinuxOptions.own (GF := GF) v DFrac.discard d) := by
+  unfold kd.core.SELinuxOptions.own; infer_instance
+
+/-- A `SELinuxOptions` owned at any fraction can be made read-only. -/
+instance kd.core.SELinuxOptions.own_deepPersist : DeepPersist (GF := GF) kd.core.SELinuxOptions.own where
+  persist := by
+    intro v dq d
+    unfold kd.core.SELinuxOptions.own
+    iintro ⟨H0, H1, H2, H3⟩
+    imodintro
+    iframe
+
 /-- The deep ownership of a `WindowsSecurityContextOptions` value with deep value `d`. -/
 def kd.core.WindowsSecurityContextOptions.own (v : _root_.Perennial.k8s_io.api.core.v1.WindowsSecurityContextOptions) (dq : DFrac) (d : kd.core.WindowsSecurityContextOptions) : IProp GF :=
   iprop("GMSACredentialSpecName" ∷ (ownPtrD (V := GoString) ownBaseD) v.GMSACredentialSpecName' dq d.GMSACredentialSpecName' ∗
@@ -4836,6 +6341,27 @@ theorem kd.core.WindowsSecurityContextOptions.own_zero_of (v : _root_.Perennial.
   · iapply (ownPtrD_none_of _ _ (by rfl) dq)
   iapply (ownPtrD_none_of _ _ (by rfl) dq)
 
+instance kd.core.WindowsSecurityContextOptions.own_timeless (v : _root_.Perennial.k8s_io.api.core.v1.WindowsSecurityContextOptions) (dq : DFrac) (d : kd.core.WindowsSecurityContextOptions) :
+    Timeless (kd.core.WindowsSecurityContextOptions.own (GF := GF) v dq d) := by
+  unfold kd.core.WindowsSecurityContextOptions.own; infer_instance
+
+instance kd.core.WindowsSecurityContextOptions.own_persistent (v : _root_.Perennial.k8s_io.api.core.v1.WindowsSecurityContextOptions) (d : kd.core.WindowsSecurityContextOptions) :
+    Persistent (kd.core.WindowsSecurityContextOptions.own (GF := GF) v DFrac.discard d) := by
+  unfold kd.core.WindowsSecurityContextOptions.own; infer_instance
+
+/-- A `WindowsSecurityContextOptions` owned at any fraction can be made read-only. -/
+instance kd.core.WindowsSecurityContextOptions.own_deepPersist : DeepPersist (GF := GF) kd.core.WindowsSecurityContextOptions.own where
+  persist := by
+    intro v dq d
+    unfold kd.core.WindowsSecurityContextOptions.own
+    iintro ⟨H0, H1, H2, H3⟩
+    imod (DeepPersist.persist (GF := GF) (inner := (ownPtrD (V := GoString) ownBaseD)) _ _ _) $$ H0 with H0
+    imod (DeepPersist.persist (GF := GF) (inner := (ownPtrD (V := GoString) ownBaseD)) _ _ _) $$ H1 with H1
+    imod (DeepPersist.persist (GF := GF) (inner := (ownPtrD (V := GoString) ownBaseD)) _ _ _) $$ H2 with H2
+    imod (DeepPersist.persist (GF := GF) (inner := (ownPtrD (V := Bool) ownBaseD)) _ _ _) $$ H3 with H3
+    imodintro
+    iframe
+
 /-- The deep ownership of a `SeccompProfile` value with deep value `d`. -/
 def kd.core.SeccompProfile.own (v : _root_.Perennial.k8s_io.api.core.v1.SeccompProfile) (dq : DFrac) (d : kd.core.SeccompProfile) : IProp GF :=
   iprop("Type" ∷ ⌜v.Type' = d.Type'⌝ ∗
@@ -4851,6 +6377,24 @@ theorem kd.core.SeccompProfile.own_zero_of (v : _root_.Perennial.k8s_io.api.core
   · ipureintro; rfl
   iapply (ownPtrD_none_of _ _ (by rfl) dq)
 
+instance kd.core.SeccompProfile.own_timeless (v : _root_.Perennial.k8s_io.api.core.v1.SeccompProfile) (dq : DFrac) (d : kd.core.SeccompProfile) :
+    Timeless (kd.core.SeccompProfile.own (GF := GF) v dq d) := by
+  unfold kd.core.SeccompProfile.own; infer_instance
+
+instance kd.core.SeccompProfile.own_persistent (v : _root_.Perennial.k8s_io.api.core.v1.SeccompProfile) (d : kd.core.SeccompProfile) :
+    Persistent (kd.core.SeccompProfile.own (GF := GF) v DFrac.discard d) := by
+  unfold kd.core.SeccompProfile.own; infer_instance
+
+/-- A `SeccompProfile` owned at any fraction can be made read-only. -/
+instance kd.core.SeccompProfile.own_deepPersist : DeepPersist (GF := GF) kd.core.SeccompProfile.own where
+  persist := by
+    intro v dq d
+    unfold kd.core.SeccompProfile.own
+    iintro ⟨H0, H1⟩
+    imod (DeepPersist.persist (GF := GF) (inner := (ownPtrD (V := GoString) ownBaseD)) _ _ _) $$ H1 with H1
+    imodintro
+    iframe
+
 /-- The deep ownership of a `AppArmorProfile` value with deep value `d`. -/
 def kd.core.AppArmorProfile.own (v : _root_.Perennial.k8s_io.api.core.v1.AppArmorProfile) (dq : DFrac) (d : kd.core.AppArmorProfile) : IProp GF :=
   iprop("Type" ∷ ⌜v.Type' = d.Type'⌝ ∗
@@ -4865,6 +6409,24 @@ theorem kd.core.AppArmorProfile.own_zero_of (v : _root_.Perennial.k8s_io.api.cor
   isplitr
   · ipureintro; rfl
   iapply (ownPtrD_none_of _ _ (by rfl) dq)
+
+instance kd.core.AppArmorProfile.own_timeless (v : _root_.Perennial.k8s_io.api.core.v1.AppArmorProfile) (dq : DFrac) (d : kd.core.AppArmorProfile) :
+    Timeless (kd.core.AppArmorProfile.own (GF := GF) v dq d) := by
+  unfold kd.core.AppArmorProfile.own; infer_instance
+
+instance kd.core.AppArmorProfile.own_persistent (v : _root_.Perennial.k8s_io.api.core.v1.AppArmorProfile) (d : kd.core.AppArmorProfile) :
+    Persistent (kd.core.AppArmorProfile.own (GF := GF) v DFrac.discard d) := by
+  unfold kd.core.AppArmorProfile.own; infer_instance
+
+/-- A `AppArmorProfile` owned at any fraction can be made read-only. -/
+instance kd.core.AppArmorProfile.own_deepPersist : DeepPersist (GF := GF) kd.core.AppArmorProfile.own where
+  persist := by
+    intro v dq d
+    unfold kd.core.AppArmorProfile.own
+    iintro ⟨H0, H1⟩
+    imod (DeepPersist.persist (GF := GF) (inner := (ownPtrD (V := GoString) ownBaseD)) _ _ _) $$ H1 with H1
+    imodintro
+    iframe
 
 /-- The deep ownership of a `SecurityContext` value with deep value `d`. -/
 def kd.core.SecurityContext.own (v : _root_.Perennial.k8s_io.api.core.v1.SecurityContext) (dq : DFrac) (d : kd.core.SecurityContext) : IProp GF :=
@@ -4910,6 +6472,35 @@ theorem kd.core.SecurityContext.own_zero_of (v : _root_.Perennial.k8s_io.api.cor
   isplitr
   · iapply (ownPtrD_none_of _ _ (by rfl) dq)
   iapply (ownPtrD_none_of _ _ (by rfl) dq)
+
+instance kd.core.SecurityContext.own_timeless (v : _root_.Perennial.k8s_io.api.core.v1.SecurityContext) (dq : DFrac) (d : kd.core.SecurityContext) :
+    Timeless (kd.core.SecurityContext.own (GF := GF) v dq d) := by
+  unfold kd.core.SecurityContext.own; infer_instance
+
+instance kd.core.SecurityContext.own_persistent (v : _root_.Perennial.k8s_io.api.core.v1.SecurityContext) (d : kd.core.SecurityContext) :
+    Persistent (kd.core.SecurityContext.own (GF := GF) v DFrac.discard d) := by
+  unfold kd.core.SecurityContext.own; infer_instance
+
+/-- A `SecurityContext` owned at any fraction can be made read-only. -/
+instance kd.core.SecurityContext.own_deepPersist : DeepPersist (GF := GF) kd.core.SecurityContext.own where
+  persist := by
+    intro v dq d
+    unfold kd.core.SecurityContext.own
+    iintro ⟨H0, H1, H2, H3, H4, H5, H6, H7, H8, H9, H10, H11⟩
+    imod (DeepPersist.persist (GF := GF) (inner := (ownPtrD (V := _root_.Perennial.k8s_io.api.core.v1.Capabilities) kd.core.Capabilities.own)) _ _ _) $$ H0 with H0
+    imod (DeepPersist.persist (GF := GF) (inner := (ownPtrD (V := Bool) ownBaseD)) _ _ _) $$ H1 with H1
+    imod (DeepPersist.persist (GF := GF) (inner := (ownPtrD (V := _root_.Perennial.k8s_io.api.core.v1.SELinuxOptions) kd.core.SELinuxOptions.own)) _ _ _) $$ H2 with H2
+    imod (DeepPersist.persist (GF := GF) (inner := (ownPtrD (V := _root_.Perennial.k8s_io.api.core.v1.WindowsSecurityContextOptions) kd.core.WindowsSecurityContextOptions.own)) _ _ _) $$ H3 with H3
+    imod (DeepPersist.persist (GF := GF) (inner := (ownPtrD (V := w64) ownBaseD)) _ _ _) $$ H4 with H4
+    imod (DeepPersist.persist (GF := GF) (inner := (ownPtrD (V := w64) ownBaseD)) _ _ _) $$ H5 with H5
+    imod (DeepPersist.persist (GF := GF) (inner := (ownPtrD (V := Bool) ownBaseD)) _ _ _) $$ H6 with H6
+    imod (DeepPersist.persist (GF := GF) (inner := (ownPtrD (V := Bool) ownBaseD)) _ _ _) $$ H7 with H7
+    imod (DeepPersist.persist (GF := GF) (inner := (ownPtrD (V := Bool) ownBaseD)) _ _ _) $$ H8 with H8
+    imod (DeepPersist.persist (GF := GF) (inner := (ownPtrD (V := _root_.Perennial.k8s_io.api.core.v1.ProcMountType) ownBaseD)) _ _ _) $$ H9 with H9
+    imod (DeepPersist.persist (GF := GF) (inner := (ownPtrD (V := _root_.Perennial.k8s_io.api.core.v1.SeccompProfile) kd.core.SeccompProfile.own)) _ _ _) $$ H10 with H10
+    imod (DeepPersist.persist (GF := GF) (inner := (ownPtrD (V := _root_.Perennial.k8s_io.api.core.v1.AppArmorProfile) kd.core.AppArmorProfile.own)) _ _ _) $$ H11 with H11
+    imodintro
+    iframe
 
 /-- The deep ownership of a `Container` value with deep value `d`. -/
 def kd.core.Container.own (v : _root_.Perennial.k8s_io.api.core.v1.Container) (dq : DFrac) (d : kd.core.Container) : IProp GF :=
@@ -4995,6 +6586,39 @@ theorem kd.core.Container.own_zero_of (v : _root_.Perennial.k8s_io.api.core.v1.C
   · ipureintro; rfl
   ipureintro; rfl
 
+instance kd.core.Container.own_timeless (v : _root_.Perennial.k8s_io.api.core.v1.Container) (dq : DFrac) (d : kd.core.Container) :
+    Timeless (kd.core.Container.own (GF := GF) v dq d) := by
+  unfold kd.core.Container.own; infer_instance
+
+instance kd.core.Container.own_persistent (v : _root_.Perennial.k8s_io.api.core.v1.Container) (d : kd.core.Container) :
+    Persistent (kd.core.Container.own (GF := GF) v DFrac.discard d) := by
+  unfold kd.core.Container.own; infer_instance
+
+/-- A `Container` owned at any fraction can be made read-only. -/
+instance kd.core.Container.own_deepPersist : DeepPersist (GF := GF) kd.core.Container.own where
+  persist := by
+    intro v dq d
+    unfold kd.core.Container.own
+    iintro ⟨H0, H1, H2, H3, H4, H5, H6, H7, H8, H9, H10, H11, H12, H13, H14, H15, H16, H17, H18, H19, H20, H21, H22, H23, H24⟩
+    imod (DeepPersist.persist (GF := GF) (inner := (ownSliceD (V := GoString) ownBaseD)) _ _ _) $$ H2 with H2
+    imod (DeepPersist.persist (GF := GF) (inner := (ownSliceD (V := GoString) ownBaseD)) _ _ _) $$ H3 with H3
+    imod (DeepPersist.persist (GF := GF) (inner := (ownSliceD (V := _root_.Perennial.k8s_io.api.core.v1.ContainerPort) kd.core.ContainerPort.own)) _ _ _) $$ H5 with H5
+    imod (DeepPersist.persist (GF := GF) (inner := (ownSliceD (V := _root_.Perennial.k8s_io.api.core.v1.EnvFromSource) kd.core.EnvFromSource.own)) _ _ _) $$ H6 with H6
+    imod (DeepPersist.persist (GF := GF) (inner := (ownSliceD (V := _root_.Perennial.k8s_io.api.core.v1.EnvVar) kd.core.EnvVar.own)) _ _ _) $$ H7 with H7
+    imod (DeepPersist.persist (GF := GF) (inner := kd.core.ResourceRequirements.own) _ _ _) $$ H8 with H8
+    imod (DeepPersist.persist (GF := GF) (inner := (ownSliceD (V := _root_.Perennial.k8s_io.api.core.v1.ContainerResizePolicy) kd.core.ContainerResizePolicy.own)) _ _ _) $$ H9 with H9
+    imod (DeepPersist.persist (GF := GF) (inner := (ownPtrD (V := _root_.Perennial.k8s_io.api.core.v1.ContainerRestartPolicy) ownBaseD)) _ _ _) $$ H10 with H10
+    imod (DeepPersist.persist (GF := GF) (inner := (ownSliceD (V := _root_.Perennial.k8s_io.api.core.v1.ContainerRestartRule) kd.core.ContainerRestartRule.own)) _ _ _) $$ H11 with H11
+    imod (DeepPersist.persist (GF := GF) (inner := (ownSliceD (V := _root_.Perennial.k8s_io.api.core.v1.VolumeMount) kd.core.VolumeMount.own)) _ _ _) $$ H12 with H12
+    imod (DeepPersist.persist (GF := GF) (inner := (ownSliceD (V := _root_.Perennial.k8s_io.api.core.v1.VolumeDevice) kd.core.VolumeDevice.own)) _ _ _) $$ H13 with H13
+    imod (DeepPersist.persist (GF := GF) (inner := (ownPtrD (V := _root_.Perennial.k8s_io.api.core.v1.Probe) kd.core.Probe.own)) _ _ _) $$ H14 with H14
+    imod (DeepPersist.persist (GF := GF) (inner := (ownPtrD (V := _root_.Perennial.k8s_io.api.core.v1.Probe) kd.core.Probe.own)) _ _ _) $$ H15 with H15
+    imod (DeepPersist.persist (GF := GF) (inner := (ownPtrD (V := _root_.Perennial.k8s_io.api.core.v1.Probe) kd.core.Probe.own)) _ _ _) $$ H16 with H16
+    imod (DeepPersist.persist (GF := GF) (inner := (ownPtrD (V := _root_.Perennial.k8s_io.api.core.v1.Lifecycle) kd.core.Lifecycle.own)) _ _ _) $$ H17 with H17
+    imod (DeepPersist.persist (GF := GF) (inner := (ownPtrD (V := _root_.Perennial.k8s_io.api.core.v1.SecurityContext) kd.core.SecurityContext.own)) _ _ _) $$ H21 with H21
+    imodintro
+    iframe
+
 /-- The deep ownership of a `EphemeralContainerCommon` value with deep value `d`. -/
 def kd.core.EphemeralContainerCommon.own (v : _root_.Perennial.k8s_io.api.core.v1.EphemeralContainerCommon) (dq : DFrac) (d : kd.core.EphemeralContainerCommon) : IProp GF :=
   iprop("Name" ∷ ⌜v.Name' = d.Name'⌝ ∗
@@ -5079,6 +6703,39 @@ theorem kd.core.EphemeralContainerCommon.own_zero_of (v : _root_.Perennial.k8s_i
   · ipureintro; rfl
   ipureintro; rfl
 
+instance kd.core.EphemeralContainerCommon.own_timeless (v : _root_.Perennial.k8s_io.api.core.v1.EphemeralContainerCommon) (dq : DFrac) (d : kd.core.EphemeralContainerCommon) :
+    Timeless (kd.core.EphemeralContainerCommon.own (GF := GF) v dq d) := by
+  unfold kd.core.EphemeralContainerCommon.own; infer_instance
+
+instance kd.core.EphemeralContainerCommon.own_persistent (v : _root_.Perennial.k8s_io.api.core.v1.EphemeralContainerCommon) (d : kd.core.EphemeralContainerCommon) :
+    Persistent (kd.core.EphemeralContainerCommon.own (GF := GF) v DFrac.discard d) := by
+  unfold kd.core.EphemeralContainerCommon.own; infer_instance
+
+/-- A `EphemeralContainerCommon` owned at any fraction can be made read-only. -/
+instance kd.core.EphemeralContainerCommon.own_deepPersist : DeepPersist (GF := GF) kd.core.EphemeralContainerCommon.own where
+  persist := by
+    intro v dq d
+    unfold kd.core.EphemeralContainerCommon.own
+    iintro ⟨H0, H1, H2, H3, H4, H5, H6, H7, H8, H9, H10, H11, H12, H13, H14, H15, H16, H17, H18, H19, H20, H21, H22, H23, H24⟩
+    imod (DeepPersist.persist (GF := GF) (inner := (ownSliceD (V := GoString) ownBaseD)) _ _ _) $$ H2 with H2
+    imod (DeepPersist.persist (GF := GF) (inner := (ownSliceD (V := GoString) ownBaseD)) _ _ _) $$ H3 with H3
+    imod (DeepPersist.persist (GF := GF) (inner := (ownSliceD (V := _root_.Perennial.k8s_io.api.core.v1.ContainerPort) kd.core.ContainerPort.own)) _ _ _) $$ H5 with H5
+    imod (DeepPersist.persist (GF := GF) (inner := (ownSliceD (V := _root_.Perennial.k8s_io.api.core.v1.EnvFromSource) kd.core.EnvFromSource.own)) _ _ _) $$ H6 with H6
+    imod (DeepPersist.persist (GF := GF) (inner := (ownSliceD (V := _root_.Perennial.k8s_io.api.core.v1.EnvVar) kd.core.EnvVar.own)) _ _ _) $$ H7 with H7
+    imod (DeepPersist.persist (GF := GF) (inner := kd.core.ResourceRequirements.own) _ _ _) $$ H8 with H8
+    imod (DeepPersist.persist (GF := GF) (inner := (ownSliceD (V := _root_.Perennial.k8s_io.api.core.v1.ContainerResizePolicy) kd.core.ContainerResizePolicy.own)) _ _ _) $$ H9 with H9
+    imod (DeepPersist.persist (GF := GF) (inner := (ownPtrD (V := _root_.Perennial.k8s_io.api.core.v1.ContainerRestartPolicy) ownBaseD)) _ _ _) $$ H10 with H10
+    imod (DeepPersist.persist (GF := GF) (inner := (ownSliceD (V := _root_.Perennial.k8s_io.api.core.v1.ContainerRestartRule) kd.core.ContainerRestartRule.own)) _ _ _) $$ H11 with H11
+    imod (DeepPersist.persist (GF := GF) (inner := (ownSliceD (V := _root_.Perennial.k8s_io.api.core.v1.VolumeMount) kd.core.VolumeMount.own)) _ _ _) $$ H12 with H12
+    imod (DeepPersist.persist (GF := GF) (inner := (ownSliceD (V := _root_.Perennial.k8s_io.api.core.v1.VolumeDevice) kd.core.VolumeDevice.own)) _ _ _) $$ H13 with H13
+    imod (DeepPersist.persist (GF := GF) (inner := (ownPtrD (V := _root_.Perennial.k8s_io.api.core.v1.Probe) kd.core.Probe.own)) _ _ _) $$ H14 with H14
+    imod (DeepPersist.persist (GF := GF) (inner := (ownPtrD (V := _root_.Perennial.k8s_io.api.core.v1.Probe) kd.core.Probe.own)) _ _ _) $$ H15 with H15
+    imod (DeepPersist.persist (GF := GF) (inner := (ownPtrD (V := _root_.Perennial.k8s_io.api.core.v1.Probe) kd.core.Probe.own)) _ _ _) $$ H16 with H16
+    imod (DeepPersist.persist (GF := GF) (inner := (ownPtrD (V := _root_.Perennial.k8s_io.api.core.v1.Lifecycle) kd.core.Lifecycle.own)) _ _ _) $$ H17 with H17
+    imod (DeepPersist.persist (GF := GF) (inner := (ownPtrD (V := _root_.Perennial.k8s_io.api.core.v1.SecurityContext) kd.core.SecurityContext.own)) _ _ _) $$ H21 with H21
+    imodintro
+    iframe
+
 /-- The deep ownership of a `EphemeralContainer` value with deep value `d`. -/
 def kd.core.EphemeralContainer.own (v : _root_.Perennial.k8s_io.api.core.v1.EphemeralContainer) (dq : DFrac) (d : kd.core.EphemeralContainer) : IProp GF :=
   iprop("EphemeralContainerCommon" ∷ kd.core.EphemeralContainerCommon.own v.EphemeralContainerCommon' dq d.EphemeralContainerCommon' ∗
@@ -5094,6 +6751,24 @@ theorem kd.core.EphemeralContainer.own_zero_of (v : _root_.Perennial.k8s_io.api.
   · iapply (kd.core.EphemeralContainerCommon.own_zero_of _ (by rfl) dq)
   ipureintro; rfl
 
+instance kd.core.EphemeralContainer.own_timeless (v : _root_.Perennial.k8s_io.api.core.v1.EphemeralContainer) (dq : DFrac) (d : kd.core.EphemeralContainer) :
+    Timeless (kd.core.EphemeralContainer.own (GF := GF) v dq d) := by
+  unfold kd.core.EphemeralContainer.own; infer_instance
+
+instance kd.core.EphemeralContainer.own_persistent (v : _root_.Perennial.k8s_io.api.core.v1.EphemeralContainer) (d : kd.core.EphemeralContainer) :
+    Persistent (kd.core.EphemeralContainer.own (GF := GF) v DFrac.discard d) := by
+  unfold kd.core.EphemeralContainer.own; infer_instance
+
+/-- A `EphemeralContainer` owned at any fraction can be made read-only. -/
+instance kd.core.EphemeralContainer.own_deepPersist : DeepPersist (GF := GF) kd.core.EphemeralContainer.own where
+  persist := by
+    intro v dq d
+    unfold kd.core.EphemeralContainer.own
+    iintro ⟨H0, H1⟩
+    imod (DeepPersist.persist (GF := GF) (inner := kd.core.EphemeralContainerCommon.own) _ _ _) $$ H0 with H0
+    imodintro
+    iframe
+
 /-- The deep ownership of a `Sysctl` value with deep value `d`. -/
 def kd.core.Sysctl.own (v : _root_.Perennial.k8s_io.api.core.v1.Sysctl) (dq : DFrac) (d : kd.core.Sysctl) : IProp GF :=
   iprop("Name" ∷ ⌜v.Name' = d.Name'⌝ ∗
@@ -5108,6 +6783,23 @@ theorem kd.core.Sysctl.own_zero_of (v : _root_.Perennial.k8s_io.api.core.v1.Sysc
   isplitr
   · ipureintro; rfl
   ipureintro; rfl
+
+instance kd.core.Sysctl.own_timeless (v : _root_.Perennial.k8s_io.api.core.v1.Sysctl) (dq : DFrac) (d : kd.core.Sysctl) :
+    Timeless (kd.core.Sysctl.own (GF := GF) v dq d) := by
+  unfold kd.core.Sysctl.own; infer_instance
+
+instance kd.core.Sysctl.own_persistent (v : _root_.Perennial.k8s_io.api.core.v1.Sysctl) (d : kd.core.Sysctl) :
+    Persistent (kd.core.Sysctl.own (GF := GF) v DFrac.discard d) := by
+  unfold kd.core.Sysctl.own; infer_instance
+
+/-- A `Sysctl` owned at any fraction can be made read-only. -/
+instance kd.core.Sysctl.own_deepPersist : DeepPersist (GF := GF) kd.core.Sysctl.own where
+  persist := by
+    intro v dq d
+    unfold kd.core.Sysctl.own
+    iintro ⟨H0, H1⟩
+    imodintro
+    iframe
 
 /-- The deep ownership of a `PodSecurityContext` value with deep value `d`. -/
 def kd.core.PodSecurityContext.own (v : _root_.Perennial.k8s_io.api.core.v1.PodSecurityContext) (dq : DFrac) (d : kd.core.PodSecurityContext) : IProp GF :=
@@ -5157,6 +6849,36 @@ theorem kd.core.PodSecurityContext.own_zero_of (v : _root_.Perennial.k8s_io.api.
   · iapply (ownPtrD_none_of _ _ (by rfl) dq)
   iapply (ownPtrD_none_of _ _ (by rfl) dq)
 
+instance kd.core.PodSecurityContext.own_timeless (v : _root_.Perennial.k8s_io.api.core.v1.PodSecurityContext) (dq : DFrac) (d : kd.core.PodSecurityContext) :
+    Timeless (kd.core.PodSecurityContext.own (GF := GF) v dq d) := by
+  unfold kd.core.PodSecurityContext.own; infer_instance
+
+instance kd.core.PodSecurityContext.own_persistent (v : _root_.Perennial.k8s_io.api.core.v1.PodSecurityContext) (d : kd.core.PodSecurityContext) :
+    Persistent (kd.core.PodSecurityContext.own (GF := GF) v DFrac.discard d) := by
+  unfold kd.core.PodSecurityContext.own; infer_instance
+
+/-- A `PodSecurityContext` owned at any fraction can be made read-only. -/
+instance kd.core.PodSecurityContext.own_deepPersist : DeepPersist (GF := GF) kd.core.PodSecurityContext.own where
+  persist := by
+    intro v dq d
+    unfold kd.core.PodSecurityContext.own
+    iintro ⟨H0, H1, H2, H3, H4, H5, H6, H7, H8, H9, H10, H11, H12⟩
+    imod (DeepPersist.persist (GF := GF) (inner := (ownPtrD (V := _root_.Perennial.k8s_io.api.core.v1.SELinuxOptions) kd.core.SELinuxOptions.own)) _ _ _) $$ H0 with H0
+    imod (DeepPersist.persist (GF := GF) (inner := (ownPtrD (V := _root_.Perennial.k8s_io.api.core.v1.WindowsSecurityContextOptions) kd.core.WindowsSecurityContextOptions.own)) _ _ _) $$ H1 with H1
+    imod (DeepPersist.persist (GF := GF) (inner := (ownPtrD (V := w64) ownBaseD)) _ _ _) $$ H2 with H2
+    imod (DeepPersist.persist (GF := GF) (inner := (ownPtrD (V := w64) ownBaseD)) _ _ _) $$ H3 with H3
+    imod (DeepPersist.persist (GF := GF) (inner := (ownPtrD (V := Bool) ownBaseD)) _ _ _) $$ H4 with H4
+    imod (DeepPersist.persist (GF := GF) (inner := (ownSliceD (V := w64) ownBaseD)) _ _ _) $$ H5 with H5
+    imod (DeepPersist.persist (GF := GF) (inner := (ownPtrD (V := _root_.Perennial.k8s_io.api.core.v1.SupplementalGroupsPolicy) ownBaseD)) _ _ _) $$ H6 with H6
+    imod (DeepPersist.persist (GF := GF) (inner := (ownPtrD (V := w64) ownBaseD)) _ _ _) $$ H7 with H7
+    imod (DeepPersist.persist (GF := GF) (inner := (ownSliceD (V := _root_.Perennial.k8s_io.api.core.v1.Sysctl) kd.core.Sysctl.own)) _ _ _) $$ H8 with H8
+    imod (DeepPersist.persist (GF := GF) (inner := (ownPtrD (V := _root_.Perennial.k8s_io.api.core.v1.PodFSGroupChangePolicy) ownBaseD)) _ _ _) $$ H9 with H9
+    imod (DeepPersist.persist (GF := GF) (inner := (ownPtrD (V := _root_.Perennial.k8s_io.api.core.v1.SeccompProfile) kd.core.SeccompProfile.own)) _ _ _) $$ H10 with H10
+    imod (DeepPersist.persist (GF := GF) (inner := (ownPtrD (V := _root_.Perennial.k8s_io.api.core.v1.AppArmorProfile) kd.core.AppArmorProfile.own)) _ _ _) $$ H11 with H11
+    imod (DeepPersist.persist (GF := GF) (inner := (ownPtrD (V := _root_.Perennial.k8s_io.api.core.v1.PodSELinuxChangePolicy) ownBaseD)) _ _ _) $$ H12 with H12
+    imodintro
+    iframe
+
 /-- The deep ownership of a `NodeSelectorRequirement` value with deep value `d`. -/
 def kd.core.NodeSelectorRequirement.own (v : _root_.Perennial.k8s_io.api.core.v1.NodeSelectorRequirement) (dq : DFrac) (d : kd.core.NodeSelectorRequirement) : IProp GF :=
   iprop("Key" ∷ ⌜v.Key' = d.Key'⌝ ∗
@@ -5175,6 +6897,24 @@ theorem kd.core.NodeSelectorRequirement.own_zero_of (v : _root_.Perennial.k8s_io
   · ipureintro; rfl
   iapply (ownSliceD_nil_of _ _ (by rfl) dq)
 
+instance kd.core.NodeSelectorRequirement.own_timeless (v : _root_.Perennial.k8s_io.api.core.v1.NodeSelectorRequirement) (dq : DFrac) (d : kd.core.NodeSelectorRequirement) :
+    Timeless (kd.core.NodeSelectorRequirement.own (GF := GF) v dq d) := by
+  unfold kd.core.NodeSelectorRequirement.own; infer_instance
+
+instance kd.core.NodeSelectorRequirement.own_persistent (v : _root_.Perennial.k8s_io.api.core.v1.NodeSelectorRequirement) (d : kd.core.NodeSelectorRequirement) :
+    Persistent (kd.core.NodeSelectorRequirement.own (GF := GF) v DFrac.discard d) := by
+  unfold kd.core.NodeSelectorRequirement.own; infer_instance
+
+/-- A `NodeSelectorRequirement` owned at any fraction can be made read-only. -/
+instance kd.core.NodeSelectorRequirement.own_deepPersist : DeepPersist (GF := GF) kd.core.NodeSelectorRequirement.own where
+  persist := by
+    intro v dq d
+    unfold kd.core.NodeSelectorRequirement.own
+    iintro ⟨H0, H1, H2⟩
+    imod (DeepPersist.persist (GF := GF) (inner := (ownSliceD (V := GoString) ownBaseD)) _ _ _) $$ H2 with H2
+    imodintro
+    iframe
+
 /-- The deep ownership of a `NodeSelectorTerm` value with deep value `d`. -/
 def kd.core.NodeSelectorTerm.own (v : _root_.Perennial.k8s_io.api.core.v1.NodeSelectorTerm) (dq : DFrac) (d : kd.core.NodeSelectorTerm) : IProp GF :=
   iprop("MatchExpressions" ∷ (ownSliceD (V := _root_.Perennial.k8s_io.api.core.v1.NodeSelectorRequirement) kd.core.NodeSelectorRequirement.own) v.MatchExpressions' dq d.MatchExpressions' ∗
@@ -5190,6 +6930,25 @@ theorem kd.core.NodeSelectorTerm.own_zero_of (v : _root_.Perennial.k8s_io.api.co
   · iapply (ownSliceD_nil_of _ _ (by rfl) dq)
   iapply (ownSliceD_nil_of _ _ (by rfl) dq)
 
+instance kd.core.NodeSelectorTerm.own_timeless (v : _root_.Perennial.k8s_io.api.core.v1.NodeSelectorTerm) (dq : DFrac) (d : kd.core.NodeSelectorTerm) :
+    Timeless (kd.core.NodeSelectorTerm.own (GF := GF) v dq d) := by
+  unfold kd.core.NodeSelectorTerm.own; infer_instance
+
+instance kd.core.NodeSelectorTerm.own_persistent (v : _root_.Perennial.k8s_io.api.core.v1.NodeSelectorTerm) (d : kd.core.NodeSelectorTerm) :
+    Persistent (kd.core.NodeSelectorTerm.own (GF := GF) v DFrac.discard d) := by
+  unfold kd.core.NodeSelectorTerm.own; infer_instance
+
+/-- A `NodeSelectorTerm` owned at any fraction can be made read-only. -/
+instance kd.core.NodeSelectorTerm.own_deepPersist : DeepPersist (GF := GF) kd.core.NodeSelectorTerm.own where
+  persist := by
+    intro v dq d
+    unfold kd.core.NodeSelectorTerm.own
+    iintro ⟨H0, H1⟩
+    imod (DeepPersist.persist (GF := GF) (inner := (ownSliceD (V := _root_.Perennial.k8s_io.api.core.v1.NodeSelectorRequirement) kd.core.NodeSelectorRequirement.own)) _ _ _) $$ H0 with H0
+    imod (DeepPersist.persist (GF := GF) (inner := (ownSliceD (V := _root_.Perennial.k8s_io.api.core.v1.NodeSelectorRequirement) kd.core.NodeSelectorRequirement.own)) _ _ _) $$ H1 with H1
+    imodintro
+    iframe
+
 /-- The deep ownership of a `NodeSelector` value with deep value `d`. -/
 def kd.core.NodeSelector.own (v : _root_.Perennial.k8s_io.api.core.v1.NodeSelector) (dq : DFrac) (d : kd.core.NodeSelector) : IProp GF :=
   iprop("NodeSelectorTerms" ∷ (ownSliceD (V := _root_.Perennial.k8s_io.api.core.v1.NodeSelectorTerm) kd.core.NodeSelectorTerm.own) v.NodeSelectorTerms' dq d.NodeSelectorTerms')
@@ -5201,6 +6960,24 @@ theorem kd.core.NodeSelector.own_zero_of (v : _root_.Perennial.k8s_io.api.core.v
   unfold kd.core.NodeSelector.own
   try unfold kd.core.NodeSelector.zero
   iapply (ownSliceD_nil_of _ _ (by rfl) dq)
+
+instance kd.core.NodeSelector.own_timeless (v : _root_.Perennial.k8s_io.api.core.v1.NodeSelector) (dq : DFrac) (d : kd.core.NodeSelector) :
+    Timeless (kd.core.NodeSelector.own (GF := GF) v dq d) := by
+  unfold kd.core.NodeSelector.own; infer_instance
+
+instance kd.core.NodeSelector.own_persistent (v : _root_.Perennial.k8s_io.api.core.v1.NodeSelector) (d : kd.core.NodeSelector) :
+    Persistent (kd.core.NodeSelector.own (GF := GF) v DFrac.discard d) := by
+  unfold kd.core.NodeSelector.own; infer_instance
+
+/-- A `NodeSelector` owned at any fraction can be made read-only. -/
+instance kd.core.NodeSelector.own_deepPersist : DeepPersist (GF := GF) kd.core.NodeSelector.own where
+  persist := by
+    intro v dq d
+    unfold kd.core.NodeSelector.own
+    iintro H0
+    imod (DeepPersist.persist (GF := GF) (inner := (ownSliceD (V := _root_.Perennial.k8s_io.api.core.v1.NodeSelectorTerm) kd.core.NodeSelectorTerm.own)) _ _ _) $$ H0 with H0
+    imodintro
+    iframe
 
 /-- The deep ownership of a `PreferredSchedulingTerm` value with deep value `d`. -/
 def kd.core.PreferredSchedulingTerm.own (v : _root_.Perennial.k8s_io.api.core.v1.PreferredSchedulingTerm) (dq : DFrac) (d : kd.core.PreferredSchedulingTerm) : IProp GF :=
@@ -5217,6 +6994,24 @@ theorem kd.core.PreferredSchedulingTerm.own_zero_of (v : _root_.Perennial.k8s_io
   · ipureintro; rfl
   iapply (kd.core.NodeSelectorTerm.own_zero_of _ (by rfl) dq)
 
+instance kd.core.PreferredSchedulingTerm.own_timeless (v : _root_.Perennial.k8s_io.api.core.v1.PreferredSchedulingTerm) (dq : DFrac) (d : kd.core.PreferredSchedulingTerm) :
+    Timeless (kd.core.PreferredSchedulingTerm.own (GF := GF) v dq d) := by
+  unfold kd.core.PreferredSchedulingTerm.own; infer_instance
+
+instance kd.core.PreferredSchedulingTerm.own_persistent (v : _root_.Perennial.k8s_io.api.core.v1.PreferredSchedulingTerm) (d : kd.core.PreferredSchedulingTerm) :
+    Persistent (kd.core.PreferredSchedulingTerm.own (GF := GF) v DFrac.discard d) := by
+  unfold kd.core.PreferredSchedulingTerm.own; infer_instance
+
+/-- A `PreferredSchedulingTerm` owned at any fraction can be made read-only. -/
+instance kd.core.PreferredSchedulingTerm.own_deepPersist : DeepPersist (GF := GF) kd.core.PreferredSchedulingTerm.own where
+  persist := by
+    intro v dq d
+    unfold kd.core.PreferredSchedulingTerm.own
+    iintro ⟨H0, H1⟩
+    imod (DeepPersist.persist (GF := GF) (inner := kd.core.NodeSelectorTerm.own) _ _ _) $$ H1 with H1
+    imodintro
+    iframe
+
 /-- The deep ownership of a `NodeAffinity` value with deep value `d`. -/
 def kd.core.NodeAffinity.own (v : _root_.Perennial.k8s_io.api.core.v1.NodeAffinity) (dq : DFrac) (d : kd.core.NodeAffinity) : IProp GF :=
   iprop("RequiredDuringSchedulingIgnoredDuringExecution" ∷ (ownPtrD (V := _root_.Perennial.k8s_io.api.core.v1.NodeSelector) kd.core.NodeSelector.own) v.RequiredDuringSchedulingIgnoredDuringExecution' dq d.RequiredDuringSchedulingIgnoredDuringExecution' ∗
@@ -5231,6 +7026,25 @@ theorem kd.core.NodeAffinity.own_zero_of (v : _root_.Perennial.k8s_io.api.core.v
   isplitr
   · iapply (ownPtrD_none_of _ _ (by rfl) dq)
   iapply (ownSliceD_nil_of _ _ (by rfl) dq)
+
+instance kd.core.NodeAffinity.own_timeless (v : _root_.Perennial.k8s_io.api.core.v1.NodeAffinity) (dq : DFrac) (d : kd.core.NodeAffinity) :
+    Timeless (kd.core.NodeAffinity.own (GF := GF) v dq d) := by
+  unfold kd.core.NodeAffinity.own; infer_instance
+
+instance kd.core.NodeAffinity.own_persistent (v : _root_.Perennial.k8s_io.api.core.v1.NodeAffinity) (d : kd.core.NodeAffinity) :
+    Persistent (kd.core.NodeAffinity.own (GF := GF) v DFrac.discard d) := by
+  unfold kd.core.NodeAffinity.own; infer_instance
+
+/-- A `NodeAffinity` owned at any fraction can be made read-only. -/
+instance kd.core.NodeAffinity.own_deepPersist : DeepPersist (GF := GF) kd.core.NodeAffinity.own where
+  persist := by
+    intro v dq d
+    unfold kd.core.NodeAffinity.own
+    iintro ⟨H0, H1⟩
+    imod (DeepPersist.persist (GF := GF) (inner := (ownPtrD (V := _root_.Perennial.k8s_io.api.core.v1.NodeSelector) kd.core.NodeSelector.own)) _ _ _) $$ H0 with H0
+    imod (DeepPersist.persist (GF := GF) (inner := (ownSliceD (V := _root_.Perennial.k8s_io.api.core.v1.PreferredSchedulingTerm) kd.core.PreferredSchedulingTerm.own)) _ _ _) $$ H1 with H1
+    imodintro
+    iframe
 
 /-- The deep ownership of a `PodAffinityTerm` value with deep value `d`. -/
 def kd.core.PodAffinityTerm.own (v : _root_.Perennial.k8s_io.api.core.v1.PodAffinityTerm) (dq : DFrac) (d : kd.core.PodAffinityTerm) : IProp GF :=
@@ -5259,6 +7073,28 @@ theorem kd.core.PodAffinityTerm.own_zero_of (v : _root_.Perennial.k8s_io.api.cor
   · iapply (ownSliceD_nil_of _ _ (by rfl) dq)
   iapply (ownSliceD_nil_of _ _ (by rfl) dq)
 
+instance kd.core.PodAffinityTerm.own_timeless (v : _root_.Perennial.k8s_io.api.core.v1.PodAffinityTerm) (dq : DFrac) (d : kd.core.PodAffinityTerm) :
+    Timeless (kd.core.PodAffinityTerm.own (GF := GF) v dq d) := by
+  unfold kd.core.PodAffinityTerm.own; infer_instance
+
+instance kd.core.PodAffinityTerm.own_persistent (v : _root_.Perennial.k8s_io.api.core.v1.PodAffinityTerm) (d : kd.core.PodAffinityTerm) :
+    Persistent (kd.core.PodAffinityTerm.own (GF := GF) v DFrac.discard d) := by
+  unfold kd.core.PodAffinityTerm.own; infer_instance
+
+/-- A `PodAffinityTerm` owned at any fraction can be made read-only. -/
+instance kd.core.PodAffinityTerm.own_deepPersist : DeepPersist (GF := GF) kd.core.PodAffinityTerm.own where
+  persist := by
+    intro v dq d
+    unfold kd.core.PodAffinityTerm.own
+    iintro ⟨H0, H1, H2, H3, H4, H5⟩
+    imod (DeepPersist.persist (GF := GF) (inner := (ownPtrD (V := _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.LabelSelector) kd.meta.LabelSelector.own)) _ _ _) $$ H0 with H0
+    imod (DeepPersist.persist (GF := GF) (inner := (ownSliceD (V := GoString) ownBaseD)) _ _ _) $$ H1 with H1
+    imod (DeepPersist.persist (GF := GF) (inner := (ownPtrD (V := _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.LabelSelector) kd.meta.LabelSelector.own)) _ _ _) $$ H3 with H3
+    imod (DeepPersist.persist (GF := GF) (inner := (ownSliceD (V := GoString) ownBaseD)) _ _ _) $$ H4 with H4
+    imod (DeepPersist.persist (GF := GF) (inner := (ownSliceD (V := GoString) ownBaseD)) _ _ _) $$ H5 with H5
+    imodintro
+    iframe
+
 /-- The deep ownership of a `WeightedPodAffinityTerm` value with deep value `d`. -/
 def kd.core.WeightedPodAffinityTerm.own (v : _root_.Perennial.k8s_io.api.core.v1.WeightedPodAffinityTerm) (dq : DFrac) (d : kd.core.WeightedPodAffinityTerm) : IProp GF :=
   iprop("Weight" ∷ ⌜v.Weight' = d.Weight'⌝ ∗
@@ -5273,6 +7109,24 @@ theorem kd.core.WeightedPodAffinityTerm.own_zero_of (v : _root_.Perennial.k8s_io
   isplitr
   · ipureintro; rfl
   iapply (kd.core.PodAffinityTerm.own_zero_of _ (by rfl) dq)
+
+instance kd.core.WeightedPodAffinityTerm.own_timeless (v : _root_.Perennial.k8s_io.api.core.v1.WeightedPodAffinityTerm) (dq : DFrac) (d : kd.core.WeightedPodAffinityTerm) :
+    Timeless (kd.core.WeightedPodAffinityTerm.own (GF := GF) v dq d) := by
+  unfold kd.core.WeightedPodAffinityTerm.own; infer_instance
+
+instance kd.core.WeightedPodAffinityTerm.own_persistent (v : _root_.Perennial.k8s_io.api.core.v1.WeightedPodAffinityTerm) (d : kd.core.WeightedPodAffinityTerm) :
+    Persistent (kd.core.WeightedPodAffinityTerm.own (GF := GF) v DFrac.discard d) := by
+  unfold kd.core.WeightedPodAffinityTerm.own; infer_instance
+
+/-- A `WeightedPodAffinityTerm` owned at any fraction can be made read-only. -/
+instance kd.core.WeightedPodAffinityTerm.own_deepPersist : DeepPersist (GF := GF) kd.core.WeightedPodAffinityTerm.own where
+  persist := by
+    intro v dq d
+    unfold kd.core.WeightedPodAffinityTerm.own
+    iintro ⟨H0, H1⟩
+    imod (DeepPersist.persist (GF := GF) (inner := kd.core.PodAffinityTerm.own) _ _ _) $$ H1 with H1
+    imodintro
+    iframe
 
 /-- The deep ownership of a `PodAffinity` value with deep value `d`. -/
 def kd.core.PodAffinity.own (v : _root_.Perennial.k8s_io.api.core.v1.PodAffinity) (dq : DFrac) (d : kd.core.PodAffinity) : IProp GF :=
@@ -5289,6 +7143,25 @@ theorem kd.core.PodAffinity.own_zero_of (v : _root_.Perennial.k8s_io.api.core.v1
   · iapply (ownSliceD_nil_of _ _ (by rfl) dq)
   iapply (ownSliceD_nil_of _ _ (by rfl) dq)
 
+instance kd.core.PodAffinity.own_timeless (v : _root_.Perennial.k8s_io.api.core.v1.PodAffinity) (dq : DFrac) (d : kd.core.PodAffinity) :
+    Timeless (kd.core.PodAffinity.own (GF := GF) v dq d) := by
+  unfold kd.core.PodAffinity.own; infer_instance
+
+instance kd.core.PodAffinity.own_persistent (v : _root_.Perennial.k8s_io.api.core.v1.PodAffinity) (d : kd.core.PodAffinity) :
+    Persistent (kd.core.PodAffinity.own (GF := GF) v DFrac.discard d) := by
+  unfold kd.core.PodAffinity.own; infer_instance
+
+/-- A `PodAffinity` owned at any fraction can be made read-only. -/
+instance kd.core.PodAffinity.own_deepPersist : DeepPersist (GF := GF) kd.core.PodAffinity.own where
+  persist := by
+    intro v dq d
+    unfold kd.core.PodAffinity.own
+    iintro ⟨H0, H1⟩
+    imod (DeepPersist.persist (GF := GF) (inner := (ownSliceD (V := _root_.Perennial.k8s_io.api.core.v1.PodAffinityTerm) kd.core.PodAffinityTerm.own)) _ _ _) $$ H0 with H0
+    imod (DeepPersist.persist (GF := GF) (inner := (ownSliceD (V := _root_.Perennial.k8s_io.api.core.v1.WeightedPodAffinityTerm) kd.core.WeightedPodAffinityTerm.own)) _ _ _) $$ H1 with H1
+    imodintro
+    iframe
+
 /-- The deep ownership of a `PodAntiAffinity` value with deep value `d`. -/
 def kd.core.PodAntiAffinity.own (v : _root_.Perennial.k8s_io.api.core.v1.PodAntiAffinity) (dq : DFrac) (d : kd.core.PodAntiAffinity) : IProp GF :=
   iprop("RequiredDuringSchedulingIgnoredDuringExecution" ∷ (ownSliceD (V := _root_.Perennial.k8s_io.api.core.v1.PodAffinityTerm) kd.core.PodAffinityTerm.own) v.RequiredDuringSchedulingIgnoredDuringExecution' dq d.RequiredDuringSchedulingIgnoredDuringExecution' ∗
@@ -5303,6 +7176,25 @@ theorem kd.core.PodAntiAffinity.own_zero_of (v : _root_.Perennial.k8s_io.api.cor
   isplitr
   · iapply (ownSliceD_nil_of _ _ (by rfl) dq)
   iapply (ownSliceD_nil_of _ _ (by rfl) dq)
+
+instance kd.core.PodAntiAffinity.own_timeless (v : _root_.Perennial.k8s_io.api.core.v1.PodAntiAffinity) (dq : DFrac) (d : kd.core.PodAntiAffinity) :
+    Timeless (kd.core.PodAntiAffinity.own (GF := GF) v dq d) := by
+  unfold kd.core.PodAntiAffinity.own; infer_instance
+
+instance kd.core.PodAntiAffinity.own_persistent (v : _root_.Perennial.k8s_io.api.core.v1.PodAntiAffinity) (d : kd.core.PodAntiAffinity) :
+    Persistent (kd.core.PodAntiAffinity.own (GF := GF) v DFrac.discard d) := by
+  unfold kd.core.PodAntiAffinity.own; infer_instance
+
+/-- A `PodAntiAffinity` owned at any fraction can be made read-only. -/
+instance kd.core.PodAntiAffinity.own_deepPersist : DeepPersist (GF := GF) kd.core.PodAntiAffinity.own where
+  persist := by
+    intro v dq d
+    unfold kd.core.PodAntiAffinity.own
+    iintro ⟨H0, H1⟩
+    imod (DeepPersist.persist (GF := GF) (inner := (ownSliceD (V := _root_.Perennial.k8s_io.api.core.v1.PodAffinityTerm) kd.core.PodAffinityTerm.own)) _ _ _) $$ H0 with H0
+    imod (DeepPersist.persist (GF := GF) (inner := (ownSliceD (V := _root_.Perennial.k8s_io.api.core.v1.WeightedPodAffinityTerm) kd.core.WeightedPodAffinityTerm.own)) _ _ _) $$ H1 with H1
+    imodintro
+    iframe
 
 /-- The deep ownership of a `Affinity` value with deep value `d`. -/
 def kd.core.Affinity.own (v : _root_.Perennial.k8s_io.api.core.v1.Affinity) (dq : DFrac) (d : kd.core.Affinity) : IProp GF :=
@@ -5321,6 +7213,26 @@ theorem kd.core.Affinity.own_zero_of (v : _root_.Perennial.k8s_io.api.core.v1.Af
   isplitr
   · iapply (ownPtrD_none_of _ _ (by rfl) dq)
   iapply (ownPtrD_none_of _ _ (by rfl) dq)
+
+instance kd.core.Affinity.own_timeless (v : _root_.Perennial.k8s_io.api.core.v1.Affinity) (dq : DFrac) (d : kd.core.Affinity) :
+    Timeless (kd.core.Affinity.own (GF := GF) v dq d) := by
+  unfold kd.core.Affinity.own; infer_instance
+
+instance kd.core.Affinity.own_persistent (v : _root_.Perennial.k8s_io.api.core.v1.Affinity) (d : kd.core.Affinity) :
+    Persistent (kd.core.Affinity.own (GF := GF) v DFrac.discard d) := by
+  unfold kd.core.Affinity.own; infer_instance
+
+/-- A `Affinity` owned at any fraction can be made read-only. -/
+instance kd.core.Affinity.own_deepPersist : DeepPersist (GF := GF) kd.core.Affinity.own where
+  persist := by
+    intro v dq d
+    unfold kd.core.Affinity.own
+    iintro ⟨H0, H1, H2⟩
+    imod (DeepPersist.persist (GF := GF) (inner := (ownPtrD (V := _root_.Perennial.k8s_io.api.core.v1.NodeAffinity) kd.core.NodeAffinity.own)) _ _ _) $$ H0 with H0
+    imod (DeepPersist.persist (GF := GF) (inner := (ownPtrD (V := _root_.Perennial.k8s_io.api.core.v1.PodAffinity) kd.core.PodAffinity.own)) _ _ _) $$ H1 with H1
+    imod (DeepPersist.persist (GF := GF) (inner := (ownPtrD (V := _root_.Perennial.k8s_io.api.core.v1.PodAntiAffinity) kd.core.PodAntiAffinity.own)) _ _ _) $$ H2 with H2
+    imodintro
+    iframe
 
 /-- The deep ownership of a `Toleration` value with deep value `d`. -/
 def kd.core.Toleration.own (v : _root_.Perennial.k8s_io.api.core.v1.Toleration) (dq : DFrac) (d : kd.core.Toleration) : IProp GF :=
@@ -5346,6 +7258,24 @@ theorem kd.core.Toleration.own_zero_of (v : _root_.Perennial.k8s_io.api.core.v1.
   · ipureintro; rfl
   iapply (ownPtrD_none_of _ _ (by rfl) dq)
 
+instance kd.core.Toleration.own_timeless (v : _root_.Perennial.k8s_io.api.core.v1.Toleration) (dq : DFrac) (d : kd.core.Toleration) :
+    Timeless (kd.core.Toleration.own (GF := GF) v dq d) := by
+  unfold kd.core.Toleration.own; infer_instance
+
+instance kd.core.Toleration.own_persistent (v : _root_.Perennial.k8s_io.api.core.v1.Toleration) (d : kd.core.Toleration) :
+    Persistent (kd.core.Toleration.own (GF := GF) v DFrac.discard d) := by
+  unfold kd.core.Toleration.own; infer_instance
+
+/-- A `Toleration` owned at any fraction can be made read-only. -/
+instance kd.core.Toleration.own_deepPersist : DeepPersist (GF := GF) kd.core.Toleration.own where
+  persist := by
+    intro v dq d
+    unfold kd.core.Toleration.own
+    iintro ⟨H0, H1, H2, H3, H4⟩
+    imod (DeepPersist.persist (GF := GF) (inner := (ownPtrD (V := w64) ownBaseD)) _ _ _) $$ H4 with H4
+    imodintro
+    iframe
+
 /-- The deep ownership of a `HostAlias` value with deep value `d`. -/
 def kd.core.HostAlias.own (v : _root_.Perennial.k8s_io.api.core.v1.HostAlias) (dq : DFrac) (d : kd.core.HostAlias) : IProp GF :=
   iprop("IP" ∷ ⌜v.IP' = d.IP'⌝ ∗
@@ -5361,6 +7291,24 @@ theorem kd.core.HostAlias.own_zero_of (v : _root_.Perennial.k8s_io.api.core.v1.H
   · ipureintro; rfl
   iapply (ownSliceD_nil_of _ _ (by rfl) dq)
 
+instance kd.core.HostAlias.own_timeless (v : _root_.Perennial.k8s_io.api.core.v1.HostAlias) (dq : DFrac) (d : kd.core.HostAlias) :
+    Timeless (kd.core.HostAlias.own (GF := GF) v dq d) := by
+  unfold kd.core.HostAlias.own; infer_instance
+
+instance kd.core.HostAlias.own_persistent (v : _root_.Perennial.k8s_io.api.core.v1.HostAlias) (d : kd.core.HostAlias) :
+    Persistent (kd.core.HostAlias.own (GF := GF) v DFrac.discard d) := by
+  unfold kd.core.HostAlias.own; infer_instance
+
+/-- A `HostAlias` owned at any fraction can be made read-only. -/
+instance kd.core.HostAlias.own_deepPersist : DeepPersist (GF := GF) kd.core.HostAlias.own where
+  persist := by
+    intro v dq d
+    unfold kd.core.HostAlias.own
+    iintro ⟨H0, H1⟩
+    imod (DeepPersist.persist (GF := GF) (inner := (ownSliceD (V := GoString) ownBaseD)) _ _ _) $$ H1 with H1
+    imodintro
+    iframe
+
 /-- The deep ownership of a `PodDNSConfigOption` value with deep value `d`. -/
 def kd.core.PodDNSConfigOption.own (v : _root_.Perennial.k8s_io.api.core.v1.PodDNSConfigOption) (dq : DFrac) (d : kd.core.PodDNSConfigOption) : IProp GF :=
   iprop("Name" ∷ ⌜v.Name' = d.Name'⌝ ∗
@@ -5375,6 +7323,24 @@ theorem kd.core.PodDNSConfigOption.own_zero_of (v : _root_.Perennial.k8s_io.api.
   isplitr
   · ipureintro; rfl
   iapply (ownPtrD_none_of _ _ (by rfl) dq)
+
+instance kd.core.PodDNSConfigOption.own_timeless (v : _root_.Perennial.k8s_io.api.core.v1.PodDNSConfigOption) (dq : DFrac) (d : kd.core.PodDNSConfigOption) :
+    Timeless (kd.core.PodDNSConfigOption.own (GF := GF) v dq d) := by
+  unfold kd.core.PodDNSConfigOption.own; infer_instance
+
+instance kd.core.PodDNSConfigOption.own_persistent (v : _root_.Perennial.k8s_io.api.core.v1.PodDNSConfigOption) (d : kd.core.PodDNSConfigOption) :
+    Persistent (kd.core.PodDNSConfigOption.own (GF := GF) v DFrac.discard d) := by
+  unfold kd.core.PodDNSConfigOption.own; infer_instance
+
+/-- A `PodDNSConfigOption` owned at any fraction can be made read-only. -/
+instance kd.core.PodDNSConfigOption.own_deepPersist : DeepPersist (GF := GF) kd.core.PodDNSConfigOption.own where
+  persist := by
+    intro v dq d
+    unfold kd.core.PodDNSConfigOption.own
+    iintro ⟨H0, H1⟩
+    imod (DeepPersist.persist (GF := GF) (inner := (ownPtrD (V := GoString) ownBaseD)) _ _ _) $$ H1 with H1
+    imodintro
+    iframe
 
 /-- The deep ownership of a `PodDNSConfig` value with deep value `d`. -/
 def kd.core.PodDNSConfig.own (v : _root_.Perennial.k8s_io.api.core.v1.PodDNSConfig) (dq : DFrac) (d : kd.core.PodDNSConfig) : IProp GF :=
@@ -5394,6 +7360,26 @@ theorem kd.core.PodDNSConfig.own_zero_of (v : _root_.Perennial.k8s_io.api.core.v
   · iapply (ownSliceD_nil_of _ _ (by rfl) dq)
   iapply (ownSliceD_nil_of _ _ (by rfl) dq)
 
+instance kd.core.PodDNSConfig.own_timeless (v : _root_.Perennial.k8s_io.api.core.v1.PodDNSConfig) (dq : DFrac) (d : kd.core.PodDNSConfig) :
+    Timeless (kd.core.PodDNSConfig.own (GF := GF) v dq d) := by
+  unfold kd.core.PodDNSConfig.own; infer_instance
+
+instance kd.core.PodDNSConfig.own_persistent (v : _root_.Perennial.k8s_io.api.core.v1.PodDNSConfig) (d : kd.core.PodDNSConfig) :
+    Persistent (kd.core.PodDNSConfig.own (GF := GF) v DFrac.discard d) := by
+  unfold kd.core.PodDNSConfig.own; infer_instance
+
+/-- A `PodDNSConfig` owned at any fraction can be made read-only. -/
+instance kd.core.PodDNSConfig.own_deepPersist : DeepPersist (GF := GF) kd.core.PodDNSConfig.own where
+  persist := by
+    intro v dq d
+    unfold kd.core.PodDNSConfig.own
+    iintro ⟨H0, H1, H2⟩
+    imod (DeepPersist.persist (GF := GF) (inner := (ownSliceD (V := GoString) ownBaseD)) _ _ _) $$ H0 with H0
+    imod (DeepPersist.persist (GF := GF) (inner := (ownSliceD (V := GoString) ownBaseD)) _ _ _) $$ H1 with H1
+    imod (DeepPersist.persist (GF := GF) (inner := (ownSliceD (V := _root_.Perennial.k8s_io.api.core.v1.PodDNSConfigOption) kd.core.PodDNSConfigOption.own)) _ _ _) $$ H2 with H2
+    imodintro
+    iframe
+
 /-- The deep ownership of a `PodReadinessGate` value with deep value `d`. -/
 def kd.core.PodReadinessGate.own (v : _root_.Perennial.k8s_io.api.core.v1.PodReadinessGate) (dq : DFrac) (d : kd.core.PodReadinessGate) : IProp GF :=
   iprop("ConditionType" ∷ ⌜v.ConditionType' = d.ConditionType'⌝)
@@ -5405,6 +7391,23 @@ theorem kd.core.PodReadinessGate.own_zero_of (v : _root_.Perennial.k8s_io.api.co
   unfold kd.core.PodReadinessGate.own
   try unfold kd.core.PodReadinessGate.zero
   ipureintro; rfl
+
+instance kd.core.PodReadinessGate.own_timeless (v : _root_.Perennial.k8s_io.api.core.v1.PodReadinessGate) (dq : DFrac) (d : kd.core.PodReadinessGate) :
+    Timeless (kd.core.PodReadinessGate.own (GF := GF) v dq d) := by
+  unfold kd.core.PodReadinessGate.own; infer_instance
+
+instance kd.core.PodReadinessGate.own_persistent (v : _root_.Perennial.k8s_io.api.core.v1.PodReadinessGate) (d : kd.core.PodReadinessGate) :
+    Persistent (kd.core.PodReadinessGate.own (GF := GF) v DFrac.discard d) := by
+  unfold kd.core.PodReadinessGate.own; infer_instance
+
+/-- A `PodReadinessGate` owned at any fraction can be made read-only. -/
+instance kd.core.PodReadinessGate.own_deepPersist : DeepPersist (GF := GF) kd.core.PodReadinessGate.own where
+  persist := by
+    intro v dq d
+    unfold kd.core.PodReadinessGate.own
+    iintro H0
+    imodintro
+    iframe
 
 /-- The deep ownership of a `TopologySpreadConstraint` value with deep value `d`. -/
 def kd.core.TopologySpreadConstraint.own (v : _root_.Perennial.k8s_io.api.core.v1.TopologySpreadConstraint) (dq : DFrac) (d : kd.core.TopologySpreadConstraint) : IProp GF :=
@@ -5439,6 +7442,28 @@ theorem kd.core.TopologySpreadConstraint.own_zero_of (v : _root_.Perennial.k8s_i
   · iapply (ownPtrD_none_of _ _ (by rfl) dq)
   iapply (ownSliceD_nil_of _ _ (by rfl) dq)
 
+instance kd.core.TopologySpreadConstraint.own_timeless (v : _root_.Perennial.k8s_io.api.core.v1.TopologySpreadConstraint) (dq : DFrac) (d : kd.core.TopologySpreadConstraint) :
+    Timeless (kd.core.TopologySpreadConstraint.own (GF := GF) v dq d) := by
+  unfold kd.core.TopologySpreadConstraint.own; infer_instance
+
+instance kd.core.TopologySpreadConstraint.own_persistent (v : _root_.Perennial.k8s_io.api.core.v1.TopologySpreadConstraint) (d : kd.core.TopologySpreadConstraint) :
+    Persistent (kd.core.TopologySpreadConstraint.own (GF := GF) v DFrac.discard d) := by
+  unfold kd.core.TopologySpreadConstraint.own; infer_instance
+
+/-- A `TopologySpreadConstraint` owned at any fraction can be made read-only. -/
+instance kd.core.TopologySpreadConstraint.own_deepPersist : DeepPersist (GF := GF) kd.core.TopologySpreadConstraint.own where
+  persist := by
+    intro v dq d
+    unfold kd.core.TopologySpreadConstraint.own
+    iintro ⟨H0, H1, H2, H3, H4, H5, H6, H7⟩
+    imod (DeepPersist.persist (GF := GF) (inner := (ownPtrD (V := _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.LabelSelector) kd.meta.LabelSelector.own)) _ _ _) $$ H3 with H3
+    imod (DeepPersist.persist (GF := GF) (inner := (ownPtrD (V := w32) ownBaseD)) _ _ _) $$ H4 with H4
+    imod (DeepPersist.persist (GF := GF) (inner := (ownPtrD (V := _root_.Perennial.k8s_io.api.core.v1.NodeInclusionPolicy) ownBaseD)) _ _ _) $$ H5 with H5
+    imod (DeepPersist.persist (GF := GF) (inner := (ownPtrD (V := _root_.Perennial.k8s_io.api.core.v1.NodeInclusionPolicy) ownBaseD)) _ _ _) $$ H6 with H6
+    imod (DeepPersist.persist (GF := GF) (inner := (ownSliceD (V := GoString) ownBaseD)) _ _ _) $$ H7 with H7
+    imodintro
+    iframe
+
 /-- The deep ownership of a `PodOS` value with deep value `d`. -/
 def kd.core.PodOS.own (v : _root_.Perennial.k8s_io.api.core.v1.PodOS) (dq : DFrac) (d : kd.core.PodOS) : IProp GF :=
   iprop("Name" ∷ ⌜v.Name' = d.Name'⌝)
@@ -5451,6 +7476,23 @@ theorem kd.core.PodOS.own_zero_of (v : _root_.Perennial.k8s_io.api.core.v1.PodOS
   try unfold kd.core.PodOS.zero
   ipureintro; rfl
 
+instance kd.core.PodOS.own_timeless (v : _root_.Perennial.k8s_io.api.core.v1.PodOS) (dq : DFrac) (d : kd.core.PodOS) :
+    Timeless (kd.core.PodOS.own (GF := GF) v dq d) := by
+  unfold kd.core.PodOS.own; infer_instance
+
+instance kd.core.PodOS.own_persistent (v : _root_.Perennial.k8s_io.api.core.v1.PodOS) (d : kd.core.PodOS) :
+    Persistent (kd.core.PodOS.own (GF := GF) v DFrac.discard d) := by
+  unfold kd.core.PodOS.own; infer_instance
+
+/-- A `PodOS` owned at any fraction can be made read-only. -/
+instance kd.core.PodOS.own_deepPersist : DeepPersist (GF := GF) kd.core.PodOS.own where
+  persist := by
+    intro v dq d
+    unfold kd.core.PodOS.own
+    iintro H0
+    imodintro
+    iframe
+
 /-- The deep ownership of a `PodSchedulingGate` value with deep value `d`. -/
 def kd.core.PodSchedulingGate.own (v : _root_.Perennial.k8s_io.api.core.v1.PodSchedulingGate) (dq : DFrac) (d : kd.core.PodSchedulingGate) : IProp GF :=
   iprop("Name" ∷ ⌜v.Name' = d.Name'⌝)
@@ -5462,6 +7504,23 @@ theorem kd.core.PodSchedulingGate.own_zero_of (v : _root_.Perennial.k8s_io.api.c
   unfold kd.core.PodSchedulingGate.own
   try unfold kd.core.PodSchedulingGate.zero
   ipureintro; rfl
+
+instance kd.core.PodSchedulingGate.own_timeless (v : _root_.Perennial.k8s_io.api.core.v1.PodSchedulingGate) (dq : DFrac) (d : kd.core.PodSchedulingGate) :
+    Timeless (kd.core.PodSchedulingGate.own (GF := GF) v dq d) := by
+  unfold kd.core.PodSchedulingGate.own; infer_instance
+
+instance kd.core.PodSchedulingGate.own_persistent (v : _root_.Perennial.k8s_io.api.core.v1.PodSchedulingGate) (d : kd.core.PodSchedulingGate) :
+    Persistent (kd.core.PodSchedulingGate.own (GF := GF) v DFrac.discard d) := by
+  unfold kd.core.PodSchedulingGate.own; infer_instance
+
+/-- A `PodSchedulingGate` owned at any fraction can be made read-only. -/
+instance kd.core.PodSchedulingGate.own_deepPersist : DeepPersist (GF := GF) kd.core.PodSchedulingGate.own where
+  persist := by
+    intro v dq d
+    unfold kd.core.PodSchedulingGate.own
+    iintro H0
+    imodintro
+    iframe
 
 /-- The deep ownership of a `PodResourceClaim` value with deep value `d`. -/
 def kd.core.PodResourceClaim.own (v : _root_.Perennial.k8s_io.api.core.v1.PodResourceClaim) (dq : DFrac) (d : kd.core.PodResourceClaim) : IProp GF :=
@@ -5481,6 +7540,25 @@ theorem kd.core.PodResourceClaim.own_zero_of (v : _root_.Perennial.k8s_io.api.co
   · iapply (ownPtrD_none_of _ _ (by rfl) dq)
   iapply (ownPtrD_none_of _ _ (by rfl) dq)
 
+instance kd.core.PodResourceClaim.own_timeless (v : _root_.Perennial.k8s_io.api.core.v1.PodResourceClaim) (dq : DFrac) (d : kd.core.PodResourceClaim) :
+    Timeless (kd.core.PodResourceClaim.own (GF := GF) v dq d) := by
+  unfold kd.core.PodResourceClaim.own; infer_instance
+
+instance kd.core.PodResourceClaim.own_persistent (v : _root_.Perennial.k8s_io.api.core.v1.PodResourceClaim) (d : kd.core.PodResourceClaim) :
+    Persistent (kd.core.PodResourceClaim.own (GF := GF) v DFrac.discard d) := by
+  unfold kd.core.PodResourceClaim.own; infer_instance
+
+/-- A `PodResourceClaim` owned at any fraction can be made read-only. -/
+instance kd.core.PodResourceClaim.own_deepPersist : DeepPersist (GF := GF) kd.core.PodResourceClaim.own where
+  persist := by
+    intro v dq d
+    unfold kd.core.PodResourceClaim.own
+    iintro ⟨H0, H1, H2⟩
+    imod (DeepPersist.persist (GF := GF) (inner := (ownPtrD (V := GoString) ownBaseD)) _ _ _) $$ H1 with H1
+    imod (DeepPersist.persist (GF := GF) (inner := (ownPtrD (V := GoString) ownBaseD)) _ _ _) $$ H2 with H2
+    imodintro
+    iframe
+
 /-- The deep ownership of a `PodSchedulingGroup` value with deep value `d`. -/
 def kd.core.PodSchedulingGroup.own (v : _root_.Perennial.k8s_io.api.core.v1.PodSchedulingGroup) (dq : DFrac) (d : kd.core.PodSchedulingGroup) : IProp GF :=
   iprop("PodGroupName" ∷ (ownPtrD (V := GoString) ownBaseD) v.PodGroupName' dq d.PodGroupName')
@@ -5492,6 +7570,24 @@ theorem kd.core.PodSchedulingGroup.own_zero_of (v : _root_.Perennial.k8s_io.api.
   unfold kd.core.PodSchedulingGroup.own
   try unfold kd.core.PodSchedulingGroup.zero
   iapply (ownPtrD_none_of _ _ (by rfl) dq)
+
+instance kd.core.PodSchedulingGroup.own_timeless (v : _root_.Perennial.k8s_io.api.core.v1.PodSchedulingGroup) (dq : DFrac) (d : kd.core.PodSchedulingGroup) :
+    Timeless (kd.core.PodSchedulingGroup.own (GF := GF) v dq d) := by
+  unfold kd.core.PodSchedulingGroup.own; infer_instance
+
+instance kd.core.PodSchedulingGroup.own_persistent (v : _root_.Perennial.k8s_io.api.core.v1.PodSchedulingGroup) (d : kd.core.PodSchedulingGroup) :
+    Persistent (kd.core.PodSchedulingGroup.own (GF := GF) v DFrac.discard d) := by
+  unfold kd.core.PodSchedulingGroup.own; infer_instance
+
+/-- A `PodSchedulingGroup` owned at any fraction can be made read-only. -/
+instance kd.core.PodSchedulingGroup.own_deepPersist : DeepPersist (GF := GF) kd.core.PodSchedulingGroup.own where
+  persist := by
+    intro v dq d
+    unfold kd.core.PodSchedulingGroup.own
+    iintro H0
+    imod (DeepPersist.persist (GF := GF) (inner := (ownPtrD (V := GoString) ownBaseD)) _ _ _) $$ H0 with H0
+    imodintro
+    iframe
 
 /-- The deep ownership of a `EvictionResponder` value with deep value `d`. -/
 def kd.core.EvictionResponder.own (v : _root_.Perennial.k8s_io.api.core.v1.EvictionResponder) (dq : DFrac) (d : kd.core.EvictionResponder) : IProp GF :=
@@ -5507,6 +7603,24 @@ theorem kd.core.EvictionResponder.own_zero_of (v : _root_.Perennial.k8s_io.api.c
   isplitr
   · ipureintro; rfl
   iapply (ownPtrD_none_of _ _ (by rfl) dq)
+
+instance kd.core.EvictionResponder.own_timeless (v : _root_.Perennial.k8s_io.api.core.v1.EvictionResponder) (dq : DFrac) (d : kd.core.EvictionResponder) :
+    Timeless (kd.core.EvictionResponder.own (GF := GF) v dq d) := by
+  unfold kd.core.EvictionResponder.own; infer_instance
+
+instance kd.core.EvictionResponder.own_persistent (v : _root_.Perennial.k8s_io.api.core.v1.EvictionResponder) (d : kd.core.EvictionResponder) :
+    Persistent (kd.core.EvictionResponder.own (GF := GF) v DFrac.discard d) := by
+  unfold kd.core.EvictionResponder.own; infer_instance
+
+/-- A `EvictionResponder` owned at any fraction can be made read-only. -/
+instance kd.core.EvictionResponder.own_deepPersist : DeepPersist (GF := GF) kd.core.EvictionResponder.own where
+  persist := by
+    intro v dq d
+    unfold kd.core.EvictionResponder.own
+    iintro ⟨H0, H1⟩
+    imod (DeepPersist.persist (GF := GF) (inner := (ownPtrD (V := w32) ownBaseD)) _ _ _) $$ H1 with H1
+    imodintro
+    iframe
 
 /-- The deep ownership of a `PodSpec` value with deep value `d`. -/
 def kd.core.PodSpec.own (v : _root_.Perennial.k8s_io.api.core.v1.PodSpec) (dq : DFrac) (d : kd.core.PodSpec) : IProp GF :=
@@ -5646,6 +7760,53 @@ theorem kd.core.PodSpec.own_zero_of (v : _root_.Perennial.k8s_io.api.core.v1.Pod
   · iapply (ownPtrD_none_of _ _ (by rfl) dq)
   iapply (ownSliceD_nil_of _ _ (by rfl) dq)
 
+instance kd.core.PodSpec.own_timeless (v : _root_.Perennial.k8s_io.api.core.v1.PodSpec) (dq : DFrac) (d : kd.core.PodSpec) :
+    Timeless (kd.core.PodSpec.own (GF := GF) v dq d) := by
+  unfold kd.core.PodSpec.own; infer_instance
+
+instance kd.core.PodSpec.own_persistent (v : _root_.Perennial.k8s_io.api.core.v1.PodSpec) (d : kd.core.PodSpec) :
+    Persistent (kd.core.PodSpec.own (GF := GF) v DFrac.discard d) := by
+  unfold kd.core.PodSpec.own; infer_instance
+
+/-- A `PodSpec` owned at any fraction can be made read-only. -/
+instance kd.core.PodSpec.own_deepPersist : DeepPersist (GF := GF) kd.core.PodSpec.own where
+  persist := by
+    intro v dq d
+    unfold kd.core.PodSpec.own
+    iintro ⟨H0, H1, H2, H3, H4, H5, H6, H7, H8, H9, H10, H11, H12, H13, H14, H15, H16, H17, H18, H19, H20, H21, H22, H23, H24, H25, H26, H27, H28, H29, H30, H31, H32, H33, H34, H35, H36, H37, H38, H39, H40, H41, H42⟩
+    imod (DeepPersist.persist (GF := GF) (inner := (ownSliceD (V := _root_.Perennial.k8s_io.api.core.v1.Volume) kd.core.Volume.own)) _ _ _) $$ H0 with H0
+    imod (DeepPersist.persist (GF := GF) (inner := (ownSliceD (V := _root_.Perennial.k8s_io.api.core.v1.Container) kd.core.Container.own)) _ _ _) $$ H1 with H1
+    imod (DeepPersist.persist (GF := GF) (inner := (ownSliceD (V := _root_.Perennial.k8s_io.api.core.v1.Container) kd.core.Container.own)) _ _ _) $$ H2 with H2
+    imod (DeepPersist.persist (GF := GF) (inner := (ownSliceD (V := _root_.Perennial.k8s_io.api.core.v1.EphemeralContainer) kd.core.EphemeralContainer.own)) _ _ _) $$ H3 with H3
+    imod (DeepPersist.persist (GF := GF) (inner := (ownPtrD (V := w64) ownBaseD)) _ _ _) $$ H5 with H5
+    imod (DeepPersist.persist (GF := GF) (inner := (ownPtrD (V := w64) ownBaseD)) _ _ _) $$ H6 with H6
+    imod (DeepPersist.persist (GF := GF) (inner := (ownMapD (K := GoString) (V := GoString))) _ _ _) $$ H8 with H8
+    imod (DeepPersist.persist (GF := GF) (inner := (ownPtrD (V := Bool) ownBaseD)) _ _ _) $$ H11 with H11
+    imod (DeepPersist.persist (GF := GF) (inner := (ownPtrD (V := Bool) ownBaseD)) _ _ _) $$ H16 with H16
+    imod (DeepPersist.persist (GF := GF) (inner := (ownPtrD (V := _root_.Perennial.k8s_io.api.core.v1.PodSecurityContext) kd.core.PodSecurityContext.own)) _ _ _) $$ H17 with H17
+    imod (DeepPersist.persist (GF := GF) (inner := (ownSliceD (V := _root_.Perennial.k8s_io.api.core.v1.LocalObjectReference) kd.core.LocalObjectReference.own)) _ _ _) $$ H18 with H18
+    imod (DeepPersist.persist (GF := GF) (inner := (ownPtrD (V := _root_.Perennial.k8s_io.api.core.v1.Affinity) kd.core.Affinity.own)) _ _ _) $$ H21 with H21
+    imod (DeepPersist.persist (GF := GF) (inner := (ownSliceD (V := _root_.Perennial.k8s_io.api.core.v1.Toleration) kd.core.Toleration.own)) _ _ _) $$ H23 with H23
+    imod (DeepPersist.persist (GF := GF) (inner := (ownSliceD (V := _root_.Perennial.k8s_io.api.core.v1.HostAlias) kd.core.HostAlias.own)) _ _ _) $$ H24 with H24
+    imod (DeepPersist.persist (GF := GF) (inner := (ownPtrD (V := w32) ownBaseD)) _ _ _) $$ H26 with H26
+    imod (DeepPersist.persist (GF := GF) (inner := (ownPtrD (V := _root_.Perennial.k8s_io.api.core.v1.PodDNSConfig) kd.core.PodDNSConfig.own)) _ _ _) $$ H27 with H27
+    imod (DeepPersist.persist (GF := GF) (inner := (ownSliceD (V := _root_.Perennial.k8s_io.api.core.v1.PodReadinessGate) kd.core.PodReadinessGate.own)) _ _ _) $$ H28 with H28
+    imod (DeepPersist.persist (GF := GF) (inner := (ownPtrD (V := GoString) ownBaseD)) _ _ _) $$ H29 with H29
+    imod (DeepPersist.persist (GF := GF) (inner := (ownPtrD (V := Bool) ownBaseD)) _ _ _) $$ H30 with H30
+    imod (DeepPersist.persist (GF := GF) (inner := (ownPtrD (V := _root_.Perennial.k8s_io.api.core.v1.PreemptionPolicy) ownBaseD)) _ _ _) $$ H31 with H31
+    imod (DeepPersist.persist (GF := GF) (inner := (ownSliceD (V := _root_.Perennial.k8s_io.api.core.v1.TopologySpreadConstraint) kd.core.TopologySpreadConstraint.own)) _ _ _) $$ H33 with H33
+    imod (DeepPersist.persist (GF := GF) (inner := (ownPtrD (V := Bool) ownBaseD)) _ _ _) $$ H34 with H34
+    imod (DeepPersist.persist (GF := GF) (inner := (ownPtrD (V := _root_.Perennial.k8s_io.api.core.v1.PodOS) kd.core.PodOS.own)) _ _ _) $$ H35 with H35
+    imod (DeepPersist.persist (GF := GF) (inner := (ownPtrD (V := Bool) ownBaseD)) _ _ _) $$ H36 with H36
+    imod (DeepPersist.persist (GF := GF) (inner := (ownSliceD (V := _root_.Perennial.k8s_io.api.core.v1.PodSchedulingGate) kd.core.PodSchedulingGate.own)) _ _ _) $$ H37 with H37
+    imod (DeepPersist.persist (GF := GF) (inner := (ownSliceD (V := _root_.Perennial.k8s_io.api.core.v1.PodResourceClaim) kd.core.PodResourceClaim.own)) _ _ _) $$ H38 with H38
+    imod (DeepPersist.persist (GF := GF) (inner := (ownPtrD (V := _root_.Perennial.k8s_io.api.core.v1.ResourceRequirements) kd.core.ResourceRequirements.own)) _ _ _) $$ H39 with H39
+    imod (DeepPersist.persist (GF := GF) (inner := (ownPtrD (V := GoString) ownBaseD)) _ _ _) $$ H40 with H40
+    imod (DeepPersist.persist (GF := GF) (inner := (ownPtrD (V := _root_.Perennial.k8s_io.api.core.v1.PodSchedulingGroup) kd.core.PodSchedulingGroup.own)) _ _ _) $$ H41 with H41
+    imod (DeepPersist.persist (GF := GF) (inner := (ownSliceD (V := _root_.Perennial.k8s_io.api.core.v1.EvictionResponder) kd.core.EvictionResponder.own)) _ _ _) $$ H42 with H42
+    imodintro
+    iframe
+
 /-- The deep ownership of a `PodCondition` value with deep value `d`. -/
 def kd.core.PodCondition.own (v : _root_.Perennial.k8s_io.api.core.v1.PodCondition) (dq : DFrac) (d : kd.core.PodCondition) : IProp GF :=
   iprop("Type" ∷ ⌜v.Type' = d.Type'⌝ ∗
@@ -5676,6 +7837,23 @@ theorem kd.core.PodCondition.own_zero_of (v : _root_.Perennial.k8s_io.api.core.v
   · ipureintro; rfl
   ipureintro; rfl
 
+instance kd.core.PodCondition.own_timeless (v : _root_.Perennial.k8s_io.api.core.v1.PodCondition) (dq : DFrac) (d : kd.core.PodCondition) :
+    Timeless (kd.core.PodCondition.own (GF := GF) v dq d) := by
+  unfold kd.core.PodCondition.own; infer_instance
+
+instance kd.core.PodCondition.own_persistent (v : _root_.Perennial.k8s_io.api.core.v1.PodCondition) (d : kd.core.PodCondition) :
+    Persistent (kd.core.PodCondition.own (GF := GF) v DFrac.discard d) := by
+  unfold kd.core.PodCondition.own; infer_instance
+
+/-- A `PodCondition` owned at any fraction can be made read-only. -/
+instance kd.core.PodCondition.own_deepPersist : DeepPersist (GF := GF) kd.core.PodCondition.own where
+  persist := by
+    intro v dq d
+    unfold kd.core.PodCondition.own
+    iintro ⟨H0, H1, H2, H3, H4, H5, H6⟩
+    imodintro
+    iframe
+
 /-- The deep ownership of a `HostIP` value with deep value `d`. -/
 def kd.core.HostIP.own (v : _root_.Perennial.k8s_io.api.core.v1.HostIP) (dq : DFrac) (d : kd.core.HostIP) : IProp GF :=
   iprop("IP" ∷ ⌜v.IP' = d.IP'⌝)
@@ -5688,6 +7866,23 @@ theorem kd.core.HostIP.own_zero_of (v : _root_.Perennial.k8s_io.api.core.v1.Host
   try unfold kd.core.HostIP.zero
   ipureintro; rfl
 
+instance kd.core.HostIP.own_timeless (v : _root_.Perennial.k8s_io.api.core.v1.HostIP) (dq : DFrac) (d : kd.core.HostIP) :
+    Timeless (kd.core.HostIP.own (GF := GF) v dq d) := by
+  unfold kd.core.HostIP.own; infer_instance
+
+instance kd.core.HostIP.own_persistent (v : _root_.Perennial.k8s_io.api.core.v1.HostIP) (d : kd.core.HostIP) :
+    Persistent (kd.core.HostIP.own (GF := GF) v DFrac.discard d) := by
+  unfold kd.core.HostIP.own; infer_instance
+
+/-- A `HostIP` owned at any fraction can be made read-only. -/
+instance kd.core.HostIP.own_deepPersist : DeepPersist (GF := GF) kd.core.HostIP.own where
+  persist := by
+    intro v dq d
+    unfold kd.core.HostIP.own
+    iintro H0
+    imodintro
+    iframe
+
 /-- The deep ownership of a `PodIP` value with deep value `d`. -/
 def kd.core.PodIP.own (v : _root_.Perennial.k8s_io.api.core.v1.PodIP) (dq : DFrac) (d : kd.core.PodIP) : IProp GF :=
   iprop("IP" ∷ ⌜v.IP' = d.IP'⌝)
@@ -5699,6 +7894,23 @@ theorem kd.core.PodIP.own_zero_of (v : _root_.Perennial.k8s_io.api.core.v1.PodIP
   unfold kd.core.PodIP.own
   try unfold kd.core.PodIP.zero
   ipureintro; rfl
+
+instance kd.core.PodIP.own_timeless (v : _root_.Perennial.k8s_io.api.core.v1.PodIP) (dq : DFrac) (d : kd.core.PodIP) :
+    Timeless (kd.core.PodIP.own (GF := GF) v dq d) := by
+  unfold kd.core.PodIP.own; infer_instance
+
+instance kd.core.PodIP.own_persistent (v : _root_.Perennial.k8s_io.api.core.v1.PodIP) (d : kd.core.PodIP) :
+    Persistent (kd.core.PodIP.own (GF := GF) v DFrac.discard d) := by
+  unfold kd.core.PodIP.own; infer_instance
+
+/-- A `PodIP` owned at any fraction can be made read-only. -/
+instance kd.core.PodIP.own_deepPersist : DeepPersist (GF := GF) kd.core.PodIP.own where
+  persist := by
+    intro v dq d
+    unfold kd.core.PodIP.own
+    iintro H0
+    imodintro
+    iframe
 
 /-- The deep ownership of a `ContainerStateWaiting` value with deep value `d`. -/
 def kd.core.ContainerStateWaiting.own (v : _root_.Perennial.k8s_io.api.core.v1.ContainerStateWaiting) (dq : DFrac) (d : kd.core.ContainerStateWaiting) : IProp GF :=
@@ -5715,6 +7927,23 @@ theorem kd.core.ContainerStateWaiting.own_zero_of (v : _root_.Perennial.k8s_io.a
   · ipureintro; rfl
   ipureintro; rfl
 
+instance kd.core.ContainerStateWaiting.own_timeless (v : _root_.Perennial.k8s_io.api.core.v1.ContainerStateWaiting) (dq : DFrac) (d : kd.core.ContainerStateWaiting) :
+    Timeless (kd.core.ContainerStateWaiting.own (GF := GF) v dq d) := by
+  unfold kd.core.ContainerStateWaiting.own; infer_instance
+
+instance kd.core.ContainerStateWaiting.own_persistent (v : _root_.Perennial.k8s_io.api.core.v1.ContainerStateWaiting) (d : kd.core.ContainerStateWaiting) :
+    Persistent (kd.core.ContainerStateWaiting.own (GF := GF) v DFrac.discard d) := by
+  unfold kd.core.ContainerStateWaiting.own; infer_instance
+
+/-- A `ContainerStateWaiting` owned at any fraction can be made read-only. -/
+instance kd.core.ContainerStateWaiting.own_deepPersist : DeepPersist (GF := GF) kd.core.ContainerStateWaiting.own where
+  persist := by
+    intro v dq d
+    unfold kd.core.ContainerStateWaiting.own
+    iintro ⟨H0, H1⟩
+    imodintro
+    iframe
+
 /-- The deep ownership of a `ContainerStateRunning` value with deep value `d`. -/
 def kd.core.ContainerStateRunning.own (v : _root_.Perennial.k8s_io.api.core.v1.ContainerStateRunning) (dq : DFrac) (d : kd.core.ContainerStateRunning) : IProp GF :=
   iprop("StartedAt" ∷ ⌜v.StartedAt' = d.StartedAt'⌝)
@@ -5726,6 +7955,23 @@ theorem kd.core.ContainerStateRunning.own_zero_of (v : _root_.Perennial.k8s_io.a
   unfold kd.core.ContainerStateRunning.own
   try unfold kd.core.ContainerStateRunning.zero
   ipureintro; rfl
+
+instance kd.core.ContainerStateRunning.own_timeless (v : _root_.Perennial.k8s_io.api.core.v1.ContainerStateRunning) (dq : DFrac) (d : kd.core.ContainerStateRunning) :
+    Timeless (kd.core.ContainerStateRunning.own (GF := GF) v dq d) := by
+  unfold kd.core.ContainerStateRunning.own; infer_instance
+
+instance kd.core.ContainerStateRunning.own_persistent (v : _root_.Perennial.k8s_io.api.core.v1.ContainerStateRunning) (d : kd.core.ContainerStateRunning) :
+    Persistent (kd.core.ContainerStateRunning.own (GF := GF) v DFrac.discard d) := by
+  unfold kd.core.ContainerStateRunning.own; infer_instance
+
+/-- A `ContainerStateRunning` owned at any fraction can be made read-only. -/
+instance kd.core.ContainerStateRunning.own_deepPersist : DeepPersist (GF := GF) kd.core.ContainerStateRunning.own where
+  persist := by
+    intro v dq d
+    unfold kd.core.ContainerStateRunning.own
+    iintro H0
+    imodintro
+    iframe
 
 /-- The deep ownership of a `ContainerStateTerminated` value with deep value `d`. -/
 def kd.core.ContainerStateTerminated.own (v : _root_.Perennial.k8s_io.api.core.v1.ContainerStateTerminated) (dq : DFrac) (d : kd.core.ContainerStateTerminated) : IProp GF :=
@@ -5757,6 +8003,23 @@ theorem kd.core.ContainerStateTerminated.own_zero_of (v : _root_.Perennial.k8s_i
   · ipureintro; rfl
   ipureintro; rfl
 
+instance kd.core.ContainerStateTerminated.own_timeless (v : _root_.Perennial.k8s_io.api.core.v1.ContainerStateTerminated) (dq : DFrac) (d : kd.core.ContainerStateTerminated) :
+    Timeless (kd.core.ContainerStateTerminated.own (GF := GF) v dq d) := by
+  unfold kd.core.ContainerStateTerminated.own; infer_instance
+
+instance kd.core.ContainerStateTerminated.own_persistent (v : _root_.Perennial.k8s_io.api.core.v1.ContainerStateTerminated) (d : kd.core.ContainerStateTerminated) :
+    Persistent (kd.core.ContainerStateTerminated.own (GF := GF) v DFrac.discard d) := by
+  unfold kd.core.ContainerStateTerminated.own; infer_instance
+
+/-- A `ContainerStateTerminated` owned at any fraction can be made read-only. -/
+instance kd.core.ContainerStateTerminated.own_deepPersist : DeepPersist (GF := GF) kd.core.ContainerStateTerminated.own where
+  persist := by
+    intro v dq d
+    unfold kd.core.ContainerStateTerminated.own
+    iintro ⟨H0, H1, H2, H3, H4, H5, H6⟩
+    imodintro
+    iframe
+
 /-- The deep ownership of a `ContainerState` value with deep value `d`. -/
 def kd.core.ContainerState.own (v : _root_.Perennial.k8s_io.api.core.v1.ContainerState) (dq : DFrac) (d : kd.core.ContainerState) : IProp GF :=
   iprop("Waiting" ∷ (ownPtrD (V := _root_.Perennial.k8s_io.api.core.v1.ContainerStateWaiting) kd.core.ContainerStateWaiting.own) v.Waiting' dq d.Waiting' ∗
@@ -5775,6 +8038,26 @@ theorem kd.core.ContainerState.own_zero_of (v : _root_.Perennial.k8s_io.api.core
   · iapply (ownPtrD_none_of _ _ (by rfl) dq)
   iapply (ownPtrD_none_of _ _ (by rfl) dq)
 
+instance kd.core.ContainerState.own_timeless (v : _root_.Perennial.k8s_io.api.core.v1.ContainerState) (dq : DFrac) (d : kd.core.ContainerState) :
+    Timeless (kd.core.ContainerState.own (GF := GF) v dq d) := by
+  unfold kd.core.ContainerState.own; infer_instance
+
+instance kd.core.ContainerState.own_persistent (v : _root_.Perennial.k8s_io.api.core.v1.ContainerState) (d : kd.core.ContainerState) :
+    Persistent (kd.core.ContainerState.own (GF := GF) v DFrac.discard d) := by
+  unfold kd.core.ContainerState.own; infer_instance
+
+/-- A `ContainerState` owned at any fraction can be made read-only. -/
+instance kd.core.ContainerState.own_deepPersist : DeepPersist (GF := GF) kd.core.ContainerState.own where
+  persist := by
+    intro v dq d
+    unfold kd.core.ContainerState.own
+    iintro ⟨H0, H1, H2⟩
+    imod (DeepPersist.persist (GF := GF) (inner := (ownPtrD (V := _root_.Perennial.k8s_io.api.core.v1.ContainerStateWaiting) kd.core.ContainerStateWaiting.own)) _ _ _) $$ H0 with H0
+    imod (DeepPersist.persist (GF := GF) (inner := (ownPtrD (V := _root_.Perennial.k8s_io.api.core.v1.ContainerStateRunning) kd.core.ContainerStateRunning.own)) _ _ _) $$ H1 with H1
+    imod (DeepPersist.persist (GF := GF) (inner := (ownPtrD (V := _root_.Perennial.k8s_io.api.core.v1.ContainerStateTerminated) kd.core.ContainerStateTerminated.own)) _ _ _) $$ H2 with H2
+    imodintro
+    iframe
+
 /-- The deep ownership of a `ImageVolumeStatus` value with deep value `d`. -/
 def kd.core.ImageVolumeStatus.own (v : _root_.Perennial.k8s_io.api.core.v1.ImageVolumeStatus) (dq : DFrac) (d : kd.core.ImageVolumeStatus) : IProp GF :=
   iprop("ImageRef" ∷ ⌜v.ImageRef' = d.ImageRef'⌝)
@@ -5787,6 +8070,23 @@ theorem kd.core.ImageVolumeStatus.own_zero_of (v : _root_.Perennial.k8s_io.api.c
   try unfold kd.core.ImageVolumeStatus.zero
   ipureintro; rfl
 
+instance kd.core.ImageVolumeStatus.own_timeless (v : _root_.Perennial.k8s_io.api.core.v1.ImageVolumeStatus) (dq : DFrac) (d : kd.core.ImageVolumeStatus) :
+    Timeless (kd.core.ImageVolumeStatus.own (GF := GF) v dq d) := by
+  unfold kd.core.ImageVolumeStatus.own; infer_instance
+
+instance kd.core.ImageVolumeStatus.own_persistent (v : _root_.Perennial.k8s_io.api.core.v1.ImageVolumeStatus) (d : kd.core.ImageVolumeStatus) :
+    Persistent (kd.core.ImageVolumeStatus.own (GF := GF) v DFrac.discard d) := by
+  unfold kd.core.ImageVolumeStatus.own; infer_instance
+
+/-- A `ImageVolumeStatus` owned at any fraction can be made read-only. -/
+instance kd.core.ImageVolumeStatus.own_deepPersist : DeepPersist (GF := GF) kd.core.ImageVolumeStatus.own where
+  persist := by
+    intro v dq d
+    unfold kd.core.ImageVolumeStatus.own
+    iintro H0
+    imodintro
+    iframe
+
 /-- The deep ownership of a `VolumeStatus` value with deep value `d`. -/
 def kd.core.VolumeStatus.own (v : _root_.Perennial.k8s_io.api.core.v1.VolumeStatus) (dq : DFrac) (d : kd.core.VolumeStatus) : IProp GF :=
   iprop("Image" ∷ (ownPtrD (V := _root_.Perennial.k8s_io.api.core.v1.ImageVolumeStatus) kd.core.ImageVolumeStatus.own) v.Image' dq d.Image')
@@ -5798,6 +8098,24 @@ theorem kd.core.VolumeStatus.own_zero_of (v : _root_.Perennial.k8s_io.api.core.v
   unfold kd.core.VolumeStatus.own
   try unfold kd.core.VolumeStatus.zero
   iapply (ownPtrD_none_of _ _ (by rfl) dq)
+
+instance kd.core.VolumeStatus.own_timeless (v : _root_.Perennial.k8s_io.api.core.v1.VolumeStatus) (dq : DFrac) (d : kd.core.VolumeStatus) :
+    Timeless (kd.core.VolumeStatus.own (GF := GF) v dq d) := by
+  unfold kd.core.VolumeStatus.own; infer_instance
+
+instance kd.core.VolumeStatus.own_persistent (v : _root_.Perennial.k8s_io.api.core.v1.VolumeStatus) (d : kd.core.VolumeStatus) :
+    Persistent (kd.core.VolumeStatus.own (GF := GF) v DFrac.discard d) := by
+  unfold kd.core.VolumeStatus.own; infer_instance
+
+/-- A `VolumeStatus` owned at any fraction can be made read-only. -/
+instance kd.core.VolumeStatus.own_deepPersist : DeepPersist (GF := GF) kd.core.VolumeStatus.own where
+  persist := by
+    intro v dq d
+    unfold kd.core.VolumeStatus.own
+    iintro H0
+    imod (DeepPersist.persist (GF := GF) (inner := (ownPtrD (V := _root_.Perennial.k8s_io.api.core.v1.ImageVolumeStatus) kd.core.ImageVolumeStatus.own)) _ _ _) $$ H0 with H0
+    imodintro
+    iframe
 
 /-- The deep ownership of a `VolumeMountStatus` value with deep value `d`. -/
 def kd.core.VolumeMountStatus.own (v : _root_.Perennial.k8s_io.api.core.v1.VolumeMountStatus) (dq : DFrac) (d : kd.core.VolumeMountStatus) : IProp GF :=
@@ -5823,6 +8141,25 @@ theorem kd.core.VolumeMountStatus.own_zero_of (v : _root_.Perennial.k8s_io.api.c
   · iapply (ownPtrD_none_of _ _ (by rfl) dq)
   iapply (ownPtrD_none_of _ _ (by rfl) dq)
 
+instance kd.core.VolumeMountStatus.own_timeless (v : _root_.Perennial.k8s_io.api.core.v1.VolumeMountStatus) (dq : DFrac) (d : kd.core.VolumeMountStatus) :
+    Timeless (kd.core.VolumeMountStatus.own (GF := GF) v dq d) := by
+  unfold kd.core.VolumeMountStatus.own; infer_instance
+
+instance kd.core.VolumeMountStatus.own_persistent (v : _root_.Perennial.k8s_io.api.core.v1.VolumeMountStatus) (d : kd.core.VolumeMountStatus) :
+    Persistent (kd.core.VolumeMountStatus.own (GF := GF) v DFrac.discard d) := by
+  unfold kd.core.VolumeMountStatus.own; infer_instance
+
+/-- A `VolumeMountStatus` owned at any fraction can be made read-only. -/
+instance kd.core.VolumeMountStatus.own_deepPersist : DeepPersist (GF := GF) kd.core.VolumeMountStatus.own where
+  persist := by
+    intro v dq d
+    unfold kd.core.VolumeMountStatus.own
+    iintro ⟨H0, H1, H2, H3, H4⟩
+    imod (DeepPersist.persist (GF := GF) (inner := (ownPtrD (V := _root_.Perennial.k8s_io.api.core.v1.RecursiveReadOnlyMode) ownBaseD)) _ _ _) $$ H3 with H3
+    imod (DeepPersist.persist (GF := GF) (inner := (ownPtrD (V := _root_.Perennial.k8s_io.api.core.v1.VolumeStatus) kd.core.VolumeStatus.own)) _ _ _) $$ H4 with H4
+    imodintro
+    iframe
+
 /-- The deep ownership of a `LinuxContainerUser` value with deep value `d`. -/
 def kd.core.LinuxContainerUser.own (v : _root_.Perennial.k8s_io.api.core.v1.LinuxContainerUser) (dq : DFrac) (d : kd.core.LinuxContainerUser) : IProp GF :=
   iprop("UID" ∷ ⌜v.UID' = d.UID'⌝ ∗
@@ -5841,6 +8178,24 @@ theorem kd.core.LinuxContainerUser.own_zero_of (v : _root_.Perennial.k8s_io.api.
   · ipureintro; rfl
   iapply (ownSliceD_nil_of _ _ (by rfl) dq)
 
+instance kd.core.LinuxContainerUser.own_timeless (v : _root_.Perennial.k8s_io.api.core.v1.LinuxContainerUser) (dq : DFrac) (d : kd.core.LinuxContainerUser) :
+    Timeless (kd.core.LinuxContainerUser.own (GF := GF) v dq d) := by
+  unfold kd.core.LinuxContainerUser.own; infer_instance
+
+instance kd.core.LinuxContainerUser.own_persistent (v : _root_.Perennial.k8s_io.api.core.v1.LinuxContainerUser) (d : kd.core.LinuxContainerUser) :
+    Persistent (kd.core.LinuxContainerUser.own (GF := GF) v DFrac.discard d) := by
+  unfold kd.core.LinuxContainerUser.own; infer_instance
+
+/-- A `LinuxContainerUser` owned at any fraction can be made read-only. -/
+instance kd.core.LinuxContainerUser.own_deepPersist : DeepPersist (GF := GF) kd.core.LinuxContainerUser.own where
+  persist := by
+    intro v dq d
+    unfold kd.core.LinuxContainerUser.own
+    iintro ⟨H0, H1, H2⟩
+    imod (DeepPersist.persist (GF := GF) (inner := (ownSliceD (V := w64) ownBaseD)) _ _ _) $$ H2 with H2
+    imodintro
+    iframe
+
 /-- The deep ownership of a `ContainerUser` value with deep value `d`. -/
 def kd.core.ContainerUser.own (v : _root_.Perennial.k8s_io.api.core.v1.ContainerUser) (dq : DFrac) (d : kd.core.ContainerUser) : IProp GF :=
   iprop("Linux" ∷ (ownPtrD (V := _root_.Perennial.k8s_io.api.core.v1.LinuxContainerUser) kd.core.LinuxContainerUser.own) v.Linux' dq d.Linux')
@@ -5852,6 +8207,24 @@ theorem kd.core.ContainerUser.own_zero_of (v : _root_.Perennial.k8s_io.api.core.
   unfold kd.core.ContainerUser.own
   try unfold kd.core.ContainerUser.zero
   iapply (ownPtrD_none_of _ _ (by rfl) dq)
+
+instance kd.core.ContainerUser.own_timeless (v : _root_.Perennial.k8s_io.api.core.v1.ContainerUser) (dq : DFrac) (d : kd.core.ContainerUser) :
+    Timeless (kd.core.ContainerUser.own (GF := GF) v dq d) := by
+  unfold kd.core.ContainerUser.own; infer_instance
+
+instance kd.core.ContainerUser.own_persistent (v : _root_.Perennial.k8s_io.api.core.v1.ContainerUser) (d : kd.core.ContainerUser) :
+    Persistent (kd.core.ContainerUser.own (GF := GF) v DFrac.discard d) := by
+  unfold kd.core.ContainerUser.own; infer_instance
+
+/-- A `ContainerUser` owned at any fraction can be made read-only. -/
+instance kd.core.ContainerUser.own_deepPersist : DeepPersist (GF := GF) kd.core.ContainerUser.own where
+  persist := by
+    intro v dq d
+    unfold kd.core.ContainerUser.own
+    iintro H0
+    imod (DeepPersist.persist (GF := GF) (inner := (ownPtrD (V := _root_.Perennial.k8s_io.api.core.v1.LinuxContainerUser) kd.core.LinuxContainerUser.own)) _ _ _) $$ H0 with H0
+    imodintro
+    iframe
 
 /-- The deep ownership of a `ResourceHealth` value with deep value `d`. -/
 def kd.core.ResourceHealth.own (v : _root_.Perennial.k8s_io.api.core.v1.ResourceHealth) (dq : DFrac) (d : kd.core.ResourceHealth) : IProp GF :=
@@ -5871,6 +8244,24 @@ theorem kd.core.ResourceHealth.own_zero_of (v : _root_.Perennial.k8s_io.api.core
   · ipureintro; rfl
   iapply (ownPtrD_none_of _ _ (by rfl) dq)
 
+instance kd.core.ResourceHealth.own_timeless (v : _root_.Perennial.k8s_io.api.core.v1.ResourceHealth) (dq : DFrac) (d : kd.core.ResourceHealth) :
+    Timeless (kd.core.ResourceHealth.own (GF := GF) v dq d) := by
+  unfold kd.core.ResourceHealth.own; infer_instance
+
+instance kd.core.ResourceHealth.own_persistent (v : _root_.Perennial.k8s_io.api.core.v1.ResourceHealth) (d : kd.core.ResourceHealth) :
+    Persistent (kd.core.ResourceHealth.own (GF := GF) v DFrac.discard d) := by
+  unfold kd.core.ResourceHealth.own; infer_instance
+
+/-- A `ResourceHealth` owned at any fraction can be made read-only. -/
+instance kd.core.ResourceHealth.own_deepPersist : DeepPersist (GF := GF) kd.core.ResourceHealth.own where
+  persist := by
+    intro v dq d
+    unfold kd.core.ResourceHealth.own
+    iintro ⟨H0, H1, H2⟩
+    imod (DeepPersist.persist (GF := GF) (inner := (ownPtrD (V := GoString) ownBaseD)) _ _ _) $$ H2 with H2
+    imodintro
+    iframe
+
 /-- The deep ownership of a `ResourceStatus` value with deep value `d`. -/
 def kd.core.ResourceStatus.own (v : _root_.Perennial.k8s_io.api.core.v1.ResourceStatus) (dq : DFrac) (d : kd.core.ResourceStatus) : IProp GF :=
   iprop("Name" ∷ ⌜v.Name' = d.Name'⌝ ∗
@@ -5885,6 +8276,24 @@ theorem kd.core.ResourceStatus.own_zero_of (v : _root_.Perennial.k8s_io.api.core
   isplitr
   · ipureintro; rfl
   iapply (ownSliceD_nil_of _ _ (by rfl) dq)
+
+instance kd.core.ResourceStatus.own_timeless (v : _root_.Perennial.k8s_io.api.core.v1.ResourceStatus) (dq : DFrac) (d : kd.core.ResourceStatus) :
+    Timeless (kd.core.ResourceStatus.own (GF := GF) v dq d) := by
+  unfold kd.core.ResourceStatus.own; infer_instance
+
+instance kd.core.ResourceStatus.own_persistent (v : _root_.Perennial.k8s_io.api.core.v1.ResourceStatus) (d : kd.core.ResourceStatus) :
+    Persistent (kd.core.ResourceStatus.own (GF := GF) v DFrac.discard d) := by
+  unfold kd.core.ResourceStatus.own; infer_instance
+
+/-- A `ResourceStatus` owned at any fraction can be made read-only. -/
+instance kd.core.ResourceStatus.own_deepPersist : DeepPersist (GF := GF) kd.core.ResourceStatus.own where
+  persist := by
+    intro v dq d
+    unfold kd.core.ResourceStatus.own
+    iintro ⟨H0, H1⟩
+    imod (DeepPersist.persist (GF := GF) (inner := (ownSliceD (V := _root_.Perennial.k8s_io.api.core.v1.ResourceHealth) kd.core.ResourceHealth.own)) _ _ _) $$ H1 with H1
+    imodintro
+    iframe
 
 /-- The deep ownership of a `ContainerStatus` value with deep value `d`. -/
 def kd.core.ContainerStatus.own (v : _root_.Perennial.k8s_io.api.core.v1.ContainerStatus) (dq : DFrac) (d : kd.core.ContainerStatus) : IProp GF :=
@@ -5940,6 +8349,31 @@ theorem kd.core.ContainerStatus.own_zero_of (v : _root_.Perennial.k8s_io.api.cor
   · iapply (ownSliceD_nil_of _ _ (by rfl) dq)
   iapply (ownPtrD_none_of _ _ (by rfl) dq)
 
+instance kd.core.ContainerStatus.own_timeless (v : _root_.Perennial.k8s_io.api.core.v1.ContainerStatus) (dq : DFrac) (d : kd.core.ContainerStatus) :
+    Timeless (kd.core.ContainerStatus.own (GF := GF) v dq d) := by
+  unfold kd.core.ContainerStatus.own; infer_instance
+
+instance kd.core.ContainerStatus.own_persistent (v : _root_.Perennial.k8s_io.api.core.v1.ContainerStatus) (d : kd.core.ContainerStatus) :
+    Persistent (kd.core.ContainerStatus.own (GF := GF) v DFrac.discard d) := by
+  unfold kd.core.ContainerStatus.own; infer_instance
+
+/-- A `ContainerStatus` owned at any fraction can be made read-only. -/
+instance kd.core.ContainerStatus.own_deepPersist : DeepPersist (GF := GF) kd.core.ContainerStatus.own where
+  persist := by
+    intro v dq d
+    unfold kd.core.ContainerStatus.own
+    iintro ⟨H0, H1, H2, H3, H4, H5, H6, H7, H8, H9, H10, H11, H12, H13, H14⟩
+    imod (DeepPersist.persist (GF := GF) (inner := kd.core.ContainerState.own) _ _ _) $$ H1 with H1
+    imod (DeepPersist.persist (GF := GF) (inner := kd.core.ContainerState.own) _ _ _) $$ H2 with H2
+    imod (DeepPersist.persist (GF := GF) (inner := (ownPtrD (V := Bool) ownBaseD)) _ _ _) $$ H8 with H8
+    imod (DeepPersist.persist (GF := GF) (inner := (ownPtrD (V := _root_.Perennial.k8s_io.api.core.v1.ResourceRequirements) kd.core.ResourceRequirements.own)) _ _ _) $$ H10 with H10
+    imod (DeepPersist.persist (GF := GF) (inner := (ownSliceD (V := _root_.Perennial.k8s_io.api.core.v1.VolumeMountStatus) kd.core.VolumeMountStatus.own)) _ _ _) $$ H11 with H11
+    imod (DeepPersist.persist (GF := GF) (inner := (ownPtrD (V := _root_.Perennial.k8s_io.api.core.v1.ContainerUser) kd.core.ContainerUser.own)) _ _ _) $$ H12 with H12
+    imod (DeepPersist.persist (GF := GF) (inner := (ownSliceD (V := _root_.Perennial.k8s_io.api.core.v1.ResourceStatus) kd.core.ResourceStatus.own)) _ _ _) $$ H13 with H13
+    imod (DeepPersist.persist (GF := GF) (inner := (ownPtrD (V := _root_.Perennial.k8s_io.api.core.v1.Signal) ownBaseD)) _ _ _) $$ H14 with H14
+    imodintro
+    iframe
+
 /-- The deep ownership of a `PodResourceClaimStatus` value with deep value `d`. -/
 def kd.core.PodResourceClaimStatus.own (v : _root_.Perennial.k8s_io.api.core.v1.PodResourceClaimStatus) (dq : DFrac) (d : kd.core.PodResourceClaimStatus) : IProp GF :=
   iprop("Name" ∷ ⌜v.Name' = d.Name'⌝ ∗
@@ -5954,6 +8388,24 @@ theorem kd.core.PodResourceClaimStatus.own_zero_of (v : _root_.Perennial.k8s_io.
   isplitr
   · ipureintro; rfl
   iapply (ownPtrD_none_of _ _ (by rfl) dq)
+
+instance kd.core.PodResourceClaimStatus.own_timeless (v : _root_.Perennial.k8s_io.api.core.v1.PodResourceClaimStatus) (dq : DFrac) (d : kd.core.PodResourceClaimStatus) :
+    Timeless (kd.core.PodResourceClaimStatus.own (GF := GF) v dq d) := by
+  unfold kd.core.PodResourceClaimStatus.own; infer_instance
+
+instance kd.core.PodResourceClaimStatus.own_persistent (v : _root_.Perennial.k8s_io.api.core.v1.PodResourceClaimStatus) (d : kd.core.PodResourceClaimStatus) :
+    Persistent (kd.core.PodResourceClaimStatus.own (GF := GF) v DFrac.discard d) := by
+  unfold kd.core.PodResourceClaimStatus.own; infer_instance
+
+/-- A `PodResourceClaimStatus` owned at any fraction can be made read-only. -/
+instance kd.core.PodResourceClaimStatus.own_deepPersist : DeepPersist (GF := GF) kd.core.PodResourceClaimStatus.own where
+  persist := by
+    intro v dq d
+    unfold kd.core.PodResourceClaimStatus.own
+    iintro ⟨H0, H1⟩
+    imod (DeepPersist.persist (GF := GF) (inner := (ownPtrD (V := GoString) ownBaseD)) _ _ _) $$ H1 with H1
+    imodintro
+    iframe
 
 /-- The deep ownership of a `ContainerExtendedResourceRequest` value with deep value `d`. -/
 def kd.core.ContainerExtendedResourceRequest.own (v : _root_.Perennial.k8s_io.api.core.v1.ContainerExtendedResourceRequest) (dq : DFrac) (d : kd.core.ContainerExtendedResourceRequest) : IProp GF :=
@@ -5973,6 +8425,23 @@ theorem kd.core.ContainerExtendedResourceRequest.own_zero_of (v : _root_.Perenni
   · ipureintro; rfl
   ipureintro; rfl
 
+instance kd.core.ContainerExtendedResourceRequest.own_timeless (v : _root_.Perennial.k8s_io.api.core.v1.ContainerExtendedResourceRequest) (dq : DFrac) (d : kd.core.ContainerExtendedResourceRequest) :
+    Timeless (kd.core.ContainerExtendedResourceRequest.own (GF := GF) v dq d) := by
+  unfold kd.core.ContainerExtendedResourceRequest.own; infer_instance
+
+instance kd.core.ContainerExtendedResourceRequest.own_persistent (v : _root_.Perennial.k8s_io.api.core.v1.ContainerExtendedResourceRequest) (d : kd.core.ContainerExtendedResourceRequest) :
+    Persistent (kd.core.ContainerExtendedResourceRequest.own (GF := GF) v DFrac.discard d) := by
+  unfold kd.core.ContainerExtendedResourceRequest.own; infer_instance
+
+/-- A `ContainerExtendedResourceRequest` owned at any fraction can be made read-only. -/
+instance kd.core.ContainerExtendedResourceRequest.own_deepPersist : DeepPersist (GF := GF) kd.core.ContainerExtendedResourceRequest.own where
+  persist := by
+    intro v dq d
+    unfold kd.core.ContainerExtendedResourceRequest.own
+    iintro ⟨H0, H1, H2⟩
+    imodintro
+    iframe
+
 /-- The deep ownership of a `PodExtendedResourceClaimStatus` value with deep value `d`. -/
 def kd.core.PodExtendedResourceClaimStatus.own (v : _root_.Perennial.k8s_io.api.core.v1.PodExtendedResourceClaimStatus) (dq : DFrac) (d : kd.core.PodExtendedResourceClaimStatus) : IProp GF :=
   iprop("RequestMappings" ∷ (ownSliceD (V := _root_.Perennial.k8s_io.api.core.v1.ContainerExtendedResourceRequest) kd.core.ContainerExtendedResourceRequest.own) v.RequestMappings' dq d.RequestMappings' ∗
@@ -5988,6 +8457,24 @@ theorem kd.core.PodExtendedResourceClaimStatus.own_zero_of (v : _root_.Perennial
   · iapply (ownSliceD_nil_of _ _ (by rfl) dq)
   ipureintro; rfl
 
+instance kd.core.PodExtendedResourceClaimStatus.own_timeless (v : _root_.Perennial.k8s_io.api.core.v1.PodExtendedResourceClaimStatus) (dq : DFrac) (d : kd.core.PodExtendedResourceClaimStatus) :
+    Timeless (kd.core.PodExtendedResourceClaimStatus.own (GF := GF) v dq d) := by
+  unfold kd.core.PodExtendedResourceClaimStatus.own; infer_instance
+
+instance kd.core.PodExtendedResourceClaimStatus.own_persistent (v : _root_.Perennial.k8s_io.api.core.v1.PodExtendedResourceClaimStatus) (d : kd.core.PodExtendedResourceClaimStatus) :
+    Persistent (kd.core.PodExtendedResourceClaimStatus.own (GF := GF) v DFrac.discard d) := by
+  unfold kd.core.PodExtendedResourceClaimStatus.own; infer_instance
+
+/-- A `PodExtendedResourceClaimStatus` owned at any fraction can be made read-only. -/
+instance kd.core.PodExtendedResourceClaimStatus.own_deepPersist : DeepPersist (GF := GF) kd.core.PodExtendedResourceClaimStatus.own where
+  persist := by
+    intro v dq d
+    unfold kd.core.PodExtendedResourceClaimStatus.own
+    iintro ⟨H0, H1⟩
+    imod (DeepPersist.persist (GF := GF) (inner := (ownSliceD (V := _root_.Perennial.k8s_io.api.core.v1.ContainerExtendedResourceRequest) kd.core.ContainerExtendedResourceRequest.own)) _ _ _) $$ H0 with H0
+    imodintro
+    iframe
+
 /-- The deep ownership of a `NodeAllocatableMappedResources` value with deep value `d`. -/
 def kd.core.NodeAllocatableMappedResources.own (v : _root_.Perennial.k8s_io.api.core.v1.NodeAllocatableMappedResources) (dq : DFrac) (d : kd.core.NodeAllocatableMappedResources) : IProp GF :=
   iprop("Name" ∷ ⌜v.Name' = d.Name'⌝ ∗
@@ -6002,6 +8489,23 @@ theorem kd.core.NodeAllocatableMappedResources.own_zero_of (v : _root_.Perennial
   isplitr
   · ipureintro; rfl
   iapply (ownOpaquePtrD_none_of _ (by rfl))
+
+instance kd.core.NodeAllocatableMappedResources.own_timeless (v : _root_.Perennial.k8s_io.api.core.v1.NodeAllocatableMappedResources) (dq : DFrac) (d : kd.core.NodeAllocatableMappedResources) :
+    Timeless (kd.core.NodeAllocatableMappedResources.own (GF := GF) v dq d) := by
+  unfold kd.core.NodeAllocatableMappedResources.own; infer_instance
+
+instance kd.core.NodeAllocatableMappedResources.own_persistent (v : _root_.Perennial.k8s_io.api.core.v1.NodeAllocatableMappedResources) (d : kd.core.NodeAllocatableMappedResources) :
+    Persistent (kd.core.NodeAllocatableMappedResources.own (GF := GF) v DFrac.discard d) := by
+  unfold kd.core.NodeAllocatableMappedResources.own; infer_instance
+
+/-- A `NodeAllocatableMappedResources` owned at any fraction can be made read-only. -/
+instance kd.core.NodeAllocatableMappedResources.own_deepPersist : DeepPersist (GF := GF) kd.core.NodeAllocatableMappedResources.own where
+  persist := by
+    intro v dq d
+    unfold kd.core.NodeAllocatableMappedResources.own
+    iintro ⟨H0, H1⟩
+    imodintro
+    iframe
 
 /-- The deep ownership of a `NodeAllocatableOverheadResources` value with deep value `d`. -/
 def kd.core.NodeAllocatableOverheadResources.own (v : _root_.Perennial.k8s_io.api.core.v1.NodeAllocatableOverheadResources) (dq : DFrac) (d : kd.core.NodeAllocatableOverheadResources) : IProp GF :=
@@ -6020,6 +8524,23 @@ theorem kd.core.NodeAllocatableOverheadResources.own_zero_of (v : _root_.Perenni
   isplitr
   · iapply (ownOpaquePtrD_none_of _ (by rfl))
   iapply (ownOpaquePtrD_none_of _ (by rfl))
+
+instance kd.core.NodeAllocatableOverheadResources.own_timeless (v : _root_.Perennial.k8s_io.api.core.v1.NodeAllocatableOverheadResources) (dq : DFrac) (d : kd.core.NodeAllocatableOverheadResources) :
+    Timeless (kd.core.NodeAllocatableOverheadResources.own (GF := GF) v dq d) := by
+  unfold kd.core.NodeAllocatableOverheadResources.own; infer_instance
+
+instance kd.core.NodeAllocatableOverheadResources.own_persistent (v : _root_.Perennial.k8s_io.api.core.v1.NodeAllocatableOverheadResources) (d : kd.core.NodeAllocatableOverheadResources) :
+    Persistent (kd.core.NodeAllocatableOverheadResources.own (GF := GF) v DFrac.discard d) := by
+  unfold kd.core.NodeAllocatableOverheadResources.own; infer_instance
+
+/-- A `NodeAllocatableOverheadResources` owned at any fraction can be made read-only. -/
+instance kd.core.NodeAllocatableOverheadResources.own_deepPersist : DeepPersist (GF := GF) kd.core.NodeAllocatableOverheadResources.own where
+  persist := by
+    intro v dq d
+    unfold kd.core.NodeAllocatableOverheadResources.own
+    iintro ⟨H0, H1, H2⟩
+    imodintro
+    iframe
 
 /-- The deep ownership of a `NodeAllocatableResourceClaimStatus` value with deep value `d`. -/
 def kd.core.NodeAllocatableResourceClaimStatus.own (v : _root_.Perennial.k8s_io.api.core.v1.NodeAllocatableResourceClaimStatus) (dq : DFrac) (d : kd.core.NodeAllocatableResourceClaimStatus) : IProp GF :=
@@ -6042,6 +8563,26 @@ theorem kd.core.NodeAllocatableResourceClaimStatus.own_zero_of (v : _root_.Peren
   · iapply (ownSliceD_nil_of _ _ (by rfl) dq)
   iapply (ownSliceD_nil_of _ _ (by rfl) dq)
 
+instance kd.core.NodeAllocatableResourceClaimStatus.own_timeless (v : _root_.Perennial.k8s_io.api.core.v1.NodeAllocatableResourceClaimStatus) (dq : DFrac) (d : kd.core.NodeAllocatableResourceClaimStatus) :
+    Timeless (kd.core.NodeAllocatableResourceClaimStatus.own (GF := GF) v dq d) := by
+  unfold kd.core.NodeAllocatableResourceClaimStatus.own; infer_instance
+
+instance kd.core.NodeAllocatableResourceClaimStatus.own_persistent (v : _root_.Perennial.k8s_io.api.core.v1.NodeAllocatableResourceClaimStatus) (d : kd.core.NodeAllocatableResourceClaimStatus) :
+    Persistent (kd.core.NodeAllocatableResourceClaimStatus.own (GF := GF) v DFrac.discard d) := by
+  unfold kd.core.NodeAllocatableResourceClaimStatus.own; infer_instance
+
+/-- A `NodeAllocatableResourceClaimStatus` owned at any fraction can be made read-only. -/
+instance kd.core.NodeAllocatableResourceClaimStatus.own_deepPersist : DeepPersist (GF := GF) kd.core.NodeAllocatableResourceClaimStatus.own where
+  persist := by
+    intro v dq d
+    unfold kd.core.NodeAllocatableResourceClaimStatus.own
+    iintro ⟨H0, H1, H2, H3⟩
+    imod (DeepPersist.persist (GF := GF) (inner := (ownSliceD (V := GoString) ownBaseD)) _ _ _) $$ H1 with H1
+    imod (DeepPersist.persist (GF := GF) (inner := (ownSliceD (V := _root_.Perennial.k8s_io.api.core.v1.NodeAllocatableMappedResources) kd.core.NodeAllocatableMappedResources.own)) _ _ _) $$ H2 with H2
+    imod (DeepPersist.persist (GF := GF) (inner := (ownSliceD (V := _root_.Perennial.k8s_io.api.core.v1.NodeAllocatableOverheadResources) kd.core.NodeAllocatableOverheadResources.own)) _ _ _) $$ H3 with H3
+    imodintro
+    iframe
+
 /-- The deep ownership of a `VolumeHealthCondition` value with deep value `d`. -/
 def kd.core.VolumeHealthCondition.own (v : _root_.Perennial.k8s_io.api.core.v1.VolumeHealthCondition) (dq : DFrac) (d : kd.core.VolumeHealthCondition) : IProp GF :=
   iprop("Status" ∷ ⌜v.Status' = d.Status'⌝ ∗
@@ -6060,6 +8601,23 @@ theorem kd.core.VolumeHealthCondition.own_zero_of (v : _root_.Perennial.k8s_io.a
   · ipureintro; rfl
   ipureintro; rfl
 
+instance kd.core.VolumeHealthCondition.own_timeless (v : _root_.Perennial.k8s_io.api.core.v1.VolumeHealthCondition) (dq : DFrac) (d : kd.core.VolumeHealthCondition) :
+    Timeless (kd.core.VolumeHealthCondition.own (GF := GF) v dq d) := by
+  unfold kd.core.VolumeHealthCondition.own; infer_instance
+
+instance kd.core.VolumeHealthCondition.own_persistent (v : _root_.Perennial.k8s_io.api.core.v1.VolumeHealthCondition) (d : kd.core.VolumeHealthCondition) :
+    Persistent (kd.core.VolumeHealthCondition.own (GF := GF) v DFrac.discard d) := by
+  unfold kd.core.VolumeHealthCondition.own; infer_instance
+
+/-- A `VolumeHealthCondition` owned at any fraction can be made read-only. -/
+instance kd.core.VolumeHealthCondition.own_deepPersist : DeepPersist (GF := GF) kd.core.VolumeHealthCondition.own where
+  persist := by
+    intro v dq d
+    unfold kd.core.VolumeHealthCondition.own
+    iintro ⟨H0, H1, H2⟩
+    imodintro
+    iframe
+
 /-- The deep ownership of a `PodVolumeHealth` value with deep value `d`. -/
 def kd.core.PodVolumeHealth.own (v : _root_.Perennial.k8s_io.api.core.v1.PodVolumeHealth) (dq : DFrac) (d : kd.core.PodVolumeHealth) : IProp GF :=
   iprop("Name" ∷ ⌜v.Name' = d.Name'⌝ ∗
@@ -6077,6 +8635,24 @@ theorem kd.core.PodVolumeHealth.own_zero_of (v : _root_.Perennial.k8s_io.api.cor
   isplitr
   · iapply (ownSliceD_nil_of _ _ (by rfl) dq)
   ipureintro; rfl
+
+instance kd.core.PodVolumeHealth.own_timeless (v : _root_.Perennial.k8s_io.api.core.v1.PodVolumeHealth) (dq : DFrac) (d : kd.core.PodVolumeHealth) :
+    Timeless (kd.core.PodVolumeHealth.own (GF := GF) v dq d) := by
+  unfold kd.core.PodVolumeHealth.own; infer_instance
+
+instance kd.core.PodVolumeHealth.own_persistent (v : _root_.Perennial.k8s_io.api.core.v1.PodVolumeHealth) (d : kd.core.PodVolumeHealth) :
+    Persistent (kd.core.PodVolumeHealth.own (GF := GF) v DFrac.discard d) := by
+  unfold kd.core.PodVolumeHealth.own; infer_instance
+
+/-- A `PodVolumeHealth` owned at any fraction can be made read-only. -/
+instance kd.core.PodVolumeHealth.own_deepPersist : DeepPersist (GF := GF) kd.core.PodVolumeHealth.own where
+  persist := by
+    intro v dq d
+    unfold kd.core.PodVolumeHealth.own
+    iintro ⟨H0, H1, H2⟩
+    imod (DeepPersist.persist (GF := GF) (inner := (ownSliceD (V := _root_.Perennial.k8s_io.api.core.v1.VolumeHealthCondition) kd.core.VolumeHealthCondition.own)) _ _ _) $$ H1 with H1
+    imodintro
+    iframe
 
 /-- The deep ownership of a `PodStatus` value with deep value `d`. -/
 def kd.core.PodStatus.own (v : _root_.Perennial.k8s_io.api.core.v1.PodStatus) (dq : DFrac) (d : kd.core.PodStatus) : IProp GF :=
@@ -6153,6 +8729,35 @@ theorem kd.core.PodStatus.own_zero_of (v : _root_.Perennial.k8s_io.api.core.v1.P
   · iapply (ownSliceD_nil_of _ _ (by rfl) dq)
   iapply (ownSliceD_nil_of _ _ (by rfl) dq)
 
+instance kd.core.PodStatus.own_timeless (v : _root_.Perennial.k8s_io.api.core.v1.PodStatus) (dq : DFrac) (d : kd.core.PodStatus) :
+    Timeless (kd.core.PodStatus.own (GF := GF) v dq d) := by
+  unfold kd.core.PodStatus.own; infer_instance
+
+instance kd.core.PodStatus.own_persistent (v : _root_.Perennial.k8s_io.api.core.v1.PodStatus) (d : kd.core.PodStatus) :
+    Persistent (kd.core.PodStatus.own (GF := GF) v DFrac.discard d) := by
+  unfold kd.core.PodStatus.own; infer_instance
+
+/-- A `PodStatus` owned at any fraction can be made read-only. -/
+instance kd.core.PodStatus.own_deepPersist : DeepPersist (GF := GF) kd.core.PodStatus.own where
+  persist := by
+    intro v dq d
+    unfold kd.core.PodStatus.own
+    iintro ⟨H0, H1, H2, H3, H4, H5, H6, H7, H8, H9, H10, H11, H12, H13, H14, H15, H16, H17, H18, H19, H20, H21⟩
+    imod (DeepPersist.persist (GF := GF) (inner := (ownSliceD (V := _root_.Perennial.k8s_io.api.core.v1.PodCondition) kd.core.PodCondition.own)) _ _ _) $$ H2 with H2
+    imod (DeepPersist.persist (GF := GF) (inner := (ownSliceD (V := _root_.Perennial.k8s_io.api.core.v1.HostIP) kd.core.HostIP.own)) _ _ _) $$ H7 with H7
+    imod (DeepPersist.persist (GF := GF) (inner := (ownSliceD (V := _root_.Perennial.k8s_io.api.core.v1.PodIP) kd.core.PodIP.own)) _ _ _) $$ H9 with H9
+    imod (DeepPersist.persist (GF := GF) (inner := (ownPtrD (V := _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.Time) ownBaseD)) _ _ _) $$ H10 with H10
+    imod (DeepPersist.persist (GF := GF) (inner := (ownSliceD (V := _root_.Perennial.k8s_io.api.core.v1.ContainerStatus) kd.core.ContainerStatus.own)) _ _ _) $$ H11 with H11
+    imod (DeepPersist.persist (GF := GF) (inner := (ownSliceD (V := _root_.Perennial.k8s_io.api.core.v1.ContainerStatus) kd.core.ContainerStatus.own)) _ _ _) $$ H12 with H12
+    imod (DeepPersist.persist (GF := GF) (inner := (ownSliceD (V := _root_.Perennial.k8s_io.api.core.v1.ContainerStatus) kd.core.ContainerStatus.own)) _ _ _) $$ H14 with H14
+    imod (DeepPersist.persist (GF := GF) (inner := (ownSliceD (V := _root_.Perennial.k8s_io.api.core.v1.PodResourceClaimStatus) kd.core.PodResourceClaimStatus.own)) _ _ _) $$ H16 with H16
+    imod (DeepPersist.persist (GF := GF) (inner := (ownPtrD (V := _root_.Perennial.k8s_io.api.core.v1.PodExtendedResourceClaimStatus) kd.core.PodExtendedResourceClaimStatus.own)) _ _ _) $$ H17 with H17
+    imod (DeepPersist.persist (GF := GF) (inner := (ownPtrD (V := _root_.Perennial.k8s_io.api.core.v1.ResourceRequirements) kd.core.ResourceRequirements.own)) _ _ _) $$ H19 with H19
+    imod (DeepPersist.persist (GF := GF) (inner := (ownSliceD (V := _root_.Perennial.k8s_io.api.core.v1.NodeAllocatableResourceClaimStatus) kd.core.NodeAllocatableResourceClaimStatus.own)) _ _ _) $$ H20 with H20
+    imod (DeepPersist.persist (GF := GF) (inner := (ownSliceD (V := _root_.Perennial.k8s_io.api.core.v1.PodVolumeHealth) kd.core.PodVolumeHealth.own)) _ _ _) $$ H21 with H21
+    imodintro
+    iframe
+
 /-- The deep ownership of a `Pod` value with deep value `d`. -/
 def kd.core.Pod.own (v : _root_.Perennial.k8s_io.api.core.v1.Pod) (dq : DFrac) (d : kd.core.Pod) : IProp GF :=
   iprop("TypeMeta" ∷ kd.meta.TypeMeta.own v.TypeMeta' dq d.TypeMeta' ∗
@@ -6174,6 +8779,27 @@ theorem kd.core.Pod.own_zero_of (v : _root_.Perennial.k8s_io.api.core.v1.Pod) (h
   · iapply (kd.core.PodSpec.own_zero_of _ (by rfl) dq)
   iapply (kd.core.PodStatus.own_zero_of _ (by rfl) dq)
 
+instance kd.core.Pod.own_timeless (v : _root_.Perennial.k8s_io.api.core.v1.Pod) (dq : DFrac) (d : kd.core.Pod) :
+    Timeless (kd.core.Pod.own (GF := GF) v dq d) := by
+  unfold kd.core.Pod.own; infer_instance
+
+instance kd.core.Pod.own_persistent (v : _root_.Perennial.k8s_io.api.core.v1.Pod) (d : kd.core.Pod) :
+    Persistent (kd.core.Pod.own (GF := GF) v DFrac.discard d) := by
+  unfold kd.core.Pod.own; infer_instance
+
+/-- A `Pod` owned at any fraction can be made read-only. -/
+instance kd.core.Pod.own_deepPersist : DeepPersist (GF := GF) kd.core.Pod.own where
+  persist := by
+    intro v dq d
+    unfold kd.core.Pod.own
+    iintro ⟨H0, H1, H2, H3⟩
+    imod (DeepPersist.persist (GF := GF) (inner := kd.meta.TypeMeta.own) _ _ _) $$ H0 with H0
+    imod (DeepPersist.persist (GF := GF) (inner := kd.meta.ObjectMeta.own) _ _ _) $$ H1 with H1
+    imod (DeepPersist.persist (GF := GF) (inner := kd.core.PodSpec.own) _ _ _) $$ H2 with H2
+    imod (DeepPersist.persist (GF := GF) (inner := kd.core.PodStatus.own) _ _ _) $$ H3 with H3
+    imodintro
+    iframe
+
 /-- The deep ownership of a `Taint` value with deep value `d`. -/
 def kd.core.Taint.own (v : _root_.Perennial.k8s_io.api.core.v1.Taint) (dq : DFrac) (d : kd.core.Taint) : IProp GF :=
   iprop("Key" ∷ ⌜v.Key' = d.Key'⌝ ∗
@@ -6194,6 +8820,24 @@ theorem kd.core.Taint.own_zero_of (v : _root_.Perennial.k8s_io.api.core.v1.Taint
   isplitr
   · ipureintro; rfl
   iapply (ownPtrD_none_of _ _ (by rfl) dq)
+
+instance kd.core.Taint.own_timeless (v : _root_.Perennial.k8s_io.api.core.v1.Taint) (dq : DFrac) (d : kd.core.Taint) :
+    Timeless (kd.core.Taint.own (GF := GF) v dq d) := by
+  unfold kd.core.Taint.own; infer_instance
+
+instance kd.core.Taint.own_persistent (v : _root_.Perennial.k8s_io.api.core.v1.Taint) (d : kd.core.Taint) :
+    Persistent (kd.core.Taint.own (GF := GF) v DFrac.discard d) := by
+  unfold kd.core.Taint.own; infer_instance
+
+/-- A `Taint` owned at any fraction can be made read-only. -/
+instance kd.core.Taint.own_deepPersist : DeepPersist (GF := GF) kd.core.Taint.own where
+  persist := by
+    intro v dq d
+    unfold kd.core.Taint.own
+    iintro ⟨H0, H1, H2, H3⟩
+    imod (DeepPersist.persist (GF := GF) (inner := (ownPtrD (V := _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.Time) ownBaseD)) _ _ _) $$ H3 with H3
+    imodintro
+    iframe
 
 /-- The deep ownership of a `ConfigMapNodeConfigSource` value with deep value `d`. -/
 def kd.core.ConfigMapNodeConfigSource.own (v : _root_.Perennial.k8s_io.api.core.v1.ConfigMapNodeConfigSource) (dq : DFrac) (d : kd.core.ConfigMapNodeConfigSource) : IProp GF :=
@@ -6219,6 +8863,23 @@ theorem kd.core.ConfigMapNodeConfigSource.own_zero_of (v : _root_.Perennial.k8s_
   · ipureintro; rfl
   ipureintro; rfl
 
+instance kd.core.ConfigMapNodeConfigSource.own_timeless (v : _root_.Perennial.k8s_io.api.core.v1.ConfigMapNodeConfigSource) (dq : DFrac) (d : kd.core.ConfigMapNodeConfigSource) :
+    Timeless (kd.core.ConfigMapNodeConfigSource.own (GF := GF) v dq d) := by
+  unfold kd.core.ConfigMapNodeConfigSource.own; infer_instance
+
+instance kd.core.ConfigMapNodeConfigSource.own_persistent (v : _root_.Perennial.k8s_io.api.core.v1.ConfigMapNodeConfigSource) (d : kd.core.ConfigMapNodeConfigSource) :
+    Persistent (kd.core.ConfigMapNodeConfigSource.own (GF := GF) v DFrac.discard d) := by
+  unfold kd.core.ConfigMapNodeConfigSource.own; infer_instance
+
+/-- A `ConfigMapNodeConfigSource` owned at any fraction can be made read-only. -/
+instance kd.core.ConfigMapNodeConfigSource.own_deepPersist : DeepPersist (GF := GF) kd.core.ConfigMapNodeConfigSource.own where
+  persist := by
+    intro v dq d
+    unfold kd.core.ConfigMapNodeConfigSource.own
+    iintro ⟨H0, H1, H2, H3, H4⟩
+    imodintro
+    iframe
+
 /-- The deep ownership of a `NodeConfigSource` value with deep value `d`. -/
 def kd.core.NodeConfigSource.own (v : _root_.Perennial.k8s_io.api.core.v1.NodeConfigSource) (dq : DFrac) (d : kd.core.NodeConfigSource) : IProp GF :=
   iprop("ConfigMap" ∷ (ownPtrD (V := _root_.Perennial.k8s_io.api.core.v1.ConfigMapNodeConfigSource) kd.core.ConfigMapNodeConfigSource.own) v.ConfigMap' dq d.ConfigMap')
@@ -6231,6 +8892,24 @@ theorem kd.core.NodeConfigSource.own_zero_of (v : _root_.Perennial.k8s_io.api.co
   try unfold kd.core.NodeConfigSource.zero
   iapply (ownPtrD_none_of _ _ (by rfl) dq)
 
+instance kd.core.NodeConfigSource.own_timeless (v : _root_.Perennial.k8s_io.api.core.v1.NodeConfigSource) (dq : DFrac) (d : kd.core.NodeConfigSource) :
+    Timeless (kd.core.NodeConfigSource.own (GF := GF) v dq d) := by
+  unfold kd.core.NodeConfigSource.own; infer_instance
+
+instance kd.core.NodeConfigSource.own_persistent (v : _root_.Perennial.k8s_io.api.core.v1.NodeConfigSource) (d : kd.core.NodeConfigSource) :
+    Persistent (kd.core.NodeConfigSource.own (GF := GF) v DFrac.discard d) := by
+  unfold kd.core.NodeConfigSource.own; infer_instance
+
+/-- A `NodeConfigSource` owned at any fraction can be made read-only. -/
+instance kd.core.NodeConfigSource.own_deepPersist : DeepPersist (GF := GF) kd.core.NodeConfigSource.own where
+  persist := by
+    intro v dq d
+    unfold kd.core.NodeConfigSource.own
+    iintro H0
+    imod (DeepPersist.persist (GF := GF) (inner := (ownPtrD (V := _root_.Perennial.k8s_io.api.core.v1.ConfigMapNodeConfigSource) kd.core.ConfigMapNodeConfigSource.own)) _ _ _) $$ H0 with H0
+    imodintro
+    iframe
+
 /-- The deep ownership of a `NodePodPreemptionPolicy` value with deep value `d`. -/
 def kd.core.NodePodPreemptionPolicy.own (v : _root_.Perennial.k8s_io.api.core.v1.NodePodPreemptionPolicy) (dq : DFrac) (d : kd.core.NodePodPreemptionPolicy) : IProp GF :=
   iprop("DisableResizePreemption" ∷ (ownSliceD (V := GoString) ownBaseD) v.DisableResizePreemption' dq d.DisableResizePreemption')
@@ -6242,6 +8921,24 @@ theorem kd.core.NodePodPreemptionPolicy.own_zero_of (v : _root_.Perennial.k8s_io
   unfold kd.core.NodePodPreemptionPolicy.own
   try unfold kd.core.NodePodPreemptionPolicy.zero
   iapply (ownSliceD_nil_of _ _ (by rfl) dq)
+
+instance kd.core.NodePodPreemptionPolicy.own_timeless (v : _root_.Perennial.k8s_io.api.core.v1.NodePodPreemptionPolicy) (dq : DFrac) (d : kd.core.NodePodPreemptionPolicy) :
+    Timeless (kd.core.NodePodPreemptionPolicy.own (GF := GF) v dq d) := by
+  unfold kd.core.NodePodPreemptionPolicy.own; infer_instance
+
+instance kd.core.NodePodPreemptionPolicy.own_persistent (v : _root_.Perennial.k8s_io.api.core.v1.NodePodPreemptionPolicy) (d : kd.core.NodePodPreemptionPolicy) :
+    Persistent (kd.core.NodePodPreemptionPolicy.own (GF := GF) v DFrac.discard d) := by
+  unfold kd.core.NodePodPreemptionPolicy.own; infer_instance
+
+/-- A `NodePodPreemptionPolicy` owned at any fraction can be made read-only. -/
+instance kd.core.NodePodPreemptionPolicy.own_deepPersist : DeepPersist (GF := GF) kd.core.NodePodPreemptionPolicy.own where
+  persist := by
+    intro v dq d
+    unfold kd.core.NodePodPreemptionPolicy.own
+    iintro H0
+    imod (DeepPersist.persist (GF := GF) (inner := (ownSliceD (V := GoString) ownBaseD)) _ _ _) $$ H0 with H0
+    imodintro
+    iframe
 
 /-- The deep ownership of a `NodeSpec` value with deep value `d`. -/
 def kd.core.NodeSpec.own (v : _root_.Perennial.k8s_io.api.core.v1.NodeSpec) (dq : DFrac) (d : kd.core.NodeSpec) : IProp GF :=
@@ -6276,6 +8973,27 @@ theorem kd.core.NodeSpec.own_zero_of (v : _root_.Perennial.k8s_io.api.core.v1.No
   · ipureintro; rfl
   iapply (ownPtrD_none_of _ _ (by rfl) dq)
 
+instance kd.core.NodeSpec.own_timeless (v : _root_.Perennial.k8s_io.api.core.v1.NodeSpec) (dq : DFrac) (d : kd.core.NodeSpec) :
+    Timeless (kd.core.NodeSpec.own (GF := GF) v dq d) := by
+  unfold kd.core.NodeSpec.own; infer_instance
+
+instance kd.core.NodeSpec.own_persistent (v : _root_.Perennial.k8s_io.api.core.v1.NodeSpec) (d : kd.core.NodeSpec) :
+    Persistent (kd.core.NodeSpec.own (GF := GF) v DFrac.discard d) := by
+  unfold kd.core.NodeSpec.own; infer_instance
+
+/-- A `NodeSpec` owned at any fraction can be made read-only. -/
+instance kd.core.NodeSpec.own_deepPersist : DeepPersist (GF := GF) kd.core.NodeSpec.own where
+  persist := by
+    intro v dq d
+    unfold kd.core.NodeSpec.own
+    iintro ⟨H0, H1, H2, H3, H4, H5, H6, H7⟩
+    imod (DeepPersist.persist (GF := GF) (inner := (ownSliceD (V := GoString) ownBaseD)) _ _ _) $$ H1 with H1
+    imod (DeepPersist.persist (GF := GF) (inner := (ownSliceD (V := _root_.Perennial.k8s_io.api.core.v1.Taint) kd.core.Taint.own)) _ _ _) $$ H4 with H4
+    imod (DeepPersist.persist (GF := GF) (inner := (ownPtrD (V := _root_.Perennial.k8s_io.api.core.v1.NodeConfigSource) kd.core.NodeConfigSource.own)) _ _ _) $$ H5 with H5
+    imod (DeepPersist.persist (GF := GF) (inner := (ownPtrD (V := _root_.Perennial.k8s_io.api.core.v1.NodePodPreemptionPolicy) kd.core.NodePodPreemptionPolicy.own)) _ _ _) $$ H7 with H7
+    imodintro
+    iframe
+
 /-- The deep ownership of a `NodeCondition` value with deep value `d`. -/
 def kd.core.NodeCondition.own (v : _root_.Perennial.k8s_io.api.core.v1.NodeCondition) (dq : DFrac) (d : kd.core.NodeCondition) : IProp GF :=
   iprop("Type" ∷ ⌜v.Type' = d.Type'⌝ ∗
@@ -6303,6 +9021,23 @@ theorem kd.core.NodeCondition.own_zero_of (v : _root_.Perennial.k8s_io.api.core.
   · ipureintro; rfl
   ipureintro; rfl
 
+instance kd.core.NodeCondition.own_timeless (v : _root_.Perennial.k8s_io.api.core.v1.NodeCondition) (dq : DFrac) (d : kd.core.NodeCondition) :
+    Timeless (kd.core.NodeCondition.own (GF := GF) v dq d) := by
+  unfold kd.core.NodeCondition.own; infer_instance
+
+instance kd.core.NodeCondition.own_persistent (v : _root_.Perennial.k8s_io.api.core.v1.NodeCondition) (d : kd.core.NodeCondition) :
+    Persistent (kd.core.NodeCondition.own (GF := GF) v DFrac.discard d) := by
+  unfold kd.core.NodeCondition.own; infer_instance
+
+/-- A `NodeCondition` owned at any fraction can be made read-only. -/
+instance kd.core.NodeCondition.own_deepPersist : DeepPersist (GF := GF) kd.core.NodeCondition.own where
+  persist := by
+    intro v dq d
+    unfold kd.core.NodeCondition.own
+    iintro ⟨H0, H1, H2, H3, H4, H5⟩
+    imodintro
+    iframe
+
 /-- The deep ownership of a `NodeAddress` value with deep value `d`. -/
 def kd.core.NodeAddress.own (v : _root_.Perennial.k8s_io.api.core.v1.NodeAddress) (dq : DFrac) (d : kd.core.NodeAddress) : IProp GF :=
   iprop("Type" ∷ ⌜v.Type' = d.Type'⌝ ∗
@@ -6318,6 +9053,23 @@ theorem kd.core.NodeAddress.own_zero_of (v : _root_.Perennial.k8s_io.api.core.v1
   · ipureintro; rfl
   ipureintro; rfl
 
+instance kd.core.NodeAddress.own_timeless (v : _root_.Perennial.k8s_io.api.core.v1.NodeAddress) (dq : DFrac) (d : kd.core.NodeAddress) :
+    Timeless (kd.core.NodeAddress.own (GF := GF) v dq d) := by
+  unfold kd.core.NodeAddress.own; infer_instance
+
+instance kd.core.NodeAddress.own_persistent (v : _root_.Perennial.k8s_io.api.core.v1.NodeAddress) (d : kd.core.NodeAddress) :
+    Persistent (kd.core.NodeAddress.own (GF := GF) v DFrac.discard d) := by
+  unfold kd.core.NodeAddress.own; infer_instance
+
+/-- A `NodeAddress` owned at any fraction can be made read-only. -/
+instance kd.core.NodeAddress.own_deepPersist : DeepPersist (GF := GF) kd.core.NodeAddress.own where
+  persist := by
+    intro v dq d
+    unfold kd.core.NodeAddress.own
+    iintro ⟨H0, H1⟩
+    imodintro
+    iframe
+
 /-- The deep ownership of a `DaemonEndpoint` value with deep value `d`. -/
 def kd.core.DaemonEndpoint.own (v : _root_.Perennial.k8s_io.api.core.v1.DaemonEndpoint) (dq : DFrac) (d : kd.core.DaemonEndpoint) : IProp GF :=
   iprop("Port" ∷ ⌜v.Port' = d.Port'⌝)
@@ -6329,6 +9081,23 @@ theorem kd.core.DaemonEndpoint.own_zero_of (v : _root_.Perennial.k8s_io.api.core
   unfold kd.core.DaemonEndpoint.own
   try unfold kd.core.DaemonEndpoint.zero
   ipureintro; rfl
+
+instance kd.core.DaemonEndpoint.own_timeless (v : _root_.Perennial.k8s_io.api.core.v1.DaemonEndpoint) (dq : DFrac) (d : kd.core.DaemonEndpoint) :
+    Timeless (kd.core.DaemonEndpoint.own (GF := GF) v dq d) := by
+  unfold kd.core.DaemonEndpoint.own; infer_instance
+
+instance kd.core.DaemonEndpoint.own_persistent (v : _root_.Perennial.k8s_io.api.core.v1.DaemonEndpoint) (d : kd.core.DaemonEndpoint) :
+    Persistent (kd.core.DaemonEndpoint.own (GF := GF) v DFrac.discard d) := by
+  unfold kd.core.DaemonEndpoint.own; infer_instance
+
+/-- A `DaemonEndpoint` owned at any fraction can be made read-only. -/
+instance kd.core.DaemonEndpoint.own_deepPersist : DeepPersist (GF := GF) kd.core.DaemonEndpoint.own where
+  persist := by
+    intro v dq d
+    unfold kd.core.DaemonEndpoint.own
+    iintro H0
+    imodintro
+    iframe
 
 /-- The deep ownership of a `NodeDaemonEndpoints` value with deep value `d`. -/
 def kd.core.NodeDaemonEndpoints.own (v : _root_.Perennial.k8s_io.api.core.v1.NodeDaemonEndpoints) (dq : DFrac) (d : kd.core.NodeDaemonEndpoints) : IProp GF :=
@@ -6342,6 +9111,24 @@ theorem kd.core.NodeDaemonEndpoints.own_zero_of (v : _root_.Perennial.k8s_io.api
   try unfold kd.core.NodeDaemonEndpoints.zero
   iapply (kd.core.DaemonEndpoint.own_zero_of _ (by rfl) dq)
 
+instance kd.core.NodeDaemonEndpoints.own_timeless (v : _root_.Perennial.k8s_io.api.core.v1.NodeDaemonEndpoints) (dq : DFrac) (d : kd.core.NodeDaemonEndpoints) :
+    Timeless (kd.core.NodeDaemonEndpoints.own (GF := GF) v dq d) := by
+  unfold kd.core.NodeDaemonEndpoints.own; infer_instance
+
+instance kd.core.NodeDaemonEndpoints.own_persistent (v : _root_.Perennial.k8s_io.api.core.v1.NodeDaemonEndpoints) (d : kd.core.NodeDaemonEndpoints) :
+    Persistent (kd.core.NodeDaemonEndpoints.own (GF := GF) v DFrac.discard d) := by
+  unfold kd.core.NodeDaemonEndpoints.own; infer_instance
+
+/-- A `NodeDaemonEndpoints` owned at any fraction can be made read-only. -/
+instance kd.core.NodeDaemonEndpoints.own_deepPersist : DeepPersist (GF := GF) kd.core.NodeDaemonEndpoints.own where
+  persist := by
+    intro v dq d
+    unfold kd.core.NodeDaemonEndpoints.own
+    iintro H0
+    imod (DeepPersist.persist (GF := GF) (inner := kd.core.DaemonEndpoint.own) _ _ _) $$ H0 with H0
+    imodintro
+    iframe
+
 /-- The deep ownership of a `NodeSwapStatus` value with deep value `d`. -/
 def kd.core.NodeSwapStatus.own (v : _root_.Perennial.k8s_io.api.core.v1.NodeSwapStatus) (dq : DFrac) (d : kd.core.NodeSwapStatus) : IProp GF :=
   iprop("Capacity" ∷ (ownPtrD (V := w64) ownBaseD) v.Capacity' dq d.Capacity')
@@ -6353,6 +9140,24 @@ theorem kd.core.NodeSwapStatus.own_zero_of (v : _root_.Perennial.k8s_io.api.core
   unfold kd.core.NodeSwapStatus.own
   try unfold kd.core.NodeSwapStatus.zero
   iapply (ownPtrD_none_of _ _ (by rfl) dq)
+
+instance kd.core.NodeSwapStatus.own_timeless (v : _root_.Perennial.k8s_io.api.core.v1.NodeSwapStatus) (dq : DFrac) (d : kd.core.NodeSwapStatus) :
+    Timeless (kd.core.NodeSwapStatus.own (GF := GF) v dq d) := by
+  unfold kd.core.NodeSwapStatus.own; infer_instance
+
+instance kd.core.NodeSwapStatus.own_persistent (v : _root_.Perennial.k8s_io.api.core.v1.NodeSwapStatus) (d : kd.core.NodeSwapStatus) :
+    Persistent (kd.core.NodeSwapStatus.own (GF := GF) v DFrac.discard d) := by
+  unfold kd.core.NodeSwapStatus.own; infer_instance
+
+/-- A `NodeSwapStatus` owned at any fraction can be made read-only. -/
+instance kd.core.NodeSwapStatus.own_deepPersist : DeepPersist (GF := GF) kd.core.NodeSwapStatus.own where
+  persist := by
+    intro v dq d
+    unfold kd.core.NodeSwapStatus.own
+    iintro H0
+    imod (DeepPersist.persist (GF := GF) (inner := (ownPtrD (V := w64) ownBaseD)) _ _ _) $$ H0 with H0
+    imodintro
+    iframe
 
 /-- The deep ownership of a `NodeSystemInfo` value with deep value `d`. -/
 def kd.core.NodeSystemInfo.own (v : _root_.Perennial.k8s_io.api.core.v1.NodeSystemInfo) (dq : DFrac) (d : kd.core.NodeSystemInfo) : IProp GF :=
@@ -6399,6 +9204,25 @@ theorem kd.core.NodeSystemInfo.own_zero_of (v : _root_.Perennial.k8s_io.api.core
   · iapply (ownPtrD_none_of _ _ (by rfl) dq)
   iapply (ownPtrD_none_of _ _ (by rfl) dq)
 
+instance kd.core.NodeSystemInfo.own_timeless (v : _root_.Perennial.k8s_io.api.core.v1.NodeSystemInfo) (dq : DFrac) (d : kd.core.NodeSystemInfo) :
+    Timeless (kd.core.NodeSystemInfo.own (GF := GF) v dq d) := by
+  unfold kd.core.NodeSystemInfo.own; infer_instance
+
+instance kd.core.NodeSystemInfo.own_persistent (v : _root_.Perennial.k8s_io.api.core.v1.NodeSystemInfo) (d : kd.core.NodeSystemInfo) :
+    Persistent (kd.core.NodeSystemInfo.own (GF := GF) v DFrac.discard d) := by
+  unfold kd.core.NodeSystemInfo.own; infer_instance
+
+/-- A `NodeSystemInfo` owned at any fraction can be made read-only. -/
+instance kd.core.NodeSystemInfo.own_deepPersist : DeepPersist (GF := GF) kd.core.NodeSystemInfo.own where
+  persist := by
+    intro v dq d
+    unfold kd.core.NodeSystemInfo.own
+    iintro ⟨H0, H1, H2, H3, H4, H5, H6, H7, H8, H9, H10, H11⟩
+    imod (DeepPersist.persist (GF := GF) (inner := (ownPtrD (V := _root_.Perennial.k8s_io.api.core.v1.NodeSwapStatus) kd.core.NodeSwapStatus.own)) _ _ _) $$ H10 with H10
+    imod (DeepPersist.persist (GF := GF) (inner := (ownPtrD (V := Bool) ownBaseD)) _ _ _) $$ H11 with H11
+    imodintro
+    iframe
+
 /-- The deep ownership of a `ContainerImage` value with deep value `d`. -/
 def kd.core.ContainerImage.own (v : _root_.Perennial.k8s_io.api.core.v1.ContainerImage) (dq : DFrac) (d : kd.core.ContainerImage) : IProp GF :=
   iprop("Names" ∷ (ownSliceD (V := GoString) ownBaseD) v.Names' dq d.Names' ∗
@@ -6414,6 +9238,24 @@ theorem kd.core.ContainerImage.own_zero_of (v : _root_.Perennial.k8s_io.api.core
   · iapply (ownSliceD_nil_of _ _ (by rfl) dq)
   ipureintro; rfl
 
+instance kd.core.ContainerImage.own_timeless (v : _root_.Perennial.k8s_io.api.core.v1.ContainerImage) (dq : DFrac) (d : kd.core.ContainerImage) :
+    Timeless (kd.core.ContainerImage.own (GF := GF) v dq d) := by
+  unfold kd.core.ContainerImage.own; infer_instance
+
+instance kd.core.ContainerImage.own_persistent (v : _root_.Perennial.k8s_io.api.core.v1.ContainerImage) (d : kd.core.ContainerImage) :
+    Persistent (kd.core.ContainerImage.own (GF := GF) v DFrac.discard d) := by
+  unfold kd.core.ContainerImage.own; infer_instance
+
+/-- A `ContainerImage` owned at any fraction can be made read-only. -/
+instance kd.core.ContainerImage.own_deepPersist : DeepPersist (GF := GF) kd.core.ContainerImage.own where
+  persist := by
+    intro v dq d
+    unfold kd.core.ContainerImage.own
+    iintro ⟨H0, H1⟩
+    imod (DeepPersist.persist (GF := GF) (inner := (ownSliceD (V := GoString) ownBaseD)) _ _ _) $$ H0 with H0
+    imodintro
+    iframe
+
 /-- The deep ownership of a `AttachedVolume` value with deep value `d`. -/
 def kd.core.AttachedVolume.own (v : _root_.Perennial.k8s_io.api.core.v1.AttachedVolume) (dq : DFrac) (d : kd.core.AttachedVolume) : IProp GF :=
   iprop("Name" ∷ ⌜v.Name' = d.Name'⌝ ∗
@@ -6428,6 +9270,23 @@ theorem kd.core.AttachedVolume.own_zero_of (v : _root_.Perennial.k8s_io.api.core
   isplitr
   · ipureintro; rfl
   ipureintro; rfl
+
+instance kd.core.AttachedVolume.own_timeless (v : _root_.Perennial.k8s_io.api.core.v1.AttachedVolume) (dq : DFrac) (d : kd.core.AttachedVolume) :
+    Timeless (kd.core.AttachedVolume.own (GF := GF) v dq d) := by
+  unfold kd.core.AttachedVolume.own; infer_instance
+
+instance kd.core.AttachedVolume.own_persistent (v : _root_.Perennial.k8s_io.api.core.v1.AttachedVolume) (d : kd.core.AttachedVolume) :
+    Persistent (kd.core.AttachedVolume.own (GF := GF) v DFrac.discard d) := by
+  unfold kd.core.AttachedVolume.own; infer_instance
+
+/-- A `AttachedVolume` owned at any fraction can be made read-only. -/
+instance kd.core.AttachedVolume.own_deepPersist : DeepPersist (GF := GF) kd.core.AttachedVolume.own where
+  persist := by
+    intro v dq d
+    unfold kd.core.AttachedVolume.own
+    iintro ⟨H0, H1⟩
+    imodintro
+    iframe
 
 /-- The deep ownership of a `NodeConfigStatus` value with deep value `d`. -/
 def kd.core.NodeConfigStatus.own (v : _root_.Perennial.k8s_io.api.core.v1.NodeConfigStatus) (dq : DFrac) (d : kd.core.NodeConfigStatus) : IProp GF :=
@@ -6450,6 +9309,26 @@ theorem kd.core.NodeConfigStatus.own_zero_of (v : _root_.Perennial.k8s_io.api.co
   · iapply (ownPtrD_none_of _ _ (by rfl) dq)
   ipureintro; rfl
 
+instance kd.core.NodeConfigStatus.own_timeless (v : _root_.Perennial.k8s_io.api.core.v1.NodeConfigStatus) (dq : DFrac) (d : kd.core.NodeConfigStatus) :
+    Timeless (kd.core.NodeConfigStatus.own (GF := GF) v dq d) := by
+  unfold kd.core.NodeConfigStatus.own; infer_instance
+
+instance kd.core.NodeConfigStatus.own_persistent (v : _root_.Perennial.k8s_io.api.core.v1.NodeConfigStatus) (d : kd.core.NodeConfigStatus) :
+    Persistent (kd.core.NodeConfigStatus.own (GF := GF) v DFrac.discard d) := by
+  unfold kd.core.NodeConfigStatus.own; infer_instance
+
+/-- A `NodeConfigStatus` owned at any fraction can be made read-only. -/
+instance kd.core.NodeConfigStatus.own_deepPersist : DeepPersist (GF := GF) kd.core.NodeConfigStatus.own where
+  persist := by
+    intro v dq d
+    unfold kd.core.NodeConfigStatus.own
+    iintro ⟨H0, H1, H2, H3⟩
+    imod (DeepPersist.persist (GF := GF) (inner := (ownPtrD (V := _root_.Perennial.k8s_io.api.core.v1.NodeConfigSource) kd.core.NodeConfigSource.own)) _ _ _) $$ H0 with H0
+    imod (DeepPersist.persist (GF := GF) (inner := (ownPtrD (V := _root_.Perennial.k8s_io.api.core.v1.NodeConfigSource) kd.core.NodeConfigSource.own)) _ _ _) $$ H1 with H1
+    imod (DeepPersist.persist (GF := GF) (inner := (ownPtrD (V := _root_.Perennial.k8s_io.api.core.v1.NodeConfigSource) kd.core.NodeConfigSource.own)) _ _ _) $$ H2 with H2
+    imodintro
+    iframe
+
 /-- The deep ownership of a `NodeRuntimeHandlerFeatures` value with deep value `d`. -/
 def kd.core.NodeRuntimeHandlerFeatures.own (v : _root_.Perennial.k8s_io.api.core.v1.NodeRuntimeHandlerFeatures) (dq : DFrac) (d : kd.core.NodeRuntimeHandlerFeatures) : IProp GF :=
   iprop("RecursiveReadOnlyMounts" ∷ (ownPtrD (V := Bool) ownBaseD) v.RecursiveReadOnlyMounts' dq d.RecursiveReadOnlyMounts' ∗
@@ -6464,6 +9343,25 @@ theorem kd.core.NodeRuntimeHandlerFeatures.own_zero_of (v : _root_.Perennial.k8s
   isplitr
   · iapply (ownPtrD_none_of _ _ (by rfl) dq)
   iapply (ownPtrD_none_of _ _ (by rfl) dq)
+
+instance kd.core.NodeRuntimeHandlerFeatures.own_timeless (v : _root_.Perennial.k8s_io.api.core.v1.NodeRuntimeHandlerFeatures) (dq : DFrac) (d : kd.core.NodeRuntimeHandlerFeatures) :
+    Timeless (kd.core.NodeRuntimeHandlerFeatures.own (GF := GF) v dq d) := by
+  unfold kd.core.NodeRuntimeHandlerFeatures.own; infer_instance
+
+instance kd.core.NodeRuntimeHandlerFeatures.own_persistent (v : _root_.Perennial.k8s_io.api.core.v1.NodeRuntimeHandlerFeatures) (d : kd.core.NodeRuntimeHandlerFeatures) :
+    Persistent (kd.core.NodeRuntimeHandlerFeatures.own (GF := GF) v DFrac.discard d) := by
+  unfold kd.core.NodeRuntimeHandlerFeatures.own; infer_instance
+
+/-- A `NodeRuntimeHandlerFeatures` owned at any fraction can be made read-only. -/
+instance kd.core.NodeRuntimeHandlerFeatures.own_deepPersist : DeepPersist (GF := GF) kd.core.NodeRuntimeHandlerFeatures.own where
+  persist := by
+    intro v dq d
+    unfold kd.core.NodeRuntimeHandlerFeatures.own
+    iintro ⟨H0, H1⟩
+    imod (DeepPersist.persist (GF := GF) (inner := (ownPtrD (V := Bool) ownBaseD)) _ _ _) $$ H0 with H0
+    imod (DeepPersist.persist (GF := GF) (inner := (ownPtrD (V := Bool) ownBaseD)) _ _ _) $$ H1 with H1
+    imodintro
+    iframe
 
 /-- The deep ownership of a `NodeRuntimeHandler` value with deep value `d`. -/
 def kd.core.NodeRuntimeHandler.own (v : _root_.Perennial.k8s_io.api.core.v1.NodeRuntimeHandler) (dq : DFrac) (d : kd.core.NodeRuntimeHandler) : IProp GF :=
@@ -6480,6 +9378,24 @@ theorem kd.core.NodeRuntimeHandler.own_zero_of (v : _root_.Perennial.k8s_io.api.
   · ipureintro; rfl
   iapply (ownPtrD_none_of _ _ (by rfl) dq)
 
+instance kd.core.NodeRuntimeHandler.own_timeless (v : _root_.Perennial.k8s_io.api.core.v1.NodeRuntimeHandler) (dq : DFrac) (d : kd.core.NodeRuntimeHandler) :
+    Timeless (kd.core.NodeRuntimeHandler.own (GF := GF) v dq d) := by
+  unfold kd.core.NodeRuntimeHandler.own; infer_instance
+
+instance kd.core.NodeRuntimeHandler.own_persistent (v : _root_.Perennial.k8s_io.api.core.v1.NodeRuntimeHandler) (d : kd.core.NodeRuntimeHandler) :
+    Persistent (kd.core.NodeRuntimeHandler.own (GF := GF) v DFrac.discard d) := by
+  unfold kd.core.NodeRuntimeHandler.own; infer_instance
+
+/-- A `NodeRuntimeHandler` owned at any fraction can be made read-only. -/
+instance kd.core.NodeRuntimeHandler.own_deepPersist : DeepPersist (GF := GF) kd.core.NodeRuntimeHandler.own where
+  persist := by
+    intro v dq d
+    unfold kd.core.NodeRuntimeHandler.own
+    iintro ⟨H0, H1⟩
+    imod (DeepPersist.persist (GF := GF) (inner := (ownPtrD (V := _root_.Perennial.k8s_io.api.core.v1.NodeRuntimeHandlerFeatures) kd.core.NodeRuntimeHandlerFeatures.own)) _ _ _) $$ H1 with H1
+    imodintro
+    iframe
+
 /-- The deep ownership of a `NodeFeatures` value with deep value `d`. -/
 def kd.core.NodeFeatures.own (v : _root_.Perennial.k8s_io.api.core.v1.NodeFeatures) (dq : DFrac) (d : kd.core.NodeFeatures) : IProp GF :=
   iprop("SupplementalGroupsPolicy" ∷ (ownPtrD (V := Bool) ownBaseD) v.SupplementalGroupsPolicy' dq d.SupplementalGroupsPolicy')
@@ -6491,6 +9407,24 @@ theorem kd.core.NodeFeatures.own_zero_of (v : _root_.Perennial.k8s_io.api.core.v
   unfold kd.core.NodeFeatures.own
   try unfold kd.core.NodeFeatures.zero
   iapply (ownPtrD_none_of _ _ (by rfl) dq)
+
+instance kd.core.NodeFeatures.own_timeless (v : _root_.Perennial.k8s_io.api.core.v1.NodeFeatures) (dq : DFrac) (d : kd.core.NodeFeatures) :
+    Timeless (kd.core.NodeFeatures.own (GF := GF) v dq d) := by
+  unfold kd.core.NodeFeatures.own; infer_instance
+
+instance kd.core.NodeFeatures.own_persistent (v : _root_.Perennial.k8s_io.api.core.v1.NodeFeatures) (d : kd.core.NodeFeatures) :
+    Persistent (kd.core.NodeFeatures.own (GF := GF) v DFrac.discard d) := by
+  unfold kd.core.NodeFeatures.own; infer_instance
+
+/-- A `NodeFeatures` owned at any fraction can be made read-only. -/
+instance kd.core.NodeFeatures.own_deepPersist : DeepPersist (GF := GF) kd.core.NodeFeatures.own where
+  persist := by
+    intro v dq d
+    unfold kd.core.NodeFeatures.own
+    iintro H0
+    imod (DeepPersist.persist (GF := GF) (inner := (ownPtrD (V := Bool) ownBaseD)) _ _ _) $$ H0 with H0
+    imodintro
+    iframe
 
 /-- The deep ownership of a `NodeStatus` value with deep value `d`. -/
 def kd.core.NodeStatus.own (v : _root_.Perennial.k8s_io.api.core.v1.NodeStatus) (dq : DFrac) (d : kd.core.NodeStatus) : IProp GF :=
@@ -6543,6 +9477,34 @@ theorem kd.core.NodeStatus.own_zero_of (v : _root_.Perennial.k8s_io.api.core.v1.
   · iapply (ownPtrD_none_of _ _ (by rfl) dq)
   iapply (ownSliceD_nil_of _ _ (by rfl) dq)
 
+instance kd.core.NodeStatus.own_timeless (v : _root_.Perennial.k8s_io.api.core.v1.NodeStatus) (dq : DFrac) (d : kd.core.NodeStatus) :
+    Timeless (kd.core.NodeStatus.own (GF := GF) v dq d) := by
+  unfold kd.core.NodeStatus.own; infer_instance
+
+instance kd.core.NodeStatus.own_persistent (v : _root_.Perennial.k8s_io.api.core.v1.NodeStatus) (d : kd.core.NodeStatus) :
+    Persistent (kd.core.NodeStatus.own (GF := GF) v DFrac.discard d) := by
+  unfold kd.core.NodeStatus.own; infer_instance
+
+/-- A `NodeStatus` owned at any fraction can be made read-only. -/
+instance kd.core.NodeStatus.own_deepPersist : DeepPersist (GF := GF) kd.core.NodeStatus.own where
+  persist := by
+    intro v dq d
+    unfold kd.core.NodeStatus.own
+    iintro ⟨H0, H1, H2, H3, H4, H5, H6, H7, H8, H9, H10, H11, H12, H13⟩
+    imod (DeepPersist.persist (GF := GF) (inner := (ownSliceD (V := _root_.Perennial.k8s_io.api.core.v1.NodeCondition) kd.core.NodeCondition.own)) _ _ _) $$ H3 with H3
+    imod (DeepPersist.persist (GF := GF) (inner := (ownSliceD (V := _root_.Perennial.k8s_io.api.core.v1.NodeAddress) kd.core.NodeAddress.own)) _ _ _) $$ H4 with H4
+    imod (DeepPersist.persist (GF := GF) (inner := kd.core.NodeDaemonEndpoints.own) _ _ _) $$ H5 with H5
+    imod (DeepPersist.persist (GF := GF) (inner := kd.core.NodeSystemInfo.own) _ _ _) $$ H6 with H6
+    imod (DeepPersist.persist (GF := GF) (inner := (ownSliceD (V := _root_.Perennial.k8s_io.api.core.v1.ContainerImage) kd.core.ContainerImage.own)) _ _ _) $$ H7 with H7
+    imod (DeepPersist.persist (GF := GF) (inner := (ownSliceD (V := _root_.Perennial.k8s_io.api.core.v1.UniqueVolumeName) ownBaseD)) _ _ _) $$ H8 with H8
+    imod (DeepPersist.persist (GF := GF) (inner := (ownSliceD (V := _root_.Perennial.k8s_io.api.core.v1.AttachedVolume) kd.core.AttachedVolume.own)) _ _ _) $$ H9 with H9
+    imod (DeepPersist.persist (GF := GF) (inner := (ownPtrD (V := _root_.Perennial.k8s_io.api.core.v1.NodeConfigStatus) kd.core.NodeConfigStatus.own)) _ _ _) $$ H10 with H10
+    imod (DeepPersist.persist (GF := GF) (inner := (ownSliceD (V := _root_.Perennial.k8s_io.api.core.v1.NodeRuntimeHandler) kd.core.NodeRuntimeHandler.own)) _ _ _) $$ H11 with H11
+    imod (DeepPersist.persist (GF := GF) (inner := (ownPtrD (V := _root_.Perennial.k8s_io.api.core.v1.NodeFeatures) kd.core.NodeFeatures.own)) _ _ _) $$ H12 with H12
+    imod (DeepPersist.persist (GF := GF) (inner := (ownSliceD (V := GoString) ownBaseD)) _ _ _) $$ H13 with H13
+    imodintro
+    iframe
+
 /-- The deep ownership of a `Node` value with deep value `d`. -/
 def kd.core.Node.own (v : _root_.Perennial.k8s_io.api.core.v1.Node) (dq : DFrac) (d : kd.core.Node) : IProp GF :=
   iprop("TypeMeta" ∷ kd.meta.TypeMeta.own v.TypeMeta' dq d.TypeMeta' ∗
@@ -6564,6 +9526,27 @@ theorem kd.core.Node.own_zero_of (v : _root_.Perennial.k8s_io.api.core.v1.Node) 
   · iapply (kd.core.NodeSpec.own_zero_of _ (by rfl) dq)
   iapply (kd.core.NodeStatus.own_zero_of _ (by rfl) dq)
 
+instance kd.core.Node.own_timeless (v : _root_.Perennial.k8s_io.api.core.v1.Node) (dq : DFrac) (d : kd.core.Node) :
+    Timeless (kd.core.Node.own (GF := GF) v dq d) := by
+  unfold kd.core.Node.own; infer_instance
+
+instance kd.core.Node.own_persistent (v : _root_.Perennial.k8s_io.api.core.v1.Node) (d : kd.core.Node) :
+    Persistent (kd.core.Node.own (GF := GF) v DFrac.discard d) := by
+  unfold kd.core.Node.own; infer_instance
+
+/-- A `Node` owned at any fraction can be made read-only. -/
+instance kd.core.Node.own_deepPersist : DeepPersist (GF := GF) kd.core.Node.own where
+  persist := by
+    intro v dq d
+    unfold kd.core.Node.own
+    iintro ⟨H0, H1, H2, H3⟩
+    imod (DeepPersist.persist (GF := GF) (inner := kd.meta.TypeMeta.own) _ _ _) $$ H0 with H0
+    imod (DeepPersist.persist (GF := GF) (inner := kd.meta.ObjectMeta.own) _ _ _) $$ H1 with H1
+    imod (DeepPersist.persist (GF := GF) (inner := kd.core.NodeSpec.own) _ _ _) $$ H2 with H2
+    imod (DeepPersist.persist (GF := GF) (inner := kd.core.NodeStatus.own) _ _ _) $$ H3 with H3
+    imodintro
+    iframe
+
 /-- The deep ownership of a `PodTemplateSpec` value with deep value `d`. -/
 def kd.core.PodTemplateSpec.own (v : _root_.Perennial.k8s_io.api.core.v1.PodTemplateSpec) (dq : DFrac) (d : kd.core.PodTemplateSpec) : IProp GF :=
   iprop("ObjectMeta" ∷ kd.meta.ObjectMeta.own v.ObjectMeta' dq d.ObjectMeta' ∗
@@ -6578,6 +9561,25 @@ theorem kd.core.PodTemplateSpec.own_zero_of (v : _root_.Perennial.k8s_io.api.cor
   isplitr
   · iapply (kd.meta.ObjectMeta.own_zero_of _ (by rfl) dq)
   iapply (kd.core.PodSpec.own_zero_of _ (by rfl) dq)
+
+instance kd.core.PodTemplateSpec.own_timeless (v : _root_.Perennial.k8s_io.api.core.v1.PodTemplateSpec) (dq : DFrac) (d : kd.core.PodTemplateSpec) :
+    Timeless (kd.core.PodTemplateSpec.own (GF := GF) v dq d) := by
+  unfold kd.core.PodTemplateSpec.own; infer_instance
+
+instance kd.core.PodTemplateSpec.own_persistent (v : _root_.Perennial.k8s_io.api.core.v1.PodTemplateSpec) (d : kd.core.PodTemplateSpec) :
+    Persistent (kd.core.PodTemplateSpec.own (GF := GF) v DFrac.discard d) := by
+  unfold kd.core.PodTemplateSpec.own; infer_instance
+
+/-- A `PodTemplateSpec` owned at any fraction can be made read-only. -/
+instance kd.core.PodTemplateSpec.own_deepPersist : DeepPersist (GF := GF) kd.core.PodTemplateSpec.own where
+  persist := by
+    intro v dq d
+    unfold kd.core.PodTemplateSpec.own
+    iintro ⟨H0, H1⟩
+    imod (DeepPersist.persist (GF := GF) (inner := kd.meta.ObjectMeta.own) _ _ _) $$ H0 with H0
+    imod (DeepPersist.persist (GF := GF) (inner := kd.core.PodSpec.own) _ _ _) $$ H1 with H1
+    imodintro
+    iframe
 
 /-- The deep ownership of a `RollingUpdateDaemonSet` value with deep value `d`. -/
 def kd.apps.RollingUpdateDaemonSet.own (v : _root_.Perennial.k8s_io.api.apps.v1.RollingUpdateDaemonSet) (dq : DFrac) (d : kd.apps.RollingUpdateDaemonSet) : IProp GF :=
@@ -6594,6 +9596,23 @@ theorem kd.apps.RollingUpdateDaemonSet.own_zero_of (v : _root_.Perennial.k8s_io.
   · iapply (ownOpaquePtrD_none_of _ (by rfl))
   iapply (ownOpaquePtrD_none_of _ (by rfl))
 
+instance kd.apps.RollingUpdateDaemonSet.own_timeless (v : _root_.Perennial.k8s_io.api.apps.v1.RollingUpdateDaemonSet) (dq : DFrac) (d : kd.apps.RollingUpdateDaemonSet) :
+    Timeless (kd.apps.RollingUpdateDaemonSet.own (GF := GF) v dq d) := by
+  unfold kd.apps.RollingUpdateDaemonSet.own; infer_instance
+
+instance kd.apps.RollingUpdateDaemonSet.own_persistent (v : _root_.Perennial.k8s_io.api.apps.v1.RollingUpdateDaemonSet) (d : kd.apps.RollingUpdateDaemonSet) :
+    Persistent (kd.apps.RollingUpdateDaemonSet.own (GF := GF) v DFrac.discard d) := by
+  unfold kd.apps.RollingUpdateDaemonSet.own; infer_instance
+
+/-- A `RollingUpdateDaemonSet` owned at any fraction can be made read-only. -/
+instance kd.apps.RollingUpdateDaemonSet.own_deepPersist : DeepPersist (GF := GF) kd.apps.RollingUpdateDaemonSet.own where
+  persist := by
+    intro v dq d
+    unfold kd.apps.RollingUpdateDaemonSet.own
+    iintro ⟨H0, H1⟩
+    imodintro
+    iframe
+
 /-- The deep ownership of a `DaemonSetUpdateStrategy` value with deep value `d`. -/
 def kd.apps.DaemonSetUpdateStrategy.own (v : _root_.Perennial.k8s_io.api.apps.v1.DaemonSetUpdateStrategy) (dq : DFrac) (d : kd.apps.DaemonSetUpdateStrategy) : IProp GF :=
   iprop("Type" ∷ ⌜v.Type' = d.Type'⌝ ∗
@@ -6608,6 +9627,24 @@ theorem kd.apps.DaemonSetUpdateStrategy.own_zero_of (v : _root_.Perennial.k8s_io
   isplitr
   · ipureintro; rfl
   iapply (ownPtrD_none_of _ _ (by rfl) dq)
+
+instance kd.apps.DaemonSetUpdateStrategy.own_timeless (v : _root_.Perennial.k8s_io.api.apps.v1.DaemonSetUpdateStrategy) (dq : DFrac) (d : kd.apps.DaemonSetUpdateStrategy) :
+    Timeless (kd.apps.DaemonSetUpdateStrategy.own (GF := GF) v dq d) := by
+  unfold kd.apps.DaemonSetUpdateStrategy.own; infer_instance
+
+instance kd.apps.DaemonSetUpdateStrategy.own_persistent (v : _root_.Perennial.k8s_io.api.apps.v1.DaemonSetUpdateStrategy) (d : kd.apps.DaemonSetUpdateStrategy) :
+    Persistent (kd.apps.DaemonSetUpdateStrategy.own (GF := GF) v DFrac.discard d) := by
+  unfold kd.apps.DaemonSetUpdateStrategy.own; infer_instance
+
+/-- A `DaemonSetUpdateStrategy` owned at any fraction can be made read-only. -/
+instance kd.apps.DaemonSetUpdateStrategy.own_deepPersist : DeepPersist (GF := GF) kd.apps.DaemonSetUpdateStrategy.own where
+  persist := by
+    intro v dq d
+    unfold kd.apps.DaemonSetUpdateStrategy.own
+    iintro ⟨H0, H1⟩
+    imod (DeepPersist.persist (GF := GF) (inner := (ownPtrD (V := _root_.Perennial.k8s_io.api.apps.v1.RollingUpdateDaemonSet) kd.apps.RollingUpdateDaemonSet.own)) _ _ _) $$ H1 with H1
+    imodintro
+    iframe
 
 /-- The deep ownership of a `DaemonSetSpec` value with deep value `d`. -/
 def kd.apps.DaemonSetSpec.own (v : _root_.Perennial.k8s_io.api.apps.v1.DaemonSetSpec) (dq : DFrac) (d : kd.apps.DaemonSetSpec) : IProp GF :=
@@ -6633,6 +9670,27 @@ theorem kd.apps.DaemonSetSpec.own_zero_of (v : _root_.Perennial.k8s_io.api.apps.
   · ipureintro; rfl
   iapply (ownPtrD_none_of _ _ (by rfl) dq)
 
+instance kd.apps.DaemonSetSpec.own_timeless (v : _root_.Perennial.k8s_io.api.apps.v1.DaemonSetSpec) (dq : DFrac) (d : kd.apps.DaemonSetSpec) :
+    Timeless (kd.apps.DaemonSetSpec.own (GF := GF) v dq d) := by
+  unfold kd.apps.DaemonSetSpec.own; infer_instance
+
+instance kd.apps.DaemonSetSpec.own_persistent (v : _root_.Perennial.k8s_io.api.apps.v1.DaemonSetSpec) (d : kd.apps.DaemonSetSpec) :
+    Persistent (kd.apps.DaemonSetSpec.own (GF := GF) v DFrac.discard d) := by
+  unfold kd.apps.DaemonSetSpec.own; infer_instance
+
+/-- A `DaemonSetSpec` owned at any fraction can be made read-only. -/
+instance kd.apps.DaemonSetSpec.own_deepPersist : DeepPersist (GF := GF) kd.apps.DaemonSetSpec.own where
+  persist := by
+    intro v dq d
+    unfold kd.apps.DaemonSetSpec.own
+    iintro ⟨H0, H1, H2, H3, H4⟩
+    imod (DeepPersist.persist (GF := GF) (inner := (ownPtrD (V := _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.LabelSelector) kd.meta.LabelSelector.own)) _ _ _) $$ H0 with H0
+    imod (DeepPersist.persist (GF := GF) (inner := kd.core.PodTemplateSpec.own) _ _ _) $$ H1 with H1
+    imod (DeepPersist.persist (GF := GF) (inner := kd.apps.DaemonSetUpdateStrategy.own) _ _ _) $$ H2 with H2
+    imod (DeepPersist.persist (GF := GF) (inner := (ownPtrD (V := w32) ownBaseD)) _ _ _) $$ H4 with H4
+    imodintro
+    iframe
+
 /-- The deep ownership of a `DaemonSetCondition` value with deep value `d`. -/
 def kd.apps.DaemonSetCondition.own (v : _root_.Perennial.k8s_io.api.apps.v1.DaemonSetCondition) (dq : DFrac) (d : kd.apps.DaemonSetCondition) : IProp GF :=
   iprop("Type" ∷ ⌜v.Type' = d.Type'⌝ ∗
@@ -6656,6 +9714,23 @@ theorem kd.apps.DaemonSetCondition.own_zero_of (v : _root_.Perennial.k8s_io.api.
   isplitr
   · ipureintro; rfl
   ipureintro; rfl
+
+instance kd.apps.DaemonSetCondition.own_timeless (v : _root_.Perennial.k8s_io.api.apps.v1.DaemonSetCondition) (dq : DFrac) (d : kd.apps.DaemonSetCondition) :
+    Timeless (kd.apps.DaemonSetCondition.own (GF := GF) v dq d) := by
+  unfold kd.apps.DaemonSetCondition.own; infer_instance
+
+instance kd.apps.DaemonSetCondition.own_persistent (v : _root_.Perennial.k8s_io.api.apps.v1.DaemonSetCondition) (d : kd.apps.DaemonSetCondition) :
+    Persistent (kd.apps.DaemonSetCondition.own (GF := GF) v DFrac.discard d) := by
+  unfold kd.apps.DaemonSetCondition.own; infer_instance
+
+/-- A `DaemonSetCondition` owned at any fraction can be made read-only. -/
+instance kd.apps.DaemonSetCondition.own_deepPersist : DeepPersist (GF := GF) kd.apps.DaemonSetCondition.own where
+  persist := by
+    intro v dq d
+    unfold kd.apps.DaemonSetCondition.own
+    iintro ⟨H0, H1, H2, H3, H4⟩
+    imodintro
+    iframe
 
 /-- The deep ownership of a `DaemonSetStatus` value with deep value `d`. -/
 def kd.apps.DaemonSetStatus.own (v : _root_.Perennial.k8s_io.api.apps.v1.DaemonSetStatus) (dq : DFrac) (d : kd.apps.DaemonSetStatus) : IProp GF :=
@@ -6696,6 +9771,25 @@ theorem kd.apps.DaemonSetStatus.own_zero_of (v : _root_.Perennial.k8s_io.api.app
   · iapply (ownPtrD_none_of _ _ (by rfl) dq)
   iapply (ownSliceD_nil_of _ _ (by rfl) dq)
 
+instance kd.apps.DaemonSetStatus.own_timeless (v : _root_.Perennial.k8s_io.api.apps.v1.DaemonSetStatus) (dq : DFrac) (d : kd.apps.DaemonSetStatus) :
+    Timeless (kd.apps.DaemonSetStatus.own (GF := GF) v dq d) := by
+  unfold kd.apps.DaemonSetStatus.own; infer_instance
+
+instance kd.apps.DaemonSetStatus.own_persistent (v : _root_.Perennial.k8s_io.api.apps.v1.DaemonSetStatus) (d : kd.apps.DaemonSetStatus) :
+    Persistent (kd.apps.DaemonSetStatus.own (GF := GF) v DFrac.discard d) := by
+  unfold kd.apps.DaemonSetStatus.own; infer_instance
+
+/-- A `DaemonSetStatus` owned at any fraction can be made read-only. -/
+instance kd.apps.DaemonSetStatus.own_deepPersist : DeepPersist (GF := GF) kd.apps.DaemonSetStatus.own where
+  persist := by
+    intro v dq d
+    unfold kd.apps.DaemonSetStatus.own
+    iintro ⟨H0, H1, H2, H3, H4, H5, H6, H7, H8, H9⟩
+    imod (DeepPersist.persist (GF := GF) (inner := (ownPtrD (V := w32) ownBaseD)) _ _ _) $$ H8 with H8
+    imod (DeepPersist.persist (GF := GF) (inner := (ownSliceD (V := _root_.Perennial.k8s_io.api.apps.v1.DaemonSetCondition) kd.apps.DaemonSetCondition.own)) _ _ _) $$ H9 with H9
+    imodintro
+    iframe
+
 /-- The deep ownership of a `DaemonSet` value with deep value `d`. -/
 def kd.apps.DaemonSet.own (v : _root_.Perennial.k8s_io.api.apps.v1.DaemonSet) (dq : DFrac) (d : kd.apps.DaemonSet) : IProp GF :=
   iprop("TypeMeta" ∷ kd.meta.TypeMeta.own v.TypeMeta' dq d.TypeMeta' ∗
@@ -6717,6 +9811,27 @@ theorem kd.apps.DaemonSet.own_zero_of (v : _root_.Perennial.k8s_io.api.apps.v1.D
   · iapply (kd.apps.DaemonSetSpec.own_zero_of _ (by rfl) dq)
   iapply (kd.apps.DaemonSetStatus.own_zero_of _ (by rfl) dq)
 
+instance kd.apps.DaemonSet.own_timeless (v : _root_.Perennial.k8s_io.api.apps.v1.DaemonSet) (dq : DFrac) (d : kd.apps.DaemonSet) :
+    Timeless (kd.apps.DaemonSet.own (GF := GF) v dq d) := by
+  unfold kd.apps.DaemonSet.own; infer_instance
+
+instance kd.apps.DaemonSet.own_persistent (v : _root_.Perennial.k8s_io.api.apps.v1.DaemonSet) (d : kd.apps.DaemonSet) :
+    Persistent (kd.apps.DaemonSet.own (GF := GF) v DFrac.discard d) := by
+  unfold kd.apps.DaemonSet.own; infer_instance
+
+/-- A `DaemonSet` owned at any fraction can be made read-only. -/
+instance kd.apps.DaemonSet.own_deepPersist : DeepPersist (GF := GF) kd.apps.DaemonSet.own where
+  persist := by
+    intro v dq d
+    unfold kd.apps.DaemonSet.own
+    iintro ⟨H0, H1, H2, H3⟩
+    imod (DeepPersist.persist (GF := GF) (inner := kd.meta.TypeMeta.own) _ _ _) $$ H0 with H0
+    imod (DeepPersist.persist (GF := GF) (inner := kd.meta.ObjectMeta.own) _ _ _) $$ H1 with H1
+    imod (DeepPersist.persist (GF := GF) (inner := kd.apps.DaemonSetSpec.own) _ _ _) $$ H2 with H2
+    imod (DeepPersist.persist (GF := GF) (inner := kd.apps.DaemonSetStatus.own) _ _ _) $$ H3 with H3
+    imodintro
+    iframe
+
 /-- The deep ownership of a `RawExtension` value with deep value `d`. -/
 def kd.runtime.RawExtension.own (v : _root_.Perennial.k8s_io.apimachinery.pkg.runtime.RawExtension) (dq : DFrac) (d : kd.runtime.RawExtension) : IProp GF :=
   iprop("Raw" ∷ (ownSliceD (V := w8) ownBaseD) v.Raw' dq d.Raw' ∗
@@ -6731,6 +9846,24 @@ theorem kd.runtime.RawExtension.own_zero_of (v : _root_.Perennial.k8s_io.apimach
   isplitr
   · iapply (ownSliceD_nil_of _ _ (by rfl) dq)
   iapply (ownNilIfaceD_of _ (by rfl))
+
+instance kd.runtime.RawExtension.own_timeless (v : _root_.Perennial.k8s_io.apimachinery.pkg.runtime.RawExtension) (dq : DFrac) (d : kd.runtime.RawExtension) :
+    Timeless (kd.runtime.RawExtension.own (GF := GF) v dq d) := by
+  unfold kd.runtime.RawExtension.own; infer_instance
+
+instance kd.runtime.RawExtension.own_persistent (v : _root_.Perennial.k8s_io.apimachinery.pkg.runtime.RawExtension) (d : kd.runtime.RawExtension) :
+    Persistent (kd.runtime.RawExtension.own (GF := GF) v DFrac.discard d) := by
+  unfold kd.runtime.RawExtension.own; infer_instance
+
+/-- A `RawExtension` owned at any fraction can be made read-only. -/
+instance kd.runtime.RawExtension.own_deepPersist : DeepPersist (GF := GF) kd.runtime.RawExtension.own where
+  persist := by
+    intro v dq d
+    unfold kd.runtime.RawExtension.own
+    iintro ⟨H0, H1⟩
+    imod (DeepPersist.persist (GF := GF) (inner := (ownSliceD (V := w8) ownBaseD)) _ _ _) $$ H0 with H0
+    imodintro
+    iframe
 
 /-- The deep ownership of a `ControllerRevision` value with deep value `d`. -/
 def kd.apps.ControllerRevision.own (v : _root_.Perennial.k8s_io.api.apps.v1.ControllerRevision) (dq : DFrac) (d : kd.apps.ControllerRevision) : IProp GF :=
@@ -6752,6 +9885,26 @@ theorem kd.apps.ControllerRevision.own_zero_of (v : _root_.Perennial.k8s_io.api.
   isplitr
   · iapply (kd.runtime.RawExtension.own_zero_of _ (by rfl) dq)
   ipureintro; rfl
+
+instance kd.apps.ControllerRevision.own_timeless (v : _root_.Perennial.k8s_io.api.apps.v1.ControllerRevision) (dq : DFrac) (d : kd.apps.ControllerRevision) :
+    Timeless (kd.apps.ControllerRevision.own (GF := GF) v dq d) := by
+  unfold kd.apps.ControllerRevision.own; infer_instance
+
+instance kd.apps.ControllerRevision.own_persistent (v : _root_.Perennial.k8s_io.api.apps.v1.ControllerRevision) (d : kd.apps.ControllerRevision) :
+    Persistent (kd.apps.ControllerRevision.own (GF := GF) v DFrac.discard d) := by
+  unfold kd.apps.ControllerRevision.own; infer_instance
+
+/-- A `ControllerRevision` owned at any fraction can be made read-only. -/
+instance kd.apps.ControllerRevision.own_deepPersist : DeepPersist (GF := GF) kd.apps.ControllerRevision.own where
+  persist := by
+    intro v dq d
+    unfold kd.apps.ControllerRevision.own
+    iintro ⟨H0, H1, H2, H3⟩
+    imod (DeepPersist.persist (GF := GF) (inner := kd.meta.TypeMeta.own) _ _ _) $$ H0 with H0
+    imod (DeepPersist.persist (GF := GF) (inner := kd.meta.ObjectMeta.own) _ _ _) $$ H1 with H1
+    imod (DeepPersist.persist (GF := GF) (inner := kd.runtime.RawExtension.own) _ _ _) $$ H2 with H2
+    imodintro
+    iframe
 
 /-- The deep ownership of a `ListOptions` value with deep value `d`. -/
 def kd.meta.ListOptions.own (v : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ListOptions) (dq : DFrac) (d : kd.meta.ListOptions) : IProp GF :=
@@ -6798,6 +9951,26 @@ theorem kd.meta.ListOptions.own_zero_of (v : _root_.Perennial.k8s_io.apimachiner
   · iapply (ownPtrD_none_of _ _ (by rfl) dq)
   ipureintro; rfl
 
+instance kd.meta.ListOptions.own_timeless (v : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ListOptions) (dq : DFrac) (d : kd.meta.ListOptions) :
+    Timeless (kd.meta.ListOptions.own (GF := GF) v dq d) := by
+  unfold kd.meta.ListOptions.own; infer_instance
+
+instance kd.meta.ListOptions.own_persistent (v : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ListOptions) (d : kd.meta.ListOptions) :
+    Persistent (kd.meta.ListOptions.own (GF := GF) v DFrac.discard d) := by
+  unfold kd.meta.ListOptions.own; infer_instance
+
+/-- A `ListOptions` owned at any fraction can be made read-only. -/
+instance kd.meta.ListOptions.own_deepPersist : DeepPersist (GF := GF) kd.meta.ListOptions.own where
+  persist := by
+    intro v dq d
+    unfold kd.meta.ListOptions.own
+    iintro ⟨H0, H1, H2, H3, H4, H5, H6, H7, H8, H9, H10, H11⟩
+    imod (DeepPersist.persist (GF := GF) (inner := kd.meta.TypeMeta.own) _ _ _) $$ H0 with H0
+    imod (DeepPersist.persist (GF := GF) (inner := (ownPtrD (V := w64) ownBaseD)) _ _ _) $$ H7 with H7
+    imod (DeepPersist.persist (GF := GF) (inner := (ownPtrD (V := Bool) ownBaseD)) _ _ _) $$ H10 with H10
+    imodintro
+    iframe
+
 /-- The deep ownership of a `Preconditions` value with deep value `d`. -/
 def kd.meta.Preconditions.own (v : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.Preconditions) (dq : DFrac) (d : kd.meta.Preconditions) : IProp GF :=
   iprop("UID" ∷ (ownPtrD (V := _root_.Perennial.k8s_io.apimachinery.pkg.types.UID) ownBaseD) v.UID' dq d.UID' ∗
@@ -6812,6 +9985,25 @@ theorem kd.meta.Preconditions.own_zero_of (v : _root_.Perennial.k8s_io.apimachin
   isplitr
   · iapply (ownPtrD_none_of _ _ (by rfl) dq)
   iapply (ownPtrD_none_of _ _ (by rfl) dq)
+
+instance kd.meta.Preconditions.own_timeless (v : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.Preconditions) (dq : DFrac) (d : kd.meta.Preconditions) :
+    Timeless (kd.meta.Preconditions.own (GF := GF) v dq d) := by
+  unfold kd.meta.Preconditions.own; infer_instance
+
+instance kd.meta.Preconditions.own_persistent (v : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.Preconditions) (d : kd.meta.Preconditions) :
+    Persistent (kd.meta.Preconditions.own (GF := GF) v DFrac.discard d) := by
+  unfold kd.meta.Preconditions.own; infer_instance
+
+/-- A `Preconditions` owned at any fraction can be made read-only. -/
+instance kd.meta.Preconditions.own_deepPersist : DeepPersist (GF := GF) kd.meta.Preconditions.own where
+  persist := by
+    intro v dq d
+    unfold kd.meta.Preconditions.own
+    iintro ⟨H0, H1⟩
+    imod (DeepPersist.persist (GF := GF) (inner := (ownPtrD (V := _root_.Perennial.k8s_io.apimachinery.pkg.types.UID) ownBaseD)) _ _ _) $$ H0 with H0
+    imod (DeepPersist.persist (GF := GF) (inner := (ownPtrD (V := GoString) ownBaseD)) _ _ _) $$ H1 with H1
+    imodintro
+    iframe
 
 /-- The deep ownership of a `DeleteOptions` value with deep value `d`. -/
 def kd.meta.DeleteOptions.own (v : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.DeleteOptions) (dq : DFrac) (d : kd.meta.DeleteOptions) : IProp GF :=
@@ -6842,6 +10034,30 @@ theorem kd.meta.DeleteOptions.own_zero_of (v : _root_.Perennial.k8s_io.apimachin
   isplitr
   · iapply (ownSliceD_nil_of _ _ (by rfl) dq)
   iapply (ownPtrD_none_of _ _ (by rfl) dq)
+
+instance kd.meta.DeleteOptions.own_timeless (v : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.DeleteOptions) (dq : DFrac) (d : kd.meta.DeleteOptions) :
+    Timeless (kd.meta.DeleteOptions.own (GF := GF) v dq d) := by
+  unfold kd.meta.DeleteOptions.own; infer_instance
+
+instance kd.meta.DeleteOptions.own_persistent (v : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.DeleteOptions) (d : kd.meta.DeleteOptions) :
+    Persistent (kd.meta.DeleteOptions.own (GF := GF) v DFrac.discard d) := by
+  unfold kd.meta.DeleteOptions.own; infer_instance
+
+/-- A `DeleteOptions` owned at any fraction can be made read-only. -/
+instance kd.meta.DeleteOptions.own_deepPersist : DeepPersist (GF := GF) kd.meta.DeleteOptions.own where
+  persist := by
+    intro v dq d
+    unfold kd.meta.DeleteOptions.own
+    iintro ⟨H0, H1, H2, H3, H4, H5, H6⟩
+    imod (DeepPersist.persist (GF := GF) (inner := kd.meta.TypeMeta.own) _ _ _) $$ H0 with H0
+    imod (DeepPersist.persist (GF := GF) (inner := (ownPtrD (V := w64) ownBaseD)) _ _ _) $$ H1 with H1
+    imod (DeepPersist.persist (GF := GF) (inner := (ownPtrD (V := _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.Preconditions) kd.meta.Preconditions.own)) _ _ _) $$ H2 with H2
+    imod (DeepPersist.persist (GF := GF) (inner := (ownPtrD (V := Bool) ownBaseD)) _ _ _) $$ H3 with H3
+    imod (DeepPersist.persist (GF := GF) (inner := (ownPtrD (V := _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.DeletionPropagation) ownBaseD)) _ _ _) $$ H4 with H4
+    imod (DeepPersist.persist (GF := GF) (inner := (ownSliceD (V := GoString) ownBaseD)) _ _ _) $$ H5 with H5
+    imod (DeepPersist.persist (GF := GF) (inner := (ownPtrD (V := Bool) ownBaseD)) _ _ _) $$ H6 with H6
+    imodintro
+    iframe
 
 end own
 

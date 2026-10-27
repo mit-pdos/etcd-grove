@@ -362,6 +362,26 @@ def own_field(t, v, d):
     die(f"own_field {t}")
 
 
+def persist_inner(t):
+    """The ownership function of a field whose ownership depends on the fraction (its
+    `DeepPersist` instance makes it read-only), or None for a fraction-free one."""
+    if is_basic(t):
+        return None
+    r = resolve(t)
+    k = r[0]
+    if k == "Named":
+        return None if opaque(r[1]) else f"{kd_name(r[1])}.own"
+    if k == "PointerType":
+        return None if inline_opaque(resolve(r[1])) else inner(t)
+    if k == "SliceType":
+        return None if inline_opaque(resolve(r[1])) else inner(t)
+    if k == "MapType":
+        return None if inline_opaque(resolve(r[2])) else inner(t)
+    if k == "Iface":
+        return None
+    die(f"persist_inner {t}")
+
+
 def zero_of(t):
     if is_basic(t):
         r = resolve(t)
@@ -480,6 +500,30 @@ def gen():
                 out.append(f"  · {tac}")
             else:
                 out.append(f"  {tac}")
+        out.append("")
+        T, D = lean_name(q), n
+        out.append(f"instance {n}.own_timeless (v : {T}) (dq : DFrac) (d : {D}) :")
+        out.append(f"    Timeless ({n}.own (GF := GF) v dq d) := by")
+        out.append(f"  unfold {n}.own; infer_instance")
+        out.append("")
+        out.append(f"instance {n}.own_persistent (v : {T}) (d : {D}) :")
+        out.append(f"    Persistent ({n}.own (GF := GF) v DFrac.discard d) := by")
+        out.append(f"  unfold {n}.own; infer_instance")
+        out.append("")
+        out.append(f"/-- A `{q.split('.')[-1]}` owned at any fraction can be made read-only. -/")
+        out.append(f"instance {n}.own_deepPersist : DeepPersist (GF := GF) {n}.own where")
+        out.append(f"  persist := by")
+        out.append(f"    intro v dq d")
+        out.append(f"    unfold {n}.own")
+        names = [f"H{i}" for i in range(len(fs))]
+        pat = names[0] if len(names) == 1 else "⟨" + ", ".join(names) + "⟩"
+        out.append(f"    iintro {pat}")
+        for i, (p, t) in enumerate(fs):
+            inn = persist_inner(t)
+            if inn is not None:
+                out.append(f"    imod (DeepPersist.persist (GF := GF) (inner := {inn}) _ _ _) $$ H{i} with H{i}")
+        out.append(f"    imodintro")
+        out.append(f"    iframe")
         out.append("")
     out.append("end own\n")
     out.append("end EtcdGrove\nend Perennial\n")

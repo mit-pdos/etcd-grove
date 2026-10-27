@@ -122,6 +122,125 @@ theorem ownNilIfaceD_of (i : GoInterface) (h : i = interface.nil) :
     ⊢ ownNilIfaceD (GF := GF) i := by
   unfold ownNilIfaceD; ipureintro; exact h
 
+/-! ### Read-only copies: timelessness, persistence at `DFrac.discard`, and the update to it -/
+
+/-- **A deep ownership persists** (every fraction can be given up for the discarded one). -/
+class DeepPersist {V E : Type} (inner : V → DFrac → E → IProp GF) : Prop where
+  persist : ∀ x dq e, inner x dq e ⊢ |==> inner x DFrac.discard e
+
+instance ownBaseD_timeless {V : Type} (v : V) (dq : DFrac) (e : V) :
+    Timeless (ownBaseD (GF := GF) v dq e) := by unfold ownBaseD; infer_instance
+
+instance ownBaseD_persistent {V : Type} (v : V) (dq : DFrac) (e : V) :
+    Persistent (ownBaseD (GF := GF) v dq e) := by unfold ownBaseD; infer_instance
+
+instance ownBaseD_deepPersist {V : Type} : DeepPersist (GF := GF) (ownBaseD (V := V)) where
+  persist := by intro x dq e; unfold ownBaseD; iintro %h; imodintro; ipureintro; exact h
+
+instance ownPtrD_timeless {V E : Type} [ZeroVal V] [TypedPointsto (GF := GF) V]
+    (inner : V → DFrac → E → IProp GF) [∀ x dq e, Timeless (inner x dq e)] (p : Loc) (dq : DFrac)
+    (e : Option E) : Timeless (ownPtrD inner p dq e) := by
+  cases e <;> unfold ownPtrD <;> infer_instance
+
+instance ownPtrD_persistent {V E : Type} [ZeroVal V] [TypedPointsto (GF := GF) V]
+    (inner : V → DFrac → E → IProp GF) [∀ x e, Persistent (inner x DFrac.discard e)] (p : Loc)
+    (e : Option E) : Persistent (ownPtrD inner p DFrac.discard e) := by
+  cases e <;> unfold ownPtrD <;> infer_instance
+
+instance ownPtrD_deepPersist {V E : Type} [ZeroVal V] [TypedPointsto (GF := GF) V]
+    (inner : V → DFrac → E → IProp GF) [hI : DeepPersist inner] :
+    DeepPersist (fun p dq e => ownPtrD (GF := GF) (V := V) inner p dq e) where
+  persist := by
+    intro p dq e
+    cases e with
+    | none => unfold ownPtrD; iintro %h; imodintro; ipureintro; exact h
+    | some e =>
+      unfold ownPtrD
+      iintro ⟨%x, Hp, Hi⟩
+      imod (typedPointsto_dfractional (GF := GF) p x).dfractional_persist dq $$ Hp with Hp
+      imod hI.persist x dq e $$ Hi with Hi
+      imodintro
+      iexists x
+      iframe
+
+theorem bigSepL2_persist_upd {V E : Type} (inner : V → DFrac → E → IProp GF) [hI : DeepPersist inner]
+    (dq : DFrac) : ∀ (vs : List V) (es : List E),
+      ([∗list] x;e ∈ vs;es, inner x dq e) ⊢ |==> [∗list] x;e ∈ vs;es, inner x DFrac.discard e
+  | [], [] => by
+    iintro -
+    imodintro
+    iapply (BigSepL2.bigSepL2_nil (PROP := IProp GF)).2
+    iempintro
+  | [], _ :: _ => by iintro H; ihave %h := BigSepL2.bigSepL2_nil_inv_left $$ H; cases h
+  | _ :: _, [] => by iintro H; ihave %h := BigSepL2.bigSepL2_nil_inv_right $$ H; cases h
+  | x :: vs, e :: es => by
+    iintro ⟨Hx, Hrest⟩
+    imod hI.persist x dq e $$ Hx with Hx
+    imod bigSepL2_persist_upd inner dq vs es $$ Hrest with Hrest
+    imodintro
+    iframe
+
+instance ownSliceD_timeless {V E : Type} [ZeroVal V] [TypedPointsto (GF := GF) V]
+    (inner : V → DFrac → E → IProp GF) [∀ x dq e, Timeless (inner x dq e)] (s : GoSlice) (dq : DFrac)
+    (es : List E) : Timeless (ownSliceD inner s dq es) := by
+  unfold ownSliceD; infer_instance
+
+instance ownSliceD_persistent {V E : Type} [ZeroVal V] [TypedPointsto (GF := GF) V]
+    (inner : V → DFrac → E → IProp GF) [∀ x e, Persistent (inner x DFrac.discard e)] (s : GoSlice)
+    (es : List E) : Persistent (ownSliceD inner s DFrac.discard es) := by
+  unfold ownSliceD; infer_instance
+
+instance ownSliceD_deepPersist {V E : Type} [ZeroVal V] [TypedPointsto (GF := GF) V]
+    (inner : V → DFrac → E → IProp GF) [hI : DeepPersist inner] :
+    DeepPersist (fun s dq es => ownSliceD (GF := GF) (V := V) inner s dq es) where
+  persist := by
+    intro s dq es
+    unfold ownSliceD
+    iintro ⟨%vs, Hs, Hl⟩
+    imod ownSlice_persist _ _ _ $$ Hs with Hs
+    imod bigSepL2_persist_upd inner dq vs es $$ Hl with Hl
+    imodintro
+    iexists vs
+    iframe
+
+instance ownMapD_timeless {K V : Type} [ZeroVal K] [DecidableEq K] [ZeroVal V] [go.IntoValInj K]
+    (m : GoMap) (dq : DFrac) (e : Option (GMap K V)) : Timeless (ownMapD (GF := GF) m dq e) := by
+  cases e <;> unfold ownMapD <;> infer_instance
+
+instance ownMapD_persistent {K V : Type} [ZeroVal K] [DecidableEq K] [ZeroVal V] [go.IntoValInj K]
+    (m : GoMap) (e : Option (GMap K V)) : Persistent (ownMapD (GF := GF) m DFrac.discard e) := by
+  cases e <;> unfold ownMapD <;> infer_instance
+
+instance ownMapD_deepPersist {K V : Type} [ZeroVal K] [DecidableEq K] [ZeroVal V] [go.IntoValInj K] :
+    DeepPersist (fun m dq e => ownMapD (GF := GF) (K := K) (V := V) m dq e) where
+  persist := by
+    intro m dq e
+    cases e with
+    | none => unfold ownMapD; iintro %h; imodintro; ipureintro; exact h
+    | some M =>
+      unfold ownMapD
+      iintro H
+      imod ownMap_persist _ _ _ $$ H with H
+      imodintro
+      iexact H
+
+instance ownOpaquePtrD_timeless (p : Loc) (e : Option Unit) : Timeless (ownOpaquePtrD (GF := GF) p e) := by
+  cases e <;> unfold ownOpaquePtrD <;> infer_instance
+instance ownOpaquePtrD_persistent (p : Loc) (e : Option Unit) : Persistent (ownOpaquePtrD (GF := GF) p e) := by
+  cases e <;> unfold ownOpaquePtrD <;> infer_instance
+instance ownNilSliceD_timeless (s : GoSlice) : Timeless (ownNilSliceD (GF := GF) s) := by
+  unfold ownNilSliceD; infer_instance
+instance ownNilSliceD_persistent (s : GoSlice) : Persistent (ownNilSliceD (GF := GF) s) := by
+  unfold ownNilSliceD; infer_instance
+instance ownNilMapD_timeless (m : GoMap) : Timeless (ownNilMapD (GF := GF) m) := by
+  unfold ownNilMapD; infer_instance
+instance ownNilMapD_persistent (m : GoMap) : Persistent (ownNilMapD (GF := GF) m) := by
+  unfold ownNilMapD; infer_instance
+instance ownNilIfaceD_timeless (i : GoInterface) : Timeless (ownNilIfaceD (GF := GF) i) := by
+  unfold ownNilIfaceD; infer_instance
+instance ownNilIfaceD_persistent (i : GoInterface) : Persistent (ownNilIfaceD (GF := GF) i) := by
+  unfold ownNilIfaceD; infer_instance
+
 end own
 
 end EtcdGrove
