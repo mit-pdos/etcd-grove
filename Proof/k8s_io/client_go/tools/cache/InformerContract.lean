@@ -105,6 +105,51 @@ theorem InfP.ok_store (l : List Change) (s : InfP) (u : Nat) (h : s.ok l)
     (hu : s.store.rv = some u) : s.store.items = tableAt l u :=
   informer.ok_store l ⟨s.store, s.popped ++ s.fifo, s.last⟩ u h hu
 
+/-- A chain's changes are the log's. -/
+theorem chain_change_mem (l : List Change) :
+    ∀ (u : Option Nat) (ds : List Delta) (w : Option Nat), Chain l u ds w →
+      ∀ c, Delta.change c ∈ ds → c ∈ l
+  | _, [], _, _, c, hc => by simp at hc
+  | u, .change c' :: ds, w, ⟨⟨_, _, hn⟩, hrest⟩, c, hc => by
+    rcases List.mem_cons.1 hc with h | h
+    · cases h; exact hn.1
+    · exact chain_change_mem l _ ds w hrest c h
+  | u, .replaced M v :: ds, w, ⟨_, _, hrest⟩, c, hc => by
+    rcases List.mem_cons.1 hc with h | h
+    · cases h
+    · exact chain_change_mem l _ ds w hrest c h
+  | u, .bookmark v :: ds, w, ⟨_, hrest⟩, c, hc => by
+    rcases List.mem_cons.1 hc with h | h
+    · cases h
+    · exact chain_change_mem l _ ds w hrest c h
+
+/-- The popped changes are the log's. -/
+theorem InfP.popped_mem (l : List Change) (s : InfP) (h : s.ok l) :
+    ∀ c, Delta.change c ∈ s.popped → c ∈ l :=
+  fun c hc => chain_change_mem l _ _ _ h.2 c (List.mem_append_left _ hc)
+
+/-- A chain's relists are the log's tables at their versions. -/
+theorem chain_replaced_table (l : List Change) :
+    ∀ (u : Option Nat) (ds : List Delta) (w : Option Nat), Chain l u ds w →
+      ∀ M n, Delta.replaced M n ∈ ds → M = tableAt l n
+  | _, [], _, _, M, n, hc => by simp at hc
+  | u, .change c' :: ds, w, ⟨_, hrest⟩, M, n, hc => by
+    rcases List.mem_cons.1 hc with h | h
+    · cases h
+    · exact chain_replaced_table l _ ds w hrest M n h
+  | u, .replaced M' v :: ds, w, ⟨_, hM, hrest⟩, M, n, hc => by
+    rcases List.mem_cons.1 hc with h | h
+    · cases h; exact hM
+    · exact chain_replaced_table l _ ds w hrest M n h
+  | u, .bookmark v :: ds, w, ⟨_, hrest⟩, M, n, hc => by
+    rcases List.mem_cons.1 hc with h | h
+    · cases h
+    · exact chain_replaced_table l _ ds w hrest M n h
+
+theorem InfP.popped_replaced (l : List Change) (s : InfP) (h : s.ok l) :
+    ∀ M n, Delta.replaced M n ∈ s.popped → M = tableAt l n :=
+  fun M n hc => chain_replaced_table l _ _ _ h.2 M n (List.mem_append_left _ hc)
+
 end model
 
 end informer

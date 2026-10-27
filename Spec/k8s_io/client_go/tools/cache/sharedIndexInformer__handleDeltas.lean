@@ -38,7 +38,9 @@ def blockDeltasRes (SW : St → IProp GF) (H : List Ev → IProp GF) (BL : St �
 indexer, key function `kf'`), its `blockDeltas` lock guarding `blockDeltasRes`, the informer being
 a handler for `H` (`handlerOk`, its `OnAdd`/`OnUpdate`/`OnDelete`), one queued delta as for
 `processDeltas`: no error; under the lock, the store and the events step by `stepFD`, which the
-client's view shift `Hstep` turns from `P` into `Q` (its relation `BL` kept). -/
+client's view shift `Hstep` turns from `P` into `Q` (its relation `BL` kept). The store's writer is the
+lock's `SW` with the caller's `P` (so that the caller's resources can decide which steps the writer
+may take, `storeWriter`'s `Rw`). -/
 abbrev sharedIndexInformer.handleDeltas.spec : Prop :=
   ∀ (s : Loc) (lg : github_com.go_logr.logr.Logger) (ca ts : Loc) (γ : TsNames)
     (OK : GoInterface → IProp GF) (Fam : Nat → Fn GF) (kf kf' : GoFunc)
@@ -49,7 +51,7 @@ abbrev sharedIndexInformer.handleDeltas.spec : Prop :=
       s.[sharedIndexInformer, go!"indexer"] ↦□
         interface.mkOk (go.GoType.PointerType k8s_io.client_go.tools.cache.cache.ty) #ca ∗
       s.[sharedIndexInformer, go!"keyFunc"] ↦□ kf' ∗
-      isCache ca ts γ OK Fam kf ∗ tsReader ts γ OK Fam ∗ storeWriter γ SW Rw ∗
+      isCache ca ts γ OK Fam kf ∗ tsReader ts γ OK Fam ∗ storeWriter γ (fun σ => iprop(SW σ ∗ P)) Rw ∗
       ⌜∀ σ, Rw σ σ ∧ Rw σ (storeStepFD KF rvOf σ d)⌝ ∗
       sync.isMutex (s.[sharedIndexInformer, go!"blockDeltas"]) (blockDeltasRes SW H BL) ∗
       handlerOk OK (siiObj s) H ∗
@@ -57,7 +59,7 @@ abbrev sharedIndexInformer.handleDeltas.spec : Prop :=
       keyOk (fun x => iprop(⌜x ∈ d.objs⌝)) kf KF ∗ keyOk (fun x => iprop(⌜x ∈ d.objs⌝)) kf' KF ∗
       rvAcc (fun x => iprop(⌜x ∈ d.objs⌝)) rvOf ∗ P ∗
       (∀ (σ : St) (evs : List Ev) (σ' : St) (evs' : List Ev),
-        P -∗ BL σ evs -∗ ⌜stepFD KF rvOf b σ d σ' evs'⌝ ={⊤}=∗ BL σ' (evs ++ evs') ∗ Q) }}
+        P -∗ SW σ' -∗ BL σ evs -∗ ⌜stepFD KF rvOf b σ d σ' evs'⌝ ={⊤}=∗ SW σ' ∗ BL σ' (evs ++ evs') ∗ Q) }}
     (App (App (App (Val (s @!! go.GoType.PointerType sharedIndexInformer.ty @!! go!"handleDeltas"))
       (Val #lg)) (Val #(interface.mkOk Deltas.ty #sl))) (Val #b))
   {{ RET #interface.nil; Q ∗ sl ↦* [v] ∗ tsReader ts γ OK Fam }}

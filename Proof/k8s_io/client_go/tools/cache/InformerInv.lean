@@ -57,35 +57,6 @@ instance infObj_persistent (γi : InfNames) (r : Res) (x : GoInterface) :
     Persistent (infObj (GF := GF) γi r x) := by
   unfold infObj; infer_instance
 
-/-- The key function the registry gives (the store's key string of a registered object). -/
-def regKF (R : Reg) (x : GoInterface) : GoString :=
-  match R !! x with
-  | some o => keyStr o.key
-  | none => []
-
-/-- The resource version the registry gives (a registered object's). -/
-def regRv (R : Reg) (x : GoInterface) : Option GoString :=
-  (R !! x).map (fun o => o.meta.ResourceVersion')
-
-/-- **The store step of popped deltas**: a lone delta's (`processDeltas`, `PopBatch`'s single
-processing), a batch's (`processDeltasInBatch`). -/
-def popStep (KF : GoInterface → GoString) (rvOf : GoInterface → Option GoString) (σ : cache.St) :
-    List cache.FD → cache.St
-  | [d] => storeStepFD KF rvOf σ d
-  | ds => batchStore KF rvOf σ ds
-
-/-- The popped deltas' relation: not yet applied, they are the abstract popped ones; applied, none is
-left and the store is in the step's image (so a repeated write changes nothing). -/
-def poppedRel (R : Reg) (σs : cache.St) (pd : List cache.FD) (ap : Bool) (popped : List Delta) :
-    Prop :=
-  if ap then popped = [] ∧ ∃ σ0, σs = popStep (regKF R) (regRv R) σ0 pd
-  else List.Forall₂ (fdRel R) pd popped
-
-/-- A version as a number (`none`: `0`), for the lower bound. -/
-def rvNat : Option Nat → Nat
-  | none => 0
-  | some v => v
-
 /-- **The informer invariant's content.** -/
 def infRes (γa : ApiNames) (r : Res) (γf : FifoNames) (γt : TsNames) (γi : InfNames) : IProp GF :=
   iprop(∃ (σp : apimodel.St) (s : InfP) (q : FQ) (σs : cache.St) (R : Reg)
@@ -98,7 +69,8 @@ def infRes (γa : ApiNames) (r : Res) (γf : FifoNames) (γt : TsNames) (γi : I
     monoNatAuthOwn γi.rvlb 1 (rvNat s.store.rv) ∗
     ⌜s.ok (σp.tbl r).log ∧ rvLe s.last (some σp.rev.toNat) ∧
       List.Forall₂ (fdRel R) q.items s.fifo ∧ poppedRel R σs pd ap s.popped ∧
-      storeRel R σs s.store ∧ (∀ x o, R !! x = some o → o.res = r)⌝)
+      storeRel R σs s.store ∧ (∀ x o, R !! x = some o → o.res = r) ∧
+      (∀ c ∈ (σp.tbl r).log, keyGood c.obj.key) ∧ fqOk q pd⌝)
 
 instance ite_timeless' (c : Prop) [Decidable c] (P Q : IProp GF) [Timeless P] [Timeless Q] :
     Timeless (if c then P else Q) := by

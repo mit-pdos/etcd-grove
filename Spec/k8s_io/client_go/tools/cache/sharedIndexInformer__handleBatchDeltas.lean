@@ -28,7 +28,10 @@ variable [package_sem : k8s_io.client_go.tools.cache.Assumptions]
 
 /-- **`s.handleBatchDeltas(lg, deltas, b)`**, as `handleDeltas` for a batch `ds` of object deltas
 (`processDeltasInBatch`): no error; under the lock, the store and the events step by `batchStep`,
-which the client's view shift `Hstep` turns from `P` into `Q` (its relation `BL` kept). -/
+which the client's view shift `Hstep` turns from `P` into `Q` (its relation `BL` kept; it sees the
+writer's `SW` of the new state). The store's writer is the
+lock's `SW` with the caller's `P` (so that the caller's resources can decide which steps the writer
+may take, `storeWriter`'s `Rw`). -/
 abbrev sharedIndexInformer.handleBatchDeltas.spec : Prop :=
   ∀ (s : Loc) (lg : github_com.go_logr.logr.Logger) (ca ts : Loc) (γ : TsNames)
     (OK : GoInterface → IProp GF) (Fam : Nat → Fn GF) (kf kf' : GoFunc)
@@ -40,7 +43,7 @@ abbrev sharedIndexInformer.handleBatchDeltas.spec : Prop :=
       s.[sharedIndexInformer, go!"indexer"] ↦□
         interface.mkOk (go.GoType.PointerType k8s_io.client_go.tools.cache.cache.ty) #ca ∗
       s.[sharedIndexInformer, go!"keyFunc"] ↦□ kf' ∗
-      isCache ca ts γ OK Fam kf ∗ tsReader ts γ OK Fam ∗ storeWriter γ SW Rw ∗
+      isCache ca ts γ OK Fam kf ∗ tsReader ts γ OK Fam ∗ storeWriter γ (fun σ => iprop(SW σ ∗ P)) Rw ∗
       ⌜∀ σ, Rw σ σ ∧ Rw σ (batchStore KF rvOf σ ds)⌝ ∗
       sync.isMutex (s.[sharedIndexInformer, go!"blockDeltas"]) (blockDeltasRes SW H BL) ∗
       handlerOk OK (siiObj s) H ∗
@@ -49,7 +52,7 @@ abbrev sharedIndexInformer.handleBatchDeltas.spec : Prop :=
       keyOk (fun x => iprop(⌜x ∈ ds.map FD.obj?⌝)) kf' KF ∗
       rvAcc (fun x => iprop(⌜x ∈ ds.map FD.obj?⌝)) rvOf ∗ P ∗
       (∀ (σ : St) (evs : List Ev) (σ' : St) (evs' : List Ev),
-        P -∗ BL σ evs -∗ ⌜batchStep KF rvOf b σ ds σ' evs'⌝ ={⊤}=∗ BL σ' (evs ++ evs') ∗ Q) }}
+        P -∗ SW σ' -∗ BL σ evs -∗ ⌜batchStep KF rvOf b σ ds σ' evs'⌝ ={⊤}=∗ SW σ' ∗ BL σ' (evs ++ evs') ∗ Q) }}
     (App (App (App (Val (s @!! go.GoType.PointerType sharedIndexInformer.ty @!! go!"handleBatchDeltas"))
       (Val #lg)) (Val #sl)) (Val #b))
   {{ RET #interface.nil; Q ∗ sl ↦* vs ∗ tsReader ts γ OK Fam }}

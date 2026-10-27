@@ -41,12 +41,12 @@ theorem sharedIndexInformer.handleDeltas.wp_proof
   icases HR with ⟨%σ, %evs, HSW, HH, HBL⟩
   (try wp_auto)
   simp only [siiObj]
-  wp_apply (wp_pD lg _ ca ts γ OK Fam kf kf' KF rvOf SW Rw σ H evs d v sl b)
-    $$ [$Hpkg $Hca $Hr $Hsw $HSW $Hh $HH $Hfd $Hsl $Hkey $Hkey' $Hacc]
-    as ⟨%σ', %evs', %Hst, HSW, HH, Hsl, Hr⟩
+  wp_apply (wp_pD lg _ ca ts γ OK Fam kf kf' KF rvOf (fun σ => iprop(SW σ ∗ P)) Rw σ H evs d v sl b)
+    $$ [$Hpkg $Hca $Hr $Hsw $HSW $HP $Hh $HH $Hfd $Hsl $Hkey $Hkey' $Hacc]
+    as ⟨%σ', %evs', %Hst, ⟨HSW, HP⟩, HH, Hsl, Hr⟩
   · ipureintro; exact ⟨HRw σ, Hkind⟩
-  ihave HQ := Hstep $$ %σ %evs %σ' %evs' HP HBL %Hst
-  imod HQ with ⟨HBL, HQ⟩
+  ihave HQ := Hstep $$ %σ %evs %σ' %evs' HP HSW HBL %Hst
+  imod HQ with ⟨HSW, HBL, HQ⟩
   (try wp_auto)
   wp_apply (sync.Mutex.wp_Unlock (s.[sharedIndexInformer, go!"blockDeltas"])
     (blockDeltasRes SW H BL)) $$ [$Hmu $Hlocked HSW HH HBL]

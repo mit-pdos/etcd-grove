@@ -109,7 +109,7 @@ def listRel (R : Reg) (xs : List GoInterface) (M : GMap Key Obj) : Prop :=
 
 /-- **A queued Go delta is an abstract one.** -/
 def fdRel (R : Reg) : cache.FD → Delta → Prop
-  | .obj t x, .change c => t = fdTypeOf c.typ ∧ R !! x = some c.obj
+  | .obj t x, .change c => t = fdTypeOf c.typ ∧ R !! x = some c.obj ∧ x ≠ interface.nil
   | .replaced xs rvs, .replaced M v => rvRel rvs (some v) ∧ listRel R xs M
   | .bookmark rvs, .bookmark v => rvRel rvs (some v)
   | _, _ => False
@@ -397,6 +397,304 @@ theorem replay_keyed : ∀ (l : List Change) (M : GMap Key Obj),
 theorem tableAt_keyed (l : List Change) (v : Nat) :
     ∀ key o, (tableAt l v) !! key = some o → o.key = key :=
   replay_keyed _ ∅ (by intro key o h; simp at h)
+
+theorem forall₂_append_split {α β : Type _} {R : α → β → Prop} :
+    ∀ (l1 l2 : List α) (m : List β), List.Forall₂ R (l1 ++ l2) m →
+      ∃ m1 m2, m = m1 ++ m2 ∧ List.Forall₂ R l1 m1 ∧ List.Forall₂ R l2 m2
+  | [], l2, m, h => ⟨[], m, rfl, .nil, h⟩
+  | a :: l1, l2, m, h => by
+    cases h with
+    | cons hab hrest =>
+      obtain ⟨m1, m2, rfl, h1, h2⟩ := forall₂_append_split l1 l2 _ hrest
+      exact ⟨_ :: m1, m2, rfl, .cons hab h1, h2⟩
+
+theorem forall₂_nil_left {α β : Type _} {R : α → β → Prop} {m : List β}
+    (h : List.Forall₂ R [] m) : m = [] := by cases h; rfl
+
+theorem forall₂_length {α β : Type _} {R : α → β → Prop} :
+    ∀ {l : List α} {m : List β}, List.Forall₂ R l m → l.length = m.length
+  | _, _, .nil => rfl
+  | _, _, .cons _ h => by simp [forall₂_length h]
+
+/-- The key function the registry gives (the store's key string of a registered object). -/
+def regKF (R : Reg) (x : GoInterface) : GoString :=
+  match R !! x with
+  | some o => keyStr o.key
+  | none => []
+
+/-- The resource version the registry gives (a registered object's). -/
+def regRv (R : Reg) (x : GoInterface) : Option GoString :=
+  (R !! x).map (fun o => o.meta.ResourceVersion')
+
+/-- **The store step of popped deltas**: a lone delta's (`processDeltas`, `PopBatch`'s single
+processing), a batch's (`processDeltasInBatch`). -/
+def popStep (KF : GoInterface → GoString) (rvOf : GoInterface → Option GoString) (σ : cache.St) :
+    List cache.FD → cache.St
+  | [d] => cache.storeStepFD KF rvOf σ d
+  | ds => cache.batchStore KF rvOf σ ds
+
+/-- The popped deltas' relation: not yet applied, they are the abstract popped ones; applied, none is
+left and the store is in the step's image (so a repeated write changes nothing). -/
+def poppedRel (R : Reg) (σs : cache.St) (pd : List cache.FD) (ap : Bool) (popped : List Delta) :
+    Prop :=
+  if ap then popped = [] ∧ ∃ σ0, σs = popStep (regKF R) (regRv R) σ0 pd
+  else List.Forall₂ (fdRel R) pd popped
+
+/-- A version as a number (`none`: `0`), for the lower bound. -/
+def rvNat : Option Nat → Nat
+  | none => 0
+  | some v => v
+
+/-- The objects of a batch. -/
+def fdObjs (ds : List cache.FD) : List GoInterface := ds.map cache.FD.obj?
+
+theorem fdItems_congr (KF KF' : GoInterface → GoString) :
+    ∀ (ds : List cache.FD) (it : cache.Items), (∀ x ∈ fdObjs ds, KF x = KF' x) →
+      ds.foldl (cache.fdItems KF) it = ds.foldl (cache.fdItems KF') it
+  | [], _, _ => rfl
+  | d :: ds, it, h => by
+    simp only [List.foldl_cons]
+    have hd : cache.fdItems KF it d = cache.fdItems KF' it d := by
+      cases d with
+      | obj t o =>
+        have := h o (by simp [fdObjs, cache.FD.obj?])
+        simp only [cache.fdItems, this]
+      | replaced _ _ => rfl
+      | bookmark _ => rfl
+    rw [hd]
+    exact fdItems_congr KF KF' ds _ (fun x hx => h x (List.mem_cons_of_mem _ hx))
+
+/-- **A batch's store step depends on the key function and the versions at its objects only.** -/
+theorem batchStore_congr (KF KF' : GoInterface → GoString) (rvOf rvOf' : GoInterface → Option GoString)
+    (σ : cache.St) (ds : List cache.FD) (hk : ∀ x ∈ fdObjs ds, KF x = KF' x)
+    (hr : ∀ x ∈ fdObjs ds, rvOf x = rvOf' x) :
+    cache.batchStore KF rvOf σ ds = cache.batchStore KF' rvOf' σ ds := by
+  unfold cache.batchStore
+  cases hl : ds.getLast? with
+  | none => rfl
+  | some d =>
+    simp only
+    rw [fdItems_congr KF KF' ds σ.items hk]
+    have hm : d.obj? ∈ fdObjs ds := List.mem_map.2 ⟨d, List.mem_of_getLast? hl, rfl⟩
+    rw [hr _ hm]
+
+/-- **A related batch of watch changes is a store batch** (`objOk`), its keys good and its objects'
+versions their changes'. -/
+theorem objOk_of_fdRel (R R0 : Reg) (hR0 : ∀ x o, R0 !! x = some o → R !! x = some o)
+    (ds : List cache.FD) (abs : List Delta) (h : List.Forall₂ (fdRel R) ds abs)
+    (hreg : ∀ x ∈ fdObjs ds, ∃ o, R0 !! x = some o)
+    (hchg : ∀ a ∈ abs, ∃ c, a = .change c ∧ keyGood c.obj.key ∧
+      c.obj.meta.ResourceVersion' = rvStr c.rv) :
+    List.Forall₂ (objOk R (regKF R0) (regRv R0)) ds abs := by
+  induction h with
+  | nil => exact .nil
+  | @cons fd a ds' abs' hfa hrest ih =>
+    refine .cons ?_ (ih (fun x hx => hreg x (List.mem_cons_of_mem _ hx))
+      (fun a ha => hchg a (List.mem_cons_of_mem _ ha)))
+    obtain ⟨c, rfl, hgood, hrv⟩ := hchg a List.mem_cons_self
+    cases fd with
+    | obj t x =>
+      obtain ⟨ht, hx, hnil⟩ := hfa
+      obtain ⟨o, ho⟩ := hreg x (by simp [fdObjs, cache.FD.obj?])
+      have hoc : o = c.obj := by
+        have := hR0 x o ho; rw [hx] at this; cases this; rfl
+      subst hoc
+      refine ⟨x, c, by rw [ht], rfl, hx, ?_, hgood, ?_, hnil⟩
+      · simp [regKF, ho]
+      · simp [regRv, ho, hrv]
+    | replaced _ _ => exact absurd hfa id
+    | bookmark _ => exact absurd hfa id
+
+theorem popStep_batch (KF : GoInterface → GoString) (rvOf : GoInterface → Option GoString)
+    (σ : cache.St) (ds : List cache.FD) (h : 2 ≤ ds.length) :
+    popStep KF rvOf σ ds = cache.batchStore KF rvOf σ ds := by
+  match ds, h with
+  | _ :: _ :: _, _ => rfl
+
+theorem rvNat_mono {a b : Option Nat} (h : rvLe a b) : rvNat a ≤ rvNat b := by
+  cases a <;> cases b <;> simp_all [rvLe, rvNat]
+
+theorem fdRel_obj_changes (R : Reg) (ds : List cache.FD) (abs : List Delta)
+    (h : List.Forall₂ (fdRel R) ds abs) (hobj : ∀ d ∈ ds, ∃ t x, d = .obj t x) :
+    ∀ a ∈ abs, ∃ c, a = .change c := by
+  induction h with
+  | nil => intro a ha; simp at ha
+  | @cons d a' ds' abs' hda hrest ih =>
+    intro a ha
+    rcases List.mem_cons.1 ha with rfl | ha
+    · obtain ⟨t, x, rfl⟩ := hobj d List.mem_cons_self
+      cases a with
+      | change c => exact ⟨c, rfl⟩
+      | replaced _ _ => exact absurd hda id
+      | bookmark _ => exact absurd hda id
+    · exact ih (fun d hd => hobj d (List.mem_cons_of_mem _ hd)) a ha
+
+/-- **The FIFO's queue and the popped batch**: an unpopulated queue holds bookmarks only (every
+other delta populates it); a popped batch of several deltas was popped from a populated queue and
+does not outnumber the initial items left (what `PopBatch`'s deferred step needs). -/
+def fqOk (q : cache.FQ) (pd : List cache.FD) : Prop :=
+  (q.populated = false → ∀ d ∈ q.items, ∃ rv, d = .bookmark rv) ∧
+  (2 ≤ pd.length → q.populated = true ∧ (q.initCount = 0 ∨ pd.length ≤ q.initCount))
+
+theorem batch_len_le (q : cache.FQ) (h : 0 < q.initCount) : q.batch.length ≤ q.initCount := by
+  unfold cache.FQ.batch
+  cases hq : q.items with
+  | nil => simp
+  | cons d ds =>
+    simp only
+    split
+    · calc _ ≤ ((d :: ds).take (min 1000 q.initCount)).length := (List.takeWhile_prefix _).length_le
+        _ ≤ min 1000 q.initCount := List.length_take_le _ _
+        _ ≤ q.initCount := Nat.min_le_right _ _
+    · simp; omega
+
+/-- A batch of several deltas is of batchable ones. -/
+theorem batch_batchable (q : cache.FQ) (h : 2 ≤ q.batch.length) :
+    ∀ d ∈ q.batch, d.batchable = true := by
+  unfold cache.FQ.batch at h ⊢
+  cases hq : q.items with
+  | nil => rw [hq] at h; simp at h
+  | cons d ds =>
+    rw [hq] at h
+    simp only at h ⊢
+    split
+    · intro x hx
+      exact List.all_eq_true.1 List.all_takeWhile x hx
+    · rename_i hnb; simp only [hnb, Bool.false_eq_true, ↓reduceIte, List.length_singleton] at h
+      omega
+
+theorem batchable_obj (d : cache.FD) (h : d.batchable = true) : ∃ t x, d = .obj t x := by
+  cases d with
+  | obj t x => exact ⟨t, x, rfl⟩
+  | replaced _ _ => simp [cache.FD.batchable] at h
+  | bookmark _ => simp [cache.FD.batchable] at h
+
+theorem fqOk_pop (q : cache.FQ) (h : fqOk q []) (hne : q.items ≠ []) :
+    fqOk { q with items := q.items.drop q.batch.length } q.batch := by
+  obtain ⟨h1, -⟩ := h
+  refine ⟨fun hp d hd => h1 hp d (List.mem_of_mem_drop hd), fun hlen => ?_⟩
+  have hpop : q.populated = true := by
+    cases hp : q.populated with
+    | true => rfl
+    | false =>
+      exfalso
+      have hb := batch_batchable q hlen
+      obtain ⟨d, ds, hds⟩ := List.exists_cons_of_ne_nil hne
+      have hd : d ∈ q.batch := by
+        unfold cache.FQ.batch; rw [hds]; simp only
+        split
+        · rename_i hb'
+          have : 0 < (if 0 < q.initCount then min 1000 q.initCount else 1000) := by split <;> omega
+          obtain ⟨n, hn⟩ : ∃ n, (if 0 < q.initCount then min 1000 q.initCount else 1000) = n + 1 :=
+            ⟨_, (Nat.succ_pred_eq_of_pos this).symm⟩
+          rw [hn]; simp [hb']
+        · simp
+      obtain ⟨rv, hrv⟩ := h1 hp d (by rw [hds]; exact List.mem_cons_self)
+      have := hb d hd
+      rw [hrv] at this
+      simp [cache.FD.batchable] at this
+  refine ⟨hpop, ?_⟩
+  by_cases h0 : q.initCount = 0
+  · exact Or.inl h0
+  · exact Or.inr (batch_len_le q (by omega))
+
+/-- **One popped delta's store step is the view's.** -/
+theorem storeRel_single (R R0 : Reg) (hsub : ∀ x o, R0 !! x = some o → R !! x = some o)
+    (σs : cache.St) (v : View) (d : cache.FD) (a : Delta) (hR : storeRel R σs v)
+    (hfd : fdRel R d a) (hreg : ∀ x ∈ d.objs, ∃ o, R0 !! x = some o)
+    (hchg : ∀ c, a = .change c → keyGood c.obj.key ∧ c.obj.meta.ResourceVersion' = rvStr c.rv)
+    (hrep : ∀ M n, a = .replaced M n →
+      (∀ key, key ∈ M → keyGood key) ∧ (∀ key o, M !! key = some o → o.key = key)) :
+    storeRel R (cache.storeStepFD (regKF R0) (regRv R0) σs d) (v.apply a) := by
+  cases d with
+  | obj t x =>
+    cases a with
+    | change c =>
+      obtain ⟨rfl, hx, hnil⟩ := hfd
+      obtain ⟨o, ho⟩ := hreg x (by simp [cache.FD.objs])
+      have hoc : o = c.obj := by have := hsub x o ho; rw [hx] at this; cases this; rfl
+      subst hoc
+      obtain ⟨hgood, hrv⟩ := hchg _ rfl
+      exact storeRel_change R _ _ σs v _ x hR hx (by simp [regKF, ho]) hgood
+        (by simp [regRv, ho, hrv]) hnil
+    | replaced _ _ => exact absurd hfd id
+    | bookmark _ => exact absurd hfd id
+  | replaced xs rvs =>
+    cases a with
+    | replaced M n =>
+      obtain ⟨hrv, hl⟩ := hfd
+      obtain ⟨hg, hkd⟩ := hrep M n rfl
+      refine storeRel_replace R (regKF R0) σs v xs rvs M n hrv hl ?_ hg hkd
+      intro x hx o hxo
+      obtain ⟨o', ho'⟩ := hreg x (by simpa [cache.FD.objs] using hx)
+      have : o' = o := by have := hsub x o' ho'; rw [hxo] at this; cases this; rfl
+      subst this
+      simp [regKF, ho']
+    | change _ => exact absurd hfd id
+    | bookmark _ => exact absurd hfd id
+  | bookmark rvs =>
+    cases a with
+    | bookmark n => exact storeRel_bookmark R σs v rvs n hR hfd
+    | change _ => exact absurd hfd id
+    | replaced _ _ => exact absurd hfd id
+
+/-- The keys of the log's tables are good when the log's are. -/
+theorem replay_good : ∀ (l : List Change) (M : GMap Key Obj),
+    (∀ key, key ∈ M → keyGood key) → (∀ c ∈ l, keyGood c.obj.key) →
+    ∀ key, key ∈ l.foldl applyChange M → keyGood key
+  | [], M, h, _ => h
+  | c :: l, M, h, hl => by
+    simp only [List.foldl_cons]
+    apply replay_good l
+    · intro key hk
+      unfold applyChange at hk
+      cases ht : c.typ with
+      | deleted =>
+        rw [ht, GMap.mem_iff, GMap.lookup_delete_iff] at hk
+        split at hk
+        · simp at hk
+        · exact h key hk
+      | added | modified =>
+        rw [ht, GMap.mem_iff, GMap.lookup_insert_eq_iff] at hk
+        split at hk
+        · rename_i he; rw [← he]; exact hl c List.mem_cons_self
+        · exact h key hk
+    · exact fun c' hc' => hl c' (List.mem_cons_of_mem _ hc')
+
+theorem tableAt_good (l : List Change) (v : Nat) (hl : ∀ c ∈ l, keyGood c.obj.key) :
+    ∀ key, key ∈ tableAt l v → keyGood key :=
+  replay_good _ ∅ (by intro key h; simp [GMap.mem_iff] at h)
+    (fun c hc => hl c (List.mem_filter.1 hc).1)
+
+theorem storeStepFD_congr (KF KF' : GoInterface → GoString) (rvOf rvOf' : GoInterface → Option GoString)
+    (σ : cache.St) (d : cache.FD) (hk : ∀ x ∈ d.objs, KF x = KF' x)
+    (hr : ∀ x ∈ d.objs, rvOf x = rvOf' x) :
+    cache.storeStepFD KF rvOf σ d = cache.storeStepFD KF' rvOf' σ d := by
+  cases d with
+  | obj t o =>
+    have h1 := hk o (by simp [cache.FD.objs])
+    have h2 := hr o (by simp [cache.FD.objs])
+    simp only [cache.storeStepFD, cache.rvOfObj, h1, h2]
+  | replaced xs rv =>
+    simp only [cache.storeStepFD]
+    congr 1
+    unfold cache.keyedItems
+    have : ∀ (ys : List GoInterface) (m : cache.Items), (∀ y ∈ ys, KF y = KF' y) →
+        ys.foldl (fun m x => <[KF x := x]> m) m = ys.foldl (fun m x => <[KF' x := x]> m) m := by
+      intro ys
+      induction ys with
+      | nil => intro _ _; rfl
+      | cons y ys ih =>
+        intro m h
+        simp only [List.foldl_cons, h y List.mem_cons_self]
+        exact ih _ (fun z hz => h z (List.mem_cons_of_mem _ hz))
+    exact this xs ∅ (fun y hy => hk y (by simpa [cache.FD.objs] using hy))
+  | bookmark _ => rfl
+
+theorem forall₂_singleton {α β : Type _} {R : α → β → Prop} {a : α} {l : List β}
+    (h : List.Forall₂ R [a] l) : ∃ b, l = [b] ∧ R a b := by
+  cases h with
+  | cons hab hrest => cases hrest; exact ⟨_, rfl, hab⟩
 
 end model
 
