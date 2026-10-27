@@ -582,7 +582,7 @@ theorem rn_ready_recv [go_etcd_io.raft.v3.Assumptions] (E : RNEnv GF) (γ : RNNa
     iframe Hcl Hsn
   | none =>
   ihave #Hfits : Draft.readyFits γ.node.cl srvClusterN $$ []
-  · iunfold srvClusterOk at Hcl; icases Hcl with ⟨-, -, -, #H⟩; rw [Hraft]; iexact H
+  · iunfold srvClusterOk at Hcl; icases Hcl with ⟨-, -, -, #H, -⟩; rw [Hraft]; iexact H
   icases Draft.readyRest_fits γ.node.cl srvClusterN γ.id rd _ ce es h none $$ [Hfits Hrest]
     with ⟨Hrest, %Hfit61⟩
   · iframe Hfits Hrest

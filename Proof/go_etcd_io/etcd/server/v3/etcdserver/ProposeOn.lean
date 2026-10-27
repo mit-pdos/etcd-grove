@@ -197,7 +197,7 @@ theorem kvModelOn_snoc_nonwrite (γk : KVNames) (st₀ : auth.AuthState) (L : Li
   rfl
 
 /-- **The mode-`on` workload facts, one entry on** (`kvWork_snoc`'s). -/
-theorem kvWorkOn_snoc (cfg : RaftNames) (γk : KVNames) (L : List EntryModel) (e : EntryModel)
+theorem kvWorkOn_snoc (cfg : SrvRaft) (γk : KVNames) (L : List EntryModel) (e : EntryModel)
     (hs : entryShapeOn e) (hc : e.typ ≠ W32 0 → ccPolOk cfg e.data) :
     ⊢ kvWorkOn (GF := GF) cfg γk L -∗ entryClaim γk.ids e -∗ kvWorkOn cfg γk (L ++ [e]) := by
   iintro Hw #He

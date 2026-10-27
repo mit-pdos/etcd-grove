@@ -148,17 +148,16 @@ state after `L`), and its index the next. -/
 theorem kvInvOn_facts_snoc (γ : ServerRaftNames) (γk : KVNames) (st₀ : auth.AuthState)
     (L : List EntryModel) (e : EntryModel)
     (hok : plainLogOn L ∧ detLogOn γk.c0 γk.ch0 (st₀, γk.log0) L ∧ srvIdxOkW γ.ai0 L ∧
-      uint.Z γk.c0 ≤ uint.Z γ.ai0 + L.length ∧
+      uint.Z γk.c0 ≤ uint.Z γ.ai0 ∧
       γk.ch0 = apply.alarmChain true false false ∧ γk.log0 ≠ [])
     (hidx' : srvIdxOkW γ.ai0 (L ++ [e]))
     (hc : commitOkOn γk.c0 γk.ch0 (st₀, γk.log0) L e) :
     plainLogOn (L ++ [e]) ∧ detLogOn γk.c0 γk.ch0 (st₀, γk.log0) (L ++ [e]) ∧
-      srvIdxOkW γ.ai0 (L ++ [e]) ∧ uint.Z γk.c0 ≤ uint.Z γ.ai0 + (L ++ [e]).length ∧
+      srvIdxOkW γ.ai0 (L ++ [e]) ∧ uint.Z γk.c0 ≤ uint.Z γ.ai0 ∧
       γk.ch0 = apply.alarmChain true false false ∧ γk.log0 ≠ [] := by
   obtain ⟨hp, hd, -, hc0, hch, h0⟩ := hok
   obtain ⟨hp', hd'⟩ := logOn_snoc γk.c0 γk.ch0 (st₀, γk.log0) L e hp hd hc
-  refine ⟨hp', hd', hidx', ?_, hch, h0⟩
-  simp only [List.length_append, List.length_singleton]; push_cast; omega
+  exact ⟨hp', hd', hidx', hc0, hch, h0⟩
 
 /-- **A granted plain write's commit fires its client's update** (the ghost step at the commit, in
 the mode `on`): the invariant's half of the state's ghost variable at the committed log `L`'s model

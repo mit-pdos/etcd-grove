@@ -800,6 +800,45 @@ theorem isReadyChan_recvAu (n ch : Loc) (γ : Cluster) (N : Namespace) (id : w64
                     handling := some (es, some l) })) -∗ Φ rd true) -∗
           recvAu γc Ready Φ) := sorry
 
+/-- (2026-10-27, the server port's addition) **The cluster was started from a bootstrap log**
+(persistent; today `RaftNames.reBoot ≠ []`): what `cluster_alloc` and `dynamicCluster_alloc`
+allocate, and `cluster_alloc_static` does not. Its nodes are past term `0`, so they step a
+pre-vote request (`stepIn_intro_booted`). -/
+@[no_expose] def bootedCluster (γ : Cluster) : IProp GF := iprop(⌜γ.raft.reBoot ≠ []⌝)
+
+instance bootedCluster_persistent (γ : Cluster) : Persistent (bootedCluster (GF := GF) γ) := by
+  unfold bootedCluster; infer_instance
+
+/-- (the server port's addition) A boot token of `cluster_alloc` (of peers `ps`, not empty) is of
+a cluster started from a bootstrap log. -/
+theorem nodeBoot_booted (γ : Cluster) (N : Namespace) (ps : List w64) (ctxs : List (List w8))
+    (id : w64) : ps ≠ [] →
+    nodeBoot (GF := GF) γ N ps ctxs id ⊢ nodeBoot γ N ps ctxs id ∗ bootedCluster γ := sorry
+
+/-- (the server port's addition) A boot token of `dynamicCluster_alloc` (of peers `ps`, not empty)
+is of a cluster started from a bootstrap log. -/
+theorem nodeDynamicBoot_booted (γ : Cluster) (N : Namespace) (ps : List w64)
+    (ctxs : List (List w8)) (id : w64) : ps ≠ [] →
+    nodeDynamicBoot (GF := GF) γ N ps ctxs id ⊢
+      nodeDynamicBoot γ N ps ctxs id ∗ bootedCluster γ := sorry
+
+/-- (2026-10-27, the server port's addition) **Stepping a sent message in a cluster started from
+a bootstrap log** (`stepIn_intro`'s, with a pre-vote request allowed, and a forwarded proposal of
+any context): what etcd's server needs, whose nodes run with `PreVote` (etcd's default) and whose
+transport delivers a forwarded `MsgProp` as sent. (Raft's `netP` takes a `MsgPreVote` at a cluster
+with `reBoot ≠ []`, and `fwdP` a proposal of any context, its abstraction `absMsg .propose`
+ignoring it.) Proposed change: `stepIn_intro` with these premises in place of its own. -/
+theorem stepIn_intro_booted (γ : Cluster) (N : Namespace) (id : w64) (ml : Loc) (src : w64)
+    (st : MsgSt) :
+    (st.msg.Type' ≠ MsgProp → NetMsgOk id ⟨st.msg, st.ents, st.snap, st.ctx, []⟩ ∧
+      st.msg.Type' ≠ MsgTransferLeader) →
+    (st.msg.Type' = MsgSnap → ∃ sv, st.snap = some sv ∧ uint.Z sv.Metadata'.Index' < 2 ^ 61) →
+    st.msg.To' = id →
+    bootedCluster (GF := GF) γ ∗ sentMsg γ N src st ∗
+      msgPtsC ml (DFrac.own 1) (DFrac.own 1) true ⟨st.msg, st.ents, st.snap, st.ctx, []⟩ ∗
+      msgCredits γ N st ∗ tickCredit γ (if st.msg.Type' = MsgTimeoutNow then 1 else 0) ⊢
+    |==> stepIn γ N id ml := sorry
+
 end api
 
 /-! ### The committed log's laws without the section's unused instances (2026-10-27, the server
@@ -961,6 +1000,20 @@ theorem sentMsg_snapshot (γ : Cluster) (N : Namespace) (src : w64) (st : MsgSt)
     sentMsg (GF := GF) γ N src st ⊢
       ∃ sv, ⌜st.snap = some sv⌝ ∗ snapshotCert γ N (snapTrip sv sv.Metadata'.ConfState'.lists) :=
   sorry
+
+/-- (2026-10-27, the server port's addition; proved) **A message that carries no credit**: one
+neither a `MsgReadIndex` (a read credit) nor a `MsgProp` (a forwarded proposal's tickets) carries
+none, so its credits can be made anew (`msgCredits_snapshot`'s, for every such type): what a
+network that may deliver such a message twice needs (rafthttp's `NetPayload.dup`). -/
+theorem msgCredits_none (γ : Cluster) (N : Namespace) (st : MsgSt) :
+    st.msg.Type' ≠ MsgReadIndex → st.msg.Type' ≠ MsgProp → ⊢ |==> msgCredits (GF := GF) γ N st := by
+  intro h1 h2
+  unfold msgCredits ApiImpl.msgCredits stTks
+  rw [ite_eq_right h1, ite_eq_right h2]
+  iintro
+  imod rdCred_zero_upd γ.raft with H
+  imodintro
+  iframe H
 
 end lawsPure2
 

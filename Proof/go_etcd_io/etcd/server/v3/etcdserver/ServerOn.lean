@@ -303,7 +303,7 @@ def srvBuiltG (on : Bool) (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI �
     "#Hci'" ∷ srvCommittedInv s γr ∗
     "#Hrn" ∷ isRaftNode Er γn (srvRAddr s) ∗
     "%HEr" ∷ ⌜Er.C = srvCM on ρ E ai₀ c₀ x₀ ∧ Er.γr = γr ∧
-      (γn.node.dyn = true → uint.Z c₀ ≤ uint.Z ai₀)⌝ ∗
+      (γn.node.dyn = true → uint.Z c₀ ≤ uint.Z ai₀ ∧ γn.pre = [] ∧ ai₀ = W64 0)⌝ ∗
     "%Hρrd" ∷ ⌜ρ.rd = γr⌝ ∗
     "Hloop" ∷ rnLoopTok γn [] ∗ "Hsend" ∷ Er.S ∗ "Happly" ∷ rnApplyTok γn [] ∗ "Hrdone" ∷ rnDoneTok γn (srvRAddr s) ∗
     "#Hcci" ∷ context.isClosedchanInit ∗

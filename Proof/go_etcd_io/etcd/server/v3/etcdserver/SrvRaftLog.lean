@@ -637,7 +637,9 @@ def srvClusterOk (γ : ServerRaftNames) : IProp GF :=
       Draft.isDynamicCluster γ.raft.cl srvClusterN (Draft.Membership.simple γ.raft.cfg) γ.raft.dec
     else Draft.isStaticCluster γ.raft.cl srvClusterN γ.raft.vs (fun _ _ => False)) ∗
     Draft.leaderTransferOff γ.raft.cl srvClusterN ∗ Draft.noConfChangeV2 γ.raft.cl srvClusterN ∗
-    Draft.readyFits γ.raft.cl srvClusterN)
+    Draft.readyFits γ.raft.cl srvClusterN ∗
+    -- (2026-10-27) started from a bootstrap log: its nodes step a pre-vote request
+    Draft.bootedCluster γ.raft.cl)
 
 instance srvClusterOk_persistent (γ : ServerRaftNames) : Persistent (srvClusterOk (GF := GF) γ) := by
   unfold srvClusterOk; split <;> infer_instance
