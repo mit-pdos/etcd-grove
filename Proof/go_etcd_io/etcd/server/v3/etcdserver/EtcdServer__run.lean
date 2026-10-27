@@ -354,6 +354,7 @@ theorem run_job_bodyOn (hAA : EtcdServer.applyAll.specOn (GF := GF) (hG := hG))
   · exact entriesStep_append' C.c₀ A ce C.x₀ x x' Hstep (entriesStep_congr _ _ ce hcong x x' Hx')
   · rw [hun] at hat'; exact lastTermIs_append Hlt hat'
 
+
 set_option hygiene false in
 /-- `updateLeadership`'s last step: the stats (`BecomeLeader` unless nil), and the return. -/
 local macro "ul_stats" : tactic => `(tactic| (

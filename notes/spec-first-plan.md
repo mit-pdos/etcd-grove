@@ -1,0 +1,173 @@
+# Plan: specs first, proofs later
+
+Status: proposed (2026-10-27, branch `spec-first`). Step 1 of "Testing the plan" done (below,
+"Step 1: the retrospective study").
+
+## Goal
+
+Proofs are slow to write and to re-check, and a spec that changes after its proof exists costs a
+re-proof, often in its callers' proofs too. This plan front-loads the discovery of the specs --
+internal ones and the trust-boundary specs of the packages etcd uses -- gets confidence in them
+cheaply (by tests and a few proofs), freezes them, and only then does the bulk of the proofs.
+
+## Why: what the history shows (2026-10-27)
+
+- 605 non-merge commits since the port began (2026-10-09) modify an existing `Spec/` file.
+  The most revised: `raft__Step` 48, `NewServer` 46, `stepFollower` 29, `EtcdServer__apply` and
+  `EtcdServer__applyEntries` 24 each, `stepLeader`/`stepCandidate` 21, `newRaft` 20.
+- `raft__Step`'s 48 revisions are almost all scope extensions (message types, learners, joint
+  configurations, PreVote, CheckQuorum, snapshots, leader transfer) and caller needs discovered
+  later (the server's snapshot certificates, read-index credit, the floor raised before
+  `Advance`, the sender's promise), not corrections.
+- False specs exist too, found late and by hand: the axiom audit (`notes/audit.md`; D19m-p in
+  `notes/decisions.md`) found trust-boundary specs false of the Go code after proofs rested on
+  them.
+
+So three causes, each with its own remedy: scope that grows a feature at a time (phase 0),
+caller needs discovered bottom-up after the callee is proved (phase 1), specs nobody checked
+against the code (phase 2). Step 1 below measures their shares.
+
+## The phases
+
+**Phase 0: scope and the top-level statement first.** Before any spec of a slice, fix the
+configuration the result covers (features on or off, message types, membership changes,
+snapshots, failure modes) and write the top-level theorem (e.g. the example's linearizability
+adequacy). Widening later is a new, deliberate stage, not a series of spec edits.
+
+**Phase 1: the spec skeleton, top-down.** Every function's spec written, internal and external,
+every proof `sorry` (or a trust-boundary axiom), `Link.lean` generated. Then prove the *glue*:
+the callers whose bodies only thread state between callees, from the callees' specs. Glue proofs
+are short and are what find a missing frame, a premise the caller cannot give, or a
+postcondition too weak for the caller -- before the callee's expensive proof exists.
+
+**Phase 2: test the specs against the Go code** (no proof).
+- Canonical form: `own σ ∗ ⌜Pre σ args⌝ -∗ WP f args {r, ∃ σ', own σ' ∗ ⌜Post σ args r σ'⌝ ∗ …}`
+  with `Pre`, `Post` decidable definitions on the pure records the predicates are indexed by
+  (CLAUDE.md, "Records").
+- A test-only Go abstraction function per record type (Go state to record, as `inflightsRingOf`
+  does in Lean); trusted for testing, checked later by the proof of the representation predicate.
+- Entry/exit instrumentation records `(σ, args, r, σ')` as JSON; a Lean executable evaluates the
+  Lean `Pre`/`Post` on the traces (the spec itself, not a Go transcription of it). Raft already
+  has the hook: `state_trace.go` (build tag), used by its TLA+ trace validation (`tla/`).
+- Trace sources: raft's datadriven `testdata/` interaction tests, raft's and etcd's unit tests,
+  etcd's robustness tests, Go fuzzing.
+- Readings: `Post` violated: the spec is false. `Pre` violated on a trace of a normal workload:
+  the spec is stronger than its real callers allow. `Pre` never satisfied: vacuous.
+- Lock invariants (`Inv*`) asserted at each `Unlock`; concurrent objects checked by porcupine
+  against the spec's pure model (`examples/lintest` exists); protocol-level properties keep their
+  model checkers (`notes/reconfiguration-model-check.md`).
+- The trust-boundary specs of other packages (bbolt, grpc, zap, the standard library) get the
+  same treatment: random call sequences against the real library, checked against the axiom's pure
+  model. One refuting trace is what the audit had to find by reading.
+
+**Phase 3: a few proofs per package.** Prove fully the one or two riskiest bodies of each
+package (most branching, ghost state, concurrency): they check what traces cannot -- invariant
+sufficiency, the ghost design, logical atomicity. Then freeze the specs: a change after the
+freeze needs a `notes/decisions.md` entry with its cause.
+
+**Phase 4: the remaining proofs**, against frozen specs, in parallel (independent per function,
+which suits agents).
+
+**Not covered by testing:** the resource part of a spec (ownership, fractions, invariants,
+atomicity). Only phase 1's glue proofs and phase 3's sampled proofs check it before phase 4.
+
+**Costs.** The Go abstraction functions; decidable `Pre`/`Post` where a spec quantifies over
+ghost state (a weaker test-only projection where needed); restating existing specs in the
+canonical form (for the pilot slice only, at first).
+
+## Testing the plan
+
+1. **Retrospective study** (git history only): classify a random sample of spec revisions by
+   cause, and say for each which phase would have found the need earlier. Gives the shares of the
+   three causes, hence which phases are worth building. Done: below.
+2. **The checker on known bugs**: replay the trust-boundary axioms later found false (the audit's
+   rows, step 1's three) and the library calls with a reproduction in `issues/` through the phase-2
+   checker; how many does it catch? If few, phase 2 is not worth its cost. (Narrowed to the
+   trust boundary by step 1.)
+3. **A prospective pilot**: one unverified slice of comparable size done spec-first, compared with
+   a slice done the current way (from git history: e.g. cindex, the read-index loop). Metrics:
+   time to a frozen spec; spec changes after the freeze (the main one); defects found by tests vs
+   by proofs; proof time after the freeze.
+
+## Step 1: the retrospective study (2026-10-27)
+
+**Method.** The 605 non-merge commits (2026-10-09 to 2026-10-27) that modify an existing `Spec/`
+file (`git log --no-merges --diff-filter=M -- Spec`); a random sample of 64 (Python's
+`random.seed(20261027); random.sample(hashes, 64)` over that list, newest first); each commit's
+message, `Spec/` diff and the `notes/decisions.md` entries it names read by one of four agents with
+the same rubric, which gives a primary cause, an optional secondary, the phase that would have found
+the need earlier, and for a false spec the Go execution that refutes it. The data, one JSON line per
+commit with the lines of `Spec/` and `Proof/` the commit changed: `notes/spec-first-study/sample.jsonl`.
+
+Causes: SCOPE (the spec covers cases it excluded), CALLER (a caller needed more: a stronger post, a
+weaker pre, a resource returned), FALSE-BEH (false of the Go code in its pure part: a concrete
+execution refutes it), FALSE-RES (wrong in its resources: ownership, ghost state, invariants),
+PROOF (restated for the proof or the design, same meaning for clients), INFRA (mechanical:
+docstrings, renames, the Perennial pin, linter options), CODE (the Go code changed).
+
+**Results** (64 commits; 49 classified with high confidence, 15 medium):
+
+| cause | primary | phase that would have found it earlier |
+|---|---|---|
+| CALLER | 23 | P1 19, P0 2, P2 1, P3 1 |
+| SCOPE | 20 | P0 19, P1 1 |
+| INFRA | 11 | none |
+| PROOF | 5 | P3 3, P1 1, none 1 |
+| CODE | 3 | none |
+| FALSE-BEH | 2 (+1 secondary) | P2 |
+| FALSE-RES | 0 (3 secondary) | P1 2, P3 1 |
+
+Of the 50 that are not INFRA or CODE: 42 (84%) are SCOPE or CALLER, which phases 0 and 1 address;
+3 (6%) are false behavior, which phase 2 would have caught. The `Proof/` lines changed in the same
+commits (a rough measure: such commits also do new proof work) follow the same order: SCOPE
+18 472, CALLER 13 381, FALSE-BEH 294.
+
+**The three false behaviors** (each refuted by a short execution; two of the three are
+trust-boundary axioms, which no proof will ever check):
+- `bfaa9ce45c`: the axiom said `pbutil.MustUnmarshalMessage` returns on any bytes; on malformed
+  bytes it panics (a byte fuzzer finds it at once).
+- `072b026b16`: rafthttp's `CutPeer` taken twice after `AddRemote` panics
+  (`issues/etcd-rafthttp-cutpeer-twice-remote-panic.md`; a fuzzer over call sequences finds it).
+- `68ceb46a40`: a key created in a txn at sub-revision 1 has sub-revision 0 after a restore (only if
+  the traces record sub-revisions).
+
+**What the sample says about the plan.**
+- **Phases 0 and 1 matter most; phase 2 is narrow.** Trace testing checks that a spec is true; it
+  cannot see a spec too weak for its caller, and most CALLER changes strengthen a true post
+  (`Advance` keeps the term, `decodeLoop`'s error is never nil, `deleteOnce`'s `ok` implies
+  `err = nil`). Build phase 2 for the trust-boundary axioms (717 of them) first, not for proved
+  specs.
+- **Phase 0 must fix the deployed configuration and the strongest top-level property, not just
+  "a scope".** `596c72e0e6`: etcd runs raft with `CheckQuorum: true`, the proof required it off,
+  so the closed theorem did not cover etcd's configuration until then (PreVote likewise).
+  `e273d4457d`: the top-level property went from "a client write may fire repeatedly" to "at most
+  once", which changed about 22 spec files from the client's retry interceptor down to
+  `raft.Step`. Scope also shrinks (`1f26594335`: the bridge, proved, declared network;
+  `19a919ec00`: leader transfer off where the network contract cannot describe `MsgTimeoutNow`).
+- **Phase 1's glue proofs must be full separation-logic proofs.** The CALLER needs are mostly
+  resources (a ghost fraction lent, a token threaded, ownership given back: `6e5a820e9f`,
+  `38ca631867`, `bbbbfd238b`, `22473bd085`, `0d418fec3c`), not pure facts. A glue proof finds
+  that something is missing; the shape of the fix is often a ghost design, phase 3's work, so
+  phases 1 and 3 interleave per package rather than run in sequence.
+- **A satisfiability check of preconditions** belongs in phase 1: `5239c8b0e3`'s pre could not be
+  met with auth on, which composing the top-level theorem shows without any proof of a body. Some
+  premises are false only in the model (`f2ac4e6c88`: `Campaign`'s `leaderRev - 1` is 0 only
+  because the model's first write is revision 1): no Go trace refutes them, only the glue.
+- **Causes the rubric missed**, each a few commits: replacing an axiom or opaque premise by tracked
+  state to shrink the trust base (`184e97b498`, `db14efdd2e`, `28adb38f2b`); restrictions forced by
+  the proof structure (`c5b96bd53a`: an auto-leave branch excluded because its proof would make the
+  links mutually recursive); liveness, which no phase sees (`c01f2275b8`: the kv example's replica
+  never answered requests a snapshot covered, found by a Go test).
+- **Writing specs finds Go bugs before any proof**: the compaction specs (`3f2263f694`) found
+  `issues/etcd-compaction-delete-then-put.md` and `issues/etcd-compaction-negative-batch-limit.md`.
+
+**Limits.** 64 of 605 (for the large classes, about ±12 points at 95%); one agent per commit, no
+second opinion; "would have found it earlier" is a counterfactual judgment. Sampling by "modifies
+a `Spec/` file" also counts commits that mostly add new specs or touch only docstrings (INFRA, 11
+of 64).
+
+**Revisions to the plan from step 1.** Step 2 (the checker on known bugs) is narrowed to the
+trust-boundary axioms: the audit's false rows, the three above, and the libraries' calls with
+`issues/` reproductions. The pilot (step 3) measures phase 0 (is the configuration that of
+deployed etcd, is the top-level property the strongest one wanted) and phase 1 (glue proofs in
+full Iris, interleaved with the phase-3 proofs of the package) first.
