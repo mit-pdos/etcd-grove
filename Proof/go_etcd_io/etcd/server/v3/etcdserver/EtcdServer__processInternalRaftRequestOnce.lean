@@ -265,7 +265,8 @@ local macro "piro_tail" : tactic => `(tactic| (
           ⌜v = returnVal (PairV #res #e)⌝ ∗ start_ptr ↦ start ∗ srvLeadTimeReader s ∗ E.RD ∗
           ((⌜e = GoInterface.nil⌝ ∗ ∃ hm rq',
               ⌜irrWireOf (apply.withHeader rq hm) rq'⌝ ∗ apply.resTrace res ∗
-              ∃ L, srvRLogLb ρ.raft L ∗ resPostM on E ρ rq' F res L ∗ □ Qh hm L) ∨
+              ∃ L, srvRLogLb ρ.raft L ∗ resPostM on E ρ rq' F res L ∗ pubAfterM on E ρ rq' L ∗
+                □ Qh hm L) ∨
             ⌜res = null ∧ e ≠ GoInterface.nil⌝ ∗ applyErrIs e ∗ srvMaybeDeposited ρ rq)))
         at (let: "$ch1" := _ in _) with [-HΦ defer reqType err]
       · ihave #Hcctx' := Hcctx
@@ -342,6 +343,9 @@ local macro "piro_tail" : tactic => `(tactic| (
             · ipureintro; exact Hwire
             iexists Lw.take mw
             iframe HLt HQr
+            isplitl [Hri]
+            rotate_left
+            · unfold pubAfterM; itrivial
             iunfold resultIsW at Hri
             icases Hri with ⟨%Hnn, %y, %y', %out, %Hst, Hr1, Hr2, Hr3, Hr4, Hr5⟩
             iunfold resPostM
@@ -360,7 +364,7 @@ local macro "piro_tail" : tactic => `(tactic| (
             subst Hx
             wp_auto_lc 2
             iunfold entryWitOn at HeW
-            icases HeW with ⟨%Lw, %mw, %ew, %idw, %γw, #HLw, #Hclw, %Hew, -⟩
+            icases HeW with ⟨%Lw, %mw, %ew, %idw, %γw, #HLw, #Hclw, %Hew, #HpA⟩
             obtain ⟨hlk, het, hdecw, hidw, hlbw⟩ := Hew
             have hidd : idw = id := by rw [Hidrq] at hidw; cases hidw; rfl
             subst hidd
@@ -388,6 +392,18 @@ local macro "piro_tail" : tactic => `(tactic| (
             · ipureintro; exact Hwire
             iexists Lw.take mw
             iframe HLt HQr
+            isplitl [Hri]
+            rotate_left
+            · -- (E3t) the auth state after the entry, published
+              have htk : Lw.take mw ++ [ew] = Lw.take (mw + 1) := by
+                rw [List.take_succ, hlk]; rfl
+              unfold pubAfterM
+              iexists ew
+              isplitr
+              · rw [htk]; iapply srvRLogLb_mono ρ.raft _ _ (List.take_prefix _ _) $$ HLw
+              isplitr
+              · ipureintro; exact ⟨het, hdecw⟩
+              rw [htk]; iexact HpA
             iunfold resultIsWOn at Hri
             icases Hri with ⟨%Hnn, %y, %y', %out, %Hst, Hr1, Hr2, Hr3, Hr4, Hr5⟩
             iunfold resPostM
@@ -643,7 +659,7 @@ theorem EtcdServer.processInternalRaftRequestOnce.wp_proof
   · iintro !> %res %err ⟨Hrd, Hard, Hpost⟩
     iapply HΦ
     iframe Hrd Hard
-    icases Hpost with (⟨%He, %hm, %rq', %Hw, HTr, %L, #HL, Hp, #HQ⟩ | Herr)
+    icases Hpost with (⟨%He, %hm, %rq', %Hw, HTr, %L, #HL, Hp, -, #HQ⟩ | Herr)
     · ileft
       isplitr
       · ipureintro; exact He
