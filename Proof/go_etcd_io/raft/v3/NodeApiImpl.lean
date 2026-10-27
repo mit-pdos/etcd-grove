@@ -1112,8 +1112,8 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 /-- **A running node** `n` of id `id` in the cluster `γ` (persistent): raft's node, of the
 cluster's names and budget, and the cluster's invariants. -/
 def isNode (n : Loc) (γ : Cluster) (N : Namespace) (id : w64) : IProp GF :=
-  iprop(∃ γn : NodeNames, ⌜γn.raft = γ.raft ∧ γn.bud = γ.bud⌝ ∗ EtcdGrove.isNode γn id n ∗
-    clusterInv γ N)
+  iprop(∃ γn : NodeNames, ⌜γn.raft = γ.raft ∧ γn.bud = γ.bud ∧ γn.snapIn = false⌝ ∗
+    EtcdGrove.isNode γn id n ∗ clusterInv γ N)
 
 instance isNode_persistent (n : Loc) (γ : Cluster) (N : Namespace) (id : w64) :
     Persistent (isNode (GF := GF) n γ N id) := by
@@ -1141,7 +1141,8 @@ log `ds` the client sees as `st.delivered`, at a node that takes no snapshot. -/
 def nodeDriver (n : Loc) (γ : Cluster) (N : Namespace) (st : NodeDriverState) : IProp GF :=
   iprop(∃ (γn : NodeNames) (id : w64) (ds : List EntryM),
     ⌜γn.raft = γ.raft ∧ γn.bud = γ.bud ∧ γn.stor = st.storage ∧ γn.snapIn = false ∧
-      strip ds = st.delivered⌝ ∗ clusterInv γ N ∗
+      γn.mode = .static ∧ strip ds = st.delivered⌝ ∗ clusterInv γ N ∗
+    (∃ (ca : Nat) (cfg : CCState), nodeCfg γn ca cfg) ∗
     ((⌜st.handling = none⌝ ∗ EtcdGrove.nodeDriver γn id n ds st.hardState) ∨
      (∃ (es : List EntryM) (L : Option SnapLoan), ⌜st.handling = some (es, L)⌝ ∗
        nodeDriverBusy γn id n ds es st.hardState L)))
@@ -1229,8 +1230,8 @@ theorem node.wp_readyRecv_impl : node.readyRecv.spec (GF := GF) (hG := hG) := by
   intro n ch γ N st Hh
   iintro %Φ ⟨#Hrc, Hdrv⟩ HΦ
   iunfold nodeDriver at Hdrv
-  icases Hdrv with ⟨%γn, %id, %ds, %Hf, #Hci, Htok⟩
-  obtain ⟨Hγr, Hγb, Hγs, Hsn, Hds⟩ := Hf
+  icases Hdrv with ⟨%γn, %id, %ds, %Hf, #Hci, Hcfg, Htok⟩
+  obtain ⟨Hγr, Hγb, Hγs, Hsn, Hmd, Hds⟩ := Hf
   icases Htok with (⟨-, Htok⟩ | ⟨%es0, %L0, %Hh', -⟩)
   rotate_left
   · rw [Hh] at Hh'; cases Hh'
@@ -1308,8 +1309,8 @@ theorem node.wp_readyRecv_impl : node.readyRecv.spec (GF := GF) (hG := hG) := by
   iexists γn, id, ds ++ ce
   isplitr
   · ipureintro
-    exact ⟨Hγr, Hγb, Hγs, Hsn, by rw [strip_append, Hds]⟩
-  iframe Hci
+    exact ⟨Hγr, Hγb, Hγs, Hsn, Hmd, by rw [strip_append, Hds]⟩
+  iframe Hci Hcfg
   iright
   iexists es, none
   isplitr
@@ -1373,8 +1374,8 @@ theorem wp_StartNode_impl (hS : EtcdGrove.StartNode.spec (GF := GF) (hG := hG)) 
     isplitr
     · unfold NsCap; imodintro; iintro -; iexact Hcap
     · iapply certLink_noSnap γ.raft _ Hns
-  iintro !> %nd ⟨HR, %γn, %n, %Hf, -, #Hnode, Hdrv, -, -⟩
-  obtain ⟨Hγr, Hγb, Hγs, -, Hsn, Hnd'⟩ := Hf
+  iintro !> %nd ⟨HR, %γn, %n, %Hf, -, #Hnode, Hdrv, Hcfg, -⟩
+  obtain ⟨Hγr, Hγb, Hγs, Hmd, Hsn, Hnd'⟩ := Hf
   iapply HΦ
   iframe HR
   iexists n
@@ -1384,12 +1385,14 @@ theorem wp_StartNode_impl (hS : EtcdGrove.StartNode.spec (GF := GF) (hG := hG)) 
   · unfold isNode
     iexists γn
     iframe Hnode Hci
-    ipureintro; exact ⟨Hγr, Hγb⟩
+    ipureintro; exact ⟨Hγr, Hγb, Hsn⟩
   unfold nodeDriver
   iexists γn, cv.ID', []
   isplitr
-  · ipureintro; exact ⟨Hγr, Hγb, Hγs, Hsn, rfl⟩
+  · ipureintro; exact ⟨Hγr, Hγb, Hγs, Hsn, Hmd, rfl⟩
   iframe Hci
+  isplitl [Hcfg]
+  · iexists 0, cfgState (GMap.listToSet ps) ∅; iexact Hcfg
   ileft
   isplitr
   · ipureintro; rfl
@@ -1970,6 +1973,161 @@ theorem node.wp_ProposeConfChange_impl
   iframe Hcc Herr
 
 end cc
+
+/-! ## Advance, Step, Tick, TransferLeadership -/
+
+section misc
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [StorageModel GF]
+variable [sem : go.Semantics]
+variable [package_sem : go_etcd_io.raft.v3.Assumptions]
+
+/-- **`node.Advance()`** (the draft's). -/
+abbrev node.Advance.spec : Prop :=
+  ∀ (n : Loc) (γ : Cluster) (N : Namespace) (st : NodeDriverState) (es : List EntryM)
+    (L : Option SnapLoan),
+  st.handling = some (es, L) →
+  (∀ e ∈ st.delivered, e.type = W32 0) →
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ nodeDriver n γ N st ∗
+      advReceipt st.storage es L }}
+    (App (Val (n @!! go.GoType.PointerType node.ty @!! go!"Advance")) (Val #()))
+  {{ RET #(); nodeDriver n γ N { st with handling := none } ∗
+      match L with
+      | none => ∃ x : w64, storFloor st.storage x ∗ ⌜(st.delivered.length : Int) ≤ uint.Z x⌝
+      | some _ => True }}
+
+theorem node.wp_Advance_impl (hA : EtcdGrove.node.Advance.spec (GF := GF) (hG := hG)) :
+    node.Advance.spec (GF := GF) (hG := hG) := by
+  intro n γ N st es L Hh _
+  iintro %Φ ⟨#Hinit, Hdrv, Hrc⟩ HΦ
+  iunfold nodeDriver at Hdrv
+  icases Hdrv with ⟨%γn, %id, %ds, %Hf, #Hci, ⟨%ca, %cfg, Hcfg⟩, Htok⟩
+  obtain ⟨Hγr, Hγb, Hγs, Hsn, Hmd, Hds⟩ := Hf
+  icases Htok with (⟨%Hh', -⟩ | ⟨%es0, %L0, %Hh', Htok⟩)
+  · rw [Hh] at Hh'; cases Hh'
+  rw [Hh] at Hh'
+  cases Hh'
+  iapply (hA γn id n ds es ca cfg st.hardState L
+    (fun h => by rw [Hmd] at h; cases h)) $$ [Htok Hrc Hcfg]
+  · iframe Hinit Htok Hcfg
+    rw [Hγs]; iexact Hrc
+  iintro !> ⟨Hdrv, Hcfg, #Hw⟩
+  iapply HΦ
+  isplitl [Hdrv Hcfg]
+  · unfold nodeDriver
+    iexists γn, id, ds
+    isplitr
+    · ipureintro; exact ⟨Hγr, Hγb, Hγs, Hsn, Hmd, Hds⟩
+    iframe Hci
+    isplitl [Hcfg]
+    · iexists ca, cfg; iexact Hcfg
+    ileft
+    isplitr
+    · ipureintro; rfl
+    iexact Hdrv
+  cases L with
+  | none =>
+    simp only
+    iunfold reqOf at Hw
+    iunfold reqWit at Hw
+    icases Hw with ⟨%x, #Hx, %Hle⟩
+    iexists x
+    rw [← Hγs]
+    iframe Hx
+    ipureintro
+    rw [← Hds, strip_length]; exact Hle
+  | some l => simp only; itrivial
+
+/-- (open) **Tick credits** (raft's `tickCred`: time receipts). -/
+def tickCredit (_γ : Cluster) (n : Nat) : IProp GF := ⧗ n
+
+theorem tickCredit_intro_impl (γ : Cluster) (n : Nat) : ⧗ n ⊢ tickCredit (GF := GF) γ n := by
+  unfold tickCredit; exact .rfl
+
+theorem tickCredit_zero_impl (γ : Cluster) : ⊢ |==> tickCredit (GF := GF) γ 0 := by
+  unfold tickCredit; exact receipt_zero
+
+/-- **`node.Tick()`** (the draft's). -/
+abbrev node.Tick.spec : Prop :=
+  ∀ (n : Loc) (γ : Cluster) (N : Namespace) (id : w64),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ isNode n γ N id ∗ tickCredit γ 1 }}
+    (App (Val (n @!! go.GoType.PointerType node.ty @!! go!"Tick")) (Val #()))
+  {{ RET #(); True }}
+
+theorem node.wp_Tick_impl (hT : EtcdGrove.node.Tick.spec (GF := GF) (hG := hG)) :
+    node.Tick.spec (GF := GF) (hG := hG) := by
+  intro n γ N id
+  iintro %Φ ⟨#Hinit, #Hnode, Hcr⟩ HΦ
+  iunfold isNode at Hnode
+  icases Hnode with ⟨%γn, -, #Hrn, -⟩
+  iapply (hT γn id n) $$ [Hcr]
+  · iframe Hinit Hrn
+    unfold tickCredit tickCred; iexact Hcr
+  iexact HΦ
+
+/-- **Leader transfer is on** in the cluster (persistent). -/
+def leaderTransferOn (γ : Cluster) (_N : Namespace) : IProp GF :=
+  iprop(⌜γ.raft.reNoXfer = false⌝)
+
+instance leaderTransferOn_persistent (γ : Cluster) (N : Namespace) :
+    Persistent (leaderTransferOn (GF := GF) γ N) := by
+  unfold leaderTransferOn; infer_instance
+
+/-- **`node.TransferLeadership(ctx, lead, transferee)`** (the draft's). -/
+abbrev node.TransferLeadership.spec : Prop :=
+  ∀ (n : Loc) (γ : Cluster) (N : Namespace) (id : w64) (lead transferee : w64)
+    (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ isNode n γ N id ∗ nodeCtx ctx cd ∗
+      leaderTransferOn γ N }}
+    (App (App (App (Val (n @!! go.GoType.PointerType node.ty @!! go!"TransferLeadership"))
+      (Val #(interface.ok ctx))) (Val #lead)) (Val #transferee))
+  {{ RET #(); True }}
+
+theorem node.wp_TransferLeadership_impl
+    (hT : EtcdGrove.node.TransferLeadership.spec (GF := GF) (hG := hG)) :
+    node.TransferLeadership.spec (GF := GF) (hG := hG) := by
+  intro n γ N id lead transferee ctx cd
+  iintro %Φ ⟨#Hinit, #Hnode, #Hctx, Hx⟩ HΦ
+  iunfold leaderTransferOn at Hx
+  icases Hx with %Hx
+  iunfold isNode at Hnode
+  icases Hnode with ⟨%γn, %Hf, #Hrn, -⟩
+  obtain ⟨Hγr, -⟩ := Hf
+  iapply (hT γn id n lead transferee ctx cd (by rw [Hγr]; exact Hx)) $$ []
+  · iframe Hinit Hrn Hctx
+  iexact HΦ
+
+/-- (open) **A message `node.Step` takes** at the node `id`: raft's (`stepP`), for any node names
+of the cluster's that take no snapshot. -/
+def stepIn (γ : Cluster) (_N : Namespace) (id : w64) (ml : Loc) : IProp GF :=
+  iprop(∀ γn : NodeNames, ⌜γn.raft = γ.raft ∧ γn.bud = γ.bud ∧ γn.snapIn = false⌝ -∗
+    stepP γn id ml)
+
+/-- **`node.Step(ctx, m)`** (the draft's). -/
+abbrev node.Step.spec : Prop :=
+  ∀ (n : Loc) (γ : Cluster) (N : Namespace) (id : w64) (ml : Loc)
+    (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ isNode n γ N id ∗ nodeCtx ctx cd ∗
+      stepIn γ N id ml }}
+    (App (App (Val (n @!! go.GoType.PointerType node.ty @!! go!"Step"))
+      (Val #(interface.ok ctx))) (Val #ml))
+  {{ (err : GoInterface), RET #err; nodeErr cd err }}
+
+theorem node.wp_Step_impl (hS : EtcdGrove.node.Step.spec (GF := GF) (hG := hG)) :
+    node.Step.spec (GF := GF) (hG := hG) := by
+  intro n γ N id ml ctx cd
+  iintro %Φ ⟨#Hinit, #Hnode, #Hctx, Hin⟩ HΦ
+  iunfold isNode at Hnode
+  icases Hnode with ⟨%γn, %Hf, #Hrn, -⟩
+  iapply (hS γn id n ml ctx cd) $$ [Hin]
+  · iframe Hinit Hrn Hctx
+    iunfold stepIn at Hin
+    iapply Hin
+    ipureintro; exact Hf
+  iexact HΦ
+
+end misc
 
 end ApiImpl
 end EtcdGrove
