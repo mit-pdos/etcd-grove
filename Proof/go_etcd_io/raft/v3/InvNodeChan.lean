@@ -53,9 +53,9 @@ index as a monotone nat (`cam`), and an answer slot (`ccq`); see `confcP`, `conf
   tick channel's own invariant (`tickInv`: one credit per buffered tick); a proposal's
   result channel is a `Handoff` (`Proof/go_etcd_io/etcd/cache/v3/Handoff.lean`).
 
-`isNode γ id n` (persistent) is the node struct (read-only), the raft struct's two shared
+`isNodeChan γ id n` (persistent) is the node struct (read-only), the raft struct's two shared
 fields (`raftOwn`, `rawNodeOwn`: `Tick`'s warning reads them), the channels' invariants and
-the budget. `nodeDriver γ n ds` is the driver's token.
+the budget. `nodeDriverChan γ n ds` is the driver's token.
 
 **Raft v3.7 (2026-10-16, stage R5 of the retarget, `notes/decisions.md`, "The node layer over
 pointer messages").** Ported from the old proof's file. What changed: the channels carry
@@ -392,7 +392,7 @@ structure NodeNames [GooseExts] where
   while its offer waits (`advInv`); (D22 S-d4) `none` after a snapshot `Ready`, which asks for
   no floor (`reqOf`) -/
   req : GName
-  /-- (2026-10-22, D38a) the node's id (`isNode`'s): the sender of the messages its `Ready`s hand
+  /-- (2026-10-22, D38a) the node's id (`isNodeChan`'s): the sender of the messages its `Ready`s hand
   out (`isRaftMsg`, whose `MsgApp`s are from it) -/
   id : w64
   /-- (D22 S-d4, 2026-10-21) **the application may deliver a `MsgSnap`** (`netP`), a parameter of
@@ -564,7 +564,7 @@ committed entries `ce` to apply next (`isCommitted` of `d ++ ce`), the entries `
 append with the right to (`appendRight`), the messages to send (each legitimately sent,
 of a term within the budget, and (2026-10-13) with its read credit, one for a
 `MsgReadIndex`, for the receiver's `Step`), no snapshot, and (2026-10-13) the read states, read-only,
-each `readStateOk`: its context the bytes of a read created knowing a committed log of length
+each `readStateRaw`: its context the bytes of a read created knowing a committed log of length
 at most its index (`readOk`; until 2026-10-16 a proposed slice, `isPropData`). (2026-10-16, stage R5: D8,
 the messages handed out, `ms : List QMsg` -- the pointers `rd.Messages` holds and their
 states -- each owned at `readyDq` (a response at half: `acceptReady` reads the other half);
@@ -583,7 +583,7 @@ def readyData (γ : NodeNames) (rd : Ready) (d ce es : List EntryM)
     -- (2026-10-19, D21 M6) each forwarded proposal's tickets (`stTks`)
     ([∗list] q ∈ ms, stTks γ.raft q.st) ∗
     (∃ sts : List ReadStateM, readStatesPts rd.ReadStates' sts ∗
-      [∗list] st ∈ sts, readStateOk γ.raft st) ∗
+      [∗list] st ∈ sts, readStateRaw γ.raft st) ∗
     -- (D22 S-b) with its witness: a non-`nil` one is the node's hard state at the `Ready`, its
     -- term and commit index (`commitWit`), the commit index bounding the committed log handed out;
     -- (D22l) the witness of `prevHardSt` after the `Ready`, `p'` (`phsNext p h`, `p` the last
@@ -635,7 +635,7 @@ def readySnapData (γ : NodeNames) (rd : Ready) (d ce es : List EntryM)
     ([∗list] q ∈ ms, rdCred γ.raft (if q.st.msg.Type' = MsgReadIndex then 1 else 0)) ∗
     ([∗list] q ∈ ms, stTks γ.raft q.st) ∗
     (∃ sts : List ReadStateM, readStatesPts rd.ReadStates' sts ∗
-      [∗list] st ∈ sts, readStateOk γ.raft st) ∗
+      [∗list] st ∈ sts, readStateRaw γ.raft st) ∗
     (∃ h : HardStateM, hsOpt rd.HardState' h ∗ ⌜p' = phsNext p h⌝) ∗
     hsWit γ.raft p' (d ++ ce).length ∗
     softStateRO rd.SoftState' ∗
@@ -937,7 +937,7 @@ lower bound, and the `ConfState` of the configuration. (2026-10-16, stage R5: th
       monoNatLbOwn γ.cam v.1 ∗ ⌜confstateOk c v.2.cfg⌝)))
 
 /-- See the file header. -/
-@[no_expose] def isNode (γ : NodeNames) (id : w64) (n : Loc) : IProp GF :=
+@[no_expose] def isNodeChan (γ : NodeNames) (id : w64) (n : Loc) : IProp GF :=
   iprop(∃ (nv : node) (r : Loc) (lok : GoInterfaceOk),
     "#Hn" ∷ n ↦□ nv ∗
     "#Hrnraft" ∷ nv.rn'.[RawNode, go!"raft"] ↦□ r ∗
@@ -965,14 +965,14 @@ lower bound, and the `ConfState` of the configuration. (2026-10-16, stage R5: th
 set_option synthInstance.maxHeartbeats 400000 in
 set_option synthInstance.maxSize 4096 in
 instance isNode_persistent (γ : NodeNames) (id : w64) (n : Loc) :
-    Persistent (isNode (GF := GF) γ id n) := by
-  unfold isNode; infer_instance
+    Persistent (isNodeChan (GF := GF) γ id n) := by
+  unfold isNodeChan; infer_instance
 
 /-- The driver's token: the committed log it was handed so far is `ds`; (D22l) the hard state of
 the last `Ready` it was handed with a non-empty one is `p` (`RNState.phs`; zero at the start). -/
-@[no_expose] def nodeDriver (γ : NodeNames) (id : w64) (n : Loc) (ds : List EntryM) (p : HardStateM) :
+@[no_expose] def nodeDriverChan (γ : NodeNames) (id : w64) (n : Loc) (ds : List EntryM) (p : HardStateM) :
     IProp GF :=
-  iprop(isNode γ id n ∗ dghostVar γ.dlv (DFrac.own (1 : Qp).half) (ds, p) ∗ dlvLb γ ds ∗
+  iprop(isNodeChan γ id n ∗ dghostVar γ.dlv (DFrac.own (1 : Qp).half) (ds, p) ∗ dlvLb γ ds ∗
     -- (D19i part 1) the request on `advancec` (`advInv`)
     ∃ q : Option Nat, dghostVar γ.req (DFrac.own (1 : Qp).half) q ∗
       dghostVar γ.req (DFrac.own (1 : Qp).half) q)
@@ -984,7 +984,7 @@ snapshot, if any (its loan, `run`'s record names it): `ds` is then the committed
 snapshot (`dlvAfter`), and the storage is the application's until `Advance` (`advReceipt`). -/
 @[no_expose] def nodeDriverBusy (γ : NodeNames) (id : w64) (n : Loc) (ds es : List EntryM)
     (p' : HardStateM) (L : Option SnapLoan := none) : IProp GF :=
-  iprop(isNode γ id n ∗ dlvLb γ ds ∗
+  iprop(isNodeChan γ id n ∗ dlvLb γ ds ∗
     ∃ (d ce : List EntryM) (p : HardStateM), dghostVar γ.dlv (DFrac.own (1 : Qp).half) (d, p) ∗
       dghostVar γ.dlv (DFrac.own (1 : Qp).half) (d, p) ∗
       dghostVar γ.rof (DFrac.own (1 : Qp).half) (d, ce, es, p', L) ∗ ⌜ds = dlvAfter d ce L⌝ ∗
@@ -992,12 +992,12 @@ snapshot (`dlvAfter`), and the storage is the application's until `Advance` (`ad
       dghostVar γ.req (DFrac.own (1 : Qp).half) q)
 
 /-- `readyc`, as the driver sees it (`Node.Ready()`'s result). -/
-def isReadyChan (γ : NodeNames) (ch : Loc) : IProp GF :=
+def isReadyChanRaw (γ : NodeNames) (ch : Loc) : IProp GF :=
   isHandshake γ.readyc ch (readyP γ) iprop(True)
 
 instance isReadyChan_persistent (γ : NodeNames) (ch : Loc) :
-    Persistent (isReadyChan (GF := GF) γ ch) := by
-  unfold isReadyChan; infer_instance
+    Persistent (isReadyChanRaw (GF := GF) γ ch) := by
+  unfold isReadyChanRaw; infer_instance
 
 /-- **Receiving a `Ready`** (the driver's loop, `for rd := range node.Ready()`): with the
 driver's token, the `Ready`'s data for the committed log handed out so far, and the token
@@ -1005,16 +1005,16 @@ busy with it. The channel is never closed. (D22 S-d4, 2026-10-21) With the `Read
 any (`L`, `readyDataL`): the committed log handed out is then the snapshot's (`dlvAfter`). -/
 theorem node_ready_receive (γ : NodeNames) (id : w64) (n ch : Loc) (ds : List EntryM)
     (p : HardStateM) :
-    {{ isReadyChan γ ch ∗ nodeDriver (GF := GF) γ id n ds p }}
+    {{ isReadyChanRaw γ ch ∗ nodeDriverChan (GF := GF) γ id n ds p }}
       (App (Val (chan.receive Ready.ty)) (Val #ch))
     {{ (rd : Ready), RET (PairV #rd #true);
         ∃ (ce es : List EntryM) (ms : List QMsg) (p' : HardStateM) (L : Option SnapLoan),
           readyDataL γ rd ds ce es ms p p' L ∗
           nodeDriverBusy γ id n (dlvAfter ds ce L) es p' L }} := by
   iintro %Φ ⟨#Hrc, Hdrv⟩ HΦ
-  unfold nodeDriver
+  unfold nodeDriverChan
   icases Hdrv with ⟨#Hnode, Hds, -, Hreq⟩
-  unfold isReadyChan
+  unfold isReadyChanRaw
   iapply wp_handshake_receive (t := Ready.ty) γ.readyc ch (readyP γ) iprop(True) $$ [] [HΦ Hds Hreq]
   · iframe Hrc
   iintro %rd
@@ -1040,7 +1040,7 @@ no-snapshot mode, in the dynamic mode, or at a node that takes no `MsgSnap`): as
 theorem node_ready_receive_ns (γ : NodeNames) (id : w64) (n ch : Loc) (ds : List EntryM)
     (p : HardStateM)
     (H : γ.raft.reNoSnap = true ∨ γ.mode.isDyn = true ∨ γ.snapIn = false) :
-    {{ isReadyChan γ ch ∗ nodeDriver (GF := GF) γ id n ds p }}
+    {{ isReadyChanRaw γ ch ∗ nodeDriverChan (GF := GF) γ id n ds p }}
       (App (Val (chan.receive Ready.ty)) (Val #ch))
     {{ (rd : Ready), RET (PairV #rd #true);
         ∃ (ce es : List EntryM) (ms : List QMsg) (p' : HardStateM),
@@ -1064,15 +1064,15 @@ theorem nodeDriverBusy_lb (γ : NodeNames) (id : w64) (n : Loc) (ds es : List En
 
 /-! ### Laws of the sealed node predicates (2026-10-26, raft's signature, stage 1)
 
-`isNode`, `nodeDriver`, `nodeDriverBusy`, `readyP` and the channel protocols are `@[no_expose]`:
+`isNodeChan`, `nodeDriverChan`, `nodeDriverBusy`, `readyP` and the channel protocols are `@[no_expose]`:
 a client of raft does not see their bodies (`Spec/go_etcd_io/raft/v3/Api.lean`). What clients
 need of them is stated here, in the API's vocabulary. -/
 
-/-- The node's names are of its id (`isNode`'s `Hgid`). -/
+/-- The node's names are of its id (`isNodeChan`'s `Hgid`). -/
 theorem isNode_id (γ : NodeNames) (id : w64) (n : Loc) :
-    isNode (GF := GF) γ id n ⊢ ⌜γ.id = id⌝ := by
+    isNodeChan (GF := GF) γ id n ⊢ ⌜γ.id = id⌝ := by
   iintro #Hnode
-  unfold isNode
+  unfold isNodeChan
   icases Hnode with ⟨%nv, %r, %lok, #Hnode⟩
   iNamed Hnode
   ipureintro; exact Hgid
@@ -1080,9 +1080,9 @@ theorem isNode_id (γ : NodeNames) (id : w64) (n : Loc) :
 /-- The cluster's commit invariant, from a node (what the client's ghost lemmas over the
 committed log, `committed_data`, `prop_register`, `read_deposit`, open). -/
 theorem isNode_commitInv (γ : NodeNames) (id : w64) (n : Loc) :
-    isNode (GF := GF) γ id n ⊢ raftCommitInv γ.raft := by
+    isNodeChan (GF := GF) γ id n ⊢ raftCommitInv γ.raft := by
   iintro #Hnode
-  unfold isNode
+  unfold isNodeChan
   icases Hnode with ⟨%nv, %r, %lok, #Hnode⟩
   iNamed Hnode
   iexact Hcinv
@@ -1090,24 +1090,24 @@ theorem isNode_commitInv (γ : NodeNames) (id : w64) (n : Loc) :
 /-- The driver's token holds the node. -/
 theorem nodeDriver_isNode (γ : NodeNames) (id : w64) (n : Loc) (ds : List EntryM)
     (p : HardStateM) :
-    nodeDriver (GF := GF) γ id n ds p ⊢ nodeDriver γ id n ds p ∗ isNode γ id n := by
+    nodeDriverChan (GF := GF) γ id n ds p ⊢ nodeDriverChan γ id n ds p ∗ isNodeChan γ id n := by
   iintro Hdrv
-  unfold nodeDriver
+  unfold nodeDriverChan
   icases Hdrv with ⟨#Hnode, Hds, #Hlb, Hreq⟩
   iframe Hnode Hds Hlb Hreq
 
 /-- **Taking a `Ready`'s payload** (`readyP`, what a receive on the `Ready` channel gives,
-`isReadyChan`): with the driver's token at the committed log handed out `ds`, the `Ready`'s data
+`isReadyChanRaw`): with the driver's token at the committed log handed out `ds`, the `Ready`'s data
 for `ds`, the token busy with it, and the committed log handed out after it. What
 `node_ready_receive` does after the receive, for a client that receives in a `select`. -/
 theorem readyP_take (γ : NodeNames) (id : w64) (n : Loc) (rd : Ready) (ds : List EntryM)
     (p : HardStateM) :
-    ⊢ readyP (GF := GF) γ rd -∗ nodeDriver γ id n ds p -∗
+    ⊢ readyP (GF := GF) γ rd -∗ nodeDriverChan γ id n ds p -∗
       ∃ (ce es : List EntryM) (ms : List QMsg) (p' : HardStateM) (L : Option SnapLoan),
         readyDataL γ rd ds ce es ms p p' L ∗ nodeDriverBusy γ id n (dlvAfter ds ce L) es p' L ∗
         dlvLb γ (dlvAfter ds ce L) := by
   iintro HP Hdrv
-  unfold nodeDriver
+  unfold nodeDriverChan
   icases Hdrv with ⟨#Hnode, Hds, -, Hreq⟩
   unfold readyP
   icases HP with ⟨%d, %ce, %es, %ms, %p0, %p', %L, Hd, Hrof, Hdata, #Hlb⟩
@@ -1124,7 +1124,7 @@ theorem readyP_take (γ : NodeNames) (id : w64) (n : Loc) (rd : Ready) (ds : Lis
 /-- `readyP_take` for a client that cannot be handed a snapshot (`readyDataL_none`). -/
 theorem readyP_take_ns (γ : NodeNames) (id : w64) (n : Loc) (rd : Ready) (ds : List EntryM)
     (p : HardStateM) (H : γ.raft.reNoSnap = true ∨ γ.mode.isDyn = true ∨ γ.snapIn = false) :
-    ⊢ readyP (GF := GF) γ rd -∗ nodeDriver γ id n ds p -∗
+    ⊢ readyP (GF := GF) γ rd -∗ nodeDriverChan γ id n ds p -∗
       ∃ (ce es : List EntryM) (ms : List QMsg) (p' : HardStateM),
         readyData γ rd ds ce es ms p p' ∗ nodeDriverBusy γ id n (ds ++ ce) es p' ∗
         dlvLb γ (ds ++ ce) := by
@@ -1182,11 +1182,11 @@ theorem handshake_false_recv_au {V : Type} [Pos.Countable V] [ZeroVal V]
 end helpers
 
 set_option hygiene false in
-/-- Open `isNode` in the hypothesis `H` (persistent): the node struct's value `nv`, the
+/-- Open `isNodeChan` in the hypothesis `H` (persistent): the node struct's value `nv`, the
 raft struct `r`, its logger `lok`, the named conjuncts, and the node struct's fields as
 persistent points-tos (named by field: `propc`, `recvc`, ..., `rn`). -/
 macro "open_node " H:ident : tactic =>
-  `(tactic| (iunfold isNode at $H:ident
+  `(tactic| (iunfold isNodeChan at $H:ident
              icases $H:ident with ⟨%nv, %r, %lok, #$H:ident⟩
              iNamed $H:ident
              ihave #Hn' := Hn
@@ -1235,7 +1235,7 @@ had to be non-empty.) -/
 theorem node_propose_ghost (γ : NodeNames) (id : w64) (n : Loc)
     (data : List w8) (Q : List EntryM → IProp GF) (E : CoPset)
     (HE1 : ↑(raftN γ.raft) ⊆ E) :
-    ⊢ isNode γ id n -∗ (⌜data = []⌝ ∨ propArg γ.raft (entKey (W32 0) data) Q) ={E}=∗
+    ⊢ isNodeChan γ id n -∗ (⌜data = []⌝ ∨ propArg γ.raft (entKey (W32 0) data) Q) ={E}=∗
       propData γ.raft (propEntryM data) ∗ entTk γ.raft (propEntryM data) := by
   iintro #Hnode Harg
   open_node Hnode
@@ -1276,7 +1276,7 @@ theorem node_propose_ghost (γ : NodeNames) (id : w64) (n : Loc)
 once per data, before proposing it. -/
 theorem node_prop_register (γ : NodeNames) (id : w64) (n : Loc) (d : List w8)
     (Q : List EntryM → IProp GF) (E : CoPset) (HE1 : ↑(raftN γ.raft) ⊆ E) :
-    ⊢ isNode γ id n -∗ propFresh γ.raft d ={E}=∗ propIs γ.raft d Q := by
+    ⊢ isNodeChan γ id n -∗ propFresh γ.raft d ={E}=∗ propIs γ.raft d Q := by
   iintro #Hnode Hfr
   open_node Hnode
   iapply prop_register γ.raft E d Q HE1 $$ Hcinv Hfr
@@ -1286,10 +1286,10 @@ with its own context's (its `readReq γ c Lc`) learns `readOk` of its read (`rea
 (2026-10-16, stage R5, D6: the context is the record's bytes; until then a slice, read through
 the proposed slices' invariant.) -/
 theorem node_readState_data (γ : NodeNames) (id : w64) (n : Loc) (st : ReadStateM) (E : CoPset) :
-    ⊢ isNode (GF := GF) γ id n -∗ readStateOk γ.raft st ={E}=∗
+    ⊢ isNodeChan (GF := GF) γ id n -∗ readStateRaw γ.raft st ={E}=∗
       readOk γ.raft st.RequestCtx' st.Index' := by
   iintro #Hnode #Hst
-  iunfold readStateOk at Hst
+  iunfold readStateRaw at Hst
   icases Hst with ⟨%c, %Hc, #Hok⟩
   imodintro
   rw [Hc]
@@ -1298,7 +1298,7 @@ theorem node_readState_data (γ : NodeNames) (id : w64) (n : Loc) (st : ReadStat
 /-- The data of a committed log's entries. -/
 theorem node_committed_data (γ : NodeNames) (id : w64) (n : Loc) (l : List EntryM)
     (E : CoPset) (HE : ↑(raftN γ.raft) ⊆ E) :
-    ⊢ isNode γ id n -∗ isCommitted γ.raft l ={E}=∗
+    ⊢ isNodeChan γ id n -∗ isCommitted γ.raft l ={E}=∗
       ∃ ods, [∗list] e;o ∈ l;ods, entDataIs (GF := GF) γ.raft e o := by
   iintro #Hnode #Hc
   open_node Hnode
@@ -1307,7 +1307,7 @@ theorem node_committed_data (γ : NodeNames) (id : w64) (n : Loc) (l : List Entr
 /-- Depositing a read (`read_deposit`), at the node (2026-10-14, stage R). -/
 theorem node_read_deposit (γ : NodeNames) (id : w64) (n : Loc) (c : List w8)
     (Qr : List EntryM → IProp GF) (L0 : List EntryM) :
-    ⊢ isNode γ id n -∗ rdFresh γ.raft c -∗ readAu γ.raft Qr -∗ isCommitted γ.raft L0 ={⊤}=∗
+    ⊢ isNodeChan γ id n -∗ rdFresh γ.raft c -∗ readAu γ.raft Qr -∗ isCommitted γ.raft L0 ={⊤}=∗
       ∃ Lc, ⌜L0 <+: Lc⌝ ∗ readReq γ.raft c Lc ∗ isRead γ.raft c Qr := by
   iintro #Hnode Hfr #Hau #HL0
   open_node Hnode

@@ -35,7 +35,7 @@ importable Spec.go_etcd_io.raft.v3.node__Tick
 importable Spec.go_etcd_io.raft.v3.node__TransferLeadership
 importable Spec.go_etcd_io.raft.v3.IsEmptyHardState
 importable Spec.go_etcd_io.raft.v3.IsEmptySnap
-importable Proof.go_etcd_io.raft.v3.InvNode
+importable Proof.go_etcd_io.raft.v3.InvNodeChan
 importable Proof.go_etcd_io.raft.v3.InvNodeCtx
 importable Proof.go_etcd_io.raft.v3.ApiVocab
 importable Proof.go_etcd_io.raft.v3.ApiCtx

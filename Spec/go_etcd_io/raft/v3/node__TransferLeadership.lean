@@ -39,7 +39,7 @@ abbrev node.TransferLeadership.spec : Prop :=
   -- (`NGhost.xf`; etcd's server, in that mode, never transfers leadership; D22 S-a:
   -- `RaftNames.reNoXfer`, until then the no-snapshot mode's flag)
   γ.raft.reNoXfer = false →
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ isNode γ id n ∗ nodeCtx ctx cd }}
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ isNodeChan γ id n ∗ nodeCtx ctx cd }}
     (App (App (App (Val (n @!! go.GoType.PointerType node.ty @!! go!"TransferLeadership"))
       (Val #(interface.ok ctx))) (Val #lead)) (Val #transferee))
   {{ RET #(); True }}

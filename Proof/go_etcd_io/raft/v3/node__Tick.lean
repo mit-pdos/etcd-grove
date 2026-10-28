@@ -2,7 +2,7 @@
 module
 
 public import Spec.go_etcd_io.raft.v3.node__Tick
-import all Proof.go_etcd_io.raft.v3.InvNode
+import all Proof.go_etcd_io.raft.v3.InvNodeChan
 public import Proof.go_etcd_io.raft.v3.InvRawnodeReady
 public import Proof.go_etcd_io.raft.v3.InvApplyConf
 public import Proof.go_etcd_io.raft.v3.InvBoot
@@ -26,7 +26,7 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
 /-- The credit goes into `tickc` with the tick (`tickInv`), or is dropped with it; the
-`default` branch's warning reads the raft struct's shared fields (`isNode`). -/
+`default` branch's warning reads the raft struct's shared fields (`isNodeChan`). -/
 theorem node.Tick.wp_proof : node.Tick.spec (GF := GF) (hG := hG) := by
   intro γ id n
   wp_start as ⟨#Hnode, Hcred⟩

@@ -7,7 +7,7 @@ The node struct over `rn`, with its fresh channels: every one unbuffered and idl
 -/
 module
 
-public import Proof.go_etcd_io.raft.v3.InvNode
+public import Proof.go_etcd_io.raft.v3.InvNodeChan
 public import Proof.go_etcd_io.raft.v3.InvRawnodeReady
 public import Proof.go_etcd_io.raft.v3.InvApplyConf
 public import Spec.go_etcd_io.raft.v3.RawNode__ProposeConfChange

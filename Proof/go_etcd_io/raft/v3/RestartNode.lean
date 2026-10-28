@@ -6,7 +6,7 @@ public import Spec.go_etcd_io.raft.v3.newNode
 public import Spec.go_etcd_io.raft.v3.node__run
 public import Proof.go_etcd_io.raft.v3.InvNodeRun
 public import Proof.go_etcd_io.raft.v3.InvAdvance
-import all Proof.go_etcd_io.raft.v3.InvNode
+import all Proof.go_etcd_io.raft.v3.InvNodeChan
 public import Proof.go_etcd_io.raft.v3.InvRawnodeReady
 public import Proof.go_etcd_io.raft.v3.InvApplyConf
 public import Proof.go_etcd_io.raft.v3.InvBoot
@@ -251,8 +251,8 @@ theorem RestartNode.wp_proof
     iexists []
     iframe
   icases ownRawNode_shared γ rn cv.ID' _ $$ Hrn with ⟨%r, %lok', #Hrr, #Hrid, #Hrlg, #Hlg', Hrn⟩
-  ihave #Hnode : isNode γn cv.ID' n_ptr $$ []
-  · unfold isNode
+  ihave #Hnode : isNodeChan γn cv.ID' n_ptr $$ []
+  · unfold isNodeChan
     iexists nv, r, lok'
     simp only [named]
     rw [Hnvrn]
@@ -286,7 +286,7 @@ theorem RestartNode.wp_proof
   · ipureintro; exact ⟨rfl, rfl, rfl, rfl, rfl, rfl⟩
   iframe Hnode
   isplitl [Hdlv2 Hreq1 Hreq2]
-  · unfold nodeDriver dlvLb
+  · unfold nodeDriverChan dlvLb
     iframe Hnode Hdlv2 Hdlb
     iexists _
     iframe Hreq1 Hreq2

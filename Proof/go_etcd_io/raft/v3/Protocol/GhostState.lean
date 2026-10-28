@@ -1462,12 +1462,12 @@ theorem rdCount_singleton (m : Msg) : rdCount [m] = if m.ty = .readIndex then 1 
 /-- A `ReadState` handed out (2026-10-13): its context holds the bytes `c` (D6: the context
 is its bytes; until then a slice proposed holding `c`), and its index is at least the log `c`
 was created knowing (`readOk`). -/
-def readStateOk (γ : RaftNames) (st : ReadStateM) : IProp GF :=
+def readStateRaw (γ : RaftNames) (st : ReadStateM) : IProp GF :=
   iprop(∃ c, ⌜st.RequestCtx' = c⌝ ∗ readOk γ c st.Index')
 
 instance readStateOk_persistent (γ : RaftNames) (st : ReadStateM) :
-    Persistent (readStateOk (GF := GF) γ st) := by
-  unfold readStateOk; infer_instance
+    Persistent (readStateRaw (GF := GF) γ st) := by
+  unfold readStateRaw; infer_instance
 
 def rdLead (γ : RaftNames) (s : PState) (rqm : GMap w64 GName) : IProp GF :=
   match s.role with
@@ -1492,7 +1492,7 @@ def rdOwn (γ : RaftNames) (id : w64) (s : PState) : IProp GF :=
   iprop(∃ γl, ∃ (rqm : GMap w64 GName), ⌜γ.reRdq !! id = some γl⌝ ∗
     ghostMapAuth γl 1 rqm ∗ ([∗map] t ↦ γq ∈ rqm, t ↪[γl]□ γq) ∗
     ⌜LcmOk rqm s⌝ ∗ rdLead γ s rqm ∗
-    ([∗list] st ∈ s.rd.states, readStateOk γ st) ∗
+    ([∗list] st ∈ s.rd.states, readStateRaw γ st) ∗
     ([∗list] p ∈ s.rd.pend, ∃ e c Lc, ⌜p.2 = [e]⌝ ∗ ⌜e.Data' = c⌝ ∗ readReq γ c Lc) ∗
     rdCred γ (s.rd.pend.length + rdCount s.outbox) ∗
     rdCredInv γ ∗
@@ -1635,11 +1635,11 @@ theorem rdOwn_win (γ : RaftNames) (id : w64) (s s' : PState) :
   iframe Hst0 Hpd0
   iapply msgsTks_subperm γ s.outbox s'.outbox Hpo $$ Htk
 
-/-- The `ReadState`s handed out: each `readStateOk`, and the rest unchanged. -/
+/-- The `ReadState`s handed out: each `readStateRaw`, and the rest unchanged. -/
 theorem rdOwn_takeReads (γ : RaftNames) (id : w64) (s : PState) :
     rdOwn (GF := GF) γ id s ⊢
       rdOwn γ id { s with rd := { s.rd with states := [] } } ∗
-      [∗list] st ∈ s.rd.states, readStateOk γ st := by
+      [∗list] st ∈ s.rd.states, readStateRaw γ st := by
   unfold rdOwn
   iintro ⟨%γl, %rqm, %Hγl, Ha, #Hf, %Hok, Hl, #Hst0, #Hpd0, Hcr, #Hinv, Htk⟩
   isplitl [Ha Hl Hcr Htk]
@@ -1669,7 +1669,7 @@ theorem rdOwn_update (γ : RaftNames) (id : w64) (s s' : PState) (sts : List Rea
     s'.outbox = s.outbox ++ ms →
     -- (2026-10-19, D21 M6) no proposal sent
     (∀ m ∈ ms, m.ty ≠ .propose) →
-    ⊢ rdOwn (GF := GF) γ id s -∗ ([∗list] st ∈ sts, readStateOk γ st) -∗
+    ⊢ rdOwn (GF := GF) γ id s -∗ ([∗list] st ∈ sts, readStateRaw γ st) -∗
       ([∗list] p ∈ ps, ∃ e c Lc, ⌜p.2 = [e]⌝ ∗ ⌜e.Data' = c⌝ ∗ readReq γ c Lc) -∗
       rdCred γ (ps.length + rdCount ms) -∗
       rdOwn γ id s' := by
@@ -1692,7 +1692,7 @@ theorem rdOwn_update (γ : RaftNames) (id : w64) (s s' : PState) (sts : List Rea
     rw [this]; iexact Hl
   isplitr
   · rw [Hst]
-    iapply (BigSepL.bigSepL_append (Φ := fun _ st => readStateOk (GF := GF) γ st)).2
+    iapply (BigSepL.bigSepL_append (Φ := fun _ st => readStateRaw (GF := GF) γ st)).2
     iframe Hst0 Hsts
   isplitr
   · rw [Hpd]

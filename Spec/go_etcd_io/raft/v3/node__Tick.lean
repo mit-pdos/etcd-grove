@@ -9,7 +9,7 @@ goroutine.
 -/
 module
 
-public import Proof.go_etcd_io.raft.v3.InvNode
+public import Proof.go_etcd_io.raft.v3.InvNodeChan
 
 @[expose] public section
 
@@ -30,7 +30,7 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 /-- See the file header. -/
 abbrev node.Tick.spec : Prop :=
   ∀ (γ : NodeNames) (id : w64) (n : Loc),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ isNode γ id n ∗
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ isNodeChan γ id n ∗
       tickCred γ.bud 1 }}
     (App (Val (n @!! go.GoType.PointerType node.ty @!! go!"Tick")) (Val #()))
   {{ RET #(); True }}

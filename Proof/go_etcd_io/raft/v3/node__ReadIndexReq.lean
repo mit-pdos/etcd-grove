@@ -38,7 +38,7 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 abbrev node.ReadIndex.specReq : Prop :=
   ∀ (γ : NodeNames) (id : w64) (n : Loc) (rctx : GoSlice) (c : List w8) (Lc : List EntryM)
     (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ isNode γ id n ∗
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ isNodeChan γ id n ∗
       nodeCtx ctx cd ∗ rctx ↦*□ c ∗ readReq γ.raft c Lc ∗ rdCred γ.raft 1 }}
     (App (App (Val (n @!! go.GoType.PointerType node.ty @!! go!"ReadIndex"))
       (Val #(interface.ok ctx))) (Val #rctx))

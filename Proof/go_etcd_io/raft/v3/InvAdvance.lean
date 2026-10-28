@@ -7,8 +7,8 @@ the send follow Perennial's handshake idiom (`Handshake.lean`'s `handshake_recei
 -/
 module
 
-public import Proof.go_etcd_io.raft.v3.InvNode
-import all Proof.go_etcd_io.raft.v3.InvNode
+public import Proof.go_etcd_io.raft.v3.InvNodeChan
+import all Proof.go_etcd_io.raft.v3.InvNodeChan
 public import Proof.go_etcd_io.raft.v3.InvRawnodeReady
 public import Proof.go_etcd_io.raft.v3.InvApplyConf
 public import Spec.go_etcd_io.raft.v3.RawNode__ProposeConfChange

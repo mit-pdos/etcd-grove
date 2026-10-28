@@ -34,7 +34,7 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 abbrev node.ForgetLeader.spec : Prop :=
   ∀ (γ : NodeNames) (id : w64) (n : Loc)
     (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ isNode γ id n ∗ nodeCtx ctx cd }}
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ isNodeChan γ id n ∗ nodeCtx ctx cd }}
     (App (Val (n @!! go.GoType.PointerType node.ty @!! go!"ForgetLeader"))
       (Val #(interface.ok ctx)))
   {{ (err : GoInterface), RET #err; nodeErr cd err }}

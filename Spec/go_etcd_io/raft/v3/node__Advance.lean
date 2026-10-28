@@ -19,7 +19,7 @@ node that takes no `MsgSnap` refutes (`reqWit_none`).
 -/
 module
 
-public import Proof.go_etcd_io.raft.v3.InvNode
+public import Proof.go_etcd_io.raft.v3.InvNodeChan
 
 @[expose] public section
 
@@ -48,7 +48,7 @@ abbrev node.Advance.spec : Prop :=
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
       nodeDriverBusy γ id n ds es p L ∗ advReceipt γ.stor es L ∗ nodeCfg γ ca cfg }}
     (App (Val (n @!! go.GoType.PointerType node.ty @!! go!"Advance")) (Val #()))
-  {{ RET #(); nodeDriver γ id n ds p ∗ nodeCfg γ ca cfg ∗
+  {{ RET #(); nodeDriverChan γ id n ds p ∗ nodeCfg γ ca cfg ∗
       -- (D19i part 1) the floor's witness for `ds`; (D22 S-d4) after a `Ready` without a snapshot,
       -- unless one was restored since (`reqWit`)
       reqWit γ (reqOf L ds) }}

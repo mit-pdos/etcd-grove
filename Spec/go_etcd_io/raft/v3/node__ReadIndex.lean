@@ -21,7 +21,7 @@ hands out (`readyData`), from which the client reads `readOk` of its read
 results (`node_read_collect`). The error says only whether the request reached `run`; a
 dropped request leaves the update deposited, firing harmlessly, with no `ReadState` naming it.
 
-raft v3.7 (2026-10-16, stage R5, D6): a read context is its bytes (`readStateOk` over
+raft v3.7 (2026-10-16, stage R5, D6): a read context is its bytes (`readStateRaw` over
 `ReadStateM`); the client supplies `rctx ↦*□ c` (the request's entry holds the slice read-only)
 rather than the proposed slice.
 -/
@@ -51,7 +51,7 @@ abbrev node.ReadIndex.spec : Prop :=
   ∀ (γ : NodeNames) (id : w64) (n : Loc) (rctx : GoSlice) (c : List w8)
     (Qr : List EntryM → IProp GF) (L0 : List EntryM)
     (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ isNode γ id n ∗
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ isNodeChan γ id n ∗
       nodeCtx ctx cd ∗
       -- (2026-10-16, stage R5, D6) the context's bytes, read-only (until then `isPropData γ.raft
       -- rctx c`)

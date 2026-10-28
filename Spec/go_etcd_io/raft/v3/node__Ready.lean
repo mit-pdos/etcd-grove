@@ -2,12 +2,12 @@
 
 ## `node.Ready()` (node.go:547)
 
-`n.readyc`, as the driver sees it (`isReadyChan`): receiving on it is `node_ready_receive`
+`n.readyc`, as the driver sees it (`isReadyChanRaw`): receiving on it is `node_ready_receive`
 (`InvNode.lean`).
 -/
 module
 
-public import Proof.go_etcd_io.raft.v3.InvNode
+public import Proof.go_etcd_io.raft.v3.InvNodeChan
 
 @[expose] public section
 
@@ -28,9 +28,9 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 /-- See the file header. -/
 abbrev node.Ready.spec : Prop :=
   ∀ (γ : NodeNames) (id : w64) (n : Loc),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ isNode γ id n }}
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ isNodeChan γ id n }}
     (App (Val (n @!! go.GoType.PointerType node.ty @!! go!"Ready")) (Val #()))
-  {{ (ch : Loc), RET #ch; isReadyChan γ ch }}
+  {{ (ch : Loc), RET #ch; isReadyChanRaw γ ch }}
 
 end spec
 

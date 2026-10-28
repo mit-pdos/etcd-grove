@@ -7,8 +7,8 @@ is **empty**: `NewRawNode.spec_empty`), then `rn.Bootstrap(peers)` (`RawNode.Boo
 `becomeFollower(1, None)`, one `EntryConfChange` per peer at term `1` and indices `1..n`
 appended to the log and committed (`raftLog.committed = n`), each applied to the tracker
 (`applyConfChange`), nothing applied to the application -- in a `node` whose goroutine `run` it
-starts, for the cluster's term budget `bud`. It returns the node (`isNode`, persistent: what
-`Propose`, `Step`, `Tick` and `Ready` take) and the driver's token (`nodeDriver`), at the empty
+starts, for the cluster's term budget `bud`. It returns the node (`isNodeChan`, persistent: what
+`Propose`, `Step`, `Tick` and `Ready` take) and the driver's token (`nodeDriverChan`), at the empty
 delivered log, and the driver's view of the configuration (`nodeCfg`, at index `0` and the
 peers' configuration), as `RestartNode.spec` does (2026-10-16, stage R8b, D12).
 
@@ -42,7 +42,7 @@ term (`budget_alloc_boot`, `InvNode.lean`: a budget allocated for a new cluster;
 with `termLB bud term`). -/
 module
 
-public import Proof.go_etcd_io.raft.v3.InvNode
+public import Proof.go_etcd_io.raft.v3.InvNodeChan
 public import Proof.go_etcd_io.raft.v3.ApiVocab
 
 @[expose] public section
@@ -136,7 +136,7 @@ abbrev StartNode.spec : Prop :=
          γn.snapIn = sn ∧ nd = interface.mkOk (go.GoType.PointerType node.ty) #n⌝ ∗
         -- (D43 M3, 2026-10-25) the mode is static exactly when the names are (`ownRawNode_mode`)
         ⌜md = .static ↔ γ.reDyn = none⌝ ∗
-        isNode γn cv.ID' n ∗ nodeDriver γn cv.ID' n [] hsZero ∗
+        isNodeChan γn cv.ID' n ∗ nodeDriverChan γn cv.ID' n [] hsZero ∗
         -- the driver's view of the configuration: the peers'
         nodeCfg γn 0 (cfgState (GMap.listToSet ps) ∅) ∗
         -- the peers' slice, read only

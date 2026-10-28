@@ -4,11 +4,11 @@
 
 `NewRawNode(c)` (its premises: a node of a new cluster, `Spec/NewRawNode.lean`) in a
 `node` whose goroutine `run` it starts, for the cluster's term budget `bud`
-(`budget_alloc`, `InvNode.lean`). It returns the node (`isNode`, persistent: what
-`Propose`, `Step`, `Tick` and `Ready` take) and the driver's token (`nodeDriver`, at
+(`budget_alloc`, `InvNode.lean`). It returns the node (`isNodeChan`, persistent: what
+`Propose`, `Step`, `Tick` and `Ready` take) and the driver's token (`nodeDriverChan`, at
 the empty committed log: what `node_ready_receive` and `Advance` take). Since 2026-10-10
 also the cluster's proposed slices (`propDataInv`, allocated once with the raft ghost
-state), which `isNode` keeps with the commit invariant. Since 2026-10-15 (stage N) in either
+state), which `isNodeChan` keeps with the commit invariant. Since 2026-10-15 (stage N) in either
 mode (`md`, `NewRawNode`'s `rnInit`: statically `ownRaftGhost` at the initial state, dynamically
 B5's `ownRaftGhostR` at `rinit c0`), and with the driver's view of the configuration
 (`nodeCfg`, at index `0` and the initial configuration) for `ApplyConfChange` and `Advance`.
@@ -17,11 +17,11 @@ raft v3.7 (2026-10-16, stage R5): `NewRawNode`'s premises as they are now (the s
 `InitialState` in `newRaft`'s D7 shape, the conf state's record `csm`; 2026-10-16, stage R6b: the
 conf state's `AutoLeave` cell set or not, `csPts cs □ csm al`); **no proposed slices'
 invariant** (D6: an entry's data is its bytes; until then `inv propDataN (propDataInv γ)`, which
-`isNode` kept).
+`isNodeChan` kept).
 -/
 module
 
-public import Proof.go_etcd_io.raft.v3.InvNode
+public import Proof.go_etcd_io.raft.v3.InvNodeChan
 public import Proof.go_etcd_io.raft.v3.ApiVocab
 
 @[expose] public section
@@ -103,7 +103,7 @@ abbrev RestartNode.spec : Prop :=
       ∃ (γn : NodeNames) (n : Loc),
         ⌜γn.raft = γ ∧ γn.bud = bud ∧ γn.stor = interface.ok si ∧ γn.mode = md ∧
          γn.snapIn = sn ∧ nd = interface.mkOk (go.GoType.PointerType node.ty) #n⌝ ∗
-        isNode γn cv.ID' n ∗ nodeDriver γn cv.ID' n [] hsZero ∗
+        isNodeChan γn cv.ID' n ∗ nodeDriverChan γn cv.ID' n [] hsZero ∗
         -- (2026-10-15, stage N) the driver's view of the configuration: the initial one
         nodeCfg γn 0 (cfgState (GMap.listToSet csm.Voters') ∅) }}
 

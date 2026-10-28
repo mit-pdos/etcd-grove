@@ -3,7 +3,7 @@ module
 
 public import Spec.go_etcd_io.raft.v3.node__Advance
 public import Proof.go_etcd_io.raft.v3.InvAdvance
-import all Proof.go_etcd_io.raft.v3.InvNode
+import all Proof.go_etcd_io.raft.v3.InvNodeChan
 public import Proof.go_etcd_io.raft.v3.InvRawnodeReady
 public import Proof.go_etcd_io.raft.v3.InvApplyConf
 public import Proof.go_etcd_io.raft.v3.InvBoot
@@ -64,7 +64,7 @@ theorem node.Advance.wp_proof : node.Advance.spec (GF := GF) (hG := hG) := by
     wp_auto
     iapply HΦ
     iframe Hcfg Hfl
-    unfold nodeDriver
+    unfold nodeDriverChan
     iframe Hnode Hd2 Hdlb Hreq
   iapply BigAndL.bigAndL_cons.2
   isplit

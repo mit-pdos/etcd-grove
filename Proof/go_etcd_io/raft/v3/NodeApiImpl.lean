@@ -27,7 +27,7 @@ public import Proof.go_etcd_io.raft.v3.InvMemstorage
 public import Perennial.Ghost.MonoList
 public import Proof.go_etcd_io.raft.v3.NodeApiVocab
 public import Spec.go_etcd_io.raft.v3.Api
-import all Proof.go_etcd_io.raft.v3.InvNode
+import all Proof.go_etcd_io.raft.v3.InvNodeChan
 import Proof.go_etcd_io.raft.v3.node__Ready
 public import Proof.go_etcd_io.raft.v3.node__ReadIndexReq
 
@@ -1142,10 +1142,10 @@ theorem api_readReq_dep (γ : Cluster) (N : Namespace) (E : CoPset) (HE : ↑N �
 /-- **A raft read state, as the client sees it.** -/
 theorem api_readState (γ : Cluster) (N : Namespace) (E : CoPset) (HE : ↑N ⊆ E)
     (st : ReadStateM) :
-    ⊢ clusterInv (GF := GF) γ N -∗ EtcdGrove.readStateOk γ.raft st ={E}=∗
+    ⊢ clusterInv (GF := GF) γ N -∗ EtcdGrove.readStateRaw γ.raft st ={E}=∗
       readStateOk γ N st.RequestCtx' st.Index' := by
   iintro #Hci #Hst
-  iunfold EtcdGrove.readStateOk at Hst
+  iunfold EtcdGrove.readStateRaw at Hst
   icases Hst with ⟨%c, %Hc, #Hok⟩
   rw [Hc]
   ihave #Hok' := Hok
@@ -1171,7 +1171,7 @@ theorem api_readState (γ : Cluster) (N : Namespace) (E : CoPset) (HE : ↑N ⊆
 
 theorem api_readStates (γ : Cluster) (N : Namespace) (E : CoPset) (HE : ↑N ⊆ E)
     (sts : List ReadStateM) :
-    ⊢ clusterInv (GF := GF) γ N -∗ ([∗list] st ∈ sts, EtcdGrove.readStateOk γ.raft st) ={E}=∗
+    ⊢ clusterInv (GF := GF) γ N -∗ ([∗list] st ∈ sts, EtcdGrove.readStateRaw γ.raft st) ={E}=∗
       [∗list] st ∈ sts, readStateOk γ N st.RequestCtx' st.Index' := by
   induction sts with
   | nil =>
@@ -1183,7 +1183,7 @@ theorem api_readStates (γ : Cluster) (N : Namespace) (E : CoPset) (HE : ↑N �
   | cons st sts ih =>
     iintro #Hci H
     icases (BigSepL.bigSepL_cons (Φ := fun _ (st : ReadStateM) =>
-      EtcdGrove.readStateOk (GF := GF) γ.raft st)).1 $$ H with ⟨H1, H⟩
+      EtcdGrove.readStateRaw (GF := GF) γ.raft st)).1 $$ H with ⟨H1, H⟩
     imod api_readState γ N E HE st $$ Hci H1 with #H1
     imod ih $$ Hci H with H
     imodintro
@@ -1774,9 +1774,9 @@ theorem dlvLb_names (γ1 γ2 : NodeNames) (H : (cfgNamesOf γ1) = (cfgNamesOf γ
 
 /-- Raft's nodes at one location have one id (`isNode`'s persistent points-to's). -/
 theorem isNode_id_agree (γ1 γ2 : NodeNames) (id1 id2 : w64) (n : Loc) :
-    ⊢ EtcdGrove.isNode (GF := GF) γ1 id1 n -∗ EtcdGrove.isNode γ2 id2 n -∗ ⌜id1 = id2⌝ := by
+    ⊢ EtcdGrove.isNodeChan (GF := GF) γ1 id1 n -∗ EtcdGrove.isNodeChan γ2 id2 n -∗ ⌜id1 = id2⌝ := by
   iintro H1 H2
-  iunfold EtcdGrove.isNode at H1 H2
+  iunfold EtcdGrove.isNodeChan at H1 H2
   icases H1 with ⟨%nv1, %r1, %lok1, H1⟩
   icases H2 with ⟨%nv2, %r2, %lok2, H2⟩
   icases H1 with ⟨#Hn1, #Hr1, #Hi1, -⟩
@@ -1791,7 +1791,7 @@ theorem isNode_id_agree (γ1 γ2 : NodeNames) (id1 id2 : w64) (n : Loc) :
 /-- **A running node** `n` of id `id` in the cluster `γ` (persistent): raft's node, of the
 cluster's names and budget (`NodeOk`), and the cluster's invariants. -/
 def isNode (n : Loc) (γ : Cluster) (N : Namespace) (id : w64) : IProp GF :=
-  iprop(∃ γn : NodeNames, ⌜NodeOk γ γn⌝ ∗ EtcdGrove.isNode γn id n ∗ clusterInv γ N)
+  iprop(∃ γn : NodeNames, ⌜NodeOk γ γn⌝ ∗ EtcdGrove.isNodeChan γn id n ∗ clusterInv γ N)
 
 instance isNode_persistent (n : Loc) (γ : Cluster) (N : Namespace) (id : w64) :
     Persistent (isNode (GF := GF) n γ N id) := by
@@ -1819,7 +1819,7 @@ def nodeDriver (n : Loc) (γ : Cluster) (N : Namespace) (st : NodeDriverState) :
       storageCertLink γ N st.storage ∗ ∃ (ca : Nat) (cfg : CCState), nodeCfg γn ca cfg) ∗
     (⌜γn.mode.isDyn = false⌝ ∨
       nodeTabOk γ id γn ∗ hsCommitted γ N st.hardState st.delivered.length) ∗
-    ((⌜st.handling = none⌝ ∗ EtcdGrove.nodeDriver γn id n ds st.hardState) ∨
+    ((⌜st.handling = none⌝ ∗ EtcdGrove.nodeDriverChan γn id n ds st.hardState) ∨
      (∃ (es : List EntryM) (L : Option SnapLoan), ⌜st.handling = some (es, L)⌝ ∗
        nodeDriverBusy γn id n ds es st.hardState L)))
 
@@ -1954,7 +1954,7 @@ theorem node.wp_Ready_impl : node.Ready.spec (GF := GF) (hG := hG) := by
   wp_start as Hnode
   iunfold isNode at Hnode
   icases Hnode with ⟨%γn, -, #Hnode, -⟩
-  iunfold EtcdGrove.isNode at Hnode
+  iunfold EtcdGrove.isNodeChan at Hnode
   icases Hnode with ⟨%nv, %r, %lok, #Hnode⟩
   iNamed Hnode
   ihave #Hn' := Hn
@@ -2055,7 +2055,7 @@ theorem readyRecv_open (n ch : Loc) (γ : Cluster) (N : Namespace) (id0 : w64)
     (st : NodeDriverState) (Hh : st.handling = none) :
     ⊢ isReadyChan (GF := GF) n γ N ch -∗ isNode n γ N id0 -∗ nodeDriver n γ N st -∗
       ∃ (γn : NodeNames) (id : w64) (ds : List EntryM),
-        EtcdGrove.isReadyChan γn ch ∗ EtcdGrove.nodeDriver γn id n ds st.hardState ∗
+        EtcdGrove.isReadyChanRaw γn ch ∗ EtcdGrove.nodeDriverChan γn id n ds st.hardState ∗
         (∀ rd : Ready, (∃ (ce es : List EntryM) (ms : List QMsg) (p' : HardStateM)
             (L : Option SnapLoan), readyDataL γn rd ds ce es ms st.hardState p' L ∗
             nodeDriverBusy γn id n (dlvAfter ds ce L) es p' L) ={⊤}=∗
@@ -2075,20 +2075,20 @@ theorem readyRecv_open (n ch : Loc) (γ : Cluster) (N : Namespace) (id0 : w64)
     icases Hnode0 with ⟨%γn0, -, #Hn0', -⟩
     icases isNode_id_agree γn γn0 id id0 n $$ Hnode Hn0' with %He
     ihave #Hn1 := Hnode
-    iunfold EtcdGrove.isNode at Hn1
+    iunfold EtcdGrove.isNodeChan at Hn1
     icases Hn1 with ⟨%nv1, %r1, %lok1, #Hn1⟩
     iNamed Hn1
     ipureintro; rw [Hgid]; exact He
   iunfold isReadyChan at Hrc
   icases Hrc with ⟨%nv, #Hn0, %Hch⟩
   ihave #Hnode' := Hnode
-  iunfold EtcdGrove.isNode at Hnode'
+  iunfold EtcdGrove.isNodeChan at Hnode'
   icases Hnode' with ⟨%nv', %r, %lok, #Hnode'⟩
   iNamed Hnode'
   icombine Hn0 Hn gives %Hnv
   subst Hnv
-  ihave #Hrc' : EtcdGrove.isReadyChan γn ch $$ []
-  · unfold EtcdGrove.isReadyChan; rw [Hch]; iexact Hreadyc
+  ihave #Hrc' : EtcdGrove.isReadyChanRaw γn ch $$ []
+  · unfold EtcdGrove.isReadyChanRaw; rw [Hch]; iexact Hreadyc
   have Hlen : st.delivered.length = ds.length := by rw [← Hds, strip_length]
   iexists γn, id, ds
   iframe Hrc' Htok
@@ -2252,15 +2252,15 @@ theorem node.wp_readyRecv_impl : node.readyRecv.spec (GF := GF) (hG := hG) := by
 /-- Raft's `Ready` receive as a channel receive's update (`node_ready_receive`'s). -/
 theorem node_ready_recvAu (γn : NodeNames) (id : w64) (n ch : Loc) (ds : List EntryM)
     (p : HardStateM) (Φ : Ready → Bool → IProp GF) :
-    ⊢ £ 1 ∗ £ 1 -∗ EtcdGrove.isReadyChan γn ch -∗ EtcdGrove.nodeDriver γn id n ds p -∗
+    ⊢ £ 1 ∗ £ 1 -∗ EtcdGrove.isReadyChanRaw γn ch -∗ EtcdGrove.nodeDriverChan γn id n ds p -∗
       ▷ (∀ rd : Ready, (∃ (ce es : List EntryM) (ms : List QMsg) (p' : HardStateM)
           (L : Option SnapLoan), readyDataL γn rd ds ce es ms p p' L ∗
           nodeDriverBusy γn id n (dlvAfter ds ce L) es p' L) -∗ Φ rd true) -∗
       recvAu γn.readyc Ready Φ := by
   iintro Hlc #Hrc Hdrv HΦ
-  iunfold EtcdGrove.nodeDriver at Hdrv
+  iunfold EtcdGrove.nodeDriverChan at Hdrv
   icases Hdrv with ⟨#Hnode, Hds, -, Hreq⟩
-  unfold EtcdGrove.isReadyChan
+  unfold EtcdGrove.isReadyChanRaw
   iapply handshake_receive_au γn.readyc ch (readyP γn) iprop(True) Φ
     $$ Hlc Hrc [] [HΦ Hds Hreq]
   · itrivial
@@ -2293,7 +2293,7 @@ theorem isReadyChan_recvAu_impl (n ch : Loc) (γ : Cluster) (N : Namespace) (id 
     with ⟨%γn, %id', %ds, #Hrc', Htok, Hk⟩
   iexists γn.readyc
   isplitr
-  · iunfold EtcdGrove.isReadyChan at Hrc'
+  · iunfold EtcdGrove.isReadyChanRaw at Hrc'
     iunfold isHandshake at Hrc'
     icases Hrc' with ⟨#Hc, -⟩
     iexact Hc

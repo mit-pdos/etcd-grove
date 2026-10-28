@@ -3653,8 +3653,8 @@ theorem ownRaftGhost_respond (γ : RaftNames) (id : w64) (t : PState) (q : ReadR
     imodintro
     iapply rdOwn_update γ id t _ [⟨q.index, e.Data'⟩] [] [] (by rfl) (by rfl) (by rfl) (by rfl)
       (by simp) (by simp) (by simp) $$ Hrd [] [] [Hz]
-    · iapply (BigSepL.bigSepL_singleton (Φ := fun _ st => readStateOk (GF := GF) γ st)).2
-      unfold readStateOk
+    · iapply (BigSepL.bigSepL_singleton (Φ := fun _ st => readStateRaw (GF := GF) γ st)).2
+      unfold readStateRaw
       iexists c
       iframe Hpd Hok
     · iapply (BigSepL.bigSepL_nil).2; iempintro
@@ -3969,13 +3969,13 @@ theorem ownRaftGhost_step_read_state (γ : RaftNames) (id : w64) (s : PState) (m
   imodintro
   iapply rdOwn_update γ id s _ [⟨m.index, e.Data'⟩] [] [] (by rfl) (by rfl) (by rfl) (by rfl)
     (by simp) (by simp) (by simp) $$ Hrd [] [] [Hz]
-  · iapply (BigSepL.bigSepL_singleton (Φ := fun _ st => readStateOk (GF := GF) γ st)).2
+  · iapply (BigSepL.bigSepL_singleton (Φ := fun _ st => readStateRaw (GF := GF) γ st)).2
     iunfold isMessage at Hm
     rw [Hty]
     icases Hm with ⟨%e', %c, %He', #Hpd, #Hok⟩
     rw [He] at He'
     cases He'
-    unfold readStateOk
+    unfold readStateRaw
     iexists c
     iframe Hpd Hok
   · iapply (BigSepL.bigSepL_nil).2; iempintro

@@ -59,7 +59,7 @@ abbrev node.Propose.spec : Prop :=
   ∀ (γ : NodeNames) (id : w64) (n : Loc) (data_sl : GoSlice) (data : List w8)
     (Q : List EntryM → IProp GF)
     (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ isNode γ id n ∗
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ isNodeChan γ id n ∗
       nodeCtx ctx cd ∗
       data_sl ↦*□ data ∗
       -- (2026-10-27) the proposal tracked under its key `entKey (W32 0) data`, or empty data (a

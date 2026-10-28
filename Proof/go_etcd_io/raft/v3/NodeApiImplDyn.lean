@@ -22,7 +22,7 @@ public import Proof.go_etcd_io.raft.v3.CCApplyC
 public import Proof.go_etcd_io.raft.v3.SnapConf
 public import Proof.go_etcd_io.raft.v3.Protocol.ResultsDyn
 public import Proof.go_etcd_io.raft.v3.Protocol.SnapMint
-import all Proof.go_etcd_io.raft.v3.InvNode
+import all Proof.go_etcd_io.raft.v3.InvNodeChan
 
 @[expose] public section
 
@@ -374,13 +374,13 @@ configuration (`nodeCfg`) of the node's names, at the membership's state, the na
 def nodeConfig (n : Loc) (γ : Cluster) (_N : Namespace) (v : ConfigView) : IProp GF :=
   iprop(∃ (γn : NodeNames) (id : w64),
     ⌜NodeOk γ γn ∧ γn.mode.isDyn = true ∧ CCGood (stOf v.membership)⌝ ∗
-    EtcdGrove.isNode γn id n ∗ nodeTabOk γ id γn ∗ nodeCfg γn v.applied (stOf v.membership))
+    EtcdGrove.isNodeChan γn id n ∗ nodeTabOk γ id γn ∗ nodeCfg γn v.applied (stOf v.membership))
 
 /-- **The committed log delivered to node `n` extends `l`** (the draft's `deliveredLogLb`):
 raft's lower bound (`dlvLb`) of the node's names (its table's, if dynamic), and committed. -/
 def deliveredLogLb (n : Loc) (γ : Cluster) (_N : Namespace) (l : List LogEntry) : IProp GF :=
   iprop((∃ (γn : NodeNames) (id : w64) (ds : List EntryM), ⌜NodeOk γ γn ∧ strip ds = l⌝ ∗
-    EtcdGrove.isNode γn id n ∗ (⌜γn.mode.isDyn = false⌝ ∨ nodeTabOk γ id γn) ∗ dlvLb γn ds) ∗
+    EtcdGrove.isNodeChan γn id n ∗ (⌜γn.mode.isDyn = false⌝ ∨ nodeTabOk γ id γn) ∗ dlvLb γn ds) ∗
     isCommittedLogLb γ l)
 
 instance deliveredLogLb_persistent (n : Loc) (γ : Cluster) (N : Namespace) (l : List LogEntry) :
@@ -388,16 +388,16 @@ instance deliveredLogLb_persistent (n : Loc) (γ : Cluster) (N : Namespace) (l :
   unfold deliveredLogLb; infer_instance
 
 theorem drv_isNode_lb (γn : NodeNames) (id : w64) (n : Loc) (ds : List EntryM) (p : HardStateM) :
-    EtcdGrove.nodeDriver (GF := GF) γn id n ds p ⊢
-      EtcdGrove.nodeDriver γn id n ds p ∗ (EtcdGrove.isNode γn id n ∗ dlvLb γn ds) := by
-  unfold EtcdGrove.nodeDriver
+    EtcdGrove.nodeDriverChan (GF := GF) γn id n ds p ⊢
+      EtcdGrove.nodeDriverChan γn id n ds p ∗ (EtcdGrove.isNodeChan γn id n ∗ dlvLb γn ds) := by
+  unfold EtcdGrove.nodeDriverChan
   iintro ⟨#Hn, Hd, #Hlb, Hr⟩
   iframe Hn Hd Hlb Hr
 
 theorem busy_isNode_lb (γn : NodeNames) (id : w64) (n : Loc) (ds es : List EntryM)
     (p : HardStateM) (L : Option SnapLoan) :
     nodeDriverBusy (GF := GF) γn id n ds es p L ⊢
-      nodeDriverBusy γn id n ds es p L ∗ (EtcdGrove.isNode γn id n ∗ dlvLb γn ds) := by
+      nodeDriverBusy γn id n ds es p L ∗ (EtcdGrove.isNodeChan γn id n ∗ dlvLb γn ds) := by
   unfold nodeDriverBusy
   iintro ⟨#Hn, #Hlb, Hr⟩
   iframe Hn Hlb Hr
@@ -407,7 +407,7 @@ theorem nodeDriver_deliveredLogLb_impl (n : Loc) (γ : Cluster) (N : Namespace)
     nodeDriver (GF := GF) n γ N st ⊢ nodeDriver n γ N st ∗ deliveredLogLb n γ N st.delivered := by
   unfold nodeDriver
   iintro ⟨%γn, %id, %ds, %Hf, #Hci, #Hlb0, Hst, #Hdy, Htok⟩
-  ihave #Hl : iprop(EtcdGrove.isNode (GF := GF) γn id n ∗ dlvLb γn ds) $$ [Htok]
+  ihave #Hl : iprop(EtcdGrove.isNodeChan (GF := GF) γn id n ∗ dlvLb γn ds) $$ [Htok]
   · icases Htok with (⟨-, Htok⟩ | ⟨%es, %L, -, Htok⟩)
     · icases drv_isNode_lb γn id n ds st.hardState $$ Htok with ⟨-, $⟩
     · icases busy_isNode_lb γn id n ds es st.hardState L $$ Htok with ⟨-, $⟩

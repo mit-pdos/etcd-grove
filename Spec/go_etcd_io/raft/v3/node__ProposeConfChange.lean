@@ -50,7 +50,7 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 abbrev node.ProposeConfChange.spec : Prop :=
   ∀ (γ : NodeNames) (id : w64) (n : Loc) (c : GoInterface) (o : ConfChangeIM) (dq : DFrac)
     (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ isNode γ id n ∗
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ isNodeChan γ id n ∗
       nodeCtx ctx cd ∗
       ownConfChangeI c dq (some o) ∗
       -- (2026-10-27) the proposal tracked under its key (`ccPropArg`; until then

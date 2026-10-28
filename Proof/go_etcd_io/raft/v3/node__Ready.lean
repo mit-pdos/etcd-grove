@@ -2,7 +2,7 @@
 module
 
 public import Spec.go_etcd_io.raft.v3.node__Ready
-import all Proof.go_etcd_io.raft.v3.InvNode
+import all Proof.go_etcd_io.raft.v3.InvNodeChan
 public import Proof.go_etcd_io.raft.v3.InvRawnodeReady
 public import Proof.go_etcd_io.raft.v3.InvApplyConf
 public import Proof.go_etcd_io.raft.v3.InvBoot
@@ -28,14 +28,14 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 theorem node.Ready.wp_proof : node.Ready.spec (GF := GF) (hG := hG) := by
   intro γ id n
   wp_start as Hnode
-  iunfold isNode at Hnode
+  iunfold isNodeChan at Hnode
   icases Hnode with ⟨%nv, %r, %lok, #Hnode⟩
   iNamed Hnode
   ihave #Hn' := Hn
   iStructNamed Hn'
   wp_auto
   iapply HΦ
-  unfold isReadyChan
+  unfold isReadyChanRaw
   iexact Hreadyc
 
 end proof

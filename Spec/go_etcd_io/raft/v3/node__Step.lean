@@ -44,7 +44,7 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 abbrev node.Step.spec : Prop :=
   ∀ (γ : NodeNames) (id : w64) (n : Loc) (ml : Loc)
     (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ isNode γ id n ∗
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ isNodeChan γ id n ∗
       nodeCtx ctx cd ∗
       stepP γ id ml }}
     (App (App (Val (n @!! go.GoType.PointerType node.ty @!! go!"Step"))

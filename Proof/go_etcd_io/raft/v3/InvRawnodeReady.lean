@@ -49,7 +49,7 @@ can be recovered from the new ones (Perennial's `wp_slice_append_undo`). So
 **Read states (2026-10-13).** `readyWithoutAccept` sets `rd.ReadStates = r.readStates`
 when it is not empty, and `acceptReady` sets `r.readStates = nil` when `rd.ReadStates` is
 not empty. The slice is read-only in the struct (`ownRaftMisc`), so `readyWithoutAccept`
-hands out `rd.ReadStates ↦*□ sts` and each `ReadState`'s `readStateOk`, persistent facts
+hands out `rd.ReadStates ↦*□ sts` and each `ReadState`'s `readStateRaw`, persistent facts
 it copies out of the ghost state (`ownRaftGhost_readStates`) without a model step: nothing
 has to be given back when the `Ready` is abandoned, and a stale `Ready` that `node.go`
 sends later still carries them. `acceptReady` takes the model step `Step.takeReads`
@@ -1726,10 +1726,10 @@ theorem ownRawNodeIdle_ready (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNStat
   have := uint_Z_nonneg s.logst.applying
   refine ⟨by omega, by omega, by omega⟩
 
-/-- The `ReadState`s of the protocol state, each `readStateOk` (2026-10-13): persistent,
+/-- The `ReadState`s of the protocol state, each `readStateRaw` (2026-10-13): persistent,
 copied out of `rdOwn`. -/
 theorem ownRaftGhost_readStates (γ : RaftNames) (id : w64) (ps : PState) {md : Bool} :
-    ⊢ ownRaftGhost (GF := GF) γ id ps md -∗ [∗list] st ∈ ps.rd.states, readStateOk γ st := by
+    ⊢ ownRaftGhost (GF := GF) γ id ps md -∗ [∗list] st ∈ ps.rd.states, readStateRaw γ st := by
   unfold ownRaftGhost
   iintro ⟨%γv, %voted, %kl, H⟩
   iNamed H

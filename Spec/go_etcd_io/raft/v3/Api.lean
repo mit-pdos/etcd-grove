@@ -15,8 +15,8 @@ proof that uses one as a lemma rather than taking it as a callee's spec, are
 
 **The vocabulary** the specs and the laws are stated in:
 - `Proof/go_etcd_io/raft/v3/InvNode.lean` and `InvNodeCtx.lean`, the node API: the node and its
-  driver's tokens (`isNode`, `nodeDriver`, `nodeDriverBusy`, `nodeCfg`, `dlvLb`) and the `Ready`
-  channel's payload (`readyP`, `isReadyChan`) are **sealed** (`@[no_expose]`): a client sees their
+  driver's tokens (`isNodeChan`, `nodeDriverChan`, `nodeDriverBusy`, `nodeCfg`, `dlvLb`) and the `Ready`
+  channel's payload (`readyP`, `isReadyChanRaw`) are **sealed** (`@[no_expose]`): a client sees their
   names, never their bodies -- the node struct's channels, their protocols and the ghost state
   between `run` and the driver. What the client receives or must build is transparent: a
   `Ready`'s data (`readyData`, `readySnapData`, `readyDataL`), a message to step (`stepP`, `netP`,
@@ -34,7 +34,7 @@ proof that uses one as a lemma rather than taking it as a callee's spec, are
 `isNode_commitInv`, `nodeDriver_isNode`, `readyP_take`, `readyP_take_ns`, `node_ready_receive`,
 `node_prop_register`, `node_committed_data`, `node_read_deposit`, `budget_alloc`); a client can
 prove nothing else of a sealed predicate. Raft's own proofs see the bodies (`import all
-Proof.go_etcd_io.raft.v3.InvNode`).
+Proof.go_etcd_io.raft.v3.InvNodeChan`).
 
 **Sealed below the API** (internal: no client module may import them, even transitively):
 `InvRawnode`, `InvRawnodeReady`, `InvRawnodeC`, `InvNodeRun`, `InvBoot`, `InvRaftPhys` and
@@ -61,6 +61,6 @@ public import Spec.go_etcd_io.raft.v3.node__ReportUnreachable
 public import Spec.go_etcd_io.raft.v3.IsEmptyHardState
 public import Spec.go_etcd_io.raft.v3.IsEmptySnap
 public import Spec.go_etcd_io.raft.v3.NewMemoryStorage
-public import Proof.go_etcd_io.raft.v3.InvNode
+public import Proof.go_etcd_io.raft.v3.InvNodeChan
 public import Proof.go_etcd_io.raft.v3.InvNodeCtx
 public import Proof.go_etcd_io.raft.v3.ApiVocab
