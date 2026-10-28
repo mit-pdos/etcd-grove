@@ -254,11 +254,30 @@ def stLast (σ : StorState) : Int := uint.Z σ.prev.index' + (σ.ents.length : I
 theorem DataEq.stLast {a b : StorState} (h : DataEq a b) : stLast a = stLast b := by
   unfold EtcdGrove.stLast; rw [h.1, h.2.1]
 
+/-- (2026-10-28, stage U4a) What a later state `b` of the owner's history keeps of an earlier one
+`a`: its boundary is at or above `a`'s, and above its boundary the entries within `a`'s floor have
+`a`'s terms. An append starts above the floor (`PendAbove`), a floor raise keeps the data, and a
+snapshot applied (`ApplySnapshot`) puts the boundary at or above the floor. What makes the terms the
+owner vouches for at its floor (`memTermsAt`) the storage's for good. -/
+def FloorKept (a b : StorState) : Prop :=
+  uint.Z a.prev.index' ≤ uint.Z b.prev.index' ∧
+  ∀ j : w64, uint.Z j ≤ uint.Z a.fl → uint.Z b.prev.index' < uint.Z j →
+    termAt b.prev b.ents j = termAt a.prev a.ents j
+
+theorem FloorKept.refl (a : StorState) : FloorKept a a := ⟨Int.le_refl _, fun _ _ _ => rfl⟩
+
+theorem FloorKept.trans {a w x : StorState} (h1 : FloorKept a w) (h2 : FloorKept w x)
+    (hfl : uint.Z a.fl ≤ uint.Z w.fl) : FloorKept a x :=
+  ⟨Int.le_trans h1.1 h2.1, fun j hj hx => by
+    rw [h2.2 j (Int.le_trans hj hfl) hx, h1.2 j hj (Int.lt_of_le_of_lt h2.1 hx)]⟩
+
 /-- The owner's history of states (`hist`, and so `done`): the floors never go down, each state
 holds its floor (at most its last index), records nothing pending, and numbers its entries by
-their positions (`PlogWf`; the application's `Compact` reads its new boundary from the entry). -/
+their positions (`PlogWf`; the application's `Compact` reads its new boundary from the entry);
+(2026-10-28, stage U4a) and each state keeps what the earlier ones had within their floors
+(`FloorKept`). -/
 def HistOk (L : List StorState) : Prop :=
-  L.Pairwise (fun a b => uint.Z a.fl ≤ uint.Z b.fl) ∧
+  L.Pairwise (fun a b => uint.Z a.fl ≤ uint.Z b.fl ∧ FloorKept a b) ∧
   ∀ b ∈ L, uint.Z b.fl ≤ stLast b ∧ b.pend = [] ∧ PlogWf b.prev b.ents
 
 /-- An append numbered consecutively, starting within the entries, keeps them numbered by their
@@ -288,15 +307,20 @@ theorem PlogWf_storApp (σ : StorState) (p : List EntryM) (H : PlogWf σ.prev σ
 theorem HistOk.prefix {L1 L2 : List StorState} (h : L1 <+: L2) (H : HistOk L2) : HistOk L1 :=
   ⟨H.1.sublist h.sublist, fun b hb => H.2 b (h.subset hb)⟩
 
-/-- Every state of a history is at or below its last's floor. -/
-theorem HistOk.le_last {L : List StorState} {w : StorState} (H : HistOk L)
-    (hw : L.getLast? = some w) : ∀ a ∈ L, uint.Z a.fl ≤ uint.Z w.fl := by
+/-- Every state of a history is at or below its last's floor, and its last keeps it. -/
+theorem HistOk.le_last' {L : List StorState} {w : StorState} (H : HistOk L)
+    (hw : L.getLast? = some w) : ∀ a ∈ L, uint.Z a.fl ≤ uint.Z w.fl ∧ FloorKept a w := by
   intro a ha
   obtain ⟨L', rfl⟩ : ∃ L', L = L' ++ [w] := by
     rw [List.getLast?_eq_some_iff] at hw; exact hw
   rcases List.mem_append.1 ha with ha | ha
   · exact (List.pairwise_append.1 H.1).2.2 a ha w (List.mem_singleton_self w)
-  · rw [List.mem_singleton] at ha; subst ha; exact Int.le_refl _
+  · rw [List.mem_singleton] at ha; subst ha; exact ⟨Int.le_refl _, FloorKept.refl _⟩
+
+/-- Every state of a history is at or below its last's floor. -/
+theorem HistOk.le_last {L : List StorState} {w : StorState} (H : HistOk L)
+    (hw : L.getLast? = some w) : ∀ a ∈ L, uint.Z a.fl ≤ uint.Z w.fl :=
+  fun a ha => (H.le_last' hw a ha).1
 
 /-- Of two histories, one a prefix of the other, the shorter's last floor is at most the
 longer's. -/
@@ -305,19 +329,38 @@ theorem HistOk.last_mono {L1 L2 : List StorState} {a b : StorState} (h : L1 <+: 
     uint.Z a.fl ≤ uint.Z b.fl :=
   H.le_last hb a (h.subset (List.mem_of_getLast? ha))
 
+/-- (2026-10-28, stage U4a) ... and the longer's last keeps the shorter's. -/
+theorem HistOk.last_kept {L1 L2 : List StorState} {a b : StorState} (h : L1 <+: L2)
+    (H : HistOk L2) (ha : L1.getLast? = some a) (hb : L2.getLast? = some b) :
+    FloorKept a b :=
+  (H.le_last' hb a (h.subset (List.mem_of_getLast? ha))).2
+
 theorem HistOk.snoc {L : List StorState} {x : StorState} (H : HistOk L)
     (hle : ∀ w, L.getLast? = some w → uint.Z w.fl ≤ uint.Z x.fl)
+    (hk : ∀ w, L.getLast? = some w → FloorKept w x)
     (hx : uint.Z x.fl ≤ stLast x) (hp : x.pend = []) (hi : PlogWf x.prev x.ents) :
     HistOk (L ++ [x]) := by
   refine ⟨List.pairwise_append.2 ⟨H.1, List.pairwise_singleton _ _, fun a ha b hb => ?_⟩, ?_⟩
   · rw [List.mem_singleton] at hb; subst hb
     cases hL : L.getLast? with
     | none => rw [List.getLast?_eq_none_iff] at hL; subst hL; simp at ha
-    | some w => exact Int.le_trans (H.le_last hL a ha) (hle w hL)
+    | some w =>
+      obtain ⟨h1, h2⟩ := H.le_last' hL a ha
+      exact ⟨Int.le_trans h1 (hle w hL), h2.trans (hk w hL) h1⟩
   · intro b hb
     rcases List.mem_append.1 hb with hb | hb
     · exact H.2 b hb
     · rw [List.mem_singleton] at hb; subst hb; exact ⟨hx, hp, hi⟩
+
+/-- (2026-10-28, stage U4a) A state with the same data keeps everything. -/
+theorem FloorKept.of_data {a b : StorState} (h1 : b.prev = a.prev) (h2 : b.ents = a.ents) :
+    FloorKept a b :=
+  ⟨by rw [h1]; exact Int.le_refl _, fun j _ _ => by rw [h1, h2]⟩
+
+/-- (2026-10-28, stage U4a) A snapshot applied at or above the floor keeps everything, vacuously. -/
+theorem FloorKept.of_above {a b : StorState} (h1 : uint.Z a.prev.index' ≤ uint.Z b.prev.index')
+    (h2 : uint.Z a.fl ≤ uint.Z b.prev.index') : FloorKept a b :=
+  ⟨h1, fun j hj hb => absurd (Int.lt_of_lt_of_le hb hj) (Int.not_lt.2 h2)⟩
 
 /-- The states after `D` only raise the floor: each has the data of `D`'s last. -/
 def RaiseOnly (D R : List StorState) : Prop :=
@@ -1151,7 +1194,9 @@ floor at least the owner's, which it holds) under the lock (2026-10-12; since D1
 the owner's writer half and the invariant's) record `σ'`. -/
 theorem memView_set (γs : MemStorNames) (σ σp σ' : StorState) (Hidle : σ.pend = [])
     (H' : σ'.pend = []) (Hfl : uint.Z σ.fl ≤ uint.Z σ'.fl) (Hfl' : uint.Z σ'.fl ≤ stLast σ')
-    (Hidx' : PlogWf σ'.prev σ'.ents) :
+    (Hidx' : PlogWf σ'.prev σ'.ents)
+    -- (2026-10-28, stage U4a) the new boundary at or above the contents' and the floor
+    (Hpv : uint.Z σp.prev.index' ≤ uint.Z σ'.prev.index') (Hfv : uint.Z σ.fl ≤ uint.Z σ'.prev.index') :
     ⊢ memView (GF := GF) γs σ -∗ memInvGhost γs σp ==∗
       ⌜DataEq σp σ⌝ ∗ memView γs σ' ∗ memInvGhost γs σ' := by
   iintro Hv Hg
@@ -1176,7 +1221,10 @@ theorem memView_set (γs : MemStorNames) (σ σp σ' : StorState) (Hidle : σ.pe
     $$ Hw Hd with ⟨Hw, Hd⟩
   imod monoListAuthOwn_update_app [σ'] $$ Hh with ⟨Hh, #Hlbh⟩
   have Hok' : HistOk (hist ++ [σ']) :=
-    Hok.snoc (fun w hw => by rw [Hid.2] at hw; cases hw; exact Hfl) Hfl' H' Hidx'
+    Hok.snoc (fun w hw => by rw [Hid.2] at hw; cases hw; exact Hfl)
+      (fun w hw => by
+        rw [Hid.2] at hw; cases hw
+        exact FloorKept.of_above (by rw [← Hσp.1]; exact Hpv) Hfv) Hfl' H' Hidx'
   imodintro
   isplitr
   · ipureintro; exact Hσp
@@ -1417,6 +1465,105 @@ theorem memFloorTok_last (ms : Loc) (γs : MemStorNames) (σp : StorState) (x : 
   iframe Hd Hlb Hlk
   ipureintro; exact HD
 
+/-! ### The terms the owner vouches for (2026-10-28, stage U4a) -/
+
+/-- **The terms at the floor** (`storTermsAt` of the instance; persistent): the owner's history,
+at a state `w` whose floor covers `ts` and whose entries above its boundary have the terms `ts`,
+recorded with nothing pending (`done`'s `D` lagging only by floor raises, as for `memFloorTok`).
+Every later state keeps them (`FloorKept`), and so does the contents (`memTermsAt_lock`). -/
+def memTermsAt (γs : MemStorNames) (ts : List w64) : IProp GF :=
+  iprop(∃ (D L : List StorState),
+    monoListLbOwn γs.done D ∗ monoListLbOwn γs.hist L ∗
+    ⌜D <+: L ∧ D ≠ [] ∧ RaiseOnly D (L.drop D.length) ∧ HistOk L ∧
+      ∃ w, L.getLast? = some w ∧ (ts.length : Int) ≤ uint.Z w.fl ∧ TermsOn w ts⌝)
+
+instance memTermsAt_persistent (γs : MemStorNames) (ts : List w64) :
+    Persistent (memTermsAt (GF := GF) γs ts) := by
+  unfold memTermsAt; infer_instance
+
+omit package_sem in
+/-- (stage U4a) **The owner vouches for the terms within its floor**, with nothing pending. -/
+theorem memStorage_terms (ms : Loc) (γs : MemStorNames) (σ : StorState) (ts : List w64)
+    (Hp : σ.pend = []) (Hl : (ts.length : Int) ≤ uint.Z σ.fl) (Ht : TermsOn σ ts) :
+    ⊢ ownMemoryStorage (GF := GF) ms γs σ -∗ ownMemoryStorage ms γs σ ∗ memTermsAt γs ts := by
+  iintro Hown
+  iunfold ownMemoryStorage at Hown
+  iNamed Hown
+  unfold memView
+  icases Hview with ⟨%hist, %Hok, Hv⟩
+  icases Hv with (⟨Hh, %Hidle, ⟨%D, Hw, %HDh⟩, %v, Hep⟩ | ⟨-, %H, %D, %Hpd, -, -⟩)
+  rotate_left
+  · exact absurd Hp Hpd.1
+  ihave #HlbD := monoListLbOwn_get γs.done _ D $$ Hw
+  ihave #Hlbh := monoListLbOwn_get γs.hist _ hist $$ Hh
+  isplitl [Hh Hw Hep Hsn]
+  · unfold ownMemoryStorage memView
+    simp only [named]
+    iframe Hinit Hmu Hsn
+    isplitl [Hh Hw Hep]
+    · iexists hist
+      isplitr
+      · ipureintro; exact Hok
+      ileft
+      iframe Hh
+      isplitr
+      · ipureintro; exact Hidle
+      isplitl [Hw]
+      · iexists D
+        iframe Hw
+        ipureintro; exact HDh
+      iexists v
+      iexact Hep
+    ipureintro; exact Hbounded
+  iunfold memTermsAt
+  iexists D, hist
+  iframe HlbD Hlbh
+  ipureintro
+  exact ⟨HDh.1, HDh.2.1, HDh.2.2, Hok, σ, Hidle.2, Hl, Ht⟩
+
+/-- (stage U4a) **The contents have the terms vouched for**, above their boundary: the contents
+are past the record (it kept them, `FloorKept`), or between `D` and it (floor raises only: its
+data). -/
+theorem memTermsAt_lock (γs : MemStorNames) (σp : StorState) (ts : List w64) :
+    ⊢ memTermsAt (GF := GF) γs ts -∗ memInvGhost γs σp -∗
+      ⌜TermsOn σp ts⌝ ∗ memInvGhost γs σp := by
+  iintro #Hta Hg
+  iunfold memTermsAt at Hta
+  icases Hta with ⟨%D, %L, #Hdlb, #Hhlb, %Hf⟩
+  obtain ⟨HDL, HDne, HR, HLok, w, hw, hlen, Hton⟩ := Hf
+  unfold memInvGhost
+  icases Hg with ⟨%Dc, Hd, #Hlb, %HD, Hlk⟩
+  icases monoAuthLb_keep γs.done _ Dc D $$ [$Hd $Hdlb] with ⟨⟨Hd, -⟩, %H1⟩
+  icases mono_list_lb_valid γs.hist L Dc $$ Hhlb Hlb with %H2
+  isplitr
+  · ipureintro
+    intro j t hj hts
+    have hjl : uint.Z j ≤ (ts.length : Int) := by
+      have := (List.getElem?_eq_some_iff.1 hts).1
+      have := word.unsigned_range j
+      have : uint.nat j = (uint.Z j).toNat := rfl
+      omega
+    rcases H2 with H2 | H2
+    · -- past the record: the contents keep it
+      have Hk := HD.2.last_kept H2 hw HD.1
+      rw [Hk.2 j (Int.le_trans hjl hlen) hj]
+      exact Hton j t (Int.lt_of_le_of_lt Hk.1 hj) hts
+    · -- between `D` and the record: raises only, the record's data
+      obtain ⟨a, ha⟩ : ∃ a, D.getLast? = some a := by
+        cases hD : D.getLast? with
+        | none => rw [List.getLast?_eq_none_iff] at hD; exact absurd hD HDne
+        | some a => exact ⟨a, rfl⟩
+      have h1 := raiseOnly_between H1 H2 HR ha HD.1
+      have h2 := RaiseOnly.last HDL HR ha hw
+      have hp : σp.prev = w.prev := h1.1.trans h2.1.symm
+      have he : σp.ents = w.ents := h1.2.1.trans h2.2.1.symm
+      rw [hp, he]
+      rw [hp] at hj
+      exact Hton j t hj hts
+  iexists Dc
+  iframe Hd Hlb Hlk
+  ipureintro; exact HD
+
 /-- (D19i part 1) The storage's boundary has reached `n` (`storCut` of the instance): a lower
 bound of the lock's counter `bd`. -/
 def memStorCut (γs : MemStorNames) (n : Int) : IProp GF :=
@@ -1524,7 +1671,14 @@ theorem memStorage_handout (ms : Loc) (γs : MemStorNames) (σ : StorState)
   have Hσ : ({ { σ with pend := p } with pend := [] } : StorState) = σ := by
     rw [← Hpo.1]
   have Hok' : HistOk (hist ++ [storAbsorb { σ with pend := p }]) := by
-    refine Hok.snoc (fun w hw => by rw [Hidle.2] at hw; cases hw; exact Int.le_refl _) ?_ rfl ?_
+    refine Hok.snoc (fun w hw => by rw [Hidle.2] at hw; cases hw; exact Int.le_refl _) ?_ ?_ rfl ?_
+    · -- (stage U4a) the batch starts above the floor: the entries within it are kept
+      intro w hw
+      rw [Hidle.2] at hw; cases hw
+      refine ⟨Int.le_refl _, fun j hj hb => ?_⟩
+      simp only [storAbsorb]
+      exact termAt_storApp_below { σ with pend := p } p j (fun e0 he =>
+        ⟨Int.lt_of_le_of_lt hj (Hpo.2.2 e0 he), ((Hpo.2.1.2 e0 he).2.1)⟩) (Int.le_of_lt hb)
     rotate_left
     · exact PlogWf_storApp σ p (Hok.2 σ (List.mem_of_getLast? Hidle.2)).2.2 Hpo.2.1.2
     obtain ⟨Hne, Hh0⟩ := Hpo.2.1
@@ -1641,6 +1795,7 @@ theorem memStorage_floor (ms : Loc) (γs : MemStorNames) (σ : StorState) (x : w
   ihave #HlbD := monoListLbOwn_get γs.done _ D $$ Hw
   have Hok' : HistOk (hist ++ [{ σ with fl := x }]) :=
     Hok.snoc (fun w hw => by rw [Hidle.2] at hw; cases hw; exact Hx.2.1)
+      (fun w hw => by rw [Hidle.2] at hw; cases hw; exact FloorKept.of_data rfl rfl)
       (by simp only [EtcdGrove.stLast]; exact Hx.2.2) Hidle.1
       (Hok.2 σ (List.mem_of_getLast? Hidle.2)).2.2
   have HR' : RaiseOnly D ((hist ++ [{ σ with fl := x }]).drop D.length) := by

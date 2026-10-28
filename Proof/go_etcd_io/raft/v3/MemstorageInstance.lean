@@ -186,6 +186,29 @@ def memStorCertI (st : Storage) (k : SnapTrip) : IProp GF :=
   iprop(∃ (ms : Loc) (γs : MemStorNames), ⌜st = memStorIface ms⌝ ∗ memStorReg ms γs ∗
     memStorCert γs k)
 
+/-- (2026-10-28, stage U4a) The terms the owner vouched for: the `MemoryStorage`'s, of its names. -/
+def memStorTermsI (st : Storage) (ts : List w64) : IProp GF :=
+  iprop(∃ (ms : Loc) (γs : MemStorNames), ⌜st = memStorIface ms⌝ ∗ memStorReg ms γs ∗
+    memTermsAt γs ts)
+
+omit package_sem in
+/-- (stage U4a) The owner vouches for the terms within its floor (`memStorage_terms`). -/
+theorem memStorTermsI_intro (st : Storage) (σ : StorState) (ts : List w64)
+    (Hp : σ.pend = []) (Hl : (ts.length : Int) ≤ uint.Z σ.fl) (Ht : TermsOn σ ts) :
+    memOwnStorage (GF := GF) st σ ⊢ |==> (memOwnStorage st σ ∗ memStorTermsI st ts) := by
+  unfold memOwnStorage
+  iintro ⟨%ms, %γs, %Hst, #Hreg, Hown, %Hne⟩
+  icases memStorage_terms ms γs σ ts Hp Hl Ht $$ Hown with ⟨Hown, #Htm⟩
+  imodintro
+  isplitl [Hown]
+  · iexists ms, γs
+    iframe Hreg Hown
+    ipureintro; exact ⟨Hst, Hne⟩
+  unfold memStorTermsI
+  iexists ms, γs
+  iframe Hreg Htm
+  ipureintro; exact Hst
+
 /-- The storage model of an application whose `Storage`s are bare `MemoryStorage`s. -/
 instance memStorageModel : StorageModel GF where
   ownStorage := memOwnStorage
@@ -200,6 +223,9 @@ instance memStorageModel : StorageModel GF where
   storCut_cap := memStorCut_capI
   storCert := memStorCertI
   storCert_persistent := fun st k => by unfold memStorCertI; infer_instance
+  storTermsAt := memStorTermsI
+  storTermsAt_persistent := fun st ts => by unfold memStorTermsI; infer_instance
+  storTermsAt_intro := memStorTermsI_intro
 
 omit package_sem in
 theorem memStorCert_at (ms : Loc) (γs : MemStorNames) (k : SnapTrip) :
@@ -237,6 +263,19 @@ theorem memStorCap_intro (ms : Loc) (γs : MemStorNames) (k : Int) (h : γs.cap 
     iframe Hreg
     ipureintro; exact ⟨rfl, h⟩
   iexact H
+
+theorem memStorTerms_at (ms : Loc) (γs : MemStorNames) (ts : List w64) :
+    ⊢ memStorReg (GF := GF) ms γs -∗ storTermsAt (memStorIface ms) ts -∗ memTermsAt γs ts := by
+  iintro #Hreg Hc
+  ihave Hc : memStorTermsI (memStorIface ms) ts $$ [Hc]
+  · iexact Hc
+  unfold memStorTermsI
+  icases Hc with ⟨%ms', %γs', %Hst, #Hreg', Hc⟩
+  have := memStorIface_inj (GF := GF) _ _ Hst
+  subst this
+  icases memStorReg_agree ms γs γs' $$ Hreg Hreg' with %H
+  subst H
+  iexact Hc
 
 theorem memStorFloor_at (ms : Loc) (γs : MemStorNames) (x : w64) :
     ⊢ memStorReg (GF := GF) ms γs -∗ storFloor (memStorIface ms) x -∗ memFloorTok ms γs x := by

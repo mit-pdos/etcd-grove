@@ -257,6 +257,8 @@ theorem MemoryStorage.ApplySnapshot.wp_proof
     imod memView_set γs σ σp { memStorApplied sv with fl := σ.fl } Hidle rfl (Int.le_refl _)
       (by simp only [EtcdGrove.stLast, memStorApplied, snapId, List.length_nil]; omega)
       (fun k e h => by simp [memStorApplied] at h)
+      (by simp only [memStorApplied, snapId]; have := Hcok.1.1; omega)
+      (by simp only [memStorApplied, snapId]; exact Hfl)
       $$ Hview Hgs_inv with ⟨-, Hview, Hgs_inv⟩
     wp_method_call
     wp_call

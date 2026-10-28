@@ -12,6 +12,7 @@ module
 public import Spec.go_etcd_io.raft.v3.IsEmptyHardState
 public import Spec.go_etcd_io.raft.v3.IsEmptySnap
 public import Spec.go_etcd_io.raft.v3.MemoryStorage__Append
+public import Spec.go_etcd_io.raft.v3.MemoryStorage__CreateSnapshot
 public import Spec.go_etcd_io.raft.v3.MemoryStorage__Entries
 public import Spec.go_etcd_io.raft.v3.MemoryStorage__FirstIndex
 public import Spec.go_etcd_io.raft.v3.MemoryStorage__LastIndex
@@ -95,6 +96,16 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 theorem wp_NewMemoryStorage [StorageModel GF] :
     NewMemoryStorage.spec (GF := GF) (hG := hG) :=
   _root_.Perennial.EtcdGrove.wp_NewMemoryStorage
+
+/-- (2026-10-28, stage U4a) `CreateSnapshot` at a term the caller knows: the known exception to one
+spec per function, linked here from the same callees. -/
+theorem MemoryStorage.wp_CreateSnapshot_unified [StorageModel GF] :
+    MemoryStorage.CreateSnapshot.unifiedSpec (GF := GF) (hG := hG) :=
+  MemoryStorage.CreateSnapshot.wp_proof_unified _root_.Perennial.EtcdGrove.raftpb.Snapshot.wp_GetMetadata
+    _root_.Perennial.EtcdGrove.raftpb.SnapshotMetadata.wp_GetIndex
+    _root_.Perennial.EtcdGrove.raftpb.Entry.wp_GetIndex _root_.Perennial.EtcdGrove.MemoryStorage.wp_lastIndex
+    _root_.Perennial.EtcdGrove.raftpb.wp_EnsureSnapshot _root_.Perennial.EtcdGrove.raftpb.Entry.wp_GetTerm
+    _root_.Perennial.EtcdGrove.proto.wp_CloneConfState _root_.Perennial.EtcdGrove.proto.wp_CloneSnapshot
 
 theorem wp_IsEmptyHardState  :
     IsEmptyHardState.spec (GF := GF) (hG := hG) :=

@@ -195,6 +195,19 @@ structure StorState [GooseExts] where
   fresh storage. -/
   fl : w64 := 0
 
+/-- The term of index `i` in the log `prev :: ents`. `none` outside the range the
+storage can answer for. -/
+def termAt [GooseExts] (prev : entryID) (ents : List EntryM) (i : w64) : Option w64 :=
+  if uint.Z i = uint.Z prev.index' then some prev.term'
+  else (fun e : EntryM => e.Term') <$>
+         ents[(uint.Z i - uint.Z prev.index' - 1).toNat]?
+
+/-- (2026-10-28, stage U4a) The state's entries at the indices `1..|ts|` above its boundary have
+the terms `ts`: index `j` the term `ts[j-1]`. -/
+def TermsOn [GooseExts] (σ : StorState) (ts : List w64) : Prop :=
+  ∀ (j t : w64), uint.Z σ.prev.index' < uint.Z j → ts[uint.nat j - 1]? = some t →
+    termAt σ.prev σ.ents j = some t
+
 /-- An abstract description of a client-supplied `Storage`'s contents. A *parameter*
 of the development, not an assumption: abstract because the implementation is not
 raft's and is not in scope, so every result holds for whichever predicate the client
@@ -239,8 +252,21 @@ class StorageModel (GF : BundledGFunctors) [GooseExts] where
   allocates knowing raft's names (`storCertOk`, `SnapConf.lean`). -/
   storCert : Storage → SnapTrip → IProp GF
   storCert_persistent : ∀ st k, Persistent (storCert st k)
+  /-- `storTermsAt st ts` (2026-10-28, stage U4a): the storage's entries at the indices `1..|ts|`
+  above its boundary have the terms `ts` (index `j` the term `ts[j-1]`), for good (persistent): the
+  owner vouched for them within its floor (`storTermsAt_intro`), and the storage never rewrites an
+  entry within the floor (an append starts above it, a snapshot applied puts the boundary at or
+  above it). What `MemoryStorage.CreateSnapshot.unifiedSpec` reads the term of its index from. -/
+  storTermsAt : Storage → List w64 → IProp GF
+  storTermsAt_persistent : ∀ st ts, Persistent (storTermsAt st ts)
+  /-- Its introduction (stage U4a): the owner, with nothing pending, vouches for the terms of its
+  view's entries within its floor (`TermsOn`). -/
+  storTermsAt_intro : ∀ (st : Storage) (σ : StorState) (ts : List w64),
+    σ.pend = [] → (ts.length : Int) ≤ uint.Z σ.fl → TermsOn σ ts →
+    ownStorage st σ ⊢ |==> (ownStorage st σ ∗ storTermsAt st ts)
 
-export StorageModel (ownStorage appendTok appendedTok storCut storFloor storCap storCert)
+export StorageModel (ownStorage appendTok appendedTok storCut storFloor storCap storCert
+  storTermsAt)
 
 instance storCut_pers {GF : BundledGFunctors} [GooseExts] [StorageModel GF] (st : Storage)
     (n : Int) : Persistent (storCut (GF := GF) st n) :=
@@ -258,15 +284,12 @@ instance storCert_pers {GF : BundledGFunctors} [GooseExts] [StorageModel GF] (st
     (k : SnapTrip) : Persistent (storCert (GF := GF) st k) :=
   StorageModel.storCert_persistent st k
 
+instance storTermsAt_pers {GF : BundledGFunctors} [GooseExts] [StorageModel GF] (st : Storage)
+    (ts : List w64) : Persistent (storTermsAt (GF := GF) st ts) :=
+  StorageModel.storTermsAt_persistent st ts
+
 section termAt
 variable [GooseExts]
-
-/-- The term of index `i` in the log `prev :: ents`. `none` outside the range the
-storage can answer for. -/
-def termAt (prev : entryID) (ents : List EntryM) (i : w64) : Option w64 :=
-  if uint.Z i = uint.Z prev.index' then some prev.term'
-  else (fun e : EntryM => e.Term') <$>
-         ents[(uint.Z i - uint.Z prev.index' - 1).toNat]?
 
 /-- What a storage holding `σ.ents` after `σ.prev` holds once the entries `pend` are
 appended to it the way `MemoryStorage.Append` does (`storage.go`): everything at or

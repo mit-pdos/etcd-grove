@@ -133,6 +133,21 @@ theorem kvStorFloor_at (s ms : Loc) (γs : MemStorNames) (x : w64) :
   iframe Hc
   ipureintro; exact Hx
 
+/-- (2026-10-28, stage U4a) The terms the owner vouched for, at a known storage: its
+`MemoryStorage`'s. -/
+theorem kvStorTerms_at (s ms : Loc) (γs : MemStorNames) (ts : List w64) :
+    ⊢ kvStorRec (GF := GF) s ms γs -∗ storTermsAt (kvStorIface s) ts -∗ memTermsAt γs ts := by
+  iintro #Hrec Hc
+  ihave Hc : kvStorTermsAt (kvStorIface s) ts $$ [Hc]
+  · iexact Hc
+  unfold kvStorTermsAt
+  icases Hc with ⟨%s', %ms', %γs', %Hst, #Hrec', Hc⟩
+  have := kvStorIface_inj (GF := GF) _ _ Hst
+  subst this
+  icases kvStorRec_agree s ms ms' γs γs' $$ Hrec Hrec' with ⟨%H1, %H2⟩
+  subst H1 H2
+  iexact Hc
+
 theorem kvStorCert_at (s ms : Loc) (γs : MemStorNames) (k : SnapTrip) :
     ⊢ kvStorRec (GF := GF) s ms γs -∗ storCert (kvStorIface s) k -∗ memStorCert γs k := by
   iintro #Hrec Hc

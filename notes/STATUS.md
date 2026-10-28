@@ -493,9 +493,14 @@ sealed over `InvApiRule.lean`/`InvApiRuleAlloc.lean`):
   the snapshot's index and the membership `m` after its committed log, `confAt`, `confStateIs`;
   premises the snapshot's certificate, its index the loan's length, no auto-leave). Linked in
   `Linked.lean` (`wp_RestartNode_unified`, `node.wp_Advance_unified`, `node.wp_ApplyConfChange_unified`).
-Remaining for U4a: kv's port (approved 2026-10-28; **blocked**: `MemoryStorage.CreateSnapshot.spec`
-asks a snapshot certificate at every term, which a dynamic certificate, fixed to its term, cannot give;
-needs stage U8's `CreateSnapshot` first, `notes/decisions.md`, "Stage U4a"), a
+(2026-10-28, later) The storage half of kv's prerequisite: `storTermsAt st ts` (a new
+`StorageModel` field, persistent, with `storTermsAt_intro`; `MemoryStorage`'s `memTermsAt`, kept for
+good by the history's new `FloorKept`), and `MemoryStorage.CreateSnapshot.unifiedSpec` (the certificate
+at the term `memTermsAt` gives at `i` only), proved and linked (`MemoryStorage.wp_CreateSnapshot_unified`).
+Remaining for U4a: raft producing `storTermsAt` at the `advancec` floor raise, for `node.Advance`'s
+posts (**the planned argument fails when a snapshot was restored since the `Ready`**: raft keeps no
+term facts of the pre-restore storage; needs a new invariant, `notes/decisions.md`, "Stage U4a", last
+entry); then kv's port (approved 2026-10-28; blocked on it), a
 `StartNode` from a bootstrap log in this cluster. `notes/decisions.md`, "Stage U4a: kv's adequacy
 over the dynamic half with snapshots".
 

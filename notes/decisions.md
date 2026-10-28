@@ -25178,3 +25178,44 @@ valid until the client's next write. Not started (this session's budget); what i
   and the raw `node.Advance` post carries it with `reqWit`; (3) `CreateSnapshot.unifiedSpec`'s proof
   reads the term under the lock from the current state, which the fact pins.
 - kv then uses it at its one `CreateSnapshot` call (right after `Advance`, before any write).
+
+**2026-10-28 · step 1's storage half done; the raft half found false as planned (a snapshot restored
+since the `Ready`); kv's port not started.**
+- *The storage's history keeps what its floor covers* (`InvMemstorage.lean`): `HistOk`'s pairwise
+  relation gains `FloorKept a b` (a later state's boundary is at or above the earlier's, and above
+  it the entries within the earlier's floor have its terms). Kept by the three moves of `hist`: an
+  append (its batch starts above the floor, `PendAbove`, `termAt_storApp_below`), a floor raise
+  (same data), `ApplySnapshot` (`memView_set`'s new premises: the new boundary at or above the
+  contents' and the floor; `ApplySnapshot`'s proof has both, `Hcok`/`HcS` and its `fl ≤ index`
+  premise). No spec changed.
+- *The fact* (a new field of `class StorageModel`, `InvStorage.lean`): `storTermsAt st ts`
+  (persistent; the storage's entries at the indices `1..|ts|` above its boundary have the terms
+  `ts`), with its introduction law `storTermsAt_intro` (the owner, nothing pending, `|ts| ≤ σ.fl`,
+  `TermsOn σ ts`). Persistent rather than "until the client's next write": `FloorKept` makes it
+  hold for good (an append never rewrites within the floor; a snapshot applied puts the boundary at
+  or above it, where the fact says nothing). `MemoryStorage`'s: `memTermsAt γs ts` (a lower bound of
+  `hist` at a state with the floor and the terms, `done` lagging by raises only, as `memFloorTok`),
+  `memStorage_terms` (introduction), `memTermsAt_lock` (the lock's contents have the terms: past
+  the record by `FloorKept`, before it by the raises' data). Instances: `memStorageModel`
+  (`memStorTermsI`, `memStorTerms_at`) and kv's (`kvStorTermsAt`, `kvStorTerms_at`); the server
+  uses `memStorageModel`; RaftWitness has its own copy of the storage model, untouched.
+- *`MemoryStorage.CreateSnapshot.unifiedSpec`* (beside `.spec`, proved as `wp_proof_unified`, linked
+  in `Linked.lean` as `MemoryStorage.wp_CreateSnapshot_unified`): `.spec`'s token, record, mask,
+  keys and two continuations, plus `memTermsAt γs ts` and `ts[i-1] = t`; the certificate asked at
+  `t` only, the success continuation at `memStorCreated σt i t`. The proof: in the success branch
+  the contents' boundary is at most the cut, at most the storage's snapshot, below `i`, so
+  `memTermsAt_lock` gives the term the call reads.
+- **The raft half, as planned, is false**: "`run`'s floor raise produces `TermsOn` from raft's view
+  of the storage, whose entries up to `applying` are the delivered log". It holds with no snapshot
+  pending (`LogPersistOk`: the storage agrees with the log up to `offsetInProgress - 1 ≥ applying`;
+  the log's prefix up to `applying` is `delivered`, `readyWithoutAccept`'s `ready_committed_prefix`
+  with `isCommitted_agree`). But the floor is also raised when a snapshot was restored since the
+  `Ready` (`ownRawNode_raise_floor` with `ls.snap = some _`, `StorExtOk`): the storage is then the
+  pre-restore one, and raft keeps only its extent (`sxt`), not its terms against anything. The fact
+  needs a new invariant there: e.g. `StorExtOk` extended with the storage's terms up to `applying`
+  against a ghost copy of the delivered terms (a `LogState` field set at `restore` from the
+  no-snapshot facts, tied to `RNState.delivered` by `ownRawNode`), which touches `LogState`,
+  every `FlOk` site of `ownRaftLog` (about 40) and `restore`. Alternatively stage U8's hold mark.
+  Then `reqOf`/`reqWit` carry the delivered terms, and the raw `node.Advance` and
+  `node.Advance.unifiedSpec` posts gain `storTermsAt st.storage (st.delivered.map LogEntry.term)`.
+  Not done in this session; kv's port (step 2) waits for it.

@@ -175,6 +175,26 @@ def kvStorCert (st : Storage) (k : SnapTrip) : IProp GF :=
   iprop(∃ (s ms : Loc) (γs : MemStorNames), ⌜st = kvStorIface s⌝ ∗ kvStorRec s ms γs ∗
     memStorCert γs k)
 
+/-- (2026-10-28, stage U4a) The terms the owner vouched for: its `MemoryStorage`'s. -/
+def kvStorTermsAt (st : Storage) (ts : List w64) : IProp GF :=
+  iprop(∃ (s ms : Loc) (γs : MemStorNames), ⌜st = kvStorIface s⌝ ∗ kvStorRec s ms γs ∗
+    memTermsAt γs ts)
+
+theorem kvStorTermsAt_intro (st : Storage) (σ : StorState) (ts : List w64)
+    (Hp : σ.pend = []) (Hl : (ts.length : Int) ≤ uint.Z σ.fl) (Ht : TermsOn σ ts) :
+    kvOwnStorage (GF := GF) st σ ⊢ |==> (kvOwnStorage st σ ∗ kvStorTermsAt st ts) := by
+  unfold kvOwnStorage kvStorTermsAt
+  iintro ⟨%s, %ms, %γs, %Hst, #Hrec, Hown⟩
+  icases memStorage_terms ms γs σ ts Hp Hl Ht $$ Hown with ⟨Hown, #Htm⟩
+  imodintro
+  isplitl [Hown]
+  · iexists s, ms, γs
+    iframe Hrec Hown
+    ipureintro; exact Hst
+  iexists s, ms, γs
+  iframe Hrec Htm
+  ipureintro; exact Hst
+
 /-- The store's storage model: every `Storage` is a registered store storage. -/
 instance kvStorageModel : StorageModel GF where
   ownStorage := kvOwnStorage
@@ -190,6 +210,9 @@ instance kvStorageModel : StorageModel GF where
   storCut_cap := fun _ _ _ => by iintro ⟨-, %H⟩; exact H.elim
   storCert := kvStorCert
   storCert_persistent := fun st k => by unfold kvStorCert; infer_instance
+  storTermsAt := kvStorTermsAt
+  storTermsAt_persistent := fun st ts => by unfold kvStorTermsAt; infer_instance
+  storTermsAt_intro := kvStorTermsAt_intro
 
 /-- The registry: each registered storage keeps half of its `MemoryStorage` field here
 (so that a storage is registered once: a new one has the whole field). -/
