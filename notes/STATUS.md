@@ -469,6 +469,49 @@ Other notes in use: `notes/snapshot-receiver-epochs.md` (S5's plan),
 In status-history.md: the raft v3.7 retarget ("Retargeting raft to v3.7, stage R0" to "stage R8b"), reconfiguration (stages 0, A1-A3, B1-B8, D, L, N), the read index and proposals (stage R, stage F), CheckQuorum and PreVote, the multi-member stages "D21 M0" to "D21 M6", and the witness stages W1-W3b-A and W5.
 
 
+## `examples/kvreconf`: snapshots and reconfiguration together, Go only (2026-10-28, branch `kv-snap-reconf`)
+
+A key-value store on `raft.Node` that uses more of raft than `examples/kv`, as the target of the
+proof that both snapshots and reconfiguration work (D1 below; the proofs' modes take one or the
+other). Go only so far: no Goose project in `etc/goose.py`, no proof. What it does:
+
+- the cluster bootstraps through `StartNode` (conf-change entries in the log); newcomers join on an
+  empty `MemoryStorage` through `RestartNode`; a removed replica is stopped and its id never reused;
+- a single reconfigurer makes random changes: add a voter or a learner, promote, demote, remove,
+  as simple changes (`ConfChange`, or a `ConfChangeV2` of the automatic transition) and joint ones
+  (a `ConfChangeV2` of one to three changes; automatic, implicit or explicit transition, leaving
+  the joint configuration by an explicit change in the last case), each carried until applied,
+  so every change is valid where it is applied;
+- replicas snapshot every 20 entries and after every conf change, with the current `ConfState`,
+  and compact to 4 entries below it, so catching up is by `MsgSnap`; the transport reports each
+  snapshot's fate (`ReportSnapshot`) and every drop (`ReportUnreachable`);
+- faults: one message in 50 dropped, a replica cut off for a while, leadership transfers;
+  `PreVote` and `CheckQuorum` on;
+- clients: Put and Get through the log, Read by `ReadIndex`, each retried at another member on
+  a timeout, the same operation id each time (a duplicate is answered from the table of applied
+  operations); a conf change proposed twice is applied once (its context carries a sequence
+  number; the duplicate is rejected by not calling `ApplyConfChange`).
+
+`kvreconf.Main` (and `go run ./cmd/kvreconfcheck`): porcupine checks the trace, and the members must
+converge; it fails unless the run installed a snapshot at a changed configuration and made a joint
+change. Not durable: `MemoryStorage`, no crash or restart (the user's scope).
+
+Found while writing it:
+
+- [issues/raft-snapshot-without-recipient-livelock](../issues/raft-snapshot-without-recipient-livelock.md):
+  a newcomer added after the storage's latest snapshot is sent that snapshot forever once the log
+  is compacted; the fix here is the snapshot after every conf change.
+- `examples/kv`'s transport (`deliver`, `cluster.go`) steps a forwarded `MsgProp` with
+  `context.Background()`, and `Node.Step` of a `MsgProp` blocks while the target knows no leader.
+  In `kvreconf` this blocked a candidate's loop before it handled the Ready that persists its own
+  vote, so the cluster's only voter never won an election (fixed there: each message is stepped
+  with a 5ms timeout, a timeout a drop). `kv`'s is the same pattern; the proof is of partial
+  correctness, so a hang is no violation, but its liveness test could hang in the same way (not
+  observed).
+- Not exercised yet: rejecting a duplicated conf change (0 in every run so far: the reconfigurer
+  waits 400ms before it proposes again).
+
+
 ## The node API's specs in the per-function files (2026-10-28, branch `node-api-cleanup`)
 
 `notes/decisions.md`, "The node API's specs in the per-function files". The clean node API is now raft's

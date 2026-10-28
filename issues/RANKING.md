@@ -148,7 +148,10 @@ wrong), [raft-memorystorage-initialstate-unlocked](raft-memorystorage-initialsta
 without its documented mutex; the fix takes the lock) and
 [etcd-alarm-store-snapshot-race](etcd-alarm-store-snapshot-race.md) (above). Not in the batch:
 [raft-joint-self-quorum-read](raft-joint-self-quorum-read.md) (liveness, a configuration nobody
-runs) and the conf-change validation panics (`raft-joint-empty-transition-panic`,
+runs), [raft-snapshot-without-recipient-livelock](raft-snapshot-without-recipient-livelock.md)
+(liveness, 2026-10-28: a member added after the storage's latest snapshot is sent it forever once the
+log is compacted; etcd is not affected, a `MemoryStorage` application that snapshots every N
+entries is; reproduced, a documentation fix) and the conf-change validation panics (`raft-joint-empty-transition-panic`,
 `raft-unknown-transition-panic`: only the application's own proposals reach them, a trusted
 caller's precondition).
 
