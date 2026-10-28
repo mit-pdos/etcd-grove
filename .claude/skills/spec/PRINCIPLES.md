@@ -5,7 +5,7 @@ true. Each rule says why, and points to where it was learned: an example in `exa
 the critique, the result) or a review of the compactor pilot in `notes/spec-first-study/`. Open those
 only for the rules your target touches.
 
-Two kinds: the **hard rules** (the next section) must all hold, and a spec breaking one is wrong
+Two kinds: the **hard rules** (their section below) must all hold, and a spec breaking one is wrong
 however good it is otherwise. Everything after them is a **preference**: weigh them against each
 other to choose among specs that keep the hard rules, and say so when you knowingly depart from one.
 
