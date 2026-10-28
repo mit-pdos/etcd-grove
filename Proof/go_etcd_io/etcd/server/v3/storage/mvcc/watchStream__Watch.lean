@@ -238,8 +238,8 @@ theorem mvcc.watchStream.Watch.wp_proof (hspan : trace.SpanFromContext.spec (GF 
             inext
             iintro #Hwc
             wp_auto
-            wp_bind (App (Val #(methods si.ty go!"End" si.v)) (Val #()))
-            iapply HEnd
+            wp_bind (App (Val #(methods si.ty go!"End" si.v)) (Val #slice.nil))
+            iapply HEnd $$ %slice.nil
             · itrivial
             inext
             iintro -

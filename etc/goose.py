@@ -661,8 +661,10 @@ PROJECTS = [
         rev=None,
         local=os.path.join("examples", "lintest"),
         lean_roots=["github.com/mit-pdos/etcd-grove=", "github.com/anishathalye/porcupine="],
-        # the driver, and an instance of it (a counter under a mutex, its model)
-        packages=[".", "./counter"],
+        # the driver, and instances of it: a counter under a mutex, its model; and the scalable-proof
+        # experiment's log-applied register (logkv) and its variants, each adding one feature
+        packages=[".", "./counter", "./logkv", "./logkvcompact", "./logkvsnap", "./logkvrw",
+                  "./logkvappend"],
         owned=[os.path.join("github_com", "mit_pdos", "etcd_grove", "examples", "lintest")],
     ),
     Project(

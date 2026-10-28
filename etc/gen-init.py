@@ -49,6 +49,12 @@ ROOTS = ['go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc',
          'github_com.mit_pdos.etcd_grove.examples.putgetc',
          'github_com.mit_pdos.etcd_grove.examples.putget3',
          'github_com.mit_pdos.etcd_grove.examples.lintest.counter',
+         # the scalable-proof experiment's log-applied register and its variants
+         'github_com.mit_pdos.etcd_grove.examples.lintest.logkv',
+         'github_com.mit_pdos.etcd_grove.examples.lintest.logkvcompact',
+         'github_com.mit_pdos.etcd_grove.examples.lintest.logkvsnap',
+         'github_com.mit_pdos.etcd_grove.examples.lintest.logkvrw',
+         'github_com.mit_pdos.etcd_grove.examples.lintest.logkvappend',
          'github_com.mit_pdos.etcd_grove.examples.kv',
          'github_com.mit_pdos.etcd_grove.examples.linkv3p',
          'github_com.mit_pdos.etcd_grove.examples.linkvtxn',
@@ -2026,6 +2032,16 @@ PROGRAMS = {'github_com.mit_pdos.etcd_grove.examples.putget':
             'Proof/github_com/mit_pdos/etcd_grove/examples/authkv/PkgTable.lean',
             'github_com.mit_pdos.etcd_grove.examples.lintest.counter':
             'Proof/github_com/mit_pdos/etcd_grove/examples/lintest/counter/PkgTable.lean',
+            'github_com.mit_pdos.etcd_grove.examples.lintest.logkv':
+            'Proof/github_com/mit_pdos/etcd_grove/examples/lintest/logkv/PkgTable.lean',
+            'github_com.mit_pdos.etcd_grove.examples.lintest.logkvcompact':
+            'Proof/github_com/mit_pdos/etcd_grove/examples/lintest/logkvcompact/PkgTable.lean',
+            'github_com.mit_pdos.etcd_grove.examples.lintest.logkvsnap':
+            'Proof/github_com/mit_pdos/etcd_grove/examples/lintest/logkvsnap/PkgTable.lean',
+            'github_com.mit_pdos.etcd_grove.examples.lintest.logkvrw':
+            'Proof/github_com/mit_pdos/etcd_grove/examples/lintest/logkvrw/PkgTable.lean',
+            'github_com.mit_pdos.etcd_grove.examples.lintest.logkvappend':
+            'Proof/github_com/mit_pdos/etcd_grove/examples/lintest/logkvappend/PkgTable.lean',
             'github_com.mit_pdos.etcd_grove.examples.kv':
             'Proof/github_com/mit_pdos/etcd_grove/examples/kv/PkgTable.lean',
             'github_com.mit_pdos.etcd_grove.examples.k8setcd3':
