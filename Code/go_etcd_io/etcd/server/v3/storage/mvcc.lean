@@ -2257,6 +2257,11 @@ noncomputable def keyIndex.doCompact.impl [GooseExts] [GoGlobalContext] : val :=
   (App (App (App (Val doFor) (Lam BAnon
   (App (Val (GoInstruction (GoOp GoLt go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (Var "genIdx")) (App (Val (GoInstruction (GoOp GoSub go.int))) (Pair (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType generation.ty)))) (App (Val (GoInstruction (StructFieldRef keyIndex.ty go!"generations"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType keyIndex.ty)))) (Var "ki"))))
   (App (App (Val (GoInstruction (FuncResolve go.len [(go.GoType.SliceType generation.ty)]))) (Val #())) (Var "$a0"))) (Val #(W64 1)))))))) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoLoad go.int64))) (App (Val (GoInstruction (StructFieldRef Revision.ty go!"Main"))) (App (Val (GoInstruction (IndexRef (go.GoType.SliceType Revision.ty)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.SliceType Revision.ty)))) (App (Val (GoInstruction (StructFieldRef generation.ty go!"revs"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType generation.ty)))) (Var "g")))) (App (Val (GoInstruction (GoOp GoSub go.int))) (Pair (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType Revision.ty)))) (App (Val (GoInstruction (StructFieldRef generation.ty go!"revs"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType generation.ty)))) (Var "g"))))
+  (App (App (Val (GoInstruction (FuncResolve go.len [(go.GoType.SliceType Revision.ty)]))) (Val #())) (Var "$a0"))) (Val #(W64 1))))))))
+  (Let "tomb" (App (Val (GoInstruction (GoAlloc go.int64))) (App (Val (GoInstruction (GoZeroVal go.int64))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$r0" (App (Val (GoInstruction (IndexRef (go.GoType.SliceType generation.ty)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.SliceType generation.ty)))) (App (Val (GoInstruction (StructFieldRef keyIndex.ty go!"generations"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType keyIndex.ty)))) (Var "ki")))) (App (Val (GoInstruction (GoLoad go.int))) (Var "genIdx"))))
@@ -2264,16 +2269,17 @@ noncomputable def keyIndex.doCompact.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore (go.GoType.PointerType generation.ty)))) (Pair (Var "g") (Var "$r0")))))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "genIdx") (App (Val (GoInstruction (GoOp GoPlus go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (Var "genIdx")) (Val #(W64 1))))))))))
-  (Let "$r0" (App (Val (GoInstruction (GoLoad go.int64))) (App (Val (GoInstruction (StructFieldRef Revision.ty go!"Main"))) (App (Val (GoInstruction (IndexRef (go.GoType.SliceType Revision.ty)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.SliceType Revision.ty)))) (App (Val (GoInstruction (StructFieldRef generation.ty go!"revs"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType generation.ty)))) (Var "g")))) (App (Val (GoInstruction (GoOp GoSub go.int))) (Pair (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType Revision.ty)))) (App (Val (GoInstruction (StructFieldRef generation.ty go!"revs"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType generation.ty)))) (Var "g"))))
-  (App (App (Val (GoInstruction (FuncResolve go.len [(go.GoType.SliceType Revision.ty)]))) (Val #())) (Var "$a0"))) (Val #(W64 1))))))))
-  (Let "tomb" (App (Val (GoInstruction (GoAlloc go.int64))) (App (Val (GoInstruction (GoZeroVal go.int64))) (Val #())))
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoGe go.int64))) (Pair (App (Val (GoInstruction (GoLoad go.int64))) (Var "tomb")) (App (Val (GoInstruction (GoLoad go.int64))) (Var "atRev")))))
+  (If (If (App (Val (GoInstruction (GoOp GoEquals go.int64))) (Pair (App (Val (GoInstruction (GoLoad go.int64))) (Var "tomb")) (App (Val (GoInstruction (GoLoad go.int64))) (Var "atRev")))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (Let "$a0" (App (Val (GoInstruction (GoLoad go.int64))) (Var "atRev"))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType generation.ty) go!"isRecreatedAt"))) (App (Val (GoInstruction (IndexRef (go.GoType.SliceType generation.ty)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.SliceType generation.ty)))) (App (Val (GoInstruction (StructFieldRef keyIndex.ty go!"generations"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType keyIndex.ty)))) (Var "ki")))) (App (Val (GoInstruction (GoOp GoPlus go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (Var "genIdx")) (Val #(W64 1))))))) (Var "$a0")))) (Val #false))
   (App (Val doBreak) (Val #()))
   (App (Val doExecute)
-  (Val #())))))
+  (Val #()))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoGt go.int64))) (Pair (App (Val (GoInstruction (GoLoad go.int64))) (Var "tomb")) (App (Val (GoInstruction (GoLoad go.int64))) (Var "atRev")))))
+  (App (Val doBreak) (Val #()))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore go.int64))) (Pair (Var "tomb") (Var "$r0"))))))))))
+  (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.int64))) (Pair (Var "tomb") (Var "$r0")))))))))
   (Lam BAnon
   (Val #()))))))
   (App (Val doExecute)
@@ -2284,7 +2290,7 @@ noncomputable def keyIndex.doCompact.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore (go.GoType.FunctionType (go.signature.Signature [Revision.ty] false [go.bool]))))) (Pair (Var "f") (Var "$r0")))))))))))
   (Pair (App (Val (GoInstruction (GoLoad go.int))) (Var "$res0")) (App (Val (GoInstruction (GoLoad go.int))) (Var "$res1")))))))))))
 
-/-- go: key_index.go:284:21 -/
+/-- go: key_index.go:293:21 -/
 noncomputable def keyIndex.isEmpty.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "ki"
   (Lam BAnon
@@ -2304,7 +2310,7 @@ noncomputable def keyIndex.isEmpty.impl [GooseExts] [GoGlobalContext] : val :=
     given rev belongs to. If the given rev is at the gap of two generations,
     which means that the key does not exist at the given rev, it returns nil.
 
-    go: key_index.go:291:21 -/
+    go: key_index.go:300:21 -/
 noncomputable def keyIndex.findGeneration.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "ki"
   (Lam "rev"
@@ -2381,7 +2387,7 @@ noncomputable def keyIndex.findGeneration.impl [GooseExts] [GoGlobalContext] : v
   (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "lastg") (Var "$r0"))))))))))
   (App (Val (GoInstruction (GoLoad (go.GoType.PointerType generation.ty)))) (Var "$res0"))))))
 
-/-- go: key_index.go:314:21 -/
+/-- go: key_index.go:323:21 -/
 noncomputable def keyIndex.Less.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "ki"
   (Lam "bki"
@@ -2399,7 +2405,7 @@ noncomputable def keyIndex.Less.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "$res0") (Var "$r0")))))))))
   (App (Val (GoInstruction (GoLoad go.bool))) (Var "$res0"))))))
 
-/-- go: key_index.go:352:22 -/
+/-- go: key_index.go:361:22 -/
 noncomputable def generation.isEmpty.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "g"
   (Lam BAnon
@@ -2421,7 +2427,7 @@ noncomputable def generation.isEmpty.impl [GooseExts] [GoGlobalContext] : val :=
     walk returns the position at where it stopped. If it stopped after
     finishing walking, -1 will be returned.
 
-    go: key_index.go:359:22 -/
+    go: key_index.go:374:22 -/
 noncomputable def generation.walk.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "g"
   (Lam "f"
@@ -10022,7 +10028,7 @@ class generation.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] 
   get_revs : ∀ (x : generation), go.IsGoStepPureDetTagged under (StructFieldGet generation.underlying go!"revs") #x (Val #(x.revs'))
   set_revs : ∀ (x : generation) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet generation.underlying go!"revs") (PairV #x #y) (Val #(({ x with revs' := y } : generation)))
   method_set : go.MethodSetIs generation.ty [(go!"go.etcd.io/etcd/server/v3/storage/mvcc.equal", (some (go.signature.Signature [generation.ty] false [go.bool])))]
-  ptr_method_set : go.MethodSetIs (go.GoType.PointerType generation.ty) [(go!"String", (some (go.signature.Signature [] false [go.string]))), (go!"go.etcd.io/etcd/server/v3/storage/mvcc.equal", (some (go.signature.Signature [generation.ty] false [go.bool]))), (go!"go.etcd.io/etcd/server/v3/storage/mvcc.isEmpty", (some (go.signature.Signature [] false [go.bool]))), (go!"go.etcd.io/etcd/server/v3/storage/mvcc.walk", (some (go.signature.Signature [(go.GoType.FunctionType (go.signature.Signature [Revision.ty] false [go.bool]))] false [go.int])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType generation.ty) [(go!"String", (some (go.signature.Signature [] false [go.string]))), (go!"go.etcd.io/etcd/server/v3/storage/mvcc.equal", (some (go.signature.Signature [generation.ty] false [go.bool]))), (go!"go.etcd.io/etcd/server/v3/storage/mvcc.isEmpty", (some (go.signature.Signature [] false [go.bool]))), (go!"go.etcd.io/etcd/server/v3/storage/mvcc.isRecreatedAt", (some (go.signature.Signature [go.int64] false [go.bool]))), (go!"go.etcd.io/etcd/server/v3/storage/mvcc.walk", (some (go.signature.Signature [(go.GoType.FunctionType (go.signature.Signature [Revision.ty] false [go.bool]))] false [go.int])))]
   ptr_isEmpty_unfold : MethodUnfold (go.GoType.PointerType generation.ty) go!"isEmpty" generation.isEmpty.impl
   ptr_walk_unfold : MethodUnfold (go.GoType.PointerType generation.ty) go!"walk" generation.walk.impl
 

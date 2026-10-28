@@ -185,12 +185,16 @@ PROJECTS = [
         # on the range (acafa0317, issues/etcd-auth-grant-permission-same-key.md). Then (the
         # spec-first pilot, 2026-10-27) branch `goose-lean-grantfix-compactorstart` (on acafa0317):
         # the auto-compactor run by `start()`, not by `NewServer` (a20f6760f, the cherry-pick of
-        # 964dccdb4; issues/etcd-compactor-started-before-start.md).
+        # 964dccdb4; issues/etcd-compactor-started-before-start.md). Then (M2, 2026-10-28) branch
+        # `goose-lean-compactfix` (on a20f6760f): upstream's fixes of the compaction of a key deleted
+        # and put again in the compacted revision (etcd-io/etcd#22377, `keyIndex.doCompact`,
+        # e7bb9f2de; #22395, the gRPC txn overlap check, 249d76bea;
+        # issues/etcd-compaction-delete-then-put.md).
         # Branch
         # `goose` (upstream main of 2026-03) stays as it is: the Rocq translations
         # (etcd-grove `main`, Perennial `master`) are regenerated from it by name.
         repo="https://github.com/upamanyus/etcd",
-        rev="a20f6760ff4312d40cd6b1ff04f9b4dd58e827c6",
+        rev="249d76bea78d0c8980251d5fa7b26c35ef21263a",
         # go.etcd.io/raft/v3 (etcd's go.mod: v3.7.0) is the raft above (v3.7.0 plus the
         # read-index fix), translated by the raft project: not translated here.
         lean_roots=["go.etcd.io/etcd=", "k8s.io=", "google.golang.org=", "go.uber.org=",
