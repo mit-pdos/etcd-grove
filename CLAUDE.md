@@ -163,10 +163,11 @@ report.
 
 ## Feedback on specs
 
-When the user critiques a spec (yours, a reviewer's, or a candidate), make the repository
-learn from it, minimally: an entry in `.claude/skills/spec-repair/LESSONS.md` (date, target,
-what the user said, the rule it became) and the smallest change to that skill's `SKILL.md`
-(or its `evals/`) that would have avoided the mistake; a fix to the spec itself is not enough.
+The `spec` skill (`.claude/skills/spec/`) is where the repository keeps what makes a good spec:
+`PRINCIPLES.md`, and `examples/` of specs the user reviewed. When the user critiques a spec
+(yours, a reviewer's, or a candidate), make it learn from it, minimally: a new or sharpened
+principle; and when the user approves a spec, an example (its first version, each critique with
+what it changed, the approved spec). A fix to the spec itself is not enough.
 
 ## Trust base
 

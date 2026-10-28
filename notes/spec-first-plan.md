@@ -44,7 +44,7 @@ postcondition too weak for the caller -- before the callee's expensive proof exi
 phase 1). Writing a spec and proving its callers' glue alternate per package boundary: write the
 spec, prove the glue of *every* caller, review, revise; a spec is frozen only when every caller's
 glue proves and the review leaves nothing in the first tier below. The review is a fresh reviewer's
-(the `spec-repair` skill, `--review-only`), given the specs, the Go code and the callers, not the
+(the `spec-reviewer` agent, which judges by the `spec` skill's `PRINCIPLES.md` and `examples/`), given the specs, the Go code and the callers, not the
 author's conclusions; it ranks each spec that crosses a package boundary (internal helpers' specs may
 mirror the code) in two tiers:
 
@@ -107,8 +107,8 @@ and after the freeze.
 4. the criteria are re-weighted by the revisions each would have prevented, weighted by the proof
    lines those revisions touched (step 1's `proof_lines_changed`); one that never catches anything
    is dropped.
-Each attributed miss becomes an entry of the `spec-repair` skill's `LESSONS.md` (one per critique, with
-the rule it became in `SKILL.md`), so later reviews in the repository start from it.
+Each attributed miss becomes a principle (new or sharpened) in the `spec` skill's `PRINCIPLES.md`,
+so later reviews in the repository start from it.
 
 **Phase 2: test the specs against the Go code** (no proof).
 - Canonical form: `own σ ∗ ⌜Pre σ args⌝ -∗ WP f args {r, ∃ σ', own σ' ∗ ⌜Post σ args r σ'⌝ ∗ …}`
