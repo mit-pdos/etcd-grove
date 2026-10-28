@@ -305,9 +305,9 @@ theorem RawNode.acceptReady.wp_proof
       ipureintro; trivial
     | some l =>
       simp only [rdSnapRel, snapOpt, Option.map_some, loanCom]
-      icases Hrdz with ⟨Hs, #Hc, %Hz⟩
+      icases Hrdz with ⟨Hs, #Hc, #Hd, %Hz⟩
       rw [← Hz.1]
-      iframe Hs Hc
+      iframe Hs Hc Hd
       ipureintro; exact ⟨Hz.2.2.2.2.2.2.2.2.2.2.2, HlastL l rfl⟩
   icases Hsno with ⟨Hsno, #Hloanc⟩
   have Hsnne : ∀ sv, L.map SnapLoan.snap = some sv → sv.Metadata'.Index' ≠ W64 0 := by

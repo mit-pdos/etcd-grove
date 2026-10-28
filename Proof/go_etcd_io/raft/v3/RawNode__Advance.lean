@@ -493,7 +493,12 @@ private theorem wp_step_snapack
         sv.Metadata'.Index' = s.logst.prev.index') ∧
       D.length = uint.nat sv.Metadata'.Index' ∧ plogLast base0 D = snapId sv ∧
       uint.Z sv.Metadata'.Index' ≤ uint.Z s.logst.committed ∧
-      sv.Metadata'.ConfState'.AutoLeave' = false) :
+      sv.Metadata'.ConfState'.AutoLeave' = false)
+    -- (2026-10-28, the decision switch) dynamically `D` folds over the decisions `Ml` (the loan's,
+    -- `loanDec`) to the snapshot's configuration, `Ml` among the ghost's (the caller absorbed them)
+    (Ml : DecMap)
+    (Hdf : ∀ D', γ.dyn = some D' → D'.fold Ml D = some (snapTrip sv sv.Metadata'.ConfState'.lists).cfgM)
+    (Hsub : ∀ dec c0 h0 g, md = .dyn dec c0 h0 g → Ml ⊆ g.decs) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ ownRaftPhysCV c c.voters r id s ∗
         ownStepGhost γ md c id s ∗
         msgIn ml DFrac.discard ⟨appendAckM id t (e.getD ⟨W64 0, W64 0⟩), [], some sv, [], []⟩ ∗
@@ -506,7 +511,7 @@ private theorem wp_step_snapack
         ⌜NStateWf s' ∧ (md = .static → md' = .static) ∧
          (∀ dec c0 h0 g, md = .dyn dec c0 h0 g →
             md' = .dyn dec c0 h0
-              ⟨uint.nat sv.Metadata'.Index', (cfgFold dec c0 D).getD g.cfg, g.fp, g.decs⟩) ∧
+              ⟨uint.nat sv.Metadata'.Index', (cfgFold (effDec dec Ml) c0 D).getD g.cfg, g.fp, g.decs⟩) ∧
          (snapCfg sv sv.Metadata'.ConfState'.lists).autoLeave = false ∧
          ∃ (prs : GMap w64 Loc) (pvs : GMap w64 Progress) (il : Bool), s' = { s with
            logst := ackSnapLog s.logst (appendAckM id t (e.getD ⟨W64 0, W64 0⟩)) s.term sv,
@@ -553,7 +558,8 @@ private theorem wp_step_snapack
   ihave ⟨%Hmode, %Hal', %HcsD, Hghost⟩ : ⌜(md.isDyn = false ∧ SnapAckOk γ id sv) ∨ SnapAckDyn md s sv⌝ ∗
       ⌜(snapCfg sv sv.Metadata'.ConfState'.lists).autoLeave = false⌝ ∗
       ⌜∀ dec c0 h0 g, md = .dyn dec c0 h0 g →
-        g.fp.take (uint.nat sv.Metadata'.Index') = D ∧ (cfgFold dec c0 D).isSome⌝ ∗
+        g.fp.take (uint.nat sv.Metadata'.Index') = D ∧ ∃ cs, cfgFold (effDec dec Ml) c0 D = some cs ∧
+          cfgFold (effDec dec g.decs) c0 D = some cs⌝ ∗
       ownStepGhost γ md c id s $$ [Hg Hrm]
   · cases md with
     | static =>
@@ -601,22 +607,17 @@ private theorem wp_step_snapack
         List.prefix_of_prefix_length_le Hpre (List.prefix_append _ _) HlenD
       have Htake : g.fp.take (uint.nat sv.Metadata'.Index') = D := by
         rw [← Hdl]; exact (List.prefix_iff_eq_take.1 Hpfx).symm
-      have HfD : FullOk (snapId sv) D :=
-        ⟨by rw [Hdl]; simp only [snapId]; first | (have := uint_nat_eq sv.Metadata'.Index'; omega) | skip,
-          PlogWf_prefix base0 D g.fp Hpfx HI.full.2.1, Hdlast⟩
-      ihave #HrD : logRecs γ base0 D $$ []
-      · rw [← Htake]; iapply logRecs_take $$ Hfr
-      ihave %Hfold := Hdc $$ %x %Hx %_ %HDy %D HrD %HfD
-      simp only [DynCfg.ofFold, effDec_empty] at Hfold
-      obtain ⟨cs', Hcs1, Hcs2⟩ := Option.map_eq_some_iff.1 Hfold
+      have Hfm := Hdf _ HDy
+      simp only [DynCfg.ofFold] at Hfm
+      obtain ⟨cs', Hcs0, Hcs2⟩ := Option.map_eq_some_iff.1 Hfm
+      have Hcs1 := cfgFold_mono (effDec_mono dec (Hsub dec c0 h0 g rfl)) Hcs0
       isplitr
       · ipureintro
-        exact .inr ⟨Hl x Hx, Hlt, Hsnb, cs', by
-          rw [Htake]; exact cfgFold_mono (effDec_base dec g.decs) Hcs1, Hcs2⟩
+        exact .inr ⟨Hl x Hx, Hlt, Hsnb, cs', by rw [Htake]; exact Hcs1, Hcs2⟩
       isplitr
       · ipureintro; simp only [snapCfg, csCfgM, Half]; split <;> rfl
       isplitr
-      · ipureintro; intro _ _ _ _ h; cases h; exact ⟨Htake, by rw [Hcs1]; rfl⟩
+      · ipureintro; intro _ _ _ _ h; cases h; exact ⟨Htake, cs', Hcs0, Hcs1⟩
       iexact Hghost
   have Hsnp : ∀ sv', some sv = some sv' →
       snapHit s.logst.snap sv'.Metadata'.Index' = s.logst.sat ∧
@@ -677,7 +678,7 @@ private theorem wp_step_snapack
     -- dynamically the configuration afterwards the fold of `D` (`RInv.cfg` at the new index)
     ihave ⟨%Hmd2, Hghost⟩ : ⌜∀ dec c0 h0 g, md = .dyn dec c0 h0 g →
         md' = .dyn dec c0 h0
-          ⟨uint.nat sv.Metadata'.Index', (cfgFold dec c0 D).getD g.cfg, g.fp, g.decs⟩⌝ ∗
+          ⟨uint.nat sv.Metadata'.Index', (cfgFold (effDec dec Ml) c0 D).getD g.cfg, g.fp, g.decs⟩⌝ ∗
         ownStepGhost γ md' (snapCfg sv sv.Metadata'.ConfState'.lists) id s' $$ [Hghost]
     · cases md with
       | static => iframe Hghost; ipureintro; intro _ _ _ _ h; cases h
@@ -696,15 +697,13 @@ private theorem wp_step_snapack
           rw [List.length_take, Hdl] at h2; omega
         have Hfull : (g.fp ++ (toPState s').log).take (uint.nat sv.Metadata'.Index') = D := by
           rw [List.take_append_of_le_length Hle']; exact Htake
-        have Hcf' : cfgFold dec c0 D = some cs'' := by
-          obtain ⟨-, Hsome⟩ := HcsD dec c0 h0 g rfl
-          obtain ⟨x, hx⟩ := Option.isSome_iff_exists.1 Hsome
-          have h2 := cfgFold_mono (effDec_base dec g.decs) hx
-          rw [← Hfull] at h2
-          rw [show (cfgFold (effDec dec g.decs) c0 ((g.fp ++ (toPState s').log).take
-            (uint.nat sv.Metadata'.Index'))) = some cs'' from Hcf] at h2
-          rw [hx, Option.some.inj h2]
-        rw [Hcf']; rfl
+        have Hcf' : cfgFold (effDec dec g.decs) c0 D = some cs'' := by
+          have h2 : cfgFold (effDec dec g.decs) c0 ((g.fp ++ (toPState s').log).take
+            (uint.nat sv.Metadata'.Index')) = some cs'' := Hcf
+          rw [Hfull] at h2; exact h2
+        obtain ⟨-, cs, HcM, HcG⟩ := HcsD dec c0 h0 g rfl
+        rw [HcG] at Hcf'
+        rw [HcM, Option.some.inj Hcf']; rfl
     iapply HΦ $$ %err %s' %md'
     iframe Hphys Hghost
     ipureintro
@@ -879,7 +878,7 @@ theorem ackSnapLog_facts_miss (ls : LogState) (m : MessageM) (t : w64) (sv : Sna
 private theorem advRS_some {rs : RNState} (t : w64) (ca : Nat) {l : SnapLoan} (h : rs.slent = some l) :
     advRS rs t ca = { rs with steps := [], term := t, capplied := ca, flw := false, slent := none,
                               unpersisted := [], delivered := l.dlv,
-                              cfg := rs.mode.foldCfg l.dlv rs.cfg } := by
+                              cfg := rs.mode.foldCfg l.decs l.dlv rs.cfg } := by
   unfold advRS; rw [h]
 
 /-- (2026-10-28, stage U3c) A follower's campaign guard holds (it is a pre-candidate's). -/
@@ -890,14 +889,56 @@ private theorem preGuardF_of_fol {fp : List EntryM} {s : NState} (h : s.role = .
 /-- (2026-10-28, stage U3c) The mode after a snapshot's acknowledgement (`wp_step_snapack`'s post), at
 the `RawNode`'s level: the snapshot's index and the fold of the committed log up to it. -/
 private theorem snapack_mode {mode : RNMode} {ca j : Nat} {cfg : CCState} {fp D : List EntryM}
-    {ds : DecMap} {md' : GMode}
+    {ds M : DecMap} {md' : GMode}
     (h1 : mode.toG ⟨ca, cfg, fp, ds⟩ = .static → md' = .static)
     (h2 : ∀ dec c0 h0 g, mode.toG ⟨ca, cfg, fp, ds⟩ = .dyn dec c0 h0 g →
-      md' = .dyn dec c0 h0 ⟨j, (cfgFold dec c0 D).getD g.cfg, g.fp, g.decs⟩) :
-    md' = mode.toG ⟨j, mode.foldCfg D cfg, fp, ds⟩ := by
+      md' = .dyn dec c0 h0 ⟨j, (cfgFold (effDec dec M) c0 D).getD g.cfg, g.fp, g.decs⟩) :
+    md' = mode.toG ⟨j, mode.foldCfg M D cfg, fp, ds⟩ := by
   cases mode with
   | static => exact h1 rfl
   | dyn dec c0 h0 _ => exact h2 dec c0 h0 _ rfl
+
+/-- (2026-10-28, the decision switch) A lower bound of the decisions joins the ghost part, in
+either mode (`ownStepGhost_absorb`). -/
+private theorem ownStepGhost_absorbM (γ : RaftNames) (mode : RNMode) (g : RGh) (c : CfgM) (id : w64)
+    (s : NState) (M : DecMap) :
+    decLb (GF := GF) γ M ∗ ownStepGhost γ (mode.toG g) c id s ⊢
+      ⌜M ⊆ g.decs ∪ M ∨ mode.isDyn = false⌝ ∗
+        ownStepGhost γ (mode.toG { g with decs := g.decs ∪ M }) c id s := by
+  cases mode with
+  | static =>
+    have e : ∀ g' : RGh, RNMode.static.toG g' = GMode.static := fun _ => rfl
+    rw [e, e]
+    iintro ⟨-, H⟩
+    isplitr
+    · ipureintro; right; rfl
+    iexact H
+  | dyn dec c0 h0 h1 =>
+    iintro ⟨#HM, H⟩
+    simp only [RNMode.toG]
+    icases (ownStepGhost_dyn γ dec c0 h0 g c id s).1 $$ H with ⟨%Hp, #Hg, Hr, #Hl⟩
+    icases decLb_compat γ g.decs M $$ [Hg HM] with %Hc
+    · iframe Hg HM
+    ihave H := (ownStepGhost_dyn γ dec c0 h0 g c id s).2 $$ [Hr]
+    · iframe Hg Hr Hl; ipureintro; exact Hp
+    isplitr
+    · ipureintro; left; exact DecCompat.sub_right Hc
+    iapply ownStepGhost_absorb γ dec c0 h0 g c id s M
+    iframe HM H
+
+/-- (2026-10-28, the decision switch) `wp_step_snapack`'s inclusion of the loan's decisions. -/
+private theorem subDecs_of {mode : RNMode} {ca : Nat} {cfg : CCState} {fp : List EntryM} {ds M : DecMap}
+    (h : M ⊆ ds ∪ M ∨ mode.isDyn = false) :
+    ∀ dec c0 h0 g, mode.toG ⟨ca, cfg, fp, ds ∪ M⟩ = .dyn dec c0 h0 g → M ⊆ g.decs := by
+  intro dec c0 h0 g hg
+  cases mode with
+  | static => cases hg
+  | dyn =>
+    simp only [RNMode.toG, GMode.dyn.injEq] at hg
+    obtain ⟨-, -, -, rfl⟩ := hg
+    rcases h with h | h
+    · exact h
+    · cases h
 
 /-- In the static mode the ghost part is irrelevant. -/
 private theorem RNMode.toG_static {mode : RNMode} (h : mode.isDyn = false) (g g' : RGh) :
@@ -924,11 +965,13 @@ theorem RawNode.Advance.wp_proof
     -- (D22 S-d3b) the lent snapshot pending, or a later one restored past it (`LoanOk`)
     have Hsnn : s.logst.snap ≠ none := by rcases Hss with h | ⟨_, h, -⟩ <;> rw [h] <;> simp
     have Hunst : s.gh.unst = false := by rw [← Hrs_unst]; exact Hunst0
-    ihave #Hdlh : iprop(isCommitted γ l.dlv ∗ ⌜(∃ x, l.snap.Metadata'.ConfState'.lists.Has x) ∧
-        plogLast base0 l.dlv = snapId l.snap⌝)
+    ihave #Hdlh : iprop(isCommitted γ l.dlv ∗ loanDec γ l ∗
+        ⌜(∃ x, l.snap.Metadata'.ConfState'.lists.Has x) ∧ plogLast base0 l.dlv = snapId l.snap⌝)
       $$ [Hloanc]
     · iExactEq Hloanc; unfold loanCom; rw [hsl]
-    icases Hdlh with ⟨#Hdl, %Hhas0⟩
+    icases Hdlh with ⟨#Hdl, #HlD, %Hhas0⟩
+    iunfold loanDec at HlD
+    icases HlD with ⟨#HlD, %HlDf⟩
     obtain ⟨Hhas, Hdlast⟩ := Hhas0
     -- the receipt: the application's half of the snapshot, and the storage at the snapshot
     ihave Hret : snapReceipt rs.storage l rs.unpersisted $$ [Hret]
@@ -1030,7 +1073,7 @@ theorem RawNode.Advance.wp_proof
         -- acknowledgement, at the snapshot's index and the fold of its committed log after it
         "%Hmd1" ∷ ⌜(sint.nat n ≤ pre.length → md1 = rs.mode.toG ⟨rs.capplied, rs.cfg, fp, ds⟩) ∧
           (pre.length < sint.nat n → md1 = rs.mode.toG
-            ⟨uint.nat l.snap.Metadata'.Index', rs.mode.foldCfg l.dlv rs.cfg, fp, ds⟩)⌝ ∗
+            ⟨uint.nat l.snap.Metadata'.Index', rs.mode.foldCfg l.decs l.dlv rs.cfg, fp, ds ∪ l.decs⟩)⌝ ∗
         "Hsteps" ∷ rnv.stepsOnAdvance' ↦* steps1 ∗
         "%Hn" ∷ ⌜0 ≤ sint.Z n ∧ sint.Z n ≤ (steps.length : Int)⌝ ∗
         "%Hsteps1" ∷ ⌜steps1.length = steps.length ∧
@@ -1223,7 +1266,10 @@ theorem RawNode.Advance.wp_proof
             $$ Hstr2 Hg with ⟨%Hsok, Hg⟩
           ihave Hghost : ownStepGhost γ (rs.mode.toG ⟨rs.capplied, rs.cfg, fp, ds⟩) cf id s1 $$ [Hg Hgr]
           · iunfold ownStepGhost; iframe Hg Hgr
-          wp_apply wp_step_snapack wp_raft_Step γ (rs.mode.toG ⟨rs.capplied, rs.cfg, fp, ds⟩) cf rnv.raft'
+          -- (2026-10-28, the decision switch) the loan's decisions join the ghost part
+          icases ownStepGhost_absorbM γ rs.mode ⟨rs.capplied, rs.cfg, fp, ds⟩ cf id s1 l.decs
+            $$ [$HlD $Hghost] with ⟨%Hsub, Hghost⟩
+          wp_apply wp_step_snapack wp_raft_Step γ (rs.mode.toG ⟨rs.capplied, rs.cfg, fp, ds ∪ l.decs⟩) cf rnv.raft'
             id s1 mm tA (snapId l.snap) eA l.snap l.dlv
             Hwf1 Hpok Hal (by rw [Hsn1', Hsat1]; simp [snapHit, snapId])
             (by rw [Hpv1]; exact Int.le_refl _)
@@ -1232,7 +1278,8 @@ theorem RawNode.Advance.wp_proof
             (fun hs hl => (Hgh1.1.2.2.2.2.2 _ Hsnp1 hl).1 hs)
             (fun k hk => by rw [Hsnp1] at hk; cases hk; exact Int.le_refl _)
             (Hsf1 (by rw [Hsn1']; simp)) (by rw [Hsn1']; simp) Hsnp1 Hhas
-            (fun hd => ⟨Happ1, fun _ => by rw [Hpv1]; rfl, Hdlen', Hdlast, Hcm1, Hal1' hd⟩)
+            (fun hd => ⟨Happ1, fun _ => by rw [Hpv1]; rfl, Hdlen', Hdlast, Hcm1, Hal1' (by rw [RNMode.toG_isDyn] at hd ⊢; exact hd)⟩)
+            l.decs HlDf (subDecs_of Hsub)
             $$ [$Hphys $Hghost $Hmin $Hlc1 $Hdl] as %err %s2 %md2 ⟨Hphys, Hghost, %Hst2⟩
           obtain ⟨Hwf2, Hmds, Hmdd, Hal2, prs2, pvs2, il2, Hs2⟩ := Hst2
           have Hmd2 := snapack_mode Hmds Hmdd
@@ -1357,6 +1404,9 @@ theorem RawNode.Advance.wp_proof
             · cases h
           ihave Hghost : ownStepGhost γ (rs.mode.toG ⟨rs.capplied, rs.cfg, fp, ds⟩) cf id s1 $$ [Hg Hgr]
           · iunfold ownStepGhost; iframe Hg Hgr
+          -- (2026-10-28, the decision switch) the loan's decisions join the ghost part
+          icases ownStepGhost_absorbM γ rs.mode ⟨rs.capplied, rs.cfg, fp, ds⟩ cf id s1 l.decs
+            $$ [$HlD $Hghost] with ⟨%Hsub, Hghost⟩
           have Hhit1 : snapHit s1.logst.snap l.snap.Metadata'.Index' = false := by
             rw [Hsn1']
             simp only [snapHit, decide_eq_false_iff_not]
@@ -1367,7 +1417,7 @@ theorem RawNode.Advance.wp_proof
             rcases h with h | h
             · rw [Hsn1'] at h; cases h
             · rw [Hhit1] at h; cases h
-          wp_apply wp_step_snapack wp_raft_Step γ (rs.mode.toG ⟨rs.capplied, rs.cfg, fp, ds⟩) cf rnv.raft'
+          wp_apply wp_step_snapack wp_raft_Step γ (rs.mode.toG ⟨rs.capplied, rs.cfg, fp, ds ∪ l.decs⟩) cf rnv.raft'
             id s1 mm tA (snapId l.snap) eA l.snap l.dlv
             Hwf1 Hpok Hal (by rw [Hhit1, Hsat1])
             (by rw [Hpv1]; exact Int.le_of_lt Hl2)
@@ -1376,7 +1426,8 @@ theorem RawNode.Advance.wp_proof
             (fun hs hl => (Hgh1.1.2.2.2.2.2 _ Hsnp1 hl).1 hs)
             (fun k hk => by rw [Hsnp1] at hk; cases hk; exact Int.le_refl _)
             (Hsf1 (by rw [Hsn1']; simp)) (by rw [Hsn1']; simp) Hsnp1 Hhas
-            (fun hd => ⟨Happ1, Hsnb1, Hdlen', Hdlast, Hcm1, Hal1' hd⟩)
+            (fun hd => ⟨Happ1, Hsnb1, Hdlen', Hdlast, Hcm1, Hal1' (by rw [RNMode.toG_isDyn] at hd ⊢; exact hd)⟩)
+            l.decs HlDf (subDecs_of Hsub)
             $$ [$Hphys $Hghost $Hmin $Hlc1 $Hdl] as %err %s2' %md2 ⟨Hphys, Hghost, %Hst2⟩
           obtain ⟨Hwf2, Hmds, Hmdd, Hal2, prs2, pvs2, il2, Hs2'⟩ := Hst2
           have Hmd2 := snapack_mode Hmds Hmdd
@@ -1449,7 +1500,7 @@ theorem RawNode.Advance.wp_proof
       -- (U3c) the configuration index after: dynamically the snapshot's, statically unmoved
       obtain ⟨CA, HCA⟩ : ∃ CA : Nat, CA = if rs.mode.isDyn then l.dlv.length else rs.capplied :=
         ⟨_, rfl⟩
-      have Hmdf : md1 = rs.mode.toG ⟨CA, rs.mode.foldCfg l.dlv rs.cfg, fp, ds⟩ := by
+      have Hmdf : md1 = rs.mode.toG ⟨CA, rs.mode.foldCfg l.decs l.dlv rs.cfg, fp, ds ∪ l.decs⟩ := by
         rw [Hmd1.2 Hgt]
         cases hm : rs.mode.isDyn
         · exact RNMode.toG_static hm _ _
@@ -1470,13 +1521,13 @@ theorem RawNode.Advance.wp_proof
         rfl rfl rfl rfl $$ Hghost
       ihave #Hstr1 : ackInv γ { rs with
               steps := [], term := s1.term, capplied := CA, flw := false, slent := none,
-              unpersisted := [], delivered := l.dlv, cfg := rs.mode.foldCfg l.dlv rs.cfg }
+              unpersisted := [], delivered := l.dlv, cfg := rs.mode.foldCfg l.decs l.dlv rs.cfg }
           { s1 with logst := s1.logst, gh := { s1.gh with slent := false, snp := none } } $$ []
       · iapply ackInv_none; intro _ _ _ _ h; cases h
       have Htc1 : s1.gh.tc = s.gh.tc := by rw [Hsg1.2.2]; exact Hs0f.2.2.2.2.2.2.2.2.2.2.2.2.1
       have HrnflA : RNFl { rs with
               steps := [], term := s1.term, capplied := CA, flw := false, slent := none,
-              unpersisted := [], delivered := l.dlv, cfg := rs.mode.foldCfg l.dlv rs.cfg }
+              unpersisted := [], delivered := l.dlv, cfg := rs.mode.foldCfg l.decs l.dlv rs.cfg }
           { s1 with logst := s1.logst, gh := { s1.gh with slent := false, snp := none } } := by
         refine ⟨fun _ => ?_, fun h => absurd h (by show ¬ (uint.Z s1.logst.applied < _); rw [Hap1, Happ1]; omega)⟩
         show uint.Z s1.logst.fl ≤ uint.Z s1.logst.applied
@@ -1485,7 +1536,7 @@ theorem RawNode.Advance.wp_proof
         omega
       have HloanA : LoanOk { rs with
               steps := [], term := s1.term, capplied := CA, flw := false, slent := none,
-              unpersisted := [], delivered := l.dlv, cfg := rs.mode.foldCfg l.dlv rs.cfg }
+              unpersisted := [], delivered := l.dlv, cfg := rs.mode.foldCfg l.decs l.dlv rs.cfg }
           { s1 with logst := s1.logst, gh := { s1.gh with slent := false, snp := none } } :=
         ⟨rfl, fun _ => ⟨rfl, fun _ _ _ _ h => (by cases h)⟩, fun l h => (by cases h)⟩
       iapply HΦ $$ %s1.term %CA
@@ -1494,7 +1545,7 @@ theorem RawNode.Advance.wp_proof
       · iapply ownRawNode_intro γ rn id
           { rs with
               steps := [], term := s1.term, capplied := CA, flw := false, slent := none,
-              unpersisted := [], delivered := l.dlv, cfg := rs.mode.foldCfg l.dlv rs.cfg }
+              unpersisted := [], delivered := l.dlv, cfg := rs.mode.foldCfg l.decs l.dlv rs.cfg }
           { s1 with logst := s1.logst, gh := { s1.gh with slent := false, snp := none } }
           cf1 fp
           { rnv with stepsOnAdvance' :=

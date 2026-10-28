@@ -101,7 +101,7 @@ private theorem node.Advance.wp_raw : node.Advance.specRaw (GF := GF) (hG := hG)
   intro γ id n ds es ca cfg p' L HA1 Hal
   wp_start as ⟨Hbusy, Hrcpt, Hcfg⟩
   unfold nodeDriverBusy
-  icases Hbusy with ⟨#Hnode, #Hdlb, %d, %ce, %p, Hd1, Hd2, Hrof, %Hds, %q0, Hr1, Hr2⟩
+  icases Hbusy with ⟨#Hnode, #Hdlb, -, %d, %ce, %p, Hd1, Hd2, Hrof, %Hds, %q0, Hr1, Hr2⟩
   ihave #Hcamlb : monoNatLbOwn γ.cam ca $$ [Hcfg]
   · unfold nodeCfg; icases Hcfg with ⟨-, -, $⟩
   -- (2026-10-28, stage U3d) after a snapshot `Ready` the view goes with the payload and comes
@@ -323,9 +323,9 @@ private theorem busy_dlv (γn : NodeNames) (id : w64) (n : Loc) (ds es : List En
     nodeDriverBusy (GF := GF) γn id n ds es p (some l) ⊢
       nodeDriverBusy γn id n ds es p (some l) ∗ ⌜ds = l.dlv⌝ := by
   unfold nodeDriverBusy
-  iintro ⟨#Hn, #Hlb, %d, %ce, %p0, H1, H2, H3, %Hds, %q, Hq1, Hq2⟩
+  iintro ⟨#Hn, #Hlb, #Hld, %d, %ce, %p0, H1, H2, H3, %Hds, %q, Hq1, Hq2⟩
   isplitl [H1 H2 H3 Hq1 Hq2]
-  · iframe Hn Hlb
+  · iframe Hn Hlb Hld
     iexists d, ce, p0
     iframe H1 H2 H3
     isplitr; · ipureintro; exact Hds
@@ -367,6 +367,16 @@ private theorem node.wp_Advance_unified_impl
     | some l =>
       icases busy_dlv γn id n ds es st.hardState l $$ Htok with ⟨-, %H⟩
       ipureintro; intro l' h; cases h; exact H
+  -- (2026-10-28, the decision switch) the loan's decisions: none in a cluster of a rule
+  ihave %Hld0 : ⌜∀ l, L = some l → l.decs = ∅⌝ $$ [Htok]
+  · cases L with
+    | none => ipureintro; intro l h; cases h
+    | some l =>
+      icases nodeDriverBusy_loanDec γn id n ds es st.hardState l $$ Htok with ⟨-, #HlD, -⟩
+      iunfold decLb at HlD
+      icases HlD with ⟨%HlD0, -⟩
+      ipureintro; intro l' h; cases h
+      exact HlD0 (by rw [Hnok.1]; exact Hmr.1.2.2.2.2.2.2)
   iunfold nodeConfig at Hcfg
   icases Hcfg with ⟨%γn2, %id2, %Hf2, #Hn2, #Htab2, Hcf⟩
   icases isNode_id_agree γn γn2 id id2 n $$ Hn1 Hn2 with %Hid
@@ -421,6 +431,7 @@ private theorem node.wp_Advance_unified_impl
     obtain ⟨-, Hli⟩ := Hloan l rfl
     have Hdsl := Hdl l rfl
     subst Hdsl
+    have Hld0 : l.decs = ∅ := Hld0 l rfl
     icases ApiImpl.snapshotCert_made γ N r c0 _ Hmr.1 $$ Hcert with ⟨%L', %m, #HL', -, %P⟩
     obtain ⟨HL'len, -, HL'f, Hcl, Hal⟩ := P
     icases isCommittedLogLb_agree_impl γ st.delivered L' $$ [Hlb0 HL'] with %Hcmp
@@ -439,7 +450,7 @@ private theorem node.wp_Advance_unified_impl
       unfold loanCfg
       simp only
       rw [ite_eq_left Hd, Hmd]
-      simp only [RNMode.foldCfg, Hfold, Option.getD_some, Hli]
+      simp only [RNMode.foldCfg, Hld0, effDec_empty, Hfold, Option.getD_some, Hli]
     rw [Hlc]
     have Hmv : m.Valid := Membership.fold_valid r c0 m L' Hv0 HL'f
     iexists m

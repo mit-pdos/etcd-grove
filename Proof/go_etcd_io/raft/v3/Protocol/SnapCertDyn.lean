@@ -108,16 +108,16 @@ theorem committedRecs_full (γ : RaftNames) (L fp : List EntryM) (b : entryID) :
 
 /-- **A dynamic snapshot certificate from a committed prefix** (stage U2): the snapshot `k` at the
 id of the committed prefix `L` (its length and last term), whose lists are well formed
-(`SnapListsOk`) and denote the mode's fold of `L`, is certified. -/
+(`SnapListsOk`) and denote the mode's fold of `L` over decisions recorded (`decLb`), is certified. -/
 theorem raftSnapCert_make_dyn (γ : RaftNames) (E : CoPset) (L : List EntryM) (k : SnapTrip)
-    (D : DynCfg) :
+    (D : DynCfg) (M : DecMap) :
     ↑(raftLogN γ) ⊆ E → γ.dyn = some D →
     L.length = uint.nat k.sid.index' → L.getLast?.map EntryM.Term' = some k.sid.term' →
-    SnapListsOk k → D.fold ∅ L = some k.cfgM →
-    ⊢ raftCommitInv (GF := GF) γ -∗ isCommitted γ L ={E}=∗ raftSnapCert γ k := by
+    SnapListsOk k → D.fold M L = some k.cfgM →
+    ⊢ raftCommitInv (GF := GF) γ -∗ isCommitted γ L -∗ decLb γ M ={E}=∗ raftSnapCert γ k := by
   intro HE HD HlenN Hlast Hok Hfold
   have Hlen : (L.length : Int) = uint.Z k.sid.index' := by rw [HlenN]
-  iintro #Hinv #HL
+  iintro #Hinv #HL #HM
   imod isCommitted_recs γ E L HE $$ Hinv HL with #HR
   imodintro
   unfold raftSnapCert
@@ -131,11 +131,13 @@ theorem raftSnapCert_make_dyn (γ : RaftNames) (E : CoPset) (L : List EntryM) (k
     subst Heq
     rw [HD] at HD'
     cases HD'
+    iexists M
+    iframe HM
     ipureintro; exact Hfold
   unfold snapAtOk
   iright
-  iexists L
-  iframe HL
+  iexists L, M
+  iframe HL HM
   ipureintro
   refine ⟨HlenN, Hlast, Hok, fun D' HD' => ?_⟩
   rw [HD] at HD'; cases HD'; exact Hfold

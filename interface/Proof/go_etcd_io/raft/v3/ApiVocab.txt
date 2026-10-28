@@ -98,6 +98,7 @@ structure SnapLoan : Type where
   snap : SnapshotM
   fl : w64
   dlv : List EntryM
+  decs : DecMap
 
 inductive Pending : Type
   | Pending.self (pv : Bool) (t : w64) : Pending

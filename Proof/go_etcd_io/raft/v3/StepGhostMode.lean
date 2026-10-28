@@ -750,12 +750,12 @@ theorem ghost_stepCDSM (γ : RaftNames) (md : GMode) (c c' : CfgM) (id : w64) (m
     ihave #HMs : iprop(∃ Ms : DecMap, decLb γ Ms ∗ ⌜∃ cs, scfg.Has id →
         cfgFold (effDec dec Ms) c0 fp0 = some cs ∧ cs.cfg = snapCfg sv scfg⌝) $$ []
     · by_cases hid : scfg.Has id
-      · -- (2026-10-28, interim) the certificate's fold is at no decision (`raftSnapCert`)
-        ihave %Hf := Hsd $$ %id %hid %_ %HD %fp0 Hr0 %Hfp0
+      · -- the certificate's fold, over the decisions it recorded (`raftSnapCert`)
+        icases Hsd $$ %id %hid %_ %HD %fp0 Hr0 %Hfp0 with ⟨%Mc, #HMc, %Hf⟩
         simp only [DynCfg.ofFold] at Hf
         obtain ⟨cs, h1, h2⟩ := Option.map_eq_some_iff.1 Hf
-        iexists ∅
-        isplitr; · iapply decLb_empty
+        iexists Mc
+        iframe HMc
         ipureintro; exact ⟨cs, fun _ => ⟨h1, h2⟩⟩
       · iexists ∅
         isplitr; · iapply decLb_empty

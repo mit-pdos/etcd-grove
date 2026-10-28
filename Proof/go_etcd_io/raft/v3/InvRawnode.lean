@@ -1988,15 +1988,34 @@ abbrev lentPend (o : Option SnapLoan) (P : IProp GF) : IProp GF :=
   | some l => iprop(ownSnapM l.ptr (DFrac.own (1 : Qp).half) l.snap ∗
       (ownSnapM l.ptr (DFrac.own 1) l.snap -∗ P))
 
+/-- (2026-10-28, the conf-change decision switch) **A loan's decisions** (`SnapLoan.decs`): recorded
+(`decLb`), and the loan's committed log folds over them to the snapshot's configuration in the
+dynamic mode (its certificate's, `raftSnapCert_decs`): what `Advance` installs (`RNMode.foldCfg`). -/
+def loanDec (γ : RaftNames) (l : SnapLoan) : IProp GF :=
+  iprop(decLb γ l.decs ∗ ⌜∀ D, γ.dyn = some D →
+    D.fold l.decs l.dlv = some (snapTrip l.snap l.snap.Metadata'.ConfState'.lists).cfgM⌝)
+
+instance loanDec_pers (γ : RaftNames) (l : SnapLoan) : Persistent (loanDec (GF := GF) γ l) := by
+  unfold loanDec; infer_instance
+
+/-- `loanDec` of a loan, if any (what the driver holds of a `Ready`'s loan, `nodeDriverBusy`). -/
+def loanDecO (γ : RaftNames) : Option SnapLoan → IProp GF
+  | none => iprop(True)
+  | some l => loanDec γ l
+
+instance loanDecO_pers (γ : RaftNames) (o : Option SnapLoan) : Persistent (loanDecO (GF := GF) γ o) := by
+  cases o <;> unfold loanDecO <;> infer_instance
+
 /-- (D22 S-d3a) The committed log up to a lent snapshot (`SnapLoan.dlv`); (2026-10-28, stage U0)
 and the snapshot's `ConfState` naming a node (the pending one's, `pendKsn`): what makes its
 certificate's facts hold when `Advance` applies it (`raft.Step`'s `SnapAckOk`); (stage U3c) and the
 committed log ending at the snapshot's id (`ownRawNodeReady_loanLast`), so that it is the full prefix
-the certificate's dynamic clause speaks of (`SnapAckDyn`). -/
+the certificate's dynamic clause speaks of (`SnapAckDyn`); (2026-10-28) and its decisions
+(`loanDec`). -/
 abbrev loanCom (γ : RaftNames) (o : Option SnapLoan) : IProp GF :=
   match o with
   | none => iprop(True)
-  | some l => iprop(isCommitted γ l.dlv ∗ ⌜(∃ x, l.snap.Metadata'.ConfState'.lists.Has x) ∧
+  | some l => iprop(isCommitted γ l.dlv ∗ loanDec γ l ∗ ⌜(∃ x, l.snap.Metadata'.ConfState'.lists.Has x) ∧
       plogLast base0 l.dlv = snapId l.snap⌝)
 
 instance loanCom_pers (γ : RaftNames) (o : Option SnapLoan) :

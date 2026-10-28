@@ -279,7 +279,7 @@ theorem ownRawNodeReady_abandon_keep (γ : RaftNames) (rn : Loc) (id : w64) (rs 
     | none => ipureintro; intro h; cases h
     | some l =>
       iunfold rdSnapRel at Hrdz
-      icases Hrdz with ⟨-, -, %H⟩
+      icases Hrdz with ⟨-, -, -, %H⟩
       ipureintro; intro _; rw [H.2.1]; simp
   iclear Hrdz
   isplitl [Hce_cap]
@@ -2226,7 +2226,7 @@ theorem runCfg_advance (γ : NodeNames) (rs : RNState) (t : w64) (ca : Nat)
         { rs with
           steps := [], term := t, capplied := ca, flw := false,
           slent := none, unpersisted := [], delivered := l.dlv,
-          cfg := rs.mode.foldCfg l.dlv rs.cfg } := by
+          cfg := rs.mode.foldCfg l.decs l.dlv rs.cfg } := by
       unfold advRS; rw [hsl]
     rw [Hadv]
     cases hd : rs.mode.isDyn with
@@ -2242,7 +2242,7 @@ theorem runCfg_advance (γ : NodeNames) (rs : RNState) (t : w64) (ca : Nat)
         | static => rfl
         | dyn _ _ _ _ => rw [hm] at hd; cases hd
       have Hca0 : ca = rs.capplied := Hca.2.2 Hst
-      rw [show rs.mode.foldCfg l.dlv rs.cfg = rs.cfg by rw [Hst]; rfl]
+      rw [show rs.mode.foldCfg l.decs l.dlv rs.cfg = rs.cfg by rw [Hst]; rfl]
       iunfold runCfg
       isplitr
       · ipureintro

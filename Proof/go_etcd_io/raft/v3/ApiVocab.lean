@@ -157,12 +157,15 @@ at `ptr` (`rd.Snapshot`, half of it: the queued acknowledgement shares the point
 `newStorageAppendRespMsg`) and the node's storage itself (`ownRaftLog_lend`, at the floor `fl`), and
 the committed log up to the snapshot (`dlv`, `isCommitted`); the application gives both back with
 `Advance` (`snapReceipt`), which steps the acknowledgement and hands the committed log over
-(`RNState.delivered := dlv`). -/
+(`RNState.delivered := dlv`). (2026-10-28, the conf-change decision switch) `decs`: decisions recorded
+at which `dlv` folds to the snapshot's configuration (its certificate's), which `Advance` installs
+(`RNMode.foldCfg`). -/
 structure SnapLoan [GooseExts] where
   ptr : Loc
   snap : SnapshotM
   fl : w64
   dlv : List EntryM
+  decs : DecMap
 
 /-- What the application sees of a `RawNode` (2026-10-09). -/
 structure RNState [GooseExts] where

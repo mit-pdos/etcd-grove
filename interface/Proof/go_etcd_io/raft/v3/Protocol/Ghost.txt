@@ -85,7 +85,9 @@ def raftSnapCert [ReceiptGS GF] (γ : RaftNames) (k : SnapTrip) : IProp GF :=
         (□
             ∀ x,
               ⌜k.cl.Has x⌝ -∗
-                ∀ D, ⌜γ.dyn = some D⌝ -∗ ∀ fp, logRecs γ base0 fp -∗ ⌜FullOk k.sid fp⌝ -∗ ⌜D.fold ∅ fp = some k.cfgM⌝) ∗
+                ∀ D,
+                  ⌜γ.dyn = some D⌝ -∗
+                    ∀ fp, logRecs γ base0 fp -∗ ⌜FullOk k.sid fp⌝ -∗ ∃ M, decLb γ M ∗ ⌜D.fold M fp = some k.cfgM⌝) ∗
           snapAtOk γ k)
 
 structure BootEntry : Type where
@@ -212,6 +214,10 @@ theorem isEntryR_pt [ReceiptGS GF] (γ : RaftNames) (e : EntryM) (pt : w64) : �
 theorem leadPrefix_agree [ReceiptGS GF] (γ : RaftNames) (L1 L2 t : w64) (b : entryID) (l1 l2 : List
     EntryM) (j : w64) : (plogTermAt b l1 j).isSome = true → (plogTermAt b l2 j).isSome = true → ⊢
     leadPrefix γ L1 t b l1 -∗ leadPrefix γ L2 t b l2 -∗ ⌜plogTermAt b l1 j = plogTermAt b l2 j⌝
+
+theorem raftSnapCert_decs [ReceiptGS GF] (γ : RaftNames) (k : SnapTrip) (fp : List EntryM) (x : w64)
+    (hx : k.cl.Has x) (hf : FullOk k.sid fp) : ⊢ raftSnapCert γ k -∗ logRecs γ base0 fp -∗ ∃ M,
+    decLb γ M ∗ ⌜∀ (D : DynCfg), γ.dyn = some D → D.fold M fp = some k.cfgM⌝
 
 theorem propDataIs_stamp [ReceiptGS GF] (γ : RaftNames) (e : EntryM) (t i : w64) (o : Option (List
     w8)) : propDataIs γ { Term' := t, Index' := i, Type' := e.Type', Data' := e.Data' } o =
@@ -621,11 +627,12 @@ def isCommittedDef (γ : RaftNames) (l : List EntryM) : IProp GF :=
 
 def snapAtOk (γ : RaftNames) (k : SnapTrip) : IProp GF :=
   iprop(⌜γ.reSnapReg = none⌝ ∨
-      ∃ L,
+      ∃ L M,
         isCommitted γ L ∗
-          ⌜L.length = uint.nat k.sid.index' ∧
-              Option.map EntryM.Term' L.getLast? = some k.sid.term' ∧
-                SnapListsOk k ∧ ∀ (D : DynCfg), γ.dyn = some D → D.fold ∅ L = some k.cfgM⌝)
+          decLb γ M ∗
+            ⌜L.length = uint.nat k.sid.index' ∧
+                Option.map EntryM.Term' L.getLast? = some k.sid.term' ∧
+                  SnapListsOk k ∧ ∀ (D : DynCfg), γ.dyn = some D → D.fold M L = some k.cfgM⌝)
 
 theorem isWin_core [ReceiptGS GF] (γ : RaftNames) (id term : w64) (q : GSet w64) : ⊢ isWin γ id term
     q -∗ ∃ c, isWinCore γ id term c q

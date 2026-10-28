@@ -106,4 +106,11 @@ decisions at allocation. Plus the node layer: `nodeConfig`'s view moved past ski
 
 ## Spec changes during the stage
 
-None so far (steps 1-2: the protocol and the node ghost state; no API statement touched yet).
+None in steps 1-2 (the protocol and the node ghost state; no API statement touched).
+
+Item 1 of what remained (snapshots that carry decisions, 2026-10-28): no statement of §1-§5 changed.
+Internal vocabulary only (raft's own `interface/` diff: `ApiVocab`, `Protocol/Ghost`): `raftSnapCert`'s
+dynamic clause and `snapAtOk` fold over `∃ M, decLb γ M` (was the empty map); `SnapLoan` gains
+`decs : DecMap` (the decisions its committed log folds over, from the pending snapshot's certificate at
+`readyWithoutAccept`), and `RNMode.foldCfg` takes it; the interim rule cluster's `RuleNames` gains
+`γ.raft.reDec = none` (its lower bounds are empty).

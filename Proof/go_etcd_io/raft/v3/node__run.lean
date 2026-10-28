@@ -887,6 +887,9 @@ theorem node.run.wp_proof
         icases ownRawNodeReady_loanLast γ.raft nv.rn' id rs rdv' ce es ms false l0 $$ Hrn
           with ⟨%Hx, -⟩
         ipureintro; intro l h; cases h; exact Hx
+    -- (2026-10-28, the decision switch) the loan's decisions, for the driver's `Advance`
+    icases ownRawNodeReady_loanDec γ.raft nv.rn' id rs rdv' ce es ms false L $$ Hrn
+      with ⟨#Hld, Hrn⟩
     imod ownRawNodeReady_handout γ.raft nv.rn' id rs rdv' ce es ms L $$ Hrn
       with ⟨Hrn, Happ, Hcr, Htk, #Hri⟩
     -- (2026-10-15, stage N) the committed log handed out grows, a lower bound for the driver;
@@ -904,7 +907,7 @@ theorem node.run.wp_proof
     isplitl [Hdlv Hr1 Happ Hmsgs Hmt Hcr Htk Hsnz]
     · unfold readyP
       iexists rs.delivered, ce, es, ms, rs.phs, phsNext rs.phs h, L
-      iframe Hdlv Hr1 Hdlb
+      iframe Hdlv Hr1 Hdlb Hld
       cases L with
       | none =>
         simp only [readyDataL, readyData, readyOut, rdSnapOut]

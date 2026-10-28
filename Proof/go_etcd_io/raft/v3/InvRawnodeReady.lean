@@ -615,6 +615,40 @@ theorem qCerts_of_srcs (γ : RaftNames) (st : Storage) (l : List QMsg)
     iframe Hq'
     iexact Hl'
 
+/-- (2026-10-28, the conf-change decision switch) The certificates of the snapshots the log knows
+(`LogState.ksn`, `ownRaftLog_kcert`), raft's, through the storage's link: what a `Ready` handing out
+a pending snapshot reads its decisions from (`raftSnapCert_decs`). Nothing in the no-snapshot mode. -/
+theorem ksnCerts_of_ok (γ : RaftNames) (st : Storage) (ks : List SnapTrip)
+    (E : CoPset) (hE : ↑(raftCertN γ) ⊆ E) :
+    ⊢ storCertOk (GF := GF) γ st -∗ ([∗list] k ∈ ks, storCert st k) ={E}=∗
+      [∗list] k ∈ ks, raftSnapCert γ k := by
+  induction ks with
+  | nil => iintro _ _; imodintro; iapply BigSepL.bigSepL_nil.2; iempintro
+  | cons k ks ih =>
+    iintro #Hok #Hs
+    ihave #Hok' := Hok
+    iunfold storCertOk at Hok'
+    icases Hok' with ⟨#Hreg, -⟩
+    icases BigSepL.bigSepL_cons.1 $$ Hs with ⟨#Hk, #Hs⟩
+    imod Hreg $$ %k %E %hE Hk with #Hc
+    iunfold raftSnapCertD at Hc
+    icases Hc with ⟨#Hc, -⟩
+    imod ih $$ Hok Hs with #Hr
+    imodintro
+    iapply BigSepL.bigSepL_cons.2
+    iframe Hc Hr
+
+theorem ksnCerts_of_link (γ : RaftNames) (st : Storage) (ks : List SnapTrip)
+    (E : CoPset) (hE : ↑(raftCertN γ) ⊆ E) :
+    ⊢ certLink (GF := GF) γ st -∗ ([∗list] k ∈ ks, storCert st k) ={E}=∗
+      ⌜γ.reNoSnap = true⌝ ∨ [∗list] k ∈ ks, raftSnapCert γ k := by
+  iintro #Hl #Hs
+  iunfold certLink at Hl
+  icases Hl with (%Hns | #Hok)
+  · imodintro; ileft; ipureintro; exact Hns
+  imod ksnCerts_of_ok γ st ks E hE $$ Hok Hs with #Hr
+  imodintro; iright; iexact Hr
+
 /-- A queued message's contribution is in the outbox, so it was legitimately sent
 (`isRaftMsg`, 2026-10-16): what `readyWithoutAccept` says of the messages it hands out, and
 `acceptReady` of the self-addressed responses it queues. (D22 S-b′3) With its certificate
@@ -1028,7 +1062,7 @@ def rdSnapRel (γ : RaftNames) (rs : RNState) (rd : Ready) (ce : List EntryM) (L
   match L with
   | none => iprop(⌜rd.Snapshot' = null ∧ s.logst.snap = none⌝)
   | some l => iprop(ownSnapM l.ptr (DFrac.own (1 : Qp).half) l.snap ∗ isCommitted γ l.dlv ∗
-      ⌜l.ptr = rd.Snapshot' ∧ SnapRdy rs ce l s⌝)
+      loanDec γ l ∗ ⌜l.ptr = rd.Snapshot' ∧ SnapRdy rs ce l s⌝)
 
 /-- (D22 S-d3a, 2026-10-21) What the application learns of a `Ready`'s snapshot (`L`): none
 (`rd.Snapshot` `nil`), or the loan's -- half of the snapshot (`ApplySnapshot`'s; the queued
@@ -1064,10 +1098,11 @@ def loanRet (rs : RNState) : IProp GF :=
 
 /-- (2026-10-28, stage U3c) The configuration a snapshot's acknowledgement installs, in the mode `md`,
 of the committed log `L` up to the snapshot: dynamically the fold of `L` (`StepR.applySnap`; the
-snapshot's certificate makes it some, `SnapAckDyn`), `c` if none; statically `c` (unconstrained). -/
-def RNMode.foldCfg : RNMode → List EntryM → CCState → CCState
-  | .static, _, c => c
-  | .dyn dec c0 _ _, L, c => (cfgFold dec c0 L).getD c
+snapshot's certificate makes it some, `SnapAckDyn`), `c` if none; statically `c` (unconstrained).
+(2026-10-28, the decision switch) The fold over the decisions `M` (the loan's, `SnapLoan.decs`). -/
+def RNMode.foldCfg : RNMode → DecMap → List EntryM → CCState → CCState
+  | .static, _, _, c => c
+  | .dyn dec c0 _ _, M, L, c => (cfgFold (effDec dec M) c0 L).getD c
 
 /-- (2026-10-28, stage U3d) **The driver's view of the configuration after `Advance`** of a `Ready`
 with the loan `L` (`node.Advance`), from `x` (its configuration index and configuration) before:
@@ -1076,7 +1111,7 @@ after a snapshot `Ready`, dynamically, at the snapshot's index and the fold of i
 def loanCfg (md : RNMode) (L : Option SnapLoan) (x : Nat × CCState) : Nat × CCState :=
   match L with
   | none => x
-  | some l => if md.isDyn then (l.dlv.length, md.foldCfg l.dlv x.2) else x
+  | some l => if md.isDyn then (l.dlv.length, md.foldCfg l.decs l.dlv x.2) else x
 
 theorem loanCfg_none (md : RNMode) (x : Nat × CCState) : loanCfg md none x = x := rfl
 
@@ -1097,7 +1132,7 @@ def advRS (rs : RNState) (t : w64) (ca : Nat) : RNState :=
   match rs.slent with
   | none => { rs with steps := [], term := t, capplied := ca, flw := false }
   | some l => { rs with steps := [], term := t, capplied := ca, flw := false, slent := none,
-                        unpersisted := [], delivered := l.dlv, cfg := rs.mode.foldCfg l.dlv rs.cfg }
+                        unpersisted := [], delivered := l.dlv, cfg := rs.mode.foldCfg l.decs l.dlv rs.cfg }
 
 theorem advRS_none {rs : RNState} (t : w64) (ca : Nat) (h : rs.slent = none) :
     advRS rs t ca = { rs with steps := [], term := t, capplied := ca, flw := false } := by
@@ -1222,11 +1257,30 @@ theorem ownRawNodeReady_loanLoc (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNS
     icases H with ⟨%s, %cf, %fp, %ds, %rnv, %sv, %hprev, H⟩
     iNamed H
     unfold rdSnapRel
-    icases Hrdz with ⟨-, -, %Hr⟩
+    icases Hrdz with ⟨-, -, -, %Hr⟩
     rw [show l.snap.Metadata'.Index' = (snapId l.snap).index' from rfl]
     iapply (snapLocOk_some γ id (snapId l.snap)).1
     rw [← Hr.2.1]; iexact Hsloc
   iframe Hss H
+
+/-- (2026-10-28, the conf-change decision switch) A computed `Ready`'s loan has its decisions
+(`loanDec`, `rdSnapRel`). -/
+theorem ownRawNodeReady_loanDec (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNState)
+    (rd : Ready) (ce es : List EntryM) (ms : List QMsg) (h : Bool) (L : Option SnapLoan) :
+    ownRawNodeReady (GF := GF) γ rn id rs rd ce es ms h L ⊢
+      loanDecO γ L ∗ ownRawNodeReady γ rn id rs rd ce es ms h L := by
+  iintro H
+  ihave #Hd : loanDecO γ L $$ [H]
+  · iunfold ownRawNodeReady at H
+    icases H with ⟨%s, %cf, %fp, %ds, %rnv, %sv, %hprev, H⟩
+    iNamed H
+    cases L with
+    | none => unfold loanDecO; itrivial
+    | some l =>
+      unfold rdSnapRel
+      icases Hrdz with ⟨-, -, #Hd, -⟩
+      unfold loanDecO; iexact Hd
+  iframe Hd H
 
 /-- Abandoning a computed `Ready` (2026-10-10; see the file header): with the messages it
 handed out given back, the node is as before `readyWithoutAccept` (which changed nothing:
@@ -1413,10 +1467,10 @@ theorem rdSnapRel_facts (γ : RaftNames) (rs : RNState) (rd : Ready) (ce : List 
     ipureintro; exact H
   | some l =>
     simp only [rdSnapRel]
-    iintro ⟨Hs, #Hc, %H⟩
+    iintro ⟨Hs, #Hc, #Hd, %H⟩
     isplitr
     · ipureintro; exact ⟨(fun h => by cases h), (fun l' h => by cases h; exact H)⟩
-    iframe Hs Hc
+    iframe Hs Hc Hd
     ipureintro; exact H
 
 /-- The storage's hand-out for the entries a computed `Ready` hands out (2026-10-10): the
@@ -1791,7 +1845,7 @@ theorem ownRawNodeReady_loanLast (γ : RaftNames) (rn : Loc) (id : w64) (rs : RN
     icases H with ⟨%s, %cf, %fp, %ds, %rnv, %sv, %hprev, H⟩
     iNamed H
     unfold rdSnapRel
-    icases Hrdz with ⟨-, #Hcl, %Hr⟩
+    icases Hrdz with ⟨-, #Hcl, -, %Hr⟩
     obtain ⟨-, hsr⟩ := Hr
     have hsn : s.logst.snap = some (snapId l.snap) := hsr.1
     have hdl : l.dlv.length = (uint.Z l.snap.Metadata'.Index').toNat := hsr.2.2.2.2.2.2.2.1

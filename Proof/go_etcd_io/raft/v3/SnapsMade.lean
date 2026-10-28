@@ -124,7 +124,9 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 def RuleNames (γ : Cluster) (r : ConfRule) (c0 : Membership) : Prop :=
   ∃ (h0 : CfgOk (stOf c0)), c0.Valid ∧
     γ.raft.dyn = some (DynCfg.ofFold (r.toDec c0) (stOf c0) h0) ∧
-    γ.raft.reNoSnap = false ∧ (∀ L d, γ.raft.reSnapOkRaw L d) ∧ γ.raft.reSnapReg ≠ none
+    γ.raft.reNoSnap = false ∧ (∀ L d, γ.raft.reSnapOkRaw L d) ∧ γ.raft.reSnapReg ≠ none ∧
+    -- (2026-10-28, the decision switch) no decision map: the rule decides
+    γ.raft.reDec = none
 
 /-- The record `s`'s configuration is the rule's fold of the committed prefix of its length. -/
 def snapConfAt (γ : Cluster) (r : ConfRule) (c0 : Membership) (s : SnapRec) : IProp GF :=
@@ -222,7 +224,7 @@ theorem snapshotCert_make (γ : Cluster) (N : Namespace) (E : CoPset) (HE : ↑N
       snapshotCert γ N ⟨⟨t, i⟩, cs.lists, m.autoLeave, d⟩ := by
   intro Hrn Hlen Hlast Hok Hfold Hcs
   have Hrn' := Hrn
-  obtain ⟨h0, hv0, hd, Hns, Hsok, Hreg⟩ := Hrn'
+  obtain ⟨h0, hv0, hd, Hns, Hsok, Hreg, Hrd⟩ := Hrn'
   iintro #Hci #Hlb Hown
   ihave #Hci' := Hci
   iunfold clusterInv at Hci'
@@ -242,8 +244,9 @@ theorem snapshotCert_make (γ : Cluster) (N : Namespace) (E : CoPset) (HE : ↑N
   have HLlen : L.length = uint.nat i := by rw [← Hlen, ← HL, strip_length]
   have HLlast : L.getLast?.map EntryM.Term' = some t := by
     rw [← Hlast, ← HL]; unfold strip; rw [List.getLast?_map, Option.map_map]; rfl
-  imod raftSnapCert_make_dyn γ.raft E L ⟨⟨t, i⟩, cs.lists, m.autoLeave, d⟩ _ HlogN hd HLlen
-    HLlast Hok HD $$ Hcinv HLc with #Hc
+  imod raftSnapCert_make_dyn γ.raft E L ⟨⟨t, i⟩, cs.lists, m.autoLeave, d⟩ _ ∅ HlogN hd HLlen
+    HLlast Hok HD $$ Hcinv HLc [] with #Hc
+  · iapply decLb_empty
   -- the registry
   unfold ownSnapsMade
   icases Hown with ⟨%g, %K, %HK, Ha, #HS⟩
@@ -264,9 +267,10 @@ theorem snapshotCert_make (γ : Cluster) (N : Namespace) (E : CoPset) (HE : ↑N
   unfold snapshotCert
   iframe Hc
   isplitr; · ipureintro; exact Hns
-  iexists L
+  iexists L, ∅
   rw [HL]
   iframe Hlb
+  isplitr; · iapply decLb_empty
   isplitr
   · ipureintro
     refine ⟨Hidx, HLlen, Hsok _ _, fun _ => ⟨HLlast, Hok, fun D' HD' => ?_⟩⟩
@@ -290,9 +294,13 @@ theorem snapshotCert_made (γ : Cluster) (N : Namespace) (r : ConfRule) (c0 : Me
           Membership.fold r c0 l = some m ∧ k.cl.Is m ∧ k.al = m.autoLeave⌝ := by
   intro Hrn
   have Hrn' := Hrn
-  obtain ⟨h0, hv0, hd, -, -, Hreg⟩ := Hrn'
+  obtain ⟨h0, hv0, hd, -, -, Hreg, Hrd⟩ := Hrn'
   unfold snapshotCert
-  iintro ⟨-, -, %L, #Hlb, %HL, #Hr⟩
+  iintro ⟨-, -, %L, %M, #Hlb, #HM, %HL, #Hr⟩
+  iunfold decLb at HM
+  icases HM with ⟨%HM0, -⟩
+  have HM0 := HM0 Hrd
+  subst HM0
   obtain ⟨-, Hlen, -, Hat⟩ := HL
   obtain ⟨Hlast, Hok, Hfd⟩ := Hat Hreg
   have HD := Hfd _ hd

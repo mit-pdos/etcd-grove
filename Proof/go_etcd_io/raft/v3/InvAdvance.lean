@@ -168,11 +168,11 @@ theorem advance_complete (γ : NodeNames) (rn : Loc) (id : w64) (ds : List Entry
     | true =>
       have Hdy : rs.mode.isDyn = true := by rw [Hmd, hd]
       have Hle : ca_r ≤ l.dlv.length := Nat.le_trans Hinv.1 Hcap
-      imod dghostVar_update_halves (l.dlv.length, rs.mode.foldCfg l.dlv rs.cfg) γ.cap _ _
+      imod dghostVar_update_halves (l.dlv.length, rs.mode.foldCfg l.decs l.dlv rs.cfg) γ.cap _ _
         $$ Hcap_r Hpay with ⟨Hcap_r, Hpay⟩
       imod mono_nat_own_update l.dlv.length Hle $$ Hcam with ⟨Hcam, #Hcl⟩
       have Hlc : loanCfg γ.mode (some l) (ca_r, rs.cfg) =
-          (l.dlv.length, rs.mode.foldCfg l.dlv rs.cfg) := by
+          (l.dlv.length, rs.mode.foldCfg l.decs l.dlv rs.cfg) := by
         simp only [loanCfg, hd, ↓reduceIte, Hmd]
       rw [Hlc]
       imodintro

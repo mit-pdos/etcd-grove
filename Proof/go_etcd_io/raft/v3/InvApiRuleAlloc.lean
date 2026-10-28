@@ -64,13 +64,13 @@ theorem cluster_alloc_rule_impl (N : Namespace) (vs : List w64) (r : ConfRule) (
     false (fun h => by cases h) false (fun h => by cases h) (fun _ _ => True) (fun _ => none)
     (N .@ "raft") N (some g) none Hcne Hnz' BootWf_nil (fun h => absurd rfl h)
     $$ Hcl with ⟨%γr, %Hγ, #Hcinv, #Hc0, Hnodes, Hout, Hcr, -⟩
-  obtain ⟨Hcfg, Hdyn, -, -, -, Hns, Hnx, Hsok, Hsl, HNs, Hcert, Hrg, -⟩ := Hγ
+  obtain ⟨Hcfg, Hdyn, -, -, -, Hns, Hnx, Hsok, Hsl, HNs, Hcert, Hrg, Hrd⟩ := Hγ
   iunfold allocOut at Hout
   icases Hout with ⟨%γ, %Hγr, #HspT, #Hinv, Hops, Hctx⟩
   obtain ⟨Hγr, Hγb, Hγm, Hγt⟩ := Hγr
   subst Hγr
   have Hrn : RuleNames γ r c0 := by
-    refine ⟨Hv.1, Hv, ?_, Hns, ?_, ?_⟩
+    refine ⟨Hv.1, Hv, ?_, Hns, ?_, ?_, Hrd⟩
     · unfold RaftNames.dyn; rw [Hdyn]; simp [DynCfg.all_self, dc]
     · intro L d; rw [Hsok]; trivial
     · rw [Hrg]; simp

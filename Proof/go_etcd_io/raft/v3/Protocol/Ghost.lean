@@ -1683,12 +1683,13 @@ instance logRecs_timeless (γ : RaftNames) (b : entryID) (es : List EntryM) :
 /-- **The snapshot `k` is at a committed prefix** (2026-10-28, stage U2 of
 `notes/raft-unified-plan.md`), in a cluster that keeps a registry of the snapshots the application
 made (`RaftNames.reSnapReg`): a committed prefix `L` of its length and last term, its lists well
-formed (`SnapListsOk`) and denoting the mode's configuration of `L`. Nothing without a registry.
+formed (`SnapListsOk`) and denoting the mode's configuration of `L` -- (2026-10-28, the decision
+switch) its fold over some decisions recorded (`decLb`). Nothing without a registry.
 It does not read the snapshot's data. -/
 def snapAtOk (γ : RaftNames) (k : SnapTrip) : IProp GF :=
-  iprop(⌜γ.reSnapReg = none⌝ ∨ ∃ L : List EntryM, isCommitted γ L ∗
+  iprop(⌜γ.reSnapReg = none⌝ ∨ ∃ (L : List EntryM) (M : DecMap), isCommitted γ L ∗ decLb γ M ∗
     ⌜L.length = uint.nat k.sid.index' ∧ L.getLast?.map EntryM.Term' = some k.sid.term' ∧
-      SnapListsOk k ∧ ∀ D, γ.dyn = some D → D.fold ∅ L = some k.cfgM⌝)
+      SnapListsOk k ∧ ∀ D, γ.dyn = some D → D.fold M L = some k.cfgM⌝)
 
 instance snapAtOk_persistent (γ : RaftNames) (k : SnapTrip) :
     Persistent (snapAtOk (GF := GF) γ k) := by
@@ -1702,7 +1703,8 @@ instance snapAtOk_timeless (γ : RaftNames) (k : SnapTrip) :
 `SnapConf.lean` and restated, D22 S-b′3, 2026-10-20): what a receiver of a `MsgSnap` needs of the
 snapshot -- `SnapScope`'s facts (`SnapListsOk`), and what the mode asks (`GMode.SnapOk`):
 statically the ghost state's voters, not joint, (D19p) its ids within the tracked bound;
-dynamically A3 for any recorded full-log prefix ending at the snapshot's id. **Every part under
+dynamically A3 for any recorded full-log prefix ending at the snapshot's id (2026-10-28, the
+decision switch: the fold over some decisions recorded, `decLb`). **Every part under
 `k.cl.Has x`**: a receiver reads the lists only once `restore` found itself in them (the
 `!found` exit comes first, D22j), and etcd's empty `ConfState` names no node, so the certificate
 holds of it in either mode (`raftSnapCert_empty`). Persistent; it names no node, so whoever holds
@@ -1712,9 +1714,8 @@ def raftSnapCert (γ : RaftNames) (k : SnapTrip) : IProp GF :=
     ⌜γ.reDyn = none → ∀ x, k.cl.Has x → GMap.listToSet k.cl.voters = γ.reCfg ∧ k.cl.outgoing = [] ∧
       ∀ T, γ.reTracked = some T → k.cfgM.voters ∪ k.cfgM.learners ⊆ T⌝ ∗
     □ (∀ (x : w64), ⌜k.cl.Has x⌝ -∗ ∀ (D : DynCfg), ⌜γ.dyn = some D⌝ -∗ ∀ (fp : List EntryM),
-        logRecs γ base0 fp -∗ ⌜FullOk k.sid fp⌝ -∗ ⌜D.fold ∅ fp = some k.cfgM⌝) ∗
-
-
+        logRecs γ base0 fp -∗ ⌜FullOk k.sid fp⌝ -∗
+        ∃ M : DecMap, decLb γ M ∗ ⌜D.fold M fp = some k.cfgM⌝) ∗
     snapAtOk γ k)
 
 instance raftSnapCert_persistent (γ : RaftNames) (k : SnapTrip) :
@@ -1758,6 +1759,28 @@ theorem raftSnapCert_static (γ : RaftNames) (k : SnapTrip) (hd : γ.dyn = none)
 /-- (D22 S-r, 2026-10-21) The configuration certificate does not read a snapshot's data. -/
 theorem raftSnapCert_dat (γ : RaftNames) (k : SnapTrip) (d : List w8) :
     raftSnapCert (GF := GF) γ { k with dat := d } = raftSnapCert γ k := rfl
+
+/-- (2026-10-28, the decision switch) **A certificate's decisions at a prefix**: the full prefix `fp`
+with records ending at the snapshot's id, the `ConfState` naming a node: the certificate's dynamic
+clause gives decisions recorded at which `fp` folds to the snapshot's configuration (none needed
+outside the dynamic mode). -/
+theorem raftSnapCert_decs (γ : RaftNames) (k : SnapTrip) (fp : List EntryM) (x : w64)
+    (hx : k.cl.Has x) (hf : FullOk k.sid fp) :
+    ⊢ raftSnapCert (GF := GF) γ k -∗ logRecs γ base0 fp -∗
+      ∃ M : DecMap, decLb γ M ∗ ⌜∀ D, γ.dyn = some D → D.fold M fp = some k.cfgM⌝ := by
+  iintro #Hc #Hr
+  cases hd : γ.dyn with
+  | none =>
+    iexists ∅
+    isplitr; · iapply decLb_empty
+    ipureintro; intro D h; cases h
+  | some D =>
+    unfold raftSnapCert
+    icases Hc with ⟨-, -, #Hsd, -⟩
+    icases Hsd $$ %x %hx %D %hd %fp Hr %hf with ⟨%M, #HM, %Hf⟩
+    iexists M
+    iframe HM
+    ipureintro; intro D' h; cases h; exact Hf
 
 /-- **The snapshot of index `i` and data `d` was made by the application** (2026-10-28, stage U2 of
 `notes/raft-unified-plan.md`), if the cluster keeps a registry of the snapshots made

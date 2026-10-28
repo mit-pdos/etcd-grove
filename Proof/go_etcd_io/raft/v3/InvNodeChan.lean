@@ -130,18 +130,37 @@ instance ccState_countable : Pos.Countable CCState :=
   countableOfLeftInverse (fun c : CCState => (c.cfg, c.prs)) (fun p => ⟨p.1, p.2⟩)
     (fun _ => rfl)
 
+/-- (2026-10-28, the conf-change decision switch) A decision map, by its bindings. -/
+instance decMap_countable : Pos.Countable DecMap :=
+  .ofInjective (fun m => Pos.Countable.encode m.toList) (fun m1 m2 h => by
+    have h := Pos.encode_inj h
+    apply GMap.ext; intro k
+    cases h1 : m1.lookup k with
+    | none =>
+      cases h2 : m2.lookup k with
+      | none => rfl
+      | some v =>
+        have h3 := (GMap.mem_toList m2 k v).2 h2
+        rw [← h] at h3
+        have h4 := (GMap.mem_toList m1 k v).1 h3
+        exact absurd (h1.symm.trans h4) (by simp)
+    | some v =>
+      have h3 := (GMap.mem_toList m1 k v).2 h1
+      rw [h] at h3
+      exact ((GMap.mem_toList m2 k v).1 h3).symm)
+
 /-- (D22 S-d4, 2026-10-21) A snapshot `Ready`'s loan, in `run`'s record of its last `Ready`
 (`NodeNames.rof`). -/
 instance snapLoan_countable : Pos.Countable SnapLoan :=
   .ofInjective (fun l => Pos.Countable.encode
-      ((((((((((l.ptr, l.snap.Data'), l.snap.Metadata'.ConfState'.Voters'),
+      (((((((((((l.ptr, l.snap.Data'), l.snap.Metadata'.ConfState'.Voters'),
         l.snap.Metadata'.ConfState'.Learners'), l.snap.Metadata'.ConfState'.VotersOutgoing'),
         l.snap.Metadata'.ConfState'.LearnersNext'), l.snap.Metadata'.ConfState'.AutoLeave'),
-        l.snap.Metadata'.Index'), l.snap.Metadata'.Term'), l.fl), l.dlv))
-    (fun ⟨_, ⟨_, ⟨⟨_, _, _, _, _⟩, _, _⟩⟩, _, _⟩ ⟨_, ⟨_, ⟨⟨_, _, _, _, _⟩, _, _⟩⟩, _, _⟩ h => by
+        l.snap.Metadata'.Index'), l.snap.Metadata'.Term'), l.fl), l.dlv), l.decs))
+    (fun ⟨_, ⟨_, ⟨⟨_, _, _, _, _⟩, _, _⟩⟩, _, _, _⟩ ⟨_, ⟨_, ⟨⟨_, _, _, _, _⟩, _, _⟩⟩, _, _, _⟩ h => by
       have h := Pos.encode_inj h
       simp only [Prod.mk.injEq] at h
-      obtain ⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨rfl, rfl⟩, rfl⟩, rfl⟩, rfl⟩, rfl⟩, rfl⟩, rfl⟩, rfl⟩, rfl⟩, rfl⟩ := h
+      obtain ⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨rfl, rfl⟩, rfl⟩, rfl⟩, rfl⟩, rfl⟩, rfl⟩, rfl⟩, rfl⟩, rfl⟩, rfl⟩, rfl⟩ := h
       rfl)
 
 end countable
@@ -695,7 +714,9 @@ is of the committed log handed out after the `Ready` (`dlvAfter`). -/
     dghostVar γ.rof (DFrac.own (1 : Qp).half) (d, ce, es, p', L) ∗
     readyDataL γ rd d ce es ms p p' L ∗
     -- (2026-10-15, stage N) the committed log handed out, a lower bound
-    monoListLbOwn γ.dlm (dlvAfter d ce L))
+    monoListLbOwn γ.dlm (dlvAfter d ce L) ∗
+    -- (2026-10-28, the decision switch) the loan's decisions, for `Advance`
+    loanDecO γ.raft L)
 
 /-- (D22 S-d4) `readyP` for a client that cannot be handed a snapshot (`readyDataL_none`): as until
 then, the record at no loan. -/
@@ -708,7 +729,7 @@ theorem readyP_none (γ : NodeNames) (rd : Ready)
         readyData γ rd d ce es ms p p' ∗ monoListLbOwn γ.dlm (d ++ ce) := by
   iintro HP
   unfold readyP
-  icases HP with ⟨%d, %ce, %es, %ms, %p, %p', %L, Hd, Hrof, Hdata, #Hlb⟩
+  icases HP with ⟨%d, %ce, %es, %ms, %p, %p', %L, Hd, Hrof, Hdata, #Hlb, -⟩
   icases readyDataL_none γ rd d ce es ms p p' L H $$ Hdata with ⟨%HL, Hdata⟩
   subst HL
   iexists d, ce, es, ms, p, p'
@@ -843,7 +864,7 @@ driver's) and the snapshot's `ConfState` no auto-leave one (`RawNode.Advance`'s 
       NoConfIn rs.delivered rs.capplied rs.delivered.length ∧
       l.snap.Metadata'.ConfState'.AutoLeave' = false⌝ ∗
     monoListAuthOwn γ.dlm 1 l.dlv ∗
-    dghostVar γ.cap (DFrac.own (1 : Qp).half) (l.dlv.length, rs.mode.foldCfg l.dlv rs.cfg) ∗
+    dghostVar γ.cap (DFrac.own (1 : Qp).half) (l.dlv.length, rs.mode.foldCfg l.decs l.dlv rs.cfg) ∗
     monoNatAuthOwn γ.cam 1 l.dlv.length)
 
 /-- (2026-10-28, stage U3d) `run`'s side of the configuration after the `advancec` rendezvous
@@ -1043,7 +1064,7 @@ snapshot, if any (its loan, `run`'s record names it): `ds` is then the committed
 snapshot (`dlvAfter`), and the storage is the application's until `Advance` (`advReceipt`). -/
 @[no_expose] def nodeDriverBusy (γ : NodeNames) (id : w64) (n : Loc) (ds es : List EntryM)
     (p' : HardStateM) (L : Option SnapLoan := none) : IProp GF :=
-  iprop(isNodeChan γ id n ∗ dlvLb γ ds ∗
+  iprop(isNodeChan γ id n ∗ dlvLb γ ds ∗ loanDecO γ.raft L ∗
     ∃ (d ce : List EntryM) (p : HardStateM), dghostVar γ.dlv (DFrac.own (1 : Qp).half) (d, p) ∗
       dghostVar γ.dlv (DFrac.own (1 : Qp).half) (d, p) ∗
       dghostVar γ.rof (DFrac.own (1 : Qp).half) (d, ce, es, p', L) ∗ ⌜ds = dlvAfter d ce L⌝ ∗
@@ -1079,14 +1100,14 @@ theorem node_ready_receive (γ : NodeNames) (id : w64) (n ch : Loc) (ds : List E
   iintro %rd
   iintro !> HP
   unfold readyP
-  icases HP with ⟨%d, %ce, %es, %ms, %p0, %p', %L, Hd, Hrof, Hdata, #Hlb⟩
+  icases HP with ⟨%d, %ce, %es, %ms, %p0, %p', %L, Hd, Hrof, Hdata, #Hlb, #Hld⟩
   ihave %Heq := dghostVar_agree _ _ _ _ _ $$ Hd Hds
   cases Heq
   iapply HΦ
   iexists ce, es, ms, p', L
   iframe Hdata
   unfold nodeDriverBusy
-  iframe Hnode
+  iframe Hnode Hld
   isplitr
   · unfold dlvLb; iexact Hlb
   iexists ds, ce, p
@@ -1120,6 +1141,20 @@ theorem nodeDriverBusy_lb (γ : NodeNames) (id : w64) (n : Loc) (ds es : List En
   iintro H
   unfold nodeDriverBusy
   icases H with ⟨-, $, -⟩
+
+/-- (2026-10-28, the conf-change decision switch) A busy token holds its loan's decisions. -/
+theorem nodeDriverBusy_loanDec (γ : NodeNames) (id : w64) (n : Loc) (ds es : List EntryM)
+    (p' : HardStateM) (l : SnapLoan) :
+    nodeDriverBusy (GF := GF) γ id n ds es p' (some l) ⊢
+      nodeDriverBusy γ id n ds es p' (some l) ∗ decLb γ.raft l.decs ∗
+        ⌜∀ D, γ.raft.dyn = some D →
+          D.fold l.decs l.dlv = some (snapTrip l.snap l.snap.Metadata'.ConfState'.lists).cfgM⌝ := by
+  unfold nodeDriverBusy
+  iintro ⟨#Hn, #Hlb, #Hld, H⟩
+  iframe Hn Hlb Hld H
+  iunfold loanDecO at Hld
+  iunfold loanDec at Hld
+  iexact Hld
 
 /-! ### Laws of the sealed node predicates (2026-10-26, raft's signature, stage 1)
 
@@ -1169,13 +1204,13 @@ theorem readyP_take (γ : NodeNames) (id : w64) (n : Loc) (rd : Ready) (ds : Lis
   unfold nodeDriverChan
   icases Hdrv with ⟨#Hnode, Hds, -, Hreq⟩
   unfold readyP
-  icases HP with ⟨%d, %ce, %es, %ms, %p0, %p', %L, Hd, Hrof, Hdata, #Hlb⟩
+  icases HP with ⟨%d, %ce, %es, %ms, %p0, %p', %L, Hd, Hrof, Hdata, #Hlb, #Hld⟩
   ihave %Heq := dghostVar_agree _ _ _ _ _ $$ Hd Hds
   cases Heq
   iexists ce, es, ms, p', L
   iframe Hdata
   unfold nodeDriverBusy dlvLb
-  iframe Hnode Hlb
+  iframe Hnode Hlb Hld
   iexists ds, ce, p
   iframe Hd Hds Hrof Hreq
   ipureintro; rfl
