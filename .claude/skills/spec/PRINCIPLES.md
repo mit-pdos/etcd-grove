@@ -5,9 +5,17 @@ true. Each rule says why, and points to where it was learned: an example in `exa
 the critique, the result) or a review of the compactor pilot in `notes/spec-first-study/`. Open those
 only for the rules your target touches.
 
+## Scope
+
+These judgments are for specs that cross a package boundary: what another package's proof sees. An
+internal helper's spec, used only inside its own package, may simply mirror its code.
+(`notes/spec-first-plan.md`, phase 1b)
+
 ## Requirements
 
-A spec that fails one of these is wrong, whatever else it does well.
+A spec that fails one of these is wrong, whatever else it does well. (A review ranks these as
+*tier 1*: a spec failing one is not done. Every other section is *tier 2*: preferences that rank
+specs which already meet all of these.)
 
 - **True of the code**, including no panic under its precondition (a WP excludes panics); a
   trust-boundary axiom true of the library's code or documented behavior.
@@ -58,11 +66,6 @@ A spec that fails one of these is wrong, whatever else it does well.
   proof's slack; a fact that holds of every reachable state is one law of the vocabulary, not a
   conjunct of each operation's post. Do not copy a conjunct from a sibling spec without knowing why it
   is there. (`put.md`, critique 5)
-- **Little coupling, small size**: each other package's predicate a spec mentions is a place where a
-  change elsewhere forces this spec to change (the main cause of spec churn here); and the unfolded
-  statement's length, binders and premises are a cost to every reader. Only specs that cross a
-  package boundary need this care; an internal helper's spec may mirror its code.
-  (`notes/spec-first-plan.md`, phase 1b)
 
 ## Shape
 
@@ -86,7 +89,7 @@ A spec that fails one of these is wrong, whatever else it does well.
   hack to put off merge conflicts.
 - **After a change, drop what existed only for what it changed.** (`range.md`, critique 2)
 
-## Resources and laws
+## Resources
 
 - **An exclusive resource the code needs is covered by a token every caller can supply**: a contract
   with no resource over an implementation that needs one (a reader slot) cannot be met
@@ -97,8 +100,23 @@ A spec that fails one of these is wrong, whatever else it does well.
   depend on the value (a persistent one-shot fact), not on the call. (`pilot-review-2.md`)
 - **Read the definitions of the resources a spec takes**, not only their names: a predicate chosen
   for the access it gives may also assert what the function breaks. (`pilot-review-2.md`)
-- **The laws callers need come with the predicate**: persistence, timelessness, fractions,
-  agreement, exclusivity. (`notes/spec-first-plan.md`, phase 1b)
 - **Know what it rests on**: the axioms a spec depends on (`etc/tcb-report.py --roots`), whether a
-  tester covers them, and how much of the pre and post is pure and decidable (what a tester can
-  check). (`notes/spec-first-plan.md`, phase 1b)
+  tester covers them, and how much of the pre and post is pure and decidable. The tester is phase 2
+  of `notes/spec-first-plan.md`: instrumented Go runs record each call's state, arguments and result,
+  and the spec's decidable pre and post are evaluated on them, so the decidable part of a spec is
+  the part checked before any proof.
+
+## Measures
+
+Count these for each spec (on the unfolded statement, as `etc/gen-interface.py` renders it); each is
+a cost, and comparing them ranks specs that meet the requirements. (`notes/spec-first-plan.md`,
+phase 1b)
+
+- **Coupling**: the other packages' predicates and definitions the statement mentions. Each is a
+  place where a change in that package forces this spec, and its callers' proofs, to change: in this
+  repository's history the main cause of spec revisions.
+- **Size**: the statement's length, its binders and its premises: a cost to every reader and to
+  every caller's proof.
+- **Law coverage**: the laws exported next to each predicate (persistence, timelessness, fractions,
+  agreement, exclusivity) against the laws its callers use. A missing law shows up as a caller
+  unfolding the predicate.
