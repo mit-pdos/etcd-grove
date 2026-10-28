@@ -3,7 +3,7 @@ Proof of `Spec/github_com/mit_pdos/etcd_grove/examples/kv/StartCluster.lean`. Le
 Rocq counterpart).
 
 The cluster bring-up of the store's `Main`, at any storage registry (`[KVStor GF]`): raft's
-static cluster of the voters `1, 2, 3` (2026-10-27: raft's draft API, `Draft.cluster_alloc_static`,
+static cluster of the voters `1, 2, 3` (2026-10-27: raft's draft API, `cluster_alloc_static`,
 with the term budget; until then `ownRaftGhost_alloc_snap` and `budget_alloc`) with the store's
 invariant (`rkvInv_alloc`, which gives the client's half at the empty store), then a first loop over the voters (`NewStorage`, `RestartNode` into `peers` and
 `storages`), the transfer budget and the `send` closure (`deliver`), and a second loop that
@@ -188,12 +188,12 @@ section reg
 variable [KVStor GF]
 
 /-- What `StartCluster` holds of a replica between starting its node and starting its replica: the
-node (`Draft.isNode`), its driver token idle on the store's storage, the storage's record, the
+node (`isNode`), its driver token idle on the store's storage, the storage's record, the
 replica's sequence-number token, and the storage's snapshot token, for `run`. -/
 def drvRes (γr : RKVNames) (id : w64) (nd : GoInterface) (st : Loc) : IProp GF :=
   iprop(∃ (n : Loc), ⌜nd = interface.mkOk (go.GoType.PointerType node.ty) #n⌝ ∗
-    Draft.isNode n γr.cluster kvRaftN id ∗
-    Draft.nodeDriver n γr.cluster kvRaftN (Draft.NodeDriverState.init (kvStorIface st)) ∗
+    isNode n γr.cluster kvRaftN id ∗
+    nodeDriver n γr.cluster kvRaftN (NodeDriverState.init (kvStorIface st)) ∗
     (∃ (ms : Loc) (γs : MemStorNames), kvStorRec st ms γs) ∗
     id ↪[γr.seq] W64 0 ∗ runStor γr st memStorEmpty)
 
@@ -208,7 +208,7 @@ theorem StartCluster.wp_proof
     (wp_Errorf : quietLogger.Errorf.spec (GF := GF) (hG := hG))
     (wp_Infof : quietLogger.Infof.spec (GF := GF) (hG := hG))
     (wp_Warningf : quietLogger.Warningf.spec (GF := GF) (hG := hG))
-    (wp_RestartNode : Draft.RestartNode.spec (GF := GF) (hG := hG))
+    (wp_RestartNode : RestartNode.spec (GF := GF) (hG := hG))
     (wp_LastIndex : MemoryStorage.LastIndex.spec (GF := GF) (hG := hG))
     (wp_FirstIndex : MemoryStorage.FirstIndex.spec (GF := GF) (hG := hG))
     (wp_Term : MemoryStorage.Term.spec (GF := GF) (hG := hG))
@@ -228,7 +228,7 @@ theorem StartCluster.wp_proof
   -- the cluster (the voters `1, 2, 3`, static, of the store's snapshots' data `kvSnapOk`; its
   -- term budget backed by the time receipts), then the store's invariant from the client's share,
   -- with the client's half of the store's state and the sequence-number tokens
-  imod Draft.cluster_alloc_static (GF := GF) kvRaftN clusterIds kvSnapOk ⊤ Hrb (by decide)
+  imod cluster_alloc_static (GF := GF) kvRaftN clusterIds kvSnapOk ⊤ Hrb (by decide)
     clusterIds_nodup (by decide) (by decide)
     with ⟨%γ, Hops, HU, -, #Hstatic, #Hxfer, Hboots⟩
   imod rkvInv_alloc (GF := GF) ⊤ γ (constMap clusterIds (W64 0)) $$ Hops HU
@@ -237,7 +237,7 @@ theorem StartCluster.wp_proof
   ihave Hseqs := bigSepM_constMap clusterIds (W64 0) clusterIds_nodup
     (fun id s => (id ↪[γr.seq] s : IProp GF)) $$ Hseqs
   ihave Htodo := (BigSepL.bigSepL_sep_eqv
-    (Φ := fun _ id => Draft.nodeRestartBoot (GF := GF) γr.cluster kvRaftN clusterIds id)
+    (Φ := fun _ id => nodeRestartBoot (GF := GF) γr.cluster kvRaftN clusterIds id)
     (Ψ := fun _ id => (id ↪[γr.seq] W64 0 : IProp GF)) (l := clusterIds)).2 $$ [Hboots Hseqs]
   · iframe Hboots Hseqs
   -- the nodes
@@ -248,7 +248,7 @@ theorem StartCluster.wp_proof
       "Hdone" ∷ ([∗list] id ∈ clusterIds.take (sint.nat k), ∃ (nd : GoInterface) (st : Loc),
         ⌜M !! id = some nd ∧ S !! id = some st⌝ ∗ drvRes γr id nd st) ∗
       "Htodo" ∷ ([∗list] id ∈ clusterIds.drop (sint.nat k),
-        Draft.nodeRestartBoot γr.cluster kvRaftN clusterIds id ∗ id ↪[γr.seq] W64 0) ∗
+        nodeRestartBoot γr.cluster kvRaftN clusterIds id ∗ id ↪[γr.seq] W64 0) ∗
       "%Hdom" ∷ ⌜∀ id, id ∈ clusterIds.drop (sint.nat k) → M !! id = none ∧ S !! id = none⌝)
     $$ [i id HmP HmS Htodo]
   · iexists W64 0, _, ∅, ∅
@@ -275,7 +275,7 @@ theorem StartCluster.wp_proof
     wp_apply (wp_NewStorage _ clusterIds) $$ [$HstorInv $Hvsl]
       as %st ⟨%ms, %γs, #Hrec, #Hvoters, Hmem, Hca, Hstok, %Hcap⟩
     -- the storage's certificate registry tied to the cluster
-    imod Draft.storageCertInv_alloc γr.cluster kvRaftN γs ⊤ $$ Hca with #Hci
+    imod storageCertInv_alloc γr.cluster kvRaftN γs ⊤ $$ Hca with #Hci
     ihave #Hcl := kvStorCertLink_intro γr.cluster kvRaftN st ms γs $$ Hci Hrec
     have Hid0m : id0 ∈ clusterIds := List.mem_of_getElem? Hid0
     rw [drop_cons_of_getElem? _ _ _ Hid0]

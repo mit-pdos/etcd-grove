@@ -964,7 +964,7 @@ lower bound, and the `ConfState` of the configuration. (2026-10-16, stage R5: th
 
 set_option synthInstance.maxHeartbeats 400000 in
 set_option synthInstance.maxSize 4096 in
-instance isNode_persistent (γ : NodeNames) (id : w64) (n : Loc) :
+instance isNodeChan_persistent (γ : NodeNames) (id : w64) (n : Loc) :
     Persistent (isNodeChan (GF := GF) γ id n) := by
   unfold isNodeChan; infer_instance
 
@@ -995,7 +995,7 @@ snapshot (`dlvAfter`), and the storage is the application's until `Advance` (`ad
 def isReadyChanRaw (γ : NodeNames) (ch : Loc) : IProp GF :=
   isHandshake γ.readyc ch (readyP γ) iprop(True)
 
-instance isReadyChan_persistent (γ : NodeNames) (ch : Loc) :
+instance isReadyChanRaw_persistent (γ : NodeNames) (ch : Loc) :
     Persistent (isReadyChanRaw (GF := GF) γ ch) := by
   unfold isReadyChanRaw; infer_instance
 

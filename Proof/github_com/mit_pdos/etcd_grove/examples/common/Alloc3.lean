@@ -103,8 +103,8 @@ theorem memberBoot_of (γ : SrvRaft) (ps : List w64) (ctxs : List (List w8)) (re
       idClusterInv issued cnt Φs -∗ (W64 0) ↪[issued]□ (none : Option (List w8 × GName)) -∗
       srvPropMint ⟨γ, [], W64 0⟩ γk.ids -∗ srvRdCtxInv ⟨γ, [], W64 0⟩ issued -∗
       kvInv ⟨γ, [], W64 0⟩ γk -∗
-      (idPfxOf (W16 (uint.Z id)) ↪[cnt] ([] : List w64) ∗ Draft.readCredits γ.cl (2 ^ 48) ∗
-        Draft.nodeBoot γ.cl srvClusterN ps ctxs id ∗
+      (idPfxOf (W16 (uint.Z id)) ↪[cnt] ([] : List w64) ∗ readCredits γ.cl (2 ^ 48) ∗
+        nodeBoot γ.cl srvClusterN ps ctxs id ∗
         ∃ γd : GName, ⌜γ.snapLoc id = some γd⌝ ∗ ghostMapAuth γd 1 (∅ : GMap w64 Unit)) -∗
       idWaitTokAt γk.ids.wn (idPfxOf (W16 (uint.Z id))) -∗
       ghostMapAuth reg 1 (∅ : GMap Loc MemStorNamesRec) -∗
@@ -129,7 +129,7 @@ theorem memberBoot_of (γ : SrvRaft) (ps : List w64) (ctxs : List (List w8)) (re
   ihave #Hsrl' := srvRaftLogInv_reg γ reg $$ Hsrl
   ihave #Hpm' := srvPropMint_reg γ reg γk.ids $$ Hpm
   ihave #Hrc' := srvRdCtxInv_reg γ reg issued $$ Hrc
-  ihave Hnb' : Draft.nodeBoot γ.cl srvClusterN γ.vs ctxs id $$ [Hnb]
+  ihave Hnb' : nodeBoot γ.cl srvClusterN γ.vs ctxs id $$ [Hnb]
   · rw [Hvs]; iexact Hnb
   iframe Hnb' Hsrl' Hcl Hpm' Hrc'  Hsh HrdC Hidx Hcok Hrev Hnk Hkvρ Hwt Hsd Hreg
   isplitr
@@ -142,23 +142,23 @@ theorem memberBoot_of (γ : SrvRaft) (ps : List w64) (ctxs : List (List w8)) (re
   iexact H0
 
 /-- **What `Main` takes of the ghost state, for its cluster** (see the file header). -/
-theorem alloc3 (id₁ id₂ id₃ : w64) (ctxs : List (List w8)) (boot : List Draft.LogEntry)
+theorem alloc3 (id₁ id₂ id₃ : w64) (ctxs : List (List w8)) (boot : List LogEntry)
     (Hlow : ([id₁, id₂, id₃].map (fun id => uint.Z id % 2 ^ 16)).Nodup)
     (Hlow0 : ∀ id ∈ [id₁, id₂, id₃], uint.Z id % 2 ^ 16 ≠ 0)
-    (HB : Draft.BootLog [id₁, id₂, id₃] ctxs boot)
-    (Hcc : bootCCOk [id₁, id₂, id₃] (Draft.LogEntry.toEntries boot 0))
+    (HB : BootLog [id₁, id₂, id₃] ctxs boot)
+    (Hcc : bootCCOk [id₁, id₂, id₃] (LogEntry.toEntries boot 0))
     (dir : w64 → List GoString)
     -- (2026-10-24, rafthttp stage 6d) the directory's hosts the three peer addresses, no member `0`
     (a₁ a₂ a₃ : GoString) (Hd0 : dir 0 = [])
     (Hhost : ∀ (i : w64) (h : GoString), go!"http://" ++ h ∈ dir i → h = a₁ ∨ h = a₂ ∨ h = a₃)
     (Hrb : receiptBound GF ≤ 2 ^ 64 - 2) (Hrb2 : receiptBound GF + boot.length ≤ 2 ^ 61) :
     -- (2026-10-24, rafthttp stage 6d) the program start's HTTP rights of the peer addresses
-    ⊢ bootMarshal (GF := GF) [id₁, id₂, id₃] ctxs (Draft.LogEntry.toEntries boot 0) -∗
+    ⊢ bootMarshal (GF := GF) [id₁, id₂, id₃] ctxs (LogEntry.toEntries boot 0) -∗
       httpProtoFree (GF := GF) a₁ -∗ httpProtoFree (GF := GF) a₂ -∗ httpProtoFree (GF := GF) a₃ ={⊤}=∗
       ∃ (γ : SrvRaft) (reg₁ reg₂ reg₃ : GName) (ρ₁ ρ₂ ρ₃ : ReqNames)
         (E₁ E₂ E₃ : apply.AEnv GF) (Φs : w64 → w64 → List w8 → GName → IProp GF)
         (γn : NetNames GF),
-      ⌜γ.vs = [id₁, id₂, id₃] ∧ γ.dyn = false ∧ γ.boot = Draft.LogEntry.toEntries boot 0 ∧
+      ⌜γ.vs = [id₁, id₂, id₃] ∧ γ.dyn = false ∧ γ.boot = LogEntry.toEntries boot 0 ∧
         γn.N = srvNet γ ∧ γn.dir = dir ∧ ρ₁.rd.kv.log0 = [[], []] ∧
         ρ₂.rd.kv.st = ρ₁.rd.kv.st ∧ ρ₃.rd.kv.st = ρ₁.rd.kv.st ∧
         kvModel ρ₂.rd.kv = kvModel ρ₁.rd.kv ∧ kvModel ρ₃.rd.kv = kvModel ρ₁.rd.kv ∧
@@ -169,7 +169,7 @@ theorem alloc3 (id₁ id₂ id₃ : w64) (ctxs : List (List w8)) (boot : List Dr
       (netHttpOk γn id₂ ∗ http.httpProtoOwn a₂ (raftProto (netRh γn))) ∗
       memberBoot { γ with reg := reg₃ } ctxs ρ₃ E₃ Φs id₃ ∗
       (netHttpOk γn id₃ ∗ http.httpProtoOwn a₃ (raftProto (netRh γn))) ∗
-      etcdKV ρ₁.rd.kv (kvModelSt ρ₁.rd.kv (bootEntries (Draft.LogEntry.toEntries boot 0))) := by
+      etcdKV ρ₁.rd.kv (kvModelSt ρ₁.rd.kv (bootEntries (LogEntry.toEntries boot 0))) := by
   obtain ⟨hn12, hn13, hn23⟩ := id_ne id₁ id₂ id₃ Hlow Hlow0
   obtain ⟨hp12, hp13, hp23⟩ := pfx_ne id₁ id₂ id₃ Hlow Hlow0
   have Hnz := id_nz id₁ id₂ id₃ Hlow Hlow0

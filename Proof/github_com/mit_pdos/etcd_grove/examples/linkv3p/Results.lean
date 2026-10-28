@@ -111,7 +111,7 @@ theorem linkv3p_safe [lctx : GoLocalContext] [sem : go.Semantics]
     -- (2026-10-24, rafthttp stage 6d) `*peer` implements `Pausable` (the partitioner's `CutPeer`)
     (Hctx : ∀ hG : HeapGS .hasLC linkvGF, ContextReadErrs (GF := linkvGF) (hG := linkvHeapAt hG lctx))
     (Hcec : ∀ hG : HeapGS .hasLC linkvGF, ContextErrsClient (GF := linkvGF) (hG := linkvHeapAt hG lctx))
-    (id₁ id₂ id₃ : w64) (ctxs : List (List w8)) (boot : List Draft.LogEntry)
+    (id₁ id₂ id₃ : w64) (ctxs : List (List w8)) (boot : List LogEntry)
     (Hbf : linkv3p.BootFacts id₁ id₂ id₃ ctxs boot)
     (Hck : ckptEffectsOk) (Haf : authRecordsFit)
     (Hbuq : apply.backendUnderQuota) (Hdbo : storage.dbOpensOk)
@@ -149,7 +149,7 @@ theorem linkv3p_watch_safe [lctx : GoLocalContext] [sem : go.Semantics]
     (Hctx : ∀ hG : HeapGS .hasLC linkvGF, ContextReadErrs (GF := linkvGF) (hG := linkvHeapAt hG lctx))
     (Hcec : ∀ hG : HeapGS .hasLC linkvGF,
       ContextErrsClient (GF := linkvGF) (hG := linkvHeapAt hG lctx))
-    (id₁ id₂ id₃ : w64) (ctxs : List (List w8)) (boot : List Draft.LogEntry)
+    (id₁ id₂ id₃ : w64) (ctxs : List (List w8)) (boot : List LogEntry)
     (Hbf : linkv3p.BootFacts id₁ id₂ id₃ ctxs boot)
     (Hck : ckptEffectsOk) (Haf : authRecordsFit)
     (Hbuq : apply.backendUnderQuota) (Hdbo : storage.dbOpensOk)

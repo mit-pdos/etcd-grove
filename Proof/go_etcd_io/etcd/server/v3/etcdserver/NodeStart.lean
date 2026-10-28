@@ -171,12 +171,12 @@ theorem isRaftNode_of_rnParts (E : RNEnv GF) (γ : RNNames) (a : Loc) (rv : raft
 `γ.pre = []`), in a dynamic cluster its view of the configuration at index `0` (`StartNode`'s), and
 `applyc`'s halves with `cum` at `[[]]` (`newRaftNode`'s). (2026-10-27: over the node API.) -/
 theorem rnToks_of_start (γ : RNNames) (hpre : γ.pre = [])
-    (hcfg : γ.node.dyn = true → srvCfgOk γ.node.cfg [] ⟨0, Draft.Membership.simple γ.node.cfg⟩) :
+    (hcfg : γ.node.dyn = true → srvCfgOk γ.node.cfg [] ⟨0, Membership.simple γ.node.cfg⟩) :
     (letI := srvStor (GF := GF) γ.node;
-      iprop(Draft.nodeDriver γ.nl γ.node.cl srvClusterN
-          (Draft.NodeDriverState.init (memStorIface γ.ms)) ∗
-        (if γ.node.dyn then Draft.nodeConfig γ.nl γ.node.cl srvClusterN
-          ⟨0, Draft.Membership.simple γ.node.cfg⟩ else iprop(True)))) ∗
+      iprop(nodeDriver γ.nl γ.node.cl srvClusterN
+          (NodeDriverState.init (memStorIface γ.ms)) ∗
+        (if γ.node.dyn then nodeConfig γ.nl γ.node.cl srvClusterN
+          ⟨0, Membership.simple γ.node.cfg⟩ else iprop(True)))) ∗
       spscProducer γ.ap ([] : List toApply) ∗ spscConsumer γ.ap ([] : List toApply) ∗
       monoListAuthOwn γ.cum 1 [([] : List EntryModel)] ∗
       monoListIdxOwn γ.cum 0 ([] : List EntryModel) ⊢
@@ -190,8 +190,8 @@ theorem rnToks_of_start (γ : RNNames) (hpre : γ.pre = [])
     iexists [], [[]]
     isplitl [Hdrv Hcfg]
     · iunfold rnDrv
-      have h : rnDrvSt γ [] hsZero = Draft.NodeDriverState.init (memStorIface γ.ms) := by
-        simp [rnDrvSt, Draft.NodeDriverState.init, srvLE, RNNames.srv, hpre]
+      have h : rnDrvSt γ [] hsZero = NodeDriverState.init (memStorIface γ.ms) := by
+        simp [rnDrvSt, NodeDriverState.init, srvLE, RNNames.srv, hpre]
       rw [h]
       iframe Hdrv
       unfold rnCfgAt
@@ -199,7 +199,7 @@ theorem rnToks_of_start (γ : RNNames) (hpre : γ.pre = [])
       · simp only [Bool.false_eq_true, ↓reduceIte]; itrivial
       · simp only [↓reduceIte, eq_self_iff_true, if_true]
         unfold srvCfgView
-        iexists ⟨0, Draft.Membership.simple γ.node.cfg⟩
+        iexists ⟨0, Membership.simple γ.node.cfg⟩
         iframe Hcfg
         ipureintro
         rw [hpre]
@@ -215,23 +215,23 @@ theorem rnToks_of_start (γ : RNNames) (hpre : γ.pre = [])
     iexact Hcum0
 
 /-- **A registered `MemoryStorage` whose certificate registry is tied to the cluster**
-(`Draft.storageCertInv`, from `NewMemoryStorage`'s `memCertAuth`) **has the cluster's certificates**
-(`Draft.storageCertLink`, what `StartNode` takes of a static cluster's storage; 2026-10-27, as kv's
+(`storageCertInv`, from `NewMemoryStorage`'s `memCertAuth`) **has the cluster's certificates**
+(`storageCertLink`, what `StartNode` takes of a static cluster's storage; 2026-10-27, as kv's
 `kvStorCertLink_intro`). -/
-theorem memStorCertLink_intro (reg : GName) (γ : Draft.Cluster) (N : Namespace) (ms : Loc)
+theorem memStorCertLink_intro (reg : GName) (γ : Cluster) (N : Namespace) (ms : Loc)
     (γs : MemStorNames) :
     letI : MemStorReg GF := ⟨reg⟩
-    Draft.storageCertInv (GF := GF) γ N γs ∗ memStorReg ms γs ⊢
-      Draft.storageCertLink γ N (memStorIface ms) := by
+    storageCertInv (GF := GF) γ N γs ∗ memStorReg ms γs ⊢
+      storageCertLink γ N (memStorIface ms) := by
   letI : MemStorReg GF := ⟨reg⟩
   iintro ⟨#Hinv, #Hreg⟩
-  iapply Draft.storageCertLink_intro γ N (memStorIface ms)
+  iapply storageCertLink_intro γ N (memStorIface ms)
   isplit
   · iintro !> %k %E %hE #Hc
     ihave #Hc := memStorCert_at ms γs k $$ Hreg Hc
-    iapply Draft.storageCert_read γ N γs k E hE $$ Hinv Hc
+    iapply storageCert_read γ N γs k E hE $$ Hinv Hc
   · iintro !> %k %E %hE #Hk
-    imod Draft.storageCert_register γ N γs k E hE $$ Hinv Hk with #Hc
+    imod storageCert_register γ N γs k E hE $$ Hinv Hk with #Hc
     imodintro
     iapply memStorCert_intro ms γs k $$ Hreg Hc
 
@@ -275,7 +275,7 @@ abbrev NodeStartSpec : Prop :=
         -- `StartNode`'s: a dynamic cluster's storage never compacted past index `1`, a static
         -- cluster's certificates the cluster's
         "#Hcert" ∷ (if γr.dyn then storCap (memStorIface bv.storage') 1
-          else Draft.storageCertLink γr.cl srvClusterN (memStorIface bv.storage')) ∗
+          else storageCertLink γr.cl srvClusterN (memStorIface bv.storage')) ∗
         -- trust boundary: `StartNode.spec`'s `InitialState` closure (see the file header)
         "#Hinit" ∷ □ (∀ (Φ : val → IProp GF) (ss' : entryID),
            ownStorage (memStorIface bv.storage') { memStorEmpty with ss := ss' } -∗
@@ -293,8 +293,8 @@ abbrev NodeStartSpec : Prop :=
         -- the peers, their contexts
         "Hpeers" ∷ bv.peers' ↦*{dq} pv ∗ "#Hctx" ∷ peersCtx pv ctxs ∗
         -- the cluster's allocation's: this node's boot token, the server's raft invariant
-        "Hboot" ∷ (if γr.dyn then Draft.nodeDynamicBoot γr.cl srvClusterN ps ctxs cv.ID'
-          else Draft.nodeBoot γr.cl srvClusterN ps ctxs cv.ID') ∗
+        "Hboot" ∷ (if γr.dyn then nodeDynamicBoot γr.cl srvClusterN ps ctxs cv.ID'
+          else nodeBoot γr.cl srvClusterN ps ctxs cv.ID') ∗
         "#Hlinv" ∷ srvRaftLogInv E.γr.raft ∗
         -- the names-only contracts
         "#Hzap" ∷ rnLoggerZapOk ∗ "#Hsetlg" ∷ rnSetLoggerOk ∗ "#Htdok" ∷ rnTimeoutDetectorOk ∗
@@ -342,27 +342,27 @@ specs (for its contract, `isRaftNodeIfc_of_isNode`), at the cluster's storage mo
 theorem raftNode_of_StartNode
     (wp_bnr : bootstrappedRaft.newRaftNode.spec (GF := GF) (hG := hG))
     (wp_Ready : ∀ γr : SrvRaft, letI := srvStor (GF := GF) γr;
-      Draft.node.Ready.spec (GF := GF) (hG := hG))
+      node.Ready.spec (GF := GF) (hG := hG))
     (wp_Advance : ∀ γr : SrvRaft, letI := srvStor (GF := GF) γr;
-      Draft.node.Advance.spec (GF := GF) (hG := hG))
+      node.Advance.spec (GF := GF) (hG := hG))
     (wp_Advance_dyn : ∀ γr : SrvRaft, letI := srvStor (GF := GF) γr;
-      Draft.node.Advance.dynamicSpec (GF := GF) (hG := hG))
+      node.Advance.dynamicSpec (GF := GF) (hG := hG))
     (wp_Tick : ∀ γr : SrvRaft, letI := srvStor (GF := GF) γr;
-      Draft.node.Tick.spec (GF := GF) (hG := hG))
+      node.Tick.spec (GF := GF) (hG := hG))
     (wp_ReadIndex : ∀ γr : SrvRaft, letI := srvStor (GF := GF) γr;
-      Draft.node.ReadIndex.spec (GF := GF) (hG := hG))
+      node.ReadIndex.spec (GF := GF) (hG := hG))
     (wp_Step : ∀ γr : SrvRaft, letI := srvStor (GF := GF) γr;
-      Draft.node.Step.spec (GF := GF) (hG := hG))
+      node.Step.spec (GF := GF) (hG := hG))
     (wp_ReportUnreachable : ∀ γr : SrvRaft, letI := srvStor (GF := GF) γr;
-      Draft.node.ReportUnreachable.spec (GF := GF) (hG := hG))
+      node.ReportUnreachable.spec (GF := GF) (hG := hG))
     (wp_ReportSnapshot : ∀ γr : SrvRaft, letI := srvStor (GF := GF) γr;
-      Draft.node.ReportSnapshot.spec (GF := GF) (hG := hG))
+      node.ReportSnapshot.spec (GF := GF) (hG := hG))
     (wp_Propose : ∀ γr : SrvRaft, letI := srvStor (GF := GF) γr;
-      Draft.node.Propose.spec (GF := GF) (hG := hG))
+      node.Propose.spec (GF := GF) (hG := hG))
     (wp_ApplyConfChange : ∀ γr : SrvRaft, letI := srvStor (GF := GF) γr;
-      Draft.node.ApplyConfChange.spec (GF := GF) (hG := hG))
+      node.ApplyConfChange.spec (GF := GF) (hG := hG))
     (wp_ApplyConfChange_dyn : ∀ γr : SrvRaft, letI := srvStor (GF := GF) γr;
-      Draft.node.ApplyConfChange.dynamicSpec (GF := GF) (hG := hG)) :
+      node.ApplyConfChange.dynamicSpec (GF := GF) (hG := hG)) :
     NodeStartSpec (GF := GF) := by
   intro γr E b ss wal cl dq bv cv lok γs pv ps ctxs issued Hlg Hhb Hvalid Hlok Hstor Hinfl
     Hdpf Hro Hdccv Hsizes Hasync Happlied Hps Hpsne Hnodup H0 Hpslen Hid Hvs Hfit HEγ HEpre HEai

@@ -190,14 +190,14 @@ theorem NewServer.wp_proofM (on : Bool)
     (h7 : types.ID.String_ptr.spec (GF := GF) (hG := hG))
     (h8 : bootstrappedRaft.newRaftNode.spec (GF := GF) (hG := hG))
     -- (2026-10-27) the node API's node specs, at the cluster's storage model
-    (h9 : ∀ γr : SrvRaft, letI := srvStor (GF := GF) γr; Draft.node.Ready.spec (GF := GF) (hG := hG))
+    (h9 : ∀ γr : SrvRaft, letI := srvStor (GF := GF) γr; node.Ready.spec (GF := GF) (hG := hG))
     (h10 : ∀ γr : SrvRaft, letI := srvStor (GF := GF) γr;
-      Draft.node.Advance.spec (GF := GF) (hG := hG))
+      node.Advance.spec (GF := GF) (hG := hG))
     (h10d : ∀ γr : SrvRaft, letI := srvStor (GF := GF) γr;
-      Draft.node.Advance.dynamicSpec (GF := GF) (hG := hG))
-    (h11 : ∀ γr : SrvRaft, letI := srvStor (GF := GF) γr; Draft.node.Tick.spec (GF := GF) (hG := hG))
+      node.Advance.dynamicSpec (GF := GF) (hG := hG))
+    (h11 : ∀ γr : SrvRaft, letI := srvStor (GF := GF) γr; node.Tick.spec (GF := GF) (hG := hG))
     (h12 : ∀ γr : SrvRaft, letI := srvStor (GF := GF) γr;
-      Draft.node.ReadIndex.spec (GF := GF) (hG := hG))
+      node.ReadIndex.spec (GF := GF) (hG := hG))
     (h13 : types.URLs.StringSlice.spec (GF := GF) (hG := hG))
     (h14 : idutil.NewGenerator.spec (GF := GF) (hG := hG))
     (h15 : notify.NewNotifier.spec (GF := GF) (hG := hG))
@@ -259,7 +259,7 @@ theorem NewServer.wp_proofM (on : Bool)
     (h76 : backend.batchTxBuffered.UnsafeRange.spec (GF := GF) (hG := hG))
     (h77 : backend.batchTxBuffered.UnsafeCreateBucket.spec (GF := GF) (hG := hG))
     (h78 : ∀ γr : SrvRaft, letI := srvStor (GF := GF) γr;
-      Draft.node.Propose.spec (GF := GF) (hG := hG))
+      node.Propose.spec (GF := GF) (hG := hG))
     (h79 : EtcdServer.MemberID.spec (GF := GF) (hG := hG))
     (h80 : EtcdServer.Leader.spec (GF := GF) (hG := hG))
     (h81 : EtcdServer.Term.spec (GF := GF) (hG := hG))
@@ -268,15 +268,15 @@ theorem NewServer.wp_proofM (on : Bool)
     (h84 : EtcdServer.ClusterVersion.spec (GF := GF) (hG := hG))
     (h85 : MemoryStorage.Snapshot.spec (GF := GF) (hG := hG))
     (h86 : ∀ γr : SrvRaft, letI := srvStor (GF := GF) γr;
-      Draft.node.ApplyConfChange.spec (GF := GF) (hG := hG))
+      node.ApplyConfChange.spec (GF := GF) (hG := hG))
     (h86d : ∀ γr : SrvRaft, letI := srvStor (GF := GF) γr;
-      Draft.node.ApplyConfChange.dynamicSpec (GF := GF) (hG := hG))
+      node.ApplyConfChange.dynamicSpec (GF := GF) (hG := hG))
     -- (D21 M2) the inbound path: raft's `Step` and reports, the server's `Process` and co.
-    (h87 : ∀ γr : SrvRaft, letI := srvStor (GF := GF) γr; Draft.node.Step.spec (GF := GF) (hG := hG))
+    (h87 : ∀ γr : SrvRaft, letI := srvStor (GF := GF) γr; node.Step.spec (GF := GF) (hG := hG))
     (h88 : ∀ γr : SrvRaft, letI := srvStor (GF := GF) γr;
-      Draft.node.ReportUnreachable.spec (GF := GF) (hG := hG))
+      node.ReportUnreachable.spec (GF := GF) (hG := hG))
     (h89 : ∀ γr : SrvRaft, letI := srvStor (GF := GF) γr;
-      Draft.node.ReportSnapshot.spec (GF := GF) (hG := hG))
+      node.ReportSnapshot.spec (GF := GF) (hG := hG))
     (h90 : EtcdServer.Process.spec (GF := GF) (hG := hG))
     (h91 : EtcdServer.IsIDRemoved.spec (GF := GF) (hG := hG))
     (h92 : EtcdServer.ReportUnreachable.spec (GF := GF) (hG := hG))
@@ -362,9 +362,9 @@ theorem NewServer.wp_proofM (on : Bool)
     Hrapplied, Hrid, Hrps, Hrpsne, Hrnodup, Hr0, Hrpslen, Hrmem, Hrvs, Hrbok⟩ := Hraft
   -- (2026-10-27) `StartNode`'s certificates: a dynamic cluster's storage at the cap `1`, a static
   -- cluster's storage's registry tied to the cluster (`NewMemoryStorage`'s authority)
-  imod Draft.storageCertInv_alloc γ.cl srvClusterN γs ⊤ $$ Hcauth with #Hci
+  imod storageCertInv_alloc γ.cl srvClusterN γs ⊤ $$ Hcauth with #Hci
   ihave #Hcert : iprop(if γ.dyn then storCap (memStorIface bv.storage') 1
-      else Draft.storageCertLink γ.cl srvClusterN (memStorIface bv.storage')) $$ []
+      else storageCertLink γ.cl srvClusterN (memStorIface bv.storage')) $$ []
   · cases hd : γ.dyn
     · simp only [Bool.false_eq_true, ↓reduceIte]
       iapply memStorCertLink_intro γ.reg γ.cl srvClusterN bv.storage' γs
@@ -376,8 +376,8 @@ theorem NewServer.wp_proofM (on : Bool)
   imod (srvSendKey_alloc (GF := GF)) with ⟨%γk, Hk⟩
   ihave #Htkok' : rnTickerOk (srvErM on ρ E₀ (W64 0) (W64 0) (bootKVOf on) id (srvTrKey γn γk)) $$ []
   · iapply rnTickerOk_srvErM_S $$ Htkok
-  ihave Hnboot' : iprop(if γ.dyn then Draft.nodeDynamicBoot γ.cl srvClusterN ps ctxs cv.ID'
-      else Draft.nodeBoot γ.cl srvClusterN ps ctxs cv.ID') $$ [Hnboot]
+  ihave Hnboot' : iprop(if γ.dyn then nodeDynamicBoot γ.cl srvClusterN ps ctxs cv.ID'
+      else nodeBoot γ.cl srvClusterN ps ctxs cv.ID') $$ [Hnboot]
   · rw [← Hrvs, Hrid]; iexact Hnboot
   wp_apply (hNS γ (srvErM on ρ E₀ (W64 0) (W64 0) (bootKVOf on) id (srvTrKey γn γk)) bs.raft'
     bs.ss' bw.w' bc.cl' (DFrac.own 1) bv cv lok γs pv ps ctxs ρ.ids.issued Hrlg Hrhb Hrvalid Hrlok
@@ -1131,7 +1131,7 @@ theorem NewServer.wp_proofM (on : Bool)
     iintro !> %m HM
     simp only [srvErM]
     rw [Hγn.1, ← hργ]
-    ihave #Hxo : Draft.leaderTransferOff ρ.raft.raft.cl srvClusterN $$ []
+    ihave #Hxo : leaderTransferOff ρ.raft.raft.cl srvClusterN $$ []
     · ihave #Hsrl' := Hsrl
       iunfold srvRaftLogInv at Hsrl'
       icases Hsrl' with ⟨-, #Hcl0, -⟩
@@ -1815,14 +1815,14 @@ theorem NewServer.wp_proof
     (h7 : types.ID.String_ptr.spec (GF := GF) (hG := hG))
     (h8 : bootstrappedRaft.newRaftNode.spec (GF := GF) (hG := hG))
     -- (2026-10-27) the node API's node specs, at the cluster's storage model
-    (h9 : ∀ γr : SrvRaft, letI := srvStor (GF := GF) γr; Draft.node.Ready.spec (GF := GF) (hG := hG))
+    (h9 : ∀ γr : SrvRaft, letI := srvStor (GF := GF) γr; node.Ready.spec (GF := GF) (hG := hG))
     (h10 : ∀ γr : SrvRaft, letI := srvStor (GF := GF) γr;
-      Draft.node.Advance.spec (GF := GF) (hG := hG))
+      node.Advance.spec (GF := GF) (hG := hG))
     (h10d : ∀ γr : SrvRaft, letI := srvStor (GF := GF) γr;
-      Draft.node.Advance.dynamicSpec (GF := GF) (hG := hG))
-    (h11 : ∀ γr : SrvRaft, letI := srvStor (GF := GF) γr; Draft.node.Tick.spec (GF := GF) (hG := hG))
+      node.Advance.dynamicSpec (GF := GF) (hG := hG))
+    (h11 : ∀ γr : SrvRaft, letI := srvStor (GF := GF) γr; node.Tick.spec (GF := GF) (hG := hG))
     (h12 : ∀ γr : SrvRaft, letI := srvStor (GF := GF) γr;
-      Draft.node.ReadIndex.spec (GF := GF) (hG := hG))
+      node.ReadIndex.spec (GF := GF) (hG := hG))
     (h13 : types.URLs.StringSlice.spec (GF := GF) (hG := hG))
     (h14 : idutil.NewGenerator.spec (GF := GF) (hG := hG))
     (h15 : notify.NewNotifier.spec (GF := GF) (hG := hG))
@@ -1885,7 +1885,7 @@ theorem NewServer.wp_proof
     (h76 : backend.batchTxBuffered.UnsafeRange.spec (GF := GF) (hG := hG))
     (h77 : backend.batchTxBuffered.UnsafeCreateBucket.spec (GF := GF) (hG := hG))
     (h78 : ∀ γr : SrvRaft, letI := srvStor (GF := GF) γr;
-      Draft.node.Propose.spec (GF := GF) (hG := hG))
+      node.Propose.spec (GF := GF) (hG := hG))
     (h79 : EtcdServer.MemberID.spec (GF := GF) (hG := hG))
     (h80 : EtcdServer.Leader.spec (GF := GF) (hG := hG))
     (h81 : EtcdServer.Term.spec (GF := GF) (hG := hG))
@@ -1894,15 +1894,15 @@ theorem NewServer.wp_proof
     (h84 : EtcdServer.ClusterVersion.spec (GF := GF) (hG := hG))
     (h85 : MemoryStorage.Snapshot.spec (GF := GF) (hG := hG))
     (h86 : ∀ γr : SrvRaft, letI := srvStor (GF := GF) γr;
-      Draft.node.ApplyConfChange.spec (GF := GF) (hG := hG))
+      node.ApplyConfChange.spec (GF := GF) (hG := hG))
     (h86d : ∀ γr : SrvRaft, letI := srvStor (GF := GF) γr;
-      Draft.node.ApplyConfChange.dynamicSpec (GF := GF) (hG := hG))
+      node.ApplyConfChange.dynamicSpec (GF := GF) (hG := hG))
     -- (D21 M2) the inbound path: raft's `Step` and reports, the server's `Process` and co.
-    (h87 : ∀ γr : SrvRaft, letI := srvStor (GF := GF) γr; Draft.node.Step.spec (GF := GF) (hG := hG))
+    (h87 : ∀ γr : SrvRaft, letI := srvStor (GF := GF) γr; node.Step.spec (GF := GF) (hG := hG))
     (h88 : ∀ γr : SrvRaft, letI := srvStor (GF := GF) γr;
-      Draft.node.ReportUnreachable.spec (GF := GF) (hG := hG))
+      node.ReportUnreachable.spec (GF := GF) (hG := hG))
     (h89 : ∀ γr : SrvRaft, letI := srvStor (GF := GF) γr;
-      Draft.node.ReportSnapshot.spec (GF := GF) (hG := hG))
+      node.ReportSnapshot.spec (GF := GF) (hG := hG))
     (h90 : EtcdServer.Process.spec (GF := GF) (hG := hG))
     (h91 : EtcdServer.IsIDRemoved.spec (GF := GF) (hG := hG))
     (h92 : EtcdServer.ReportUnreachable.spec (GF := GF) (hG := hG))

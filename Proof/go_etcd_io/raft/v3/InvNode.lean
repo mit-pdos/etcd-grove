@@ -40,10 +40,9 @@ public import Proof.go_etcd_io.raft.v3.InvNodeCtx
 public import Perennial.Proof.context
 public import Proof.go_etcd_io.raft.v3.InvMemstorage
 public import Proof.go_etcd_io.raft.v3.NodeApiVocab
--- (2026-10-27) the implementation (`NodeApiImpl.lean`) and raft's linked specs, not exported
-import Proof.go_etcd_io.raft.v3.NodeApiImpl
-import Proof.go_etcd_io.raft.v3.NodeApiImplDyn
-import Proof.go_etcd_io.raft.v3.Link
+-- the implementation (`InvApi.lean`, `InvApiDyn.lean`), not exported
+import Proof.go_etcd_io.raft.v3.InvApi
+import Proof.go_etcd_io.raft.v3.InvApiDyn
 
 @[expose] public section
 
@@ -51,7 +50,6 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Draft
 
 open Iris Iris.BI go_etcd_io.raft.v3
 
@@ -1021,68 +1019,14 @@ theorem msgCredits_none (γ : Cluster) (N : Namespace) (st : MsgSt) :
 
 end lawsPure2
 
-/-! ## The specs -/
+/-! ## Receiving a `Ready` (a law: `chan.receive` on the node's `Ready` channel) -/
 
-section spec
+section readyRecv
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [StorageModel GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
-
-/-- **`node.Propose(ctx, data)`**: hands raft the update appending `data`'s entry to the committed
-requested entries, raft choosing its term; it fires at most once, when an entry of this proposal
-commits, on whichever node commits it, and never for `data = []` (the entry is a filler, `isFiller`).
-The error is `nil` (run took the proposal; it may still be lost), `ErrStopped`, `ErrProposalDropped`
-(raft refused it; it was not appended) or the context's. -/
-abbrev node.Propose.spec : Prop :=
-  ∀ (n : Loc) (γ : Cluster) (N : Namespace) (id : w64) (data_sl : GoSlice) (data : List w8)
-    (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ isNode n γ N id ∗ nodeCtx ctx cd ∗
-      data_sl ↦*□ data ∗
-      AU <{ ∃∃ (ops : List LogEntry), ownCommittedOps γ ops }> @ ⊤ \ ↑N, ∅
-         <{ ∀∀ (t : w64), ownCommittedOps γ (ops ++ [⟨t, W32 0, data⟩]), COMM True }> }}
-    (App (App (Val (n @!! go.GoType.PointerType node.ty @!! go!"Propose"))
-      (Val #(interface.ok ctx))) (Val #data_sl))
-  {{ (err : GoInterface), RET #err;
-      ⌜err = interface.nil⌝ ∨ errStopped err ∨ errProposalDropped err ∨ ctxErr cd err }}
-
-/-- **`node.ProposeConfChange(ctx, cc)`**: the same, for the conf change `o` that `cc` holds (given
-back): its entry has the type and bytes `MarshalConfChange` gives it, raft choosing the term. The
-update never fires if the leader refuses the change (an empty normal entry commits in its place,
-`raft.go:1341`). (2026-10-27: an empty `ConfChangeV2` is no filler any more, `LogEntry.isFiller`:
-its update fires like any conf change's.) -/
-abbrev node.ProposeConfChange.spec : Prop :=
-  ∀ (n : Loc) (γ : Cluster) (N : Namespace) (id : w64) (c : GoInterface) (o : ConfChangeIM) (dq : DFrac)
-    (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ isNode n γ N id ∗ nodeCtx ctx cd ∗
-      ownConfChangeI c dq (some o) ∗
-      AU <{ ∃∃ (ops : List LogEntry), ownCommittedOps γ ops }> @ ⊤ \ ↑N, ∅
-         <{ ∀∀ (t : w64) (bs : List w8), ⌜MarshalsConfChange (some o) bs⌝ ∗
-              ownCommittedOps γ (ops ++ [⟨t, confChangeEntryType (some o), bs⟩]),
-            COMM True }> }}
-    (App (App (Val (n @!! go.GoType.PointerType node.ty @!! go!"ProposeConfChange"))
-      (Val #(interface.ok ctx))) (Val #c))
-  {{ (err : GoInterface), RET #err; ownConfChangeI c dq (some o) ∗ nodeErr cd err }}
-
-/-- **`node.ReadIndex(ctx, rctx)`**: requests a read with the context `c` (the bytes of `rctx`),
-committed to `Q` beforehand (`readCtx_commit`); a `Ready`'s `ReadState` with context `c` then says
-what it gave (`readStateOk_ctx`). The context may be retried. (open: `readCredit`.) -/
-abbrev node.ReadIndex.spec : Prop :=
-  ∀ (n : Loc) (γ : Cluster) (N : Namespace) (id : w64) (rctx : GoSlice) (c : List w8)
-    (Q : List LogEntry → IProp GF) (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ isNode n γ N id ∗ nodeCtx ctx cd ∗
-      rctx ↦*□ c ∗ isReadCtx γ N c Q ∗ readCredit γ }}
-    (App (App (Val (n @!! go.GoType.PointerType node.ty @!! go!"ReadIndex"))
-      (Val #(interface.ok ctx))) (Val #rctx))
-  {{ (err : GoInterface), RET #err; nodeErr cd err }}
-
-/-- **`node.Ready()`**: the node's `Ready` channel. -/
-abbrev node.Ready.spec : Prop :=
-  ∀ (γ : Cluster) (N : Namespace) (id : w64) (n : Loc),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ isNode n γ N id }}
-    (App (Val (n @!! go.GoType.PointerType node.ty @!! go!"Ready")) (Val #()))
-  {{ (ch : Loc), RET #ch; isReadyChan n γ N ch }}
 
 /-- **Receiving a `Ready`** (`for rd := range n.Ready()`): its committed entries are the committed
 log's next entries `ce` (fillers included) after those delivered so far (`st.delivered`), field for
@@ -1095,7 +1039,7 @@ committed log delivered grows by `ce`; with one, it is the committed log up to t
 (`strip l.dlv`); either way the hard state after `h` (`phsNext`), busy with `es` and the loan.
 (2026-10-27: the new state stated, not an existential. For etcd's server: the node's `isNode` taken,
 so that its messages are the node `id`'s, `readyRest`.) -/
-abbrev node.readyRecv.spec : Prop :=
+theorem node.wp_readyRecv :
   ∀ (n ch : Loc) (γ : Cluster) (N : Namespace) (id : w64) (st : NodeDriverState),
   st.handling = none →
   {{ isReadyChan (GF := GF) n γ N ch ∗ isNode n γ N id ∗ nodeDriver n γ N st }}
@@ -1116,288 +1060,7 @@ abbrev node.readyRecv.spec : Prop :=
               delivered := strip l.dlv
               hardState := phsNext st.hardState h
               handling := some (es, some l) }) }}
-
-/-- (open) **`node.Advance()`**: the driver, done with a `Ready` (its entries `es` appended, or its
-snapshot installed: the storage contract's receipt, `advReceipt`), hands it back; the loop is idle
-again. After a `Ready` without a snapshot, the storage's floor is at least the committed log
-delivered (`storFloor`, today `reqWit`). (2026-10-27: the premise that no conf-change entry was
-delivered is gone: the nodes are in raft's static mode, which needs none -- a conf change the client
-applies keeps the voters, `node.ApplyConfChange`. For etcd's server: in a static cluster,
-`isStaticCluster`; a dynamic cluster's is `node.Advance.dynamicSpec`.) -/
-abbrev node.Advance.spec : Prop :=
-  ∀ (n : Loc) (γ : Cluster) (N : Namespace) (vs : List w64)
-    (snapOk : List LogEntry → List w8 → Prop) (st : NodeDriverState) (es : List EntryM)
-    (L : Option SnapLoan),
-  st.handling = some (es, L) →
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ isStaticCluster γ N vs snapOk ∗
-      nodeDriver n γ N st ∗ advReceipt st.storage es L }}
-    (App (Val (n @!! go.GoType.PointerType node.ty @!! go!"Advance")) (Val #()))
-  {{ RET #(); nodeDriver n γ N { st with handling := none } ∗
-      match L with
-      | none => ∃ x : w64, storFloor st.storage x ∗ ⌜(st.delivered.length : Int) ≤ uint.Z x⌝
-      | some _ => True }}
-
-/-- (open) **`node.Step(ctx, m)`**: a message from the network (`stepIn`), from any goroutine. -/
-abbrev node.Step.spec : Prop :=
-  ∀ (n : Loc) (γ : Cluster) (N : Namespace) (id : w64) (ml : Loc)
-    (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ isNode n γ N id ∗ nodeCtx ctx cd ∗
-      stepIn γ N id ml }}
-    (App (App (Val (n @!! go.GoType.PointerType node.ty @!! go!"Step"))
-      (Val #(interface.ok ctx))) (Val #ml))
-  {{ (err : GoInterface), RET #err; nodeErr cd err }}
-
-/-- (open) **`node.Tick()`**: a tick, for one tick credit, from any goroutine. -/
-abbrev node.Tick.spec : Prop :=
-  ∀ (n : Loc) (γ : Cluster) (N : Namespace) (id : w64),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ isNode n γ N id ∗ tickCredit γ 1 }}
-    (App (Val (n @!! go.GoType.PointerType node.ty @!! go!"Tick")) (Val #()))
-  {{ RET #(); True }}
-
-/-- **`node.TransferLeadership(ctx, lead, transferee)`**, in a cluster with leader transfer on;
-nothing is promised of the transfer. -/
-abbrev node.TransferLeadership.spec : Prop :=
-  ∀ (n : Loc) (γ : Cluster) (N : Namespace) (id : w64) (lead transferee : w64)
-    (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ isNode n γ N id ∗ nodeCtx ctx cd ∗
-      leaderTransferOn γ N }}
-    (App (App (App (Val (n @!! go.GoType.PointerType node.ty @!! go!"TransferLeadership"))
-      (Val #(interface.ok ctx))) (Val #lead)) (Val #transferee))
-  {{ RET #(); True }}
-
-/-- **`RestartNode(c)`**: starts node `cv.ID'` of a static cluster of voters `vs`
-(`cluster_alloc_static`) from its boot token, on a fresh storage whose `InitialState` gives the
-voters' conf state, and whose certificates are the cluster's (`storageCertLink`). Today's premises,
-with the ghost ones (`rnInit`, `isCommitted γ []`, the term budget, `certLink`, the mode and
-`snapIn`) replaced by `nodeRestartBoot` and `storageCertLink`. -/
-abbrev RestartNode.spec : Prop :=
-  ∀ (γ : Cluster) (N : Namespace) (vs : List w64) (c : Loc) (cv : Config) (lok si : GoInterfaceOk)
-    (σ : StorState) (hs : HardStateM) (csm : ConfStateM),
-  -- `NewRawNode`'s premises (unchanged)
-  ConfigValid cv →
-  cv.Logger' = interface.ok lok →
-  cv.Storage' = interface.ok si →
-  sint.Z cv.MaxInflightMsgs' < 2 ^ 62 →
-  cv.DisableProposalForwarding' = false →
-  cv.ReadOnlyOption' = W64 0 →
-  cv.DisableConfChangeValidation' = false →
-  (cv.MaxCommittedSizePerReady' ≠ W64 0 ∨ cv.MaxSizePerMsg' ≠ W64 0) →
-  cv.AsyncStorageWrites' = false →
-  cv.Applied' = W64 0 →
-  -- an empty storage, the voters' conf state (unchanged)
-  σ.prev = entryID.mk (W64 0) (W64 0) → σ.ents = [] → (uint.Z σ.ss.index' = 0 ∨ σ.ss = σ.prev) →
-  σ.pend = [] → HsEmpty hs →
-  csm.Voters' = vs → csm.VotersOutgoing' = [] → csm.Learners' = [] → csm.LearnersNext' = [] →
-  csm.AutoLeave' = false →
-  cv.ID' ∈ vs →
-  σ.fl = W64 0 →
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ c ↦ cv ∗ isLogger lok ∗
-      isStorage (interface.ok si) ∗ ownStorage (interface.ok si) σ ∗
-      □ (∀ (Φ : val → IProp GF) (ss' : entryID), ownStorage (interface.ok si) { σ with ss := ss' } -∗
-           (∀ (hp cs : Loc) (al : Bool), ownStorage (interface.ok si) { σ with ss := ss' } -∗
-            hsOpt hp hs -∗ csPts cs DFrac.discard csm al -∗
-            Φ (PairV (PairV #hp #cs) #interface.nil)) -∗
-           WP (App (Val #(methods si.ty go!"InitialState" si.v)) (Val #())) {{ Φ }}) ∗
-      nodeRestartBoot γ N vs cv.ID' ∗ storageCertLink γ N (interface.ok si) }}
-    (App (Val #(functions RestartNode [])) (Val #c))
-  {{ (nd : GoInterface), RET #nd;
-      ∃ (n : Loc), ⌜nd = interface.mkOk (go.GoType.PointerType node.ty) #n⌝ ∗
-        isNode n γ N cv.ID' ∗ nodeDriver n γ N (NodeDriverState.init (interface.ok si)) }}
-
-/-- **`StartNode(c, peers)`**: starts node `cv.ID'` of the cluster `γ` from its boot token
-(`cluster_alloc`), of the peers `ps` with the contexts `ctxs`. The Go-level premises are today's.
-(2026-10-27: the term budget is the cluster's, in the boot token; the storage's certificates are
-the cluster's, `storageCertLink`: the cluster takes snapshots.) -/
-abbrev StartNode.spec : Prop :=
-  ∀ (γ : Cluster) (N : Namespace) (c : Loc) (cv : Config) (lok si : GoInterfaceOk)
-    (σ : StorState) (hs : HardStateM) (csm : ConfStateM) (R : IProp GF)
-    (peers : GoSlice) (dq : DFrac) (pv : List Peer) (ps : List w64) (ctxs : List (List w8)),
-  -- `NewRawNode`'s premises (unchanged)
-  ConfigValid cv →
-  cv.Logger' = interface.ok lok →
-  cv.Storage' = interface.ok si →
-  sint.Z cv.MaxInflightMsgs' < 2 ^ 62 →
-  cv.DisableProposalForwarding' = false →
-  cv.ReadOnlyOption' = W64 0 →
-  cv.DisableConfChangeValidation' = false →
-  (cv.MaxCommittedSizePerReady' ≠ W64 0 ∨ cv.MaxSizePerMsg' ≠ W64 0) →
-  cv.AsyncStorageWrites' = false →
-  cv.Applied' = W64 0 →
-  -- an empty storage and conf state (unchanged)
-  σ.prev = entryID.mk (W64 0) (W64 0) → σ.ents = [] → (uint.Z σ.ss.index' = 0 ∨ σ.ss = σ.prev) →
-  σ.pend = [] → HsEmpty hs →
-  csm.Voters' = [] → csm.VotersOutgoing' = [] → csm.Learners' = [] → csm.LearnersNext' = [] →
-  csm.AutoLeave' = false →
-  -- the peers (unchanged)
-  ps = pv.map Peer.ID' → ps ≠ [] → ps.Nodup → W64 0 ∉ ps → (ps.length : Int) ≤ 2 ^ 62 →
-  cv.ID' ∈ ps →
-  σ.fl = W64 0 →
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ c ↦ cv ∗ isLogger lok ∗
-      isStorage (interface.ok si) ∗ ownStorage (interface.ok si) σ ∗
-      (∀ (Φ : val → IProp GF) (ss' : entryID), ownStorage (interface.ok si) { σ with ss := ss' } -∗
-           (∀ (hp cs : Loc) (al : Bool), ownStorage (interface.ok si) { σ with ss := ss' } -∗
-            R -∗ hsOpt hp hs -∗ csPts cs DFrac.discard csm al -∗
-            Φ (PairV (PairV #hp #cs) #interface.nil)) -∗
-           WP (App (Val #(methods si.ty go!"InitialState" si.v)) (Val #())) {{ Φ }}) ∗
-      peers ↦*{dq} pv ∗ peersCtx pv ctxs ∗
-      -- the node's boot token (in place of `bootInit`, `isCommitted γ bootLog`, `bootMarshal`,
-      -- the term budget)
-      nodeBoot γ N ps ctxs cv.ID' ∗
-      -- (2026-10-27) the storage's certificates are the cluster's (until then: never compacted past
-      -- index `1`, `storCap`, raft's no-snapshot mode)
-      storageCertLink γ N (interface.ok si) }}
-    (App (App (Val #(functions StartNode [])) (Val #c)) (Val #peers))
-  {{ (nd : GoInterface), RET #nd;
-      R ∗ ∃ (n : Loc), ⌜nd = interface.mkOk (go.GoType.PointerType node.ty) #n⌝ ∗
-        isNode n γ N cv.ID' ∗ nodeDriver n γ N (NodeDriverState.init (interface.ok si)) }}
-
-/-- **`node.ApplyConfChange(cc)`** in a static cluster of the voters `vs`, from any goroutine: a
-change that keeps the voters and drops only learners (`CCShrink`: e.g. a `ConfChange` with
-`NodeId = 0`, or a `RemoveNode` of a learner), which the client states of a change it requested
-(its committed requested entries say which). The answer is a fresh `ConfState`: the voters, no
-learner among them, not joint. (2026-10-27: raft's static case, `node__ApplyConfChange.lean`.) -/
-abbrev node.ApplyConfChange.spec : Prop :=
-  ∀ (n : Loc) (γ : Cluster) (N : Namespace) (id : w64) (vs : List w64)
-    (snapOk : List LogEntry → List w8 → Prop) (c : GoInterface) (o : ConfChangeIM),
-  CCShrink (GMap.listToSet vs) (ccV2Of o).1 (ccV2Of o).2 →
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ isNode n γ N id ∗
-      isStaticCluster γ N vs snapOk ∗ ownConfChangeI c DFrac.discard (some o) }}
-    (App (Val (n @!! go.GoType.PointerType node.ty @!! go!"ApplyConfChange")) (Val #c))
-  {{ (csp : Loc) (cs : ConfStateM), RET #csp; csPts csp (DFrac.own 1) cs true ∗
-      ⌜cs.Voters' ≡ₚ vs ∧ (∀ k ∈ cs.Learners', k ∉ vs) ∧ cs.VotersOutgoing' = [] ∧
-        cs.LearnersNext' = [] ∧ cs.AutoLeave' = false⌝ }}
-
-/-! ### What etcd's server needs (2026-10-27; proved in `NodeApiImplDyn.lean`)
-
-The dynamic specs are variants of the same Go functions' specs for a dynamic cluster
-(`isDynamicCluster`); `isNode`, `nodeDriver`, `node.Propose`, ..., `node.readyRecv` are for either
-kind of cluster (`ApiImpl.NodeOk`: the node in the cluster's mode). -/
-
-/-- **`node.ApplyConfChange(cc)`** in a dynamic cluster, from any goroutine: the change of the next
-conf-change entry `e` of the committed log delivered to the node, at position `k` past its view's
-configuration index (no conf-change entry between), as the decoder gives it (`o'`), or any change
-`o` with its effect on the view's membership; the result not left automatically (no auto-leave
-joint configuration). The view moves past the entry, to the membership the change gives; the answer
-is a fresh `ConfState` reporting it. (Today the dynamic case of `node__ApplyConfChange.lean`,
-`DynCCPreOp`, `nodeCfg`, `dlvLb`.) -/
-abbrev node.ApplyConfChange.dynamicSpec : Prop :=
-  ∀ (n : Loc) (γ : Cluster) (N : Namespace) (id : w64) (c0 : Membership)
-    (decode : ConfChangeDecoder) (c : GoInterface) (o o' : ConfChangeIM) (l : List LogEntry)
-    (k : Nat) (e : LogEntry) (v : ConfigView) (m' : Membership),
-  v.applied ≤ k → l[k]? = some e → e.isConfChange → NoConfChangeIn l v.applied k →
-  decode (l.take k) e = some o' → Membership.applyChange o' v.membership = some m' →
-  Membership.applyChange o v.membership = some m' → m'.autoLeave = false →
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ isNode n γ N id ∗
-      isDynamicCluster γ N c0 decode ∗ ownConfChangeI c DFrac.discard (some o) ∗
-      nodeConfig n γ N v ∗ deliveredLogLb n γ N l }}
-    (App (Val (n @!! go.GoType.PointerType node.ty @!! go!"ApplyConfChange")) (Val #c))
-  {{ (csp : Loc) (cs : ConfStateM), RET #csp; csPts csp (DFrac.own 1) cs true ∗
-      nodeConfig n γ N ⟨k + 1, m'⟩ ∗ ⌜confStateIs cs m'⌝ }}
-
-/-- **`node.Advance()`** in a dynamic cluster: as `node.Advance.spec`, if every conf-change entry
-of the committed log delivered is applied (none past the view's configuration index:
-`issues/raft-advance-before-applyconfchange.md`, today's A1). The view is unchanged. -/
-abbrev node.Advance.dynamicSpec : Prop :=
-  ∀ (n : Loc) (γ : Cluster) (N : Namespace) (c0 : Membership) (decode : ConfChangeDecoder)
-    (st : NodeDriverState) (es : List EntryM) (L : Option SnapLoan) (v : ConfigView),
-  st.handling = some (es, L) →
-  NoConfChangeIn st.delivered v.applied st.delivered.length →
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ isDynamicCluster γ N c0 decode ∗
-      nodeDriver n γ N st ∗ advReceipt st.storage es L ∗ nodeConfig n γ N v }}
-    (App (Val (n @!! go.GoType.PointerType node.ty @!! go!"Advance")) (Val #()))
-  {{ RET #(); nodeDriver n γ N { st with handling := none } ∗ nodeConfig n γ N v ∗
-      match L with
-      | none => ∃ x : w64, storFloor st.storage x ∗ ⌜(st.delivered.length : Int) ≤ uint.Z x⌝
-      | some _ => True }}
-
-/-- **`StartNode(c, peers)`** in a dynamic cluster: as `StartNode.spec`, from the dynamic boot
-token (`dynamicCluster_alloc`), on a storage never compacted past index `1` (raft's no-snapshot
-mode, `storCap`; in place of the certificate link), and the node's configuration view at index `0`
-and the peers' membership: the node applies the bootstrap entries again, through its first
-`Ready`s. (Today `StartNode.spec` at `md = .dyn …`.) -/
-abbrev StartNode.dynamicSpec : Prop :=
-  ∀ (γ : Cluster) (N : Namespace) (c : Loc) (cv : Config) (lok si : GoInterfaceOk)
-    (σ : StorState) (hs : HardStateM) (csm : ConfStateM) (R : IProp GF)
-    (peers : GoSlice) (dq : DFrac) (pv : List Peer) (ps : List w64) (ctxs : List (List w8)),
-  -- `NewRawNode`'s premises (unchanged)
-  ConfigValid cv →
-  cv.Logger' = interface.ok lok →
-  cv.Storage' = interface.ok si →
-  sint.Z cv.MaxInflightMsgs' < 2 ^ 62 →
-  cv.DisableProposalForwarding' = false →
-  cv.ReadOnlyOption' = W64 0 →
-  cv.DisableConfChangeValidation' = false →
-  (cv.MaxCommittedSizePerReady' ≠ W64 0 ∨ cv.MaxSizePerMsg' ≠ W64 0) →
-  cv.AsyncStorageWrites' = false →
-  cv.Applied' = W64 0 →
-  -- an empty storage and conf state (unchanged)
-  σ.prev = entryID.mk (W64 0) (W64 0) → σ.ents = [] → (uint.Z σ.ss.index' = 0 ∨ σ.ss = σ.prev) →
-  σ.pend = [] → HsEmpty hs →
-  csm.Voters' = [] → csm.VotersOutgoing' = [] → csm.Learners' = [] → csm.LearnersNext' = [] →
-  csm.AutoLeave' = false →
-  -- the peers (unchanged)
-  ps = pv.map Peer.ID' → ps ≠ [] → ps.Nodup → W64 0 ∉ ps → (ps.length : Int) ≤ 2 ^ 62 →
-  cv.ID' ∈ ps →
-  σ.fl = W64 0 →
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ c ↦ cv ∗ isLogger lok ∗
-      isStorage (interface.ok si) ∗ ownStorage (interface.ok si) σ ∗
-      (∀ (Φ : val → IProp GF) (ss' : entryID), ownStorage (interface.ok si) { σ with ss := ss' } -∗
-           (∀ (hp cs : Loc) (al : Bool), ownStorage (interface.ok si) { σ with ss := ss' } -∗
-            R -∗ hsOpt hp hs -∗ csPts cs DFrac.discard csm al -∗
-            Φ (PairV (PairV #hp #cs) #interface.nil)) -∗
-           WP (App (Val #(methods si.ty go!"InitialState" si.v)) (Val #())) {{ Φ }}) ∗
-      peers ↦*{dq} pv ∗ peersCtx pv ctxs ∗
-      nodeDynamicBoot γ N ps ctxs cv.ID' ∗
-      -- raft's no-snapshot mode: the storage is never compacted past index `1`
-      storCap (interface.ok si) 1 }}
-    (App (App (Val #(functions StartNode [])) (Val #c)) (Val #peers))
-  {{ (nd : GoInterface), RET #nd;
-      R ∗ ∃ (n : Loc), ⌜nd = interface.mkOk (go.GoType.PointerType node.ty) #n⌝ ∗
-        isNode n γ N cv.ID' ∗ nodeDriver n γ N (NodeDriverState.init (interface.ok si)) ∗
-        nodeConfig n γ N ⟨0, Membership.simple (GMap.listToSet ps)⟩ }}
-
-/-- **`node.ReportUnreachable(id)`**, from any goroutine (the transport's): a leader's progress of
-`id` only; nothing is promised. -/
-abbrev node.ReportUnreachable.spec : Prop :=
-  ∀ (n : Loc) (γ : Cluster) (N : Namespace) (id : w64) (to : w64),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ isNode n γ N id }}
-    (App (Val (n @!! go.GoType.PointerType node.ty @!! go!"ReportUnreachable")) (Val #to))
-  {{ RET #(); True }}
-
-/-- **`node.ReportSnapshot(id, status)`**, from any goroutine (the transport's); nothing is
-promised. -/
-abbrev node.ReportSnapshot.spec : Prop :=
-  ∀ (n : Loc) (γ : Cluster) (N : Namespace) (id : w64) (to : w64) (status : SnapshotStatus),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ isNode n γ N id }}
-    (App (App (Val (n @!! go.GoType.PointerType node.ty @!! go!"ReportSnapshot")) (Val #to))
-      (Val #status))
-  {{ RET #(); True }}
-
-end spec
-
-/-! ## The specs' proofs, from raft's linked specs
-
-What a client's linking file links its proofs against. -/
-
-section links
-variable [GooseExts] [GooseSemantics] [GooseInterp]
-variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [StorageModel GF]
-variable [sem : go.Semantics]
-variable [package_sem : go_etcd_io.raft.v3.Assumptions]
-
-theorem node.wp_Propose : node.Propose.spec (GF := GF) (hG := hG) := by
-  exact ApiImpl.node.wp_Propose_impl _root_.Perennial.EtcdGrove.node.wp_Propose
-theorem node.wp_ProposeConfChange : node.ProposeConfChange.spec (GF := GF) (hG := hG) := by
-  exact ApiImpl.node.wp_ProposeConfChange_impl _root_.Perennial.EtcdGrove.node.wp_ProposeConfChange
-theorem node.wp_ReadIndex : node.ReadIndex.spec (GF := GF) (hG := hG) := by
-  exact ApiImpl.node.wp_ReadIndex_impl
-    (_root_.Perennial.EtcdGrove.node.ReadIndex.wp_proofReq
-      _root_.Perennial.EtcdGrove.node.wp_step
-      _root_.Perennial.EtcdGrove.raftpb.MessageType.wp_Enum)
-theorem node.wp_Ready : node.Ready.spec (GF := GF) (hG := hG) := by
-  exact ApiImpl.node.wp_Ready_impl
-theorem node.wp_readyRecv : node.readyRecv.spec (GF := GF) (hG := hG) := by
+  := by
   intro n ch γ N id st Hh
   iintro %Φ Hpre HΦ
   unfold isReadyChan isNode nodeDriver
@@ -1408,38 +1071,8 @@ theorem node.wp_readyRecv : node.readyRecv.spec (GF := GF) (hG := hG) := by
   unfold isCommittedLogLb readStateOk
   iframe Hce Hlb Hrs Hdrv
   iapply readyRest_of_impl $$ Hrest
-theorem node.wp_Advance : node.Advance.spec (GF := GF) (hG := hG) := by
-  exact ApiImpl.node.wp_Advance_impl _root_.Perennial.EtcdGrove.node.wp_Advance
-theorem node.wp_Step : node.Step.spec (GF := GF) (hG := hG) := by
-  exact ApiImpl.node.wp_Step_impl _root_.Perennial.EtcdGrove.node.wp_Step
-theorem node.wp_Tick : node.Tick.spec (GF := GF) (hG := hG) := by
-  exact ApiImpl.node.wp_Tick_impl _root_.Perennial.EtcdGrove.node.wp_Tick
-theorem node.wp_TransferLeadership : node.TransferLeadership.spec (GF := GF) (hG := hG) := by
-  exact ApiImpl.node.wp_TransferLeadership_impl
-    _root_.Perennial.EtcdGrove.node.wp_TransferLeadership
-theorem wp_StartNode : StartNode.spec (GF := GF) (hG := hG) := by
-  exact ApiImpl.wp_StartNode_impl _root_.Perennial.EtcdGrove.wp_StartNode
-theorem wp_RestartNode : RestartNode.spec (GF := GF) (hG := hG) := by
-  exact ApiImpl.wp_RestartNode_impl _root_.Perennial.EtcdGrove.wp_RestartNode
-theorem node.wp_ApplyConfChange : node.ApplyConfChange.spec (GF := GF) (hG := hG) := by
-  exact ApiImpl.node.wp_ApplyConfChange_impl _root_.Perennial.EtcdGrove.node.wp_ApplyConfChange
 
-/- (draft, 2026-10-27: etcd's server's) -/
-theorem node.wp_ApplyConfChange_dynamic :
-    node.ApplyConfChange.dynamicSpec (GF := GF) (hG := hG) := by
-  exact ApiImpl.node.wp_ApplyConfChange_dynamic_impl
-    _root_.Perennial.EtcdGrove.node.wp_ApplyConfChange
-theorem node.wp_Advance_dynamic : node.Advance.dynamicSpec (GF := GF) (hG := hG) := by
-  exact ApiImpl.node.wp_Advance_dynamic_impl _root_.Perennial.EtcdGrove.node.wp_Advance
-theorem wp_StartNode_dynamic : StartNode.dynamicSpec (GF := GF) (hG := hG) := by
-  exact ApiImpl.wp_StartNode_dynamic_impl _root_.Perennial.EtcdGrove.wp_StartNode
-theorem node.wp_ReportUnreachable : node.ReportUnreachable.spec (GF := GF) (hG := hG) := by
-  exact ApiImpl.node.wp_ReportUnreachable_impl _root_.Perennial.EtcdGrove.node.wp_ReportUnreachable
-theorem node.wp_ReportSnapshot : node.ReportSnapshot.spec (GF := GF) (hG := hG) := by
-  exact ApiImpl.node.wp_ReportSnapshot_impl _root_.Perennial.EtcdGrove.node.wp_ReportSnapshot
+end readyRecv
 
-end links
-
-end Draft
 end EtcdGrove
 end Perennial

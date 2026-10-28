@@ -30,7 +30,7 @@ variable [KVStor GF]
 
 theorem KV.do.wp_proof
     (wp_encode : kv.encode.spec (GF := GF) (hG := hG))
-    (wp_node_Propose : Draft.node.Propose.spec (GF := GF) (hG := hG)) :
+    (wp_node_Propose : node.Propose.spec (GF := GF) (hG := hG)) :
     KV.do.spec (GF := GF) (hG := hG) := by
   intro γr γp r kind key val Ψ Hkey Hval
   wp_start as ⟨#Hreg, Hau⟩

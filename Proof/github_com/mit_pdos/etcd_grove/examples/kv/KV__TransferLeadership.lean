@@ -25,7 +25,7 @@ variable [package_sem : github_com.mit_pdos.etcd_grove.examples.kv.Assumptions]
 variable [KVStor GF]
 
 theorem KV.TransferLeadership.wp_proof
-    (wp_node_TransferLeadership : Draft.node.TransferLeadership.spec (GF := GF) (hG := hG)) :
+    (wp_node_TransferLeadership : node.TransferLeadership.spec (GF := GF) (hG := hG)) :
     KV.TransferLeadership.spec (GF := GF) (hG := hG) := by
   intro γr γp r to
   wp_start as #Hreg

@@ -10,13 +10,51 @@ public import Proof.go_etcd_io.raft.v3.InvApplyConf
 public import Proof.go_etcd_io.raft.v3.InvBoot
 public import Spec.go_etcd_io.raft.v3.RawNode__ProposeConfChange
 public import Spec.go_etcd_io.raft.v3.NewRawNode
+import all Proof.go_etcd_io.raft.v3.InvNode
+import Proof.go_etcd_io.raft.v3.InvApi
+import Proof.go_etcd_io.raft.v3.InvApiDyn
 
 @[expose] public section
 
 noncomputable section
 
+
 namespace Perennial
 namespace EtcdGrove
+
+open Iris Iris.BI Iris.ProofMode go_etcd_io.raft.v3
+
+/-! ## The raw triple (internal: private to this file)
+
+What the proof over raft's internals shows, from which the wrapper (below) derives the spec. Its documentation, as when it was the spec (until 2026-10-28):
+-/
+
+/-! Lean-first (no Rocq counterpart).
+
+## `node.ReportUnreachable(id)` (node.go:579), 2026-10-13
+
+From any goroutine: `pb.Message{Type: MsgUnreachable, From: id}` onto `recvc`
+(`netP_local`), which `run` steps as `RawNode.ReportUnreachable` does: a leader's
+`Progress` of `id` only. `n.done` never fires.
+-/
+
+open Iris Iris.BI go_etcd_io.raft.v3
+
+section spec
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [StorageModel GF]
+variable [sem : go.Semantics]
+variable [package_sem : go_etcd_io.raft.v3.Assumptions]
+
+/-- See the file header. -/
+private abbrev node.ReportUnreachable.specRaw : Prop :=
+  ∀ (γ : NodeNames) (id : w64) (n : Loc) (to : w64),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ isNodeChan γ id n }}
+    (App (Val (n @!! go.GoType.PointerType node.ty @!! go!"ReportUnreachable")) (Val #to))
+  {{ RET #(); True }}
+
+end spec
 
 open Iris Iris.BI Iris.ProofMode go_etcd_io.raft.v3
 
@@ -30,9 +68,9 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 /-- `recvc <- m` (a local message, `netP_local`); `n.done` never fires. (Raft v3.7, stage R5:
 the message is `&pb.Message{Type: pb.MsgUnreachable.Enum(), From: new(id)}`, built into `msgIn`
 by `msgIn_of_scalar_struct`; `MsgUnreachable.Enum()` is a new callee.) -/
-theorem node.ReportUnreachable.wp_proof
+private theorem node.ReportUnreachable.wp_raw
     (wp_MessageType_Enum : raftpb.MessageType.Enum.spec (GF := GF) (hG := hG)) :
-    node.ReportUnreachable.spec (GF := GF) (hG := hG) := by
+    node.ReportUnreachable.specRaw (GF := GF) (hG := hG) := by
   intro γ id n to
   wp_start as #Hnode
   ihave #Hnode' := Hnode
@@ -85,6 +123,48 @@ theorem node.ReportUnreachable.wp_proof
     iapply handshake_false_recv_au γ.done nv.done' $$ [$Hlc1 $Hlc2] Hdone
   iapply BigAndL.bigAndL_nil.2
   itrivial
+
+end proof
+
+/-! ## The spec, from the raw triple -/
+
+namespace ApiImpl
+
+section wrap
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [StorageModel GF]
+variable [sem : go.Semantics]
+variable [package_sem : go_etcd_io.raft.v3.Assumptions]
+
+/-- `node.ReportUnreachable.spec` from the raw triple (`node`'s names hidden behind the API's). -/
+private theorem node.wp_ReportUnreachable_impl
+    (hR : EtcdGrove.node.ReportUnreachable.specRaw (GF := GF) (hG := hG)) :
+    EtcdGrove.node.ReportUnreachable.spec (GF := GF) (hG := hG) := by
+  unfold EtcdGrove.node.ReportUnreachable.spec EtcdGrove.Cluster EtcdGrove.isNode
+  intro n γ N id to
+  iintro %Φ ⟨#Hinit, #Hnode⟩ HΦ
+  iunfold isNode at Hnode
+  icases Hnode with ⟨%γn, -, #Hrn, -⟩
+  iapply (hR γn id n to) $$ []
+  · iframe Hinit Hrn
+  iexact HΦ
+
+end wrap
+
+end ApiImpl
+
+section proof
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [StorageModel GF]
+variable [sem : go.Semantics]
+variable [package_sem : go_etcd_io.raft.v3.Assumptions]
+
+theorem node.ReportUnreachable.wp_proof
+    (wp_MessageType_Enum : raftpb.MessageType.Enum.spec (GF := GF) (hG := hG)) :
+    node.ReportUnreachable.spec (GF := GF) (hG := hG) :=
+  ApiImpl.node.wp_ReportUnreachable_impl (node.ReportUnreachable.wp_raw wp_MessageType_Enum)
 
 end proof
 

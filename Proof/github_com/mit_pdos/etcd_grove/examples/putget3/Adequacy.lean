@@ -113,7 +113,7 @@ theorem putget3_adequate [lctx : GoLocalContext] [sem : go.Semantics]
     [log.NewModel]
     (Hctx : ∀ hG : HeapGS .hasLC putget3GF, ContextReadErrs (GF := putget3GF) (hG := heapAt3 hG lctx))
     (Hcec : ∀ hG : HeapGS .hasLC putget3GF, ContextErrsClient (GF := putget3GF) (hG := heapAt3 hG lctx))
-    (id₁ id₂ id₃ : w64) (ctxs : List (List w8)) (boot : List Draft.LogEntry)
+    (id₁ id₂ id₃ : w64) (ctxs : List (List w8)) (boot : List LogEntry)
     (Hbf : putget3.BootFacts id₁ id₂ id₃ ctxs boot)
     (Hck : ckptEffectsOk) (Haf : authRecordsFit)
     (Hbuq : apply.backendUnderQuota) (Hdbo : storage.dbOpensOk)

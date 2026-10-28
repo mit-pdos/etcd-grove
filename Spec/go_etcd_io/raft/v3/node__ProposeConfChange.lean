@@ -1,34 +1,14 @@
-/- `node.ProposeConfChange` (node.go), Lean-first (2026-10-13, reconfiguration stage D).
+/- Lean-first (no Rocq counterpart).
 
-`ProposeConfChange(ctx, cc)` is `msg, err := confChangeToMsg(cc); if err != nil { return err };
-return n.Step(ctx, msg)`: the proposal goes on `propc` as a forwarded one (no result channel),
-and `run` steps it (`RawNode.ProposeConfChange`'s file header says what that does). The
-entry's data is recorded as proposed (`isPropData`, through the node's proposed slices'
-invariant, `node_read_register`), which makes the proposal a protocol message (`fwdP`).
-Partial correctness: whether the change is appended or refused is not visible.
-(2026-10-16, stage R7a, D10 gap (2)) The context is any `nodeCtx ctx cd` (`InvNodeCtx.lean`:
-`Done()` nil, or Perennial's `isContext`), and the error `nodeErr cd err`: `nil`, raft's
-`ErrStopped`, or the context's once its `Done()` fired (`ctxErr`).
+## `node.ProposeConfChange`
 
-raft v3.7 (2026-10-16, stage R5, D6): the entry holds the conf change's bytes, so no recording
-(`isPropData`) is needed: the proposal is `fwdP` from `confChangeToMsg`'s owned message
-(`msgIn ml 1`), `ccEntsOk_cc`.
-
-**Logically atomic (2026-10-27).** As `node.Propose`: the conf change's entry is a tracked
-proposal, keyed by its type and bytes (`entKey`), and the caller hands in `ccPropArg γ.raft o` --
-once `o` is marshaled to bytes `bs`, the key's registration (`propIs`) and an update `propAu1` for
-it, which `ProposeConfChange` deposits before the proposal leaves the node (`cc_propose_ghost`),
-its ticket travelling with the proposal; or nothing, if the entry is a filler (an empty
-`ConfChangeV2`). The update fires at most once, when the entry commits, and never if a leader
-refuses the change (an empty normal entry, a filler, is appended in its place and the ticket
-dropped). Until 2026-10-27 a conf-change entry fired the standing `noopAu`, and the change had to
-be one the cluster's policy admits (`CCAllowed`).
+The node API's spec. (2026-10-28: moved here from `NodeApiDraft.lean`, where it was drafted over the
+API's sealed predicates, now `InvNode.lean`'s; until then this file held the triple over raft's
+internals, now the proof's private `node.ProposeConfChange.specRaw`.)
 -/
 module
 
-public import Proof.go_etcd_io.raft.v3.InvNodeCtx
-public import Proof.go_etcd_io.raft.v3.ApiVocab
-public import Perennial.Proof.context
+public import Proof.go_etcd_io.raft.v3.InvNode
 
 @[expose] public section
 
@@ -46,16 +26,20 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [StorageModel GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
-/-- See the file header. -/
+/-- **`node.ProposeConfChange(ctx, cc)`**: the same, for the conf change `o` that `cc` holds (given
+back): its entry has the type and bytes `MarshalConfChange` gives it, raft choosing the term. The
+update never fires if the leader refuses the change (an empty normal entry commits in its place,
+`raft.go:1341`). (2026-10-27: an empty `ConfChangeV2` is no filler any more, `LogEntry.isFiller`:
+its update fires like any conf change's.) -/
 abbrev node.ProposeConfChange.spec : Prop :=
-  ∀ (γ : NodeNames) (id : w64) (n : Loc) (c : GoInterface) (o : ConfChangeIM) (dq : DFrac)
+  ∀ (n : Loc) (γ : Cluster) (N : Namespace) (id : w64) (c : GoInterface) (o : ConfChangeIM) (dq : DFrac)
     (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ isNodeChan γ id n ∗
-      nodeCtx ctx cd ∗
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ isNode n γ N id ∗ nodeCtx ctx cd ∗
       ownConfChangeI c dq (some o) ∗
-      -- (2026-10-27) the proposal tracked under its key (`ccPropArg`; until then
-      -- `CCAllowed γ.raft o`, a change the cluster's policy admits)
-      ccPropArg γ.raft o }}
+      AU <{ ∃∃ (ops : List LogEntry), ownCommittedOps γ ops }> @ ⊤ \ ↑N, ∅
+         <{ ∀∀ (t : w64) (bs : List w8), ⌜MarshalsConfChange (some o) bs⌝ ∗
+              ownCommittedOps γ (ops ++ [⟨t, confChangeEntryType (some o), bs⟩]),
+            COMM True }> }}
     (App (App (Val (n @!! go.GoType.PointerType node.ty @!! go!"ProposeConfChange"))
       (Val #(interface.ok ctx))) (Val #c))
   {{ (err : GoInterface), RET #err; ownConfChangeI c dq (some o) ∗ nodeErr cd err }}

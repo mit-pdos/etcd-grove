@@ -62,7 +62,7 @@ theorem Main.wp_proof
   iunfold premises at Hprem
   icases Hprem with ⟨#Hboot, #Hmarsh, #Hzap, #Hsetlg, #Htd, #Hns, #Htk, #Hstop, #Hnrl⟩
   -- `Main`'s premises in the shared start's form
-  ihave #Hb := common.bootPremise_of N [id] (Draft.LogEntry.toEntries boot 0) ctxs (linkvtxnDir id) go!"linkvtxn" go!"linkvtxn"
+  ihave #Hb := common.bootPremise_of N [id] (LogEntry.toEntries boot 0) ctxs (linkvtxnDir id) go!"linkvtxn" go!"linkvtxn"
       (common.urls1 go!"linkvtxn" go!"127.0.0.1:23806" go!"127.0.0.1:23796") id cfgOk urlsOk
       (fun _ h => by obtain ⟨h1, h2, h3, h4, h5, h6⟩ := h; exact ⟨h1, by rw [h2]; rfl, h3, h4, h5, h6⟩)
       (fun _ h => by obtain ⟨h1, h2, h3, h4⟩ := h; exact ⟨h1, h2, h3, h4⟩) $$ Hboot
@@ -93,13 +93,13 @@ theorem Main.wp_proof
       (by omega) (by omega)) $$ Hmarsh
     with ⟨%γ, %ρ, %E₀, %Φs, %γn, %Hal, Hmb, #Hnet, Hetcd⟩
   obtain ⟨hvs, hdyn, hboot, hγn1, hγn2, hlog⟩ := Hal
-  have hblen : (Draft.LogEntry.toEntries boot 0).length ≤ 2 ^ 60 := by
-    simp [Draft.LogEntry.toEntries, hblen0]
+  have hblen : (LogEntry.toEntries boot 0).length ≤ 2 ^ 60 := by
+    simp [LogEntry.toEntries, hblen0]
   -- `StartServer("linkvtxn", "127.0.0.1:23806", clientAddr, lg)`
   -- (2026-10-24, rafthttp stage 6d) the one-member directory is well formed
   have Hdirok : netDirOk (linkvtxnDir id) :=
     dirOne_ok id _ (by intro h; apply Hbf.idLow; rw [h]; decide) (by decide)
-  wp_apply (wp_StartServer N go!"linkvtxn" go!"127.0.0.1:23806" go!"127.0.0.1:23796" lg (Draft.LogEntry.toEntries boot 0) ctxs
+  wp_apply (wp_StartServer N go!"linkvtxn" go!"127.0.0.1:23806" go!"127.0.0.1:23796" lg (LogEntry.toEntries boot 0) ctxs
       (linkvtxnDir id) id γ ρ E₀ Φs γn Htb Hrb48 HrbN hvs
       hdyn hboot hblen hγn1 hγn2 Hdirok
       (by simp [linkvtxnDir, dirOne]) Hlg Hck Haf Hbuq Hdbo) $$ [Htok Hmb]
@@ -166,7 +166,7 @@ theorem Main.wp_proof
     intro a ha; simp only [List.mem_cons, List.not_mem_nil, _root_.or_false] at ha
     subst ha; exact Hnr
   -- the instance's invariant, at the server's start store (empty)
-  imod (linkvInv_alloc_boot ρ.rd.kv hlog (fun _ _ => True) [id] (Draft.LogEntry.toEntries boot 0) (srvBootLogOk_of_BootLog _ _ _ Hbf.boot) ⊤) $$ Hetcd
+  imod (linkvInv_alloc_boot ρ.rd.kv hlog (fun _ _ => True) [id] (LogEntry.toEntries boot 0) (srvBootLogOk_of_BootLog _ _ _ Hbf.boot) ⊤) $$ Hetcd
     with ⟨%γl, #Hlinv, Hst⟩
   -- `Check(cli, clients, ops, 0)`
   wp_apply (wp_Check γl cl go!"127.0.0.1:23796" _ E ρ.rd cid mid clients ops (W64 0) hAs

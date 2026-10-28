@@ -12,6 +12,7 @@ specified for `context.Background()`; the error said only whether the message re
 module
 
 public import Proof.go_etcd_io.raft.v3.InvNodeCtx
+public import Proof.go_etcd_io.raft.v3.InvNodeChan
 public import Perennial.Proof.context
 
 @[expose] public section

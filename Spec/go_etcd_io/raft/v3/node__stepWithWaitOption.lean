@@ -22,6 +22,7 @@ its capacity and the data slice). A message from the network is `netP` alone: it
 module
 
 public import Proof.go_etcd_io.raft.v3.InvNodeCtx
+public import Proof.go_etcd_io.raft.v3.InvNodeChan
 public import Perennial.Proof.context
 public import Proof.go_etcd_io.raft.v3.InvRawnodeReady
 public import Proof.go_etcd_io.raft.v3.InvApplyConf

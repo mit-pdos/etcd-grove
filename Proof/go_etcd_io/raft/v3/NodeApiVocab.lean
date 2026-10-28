@@ -18,7 +18,6 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Draft
 
 open Iris Iris.BI go_etcd_io.raft.v3
 
@@ -153,6 +152,5 @@ instance committedEntriesAt_persistent (sl : GoSlice) (base : Nat) (ce : List Lo
 
 end iprop
 
-end Draft
 end EtcdGrove
 end Perennial

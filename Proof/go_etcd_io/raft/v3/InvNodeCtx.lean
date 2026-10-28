@@ -33,7 +33,6 @@ canonical one), so the register keeps calling with `Background()`.
 module
 
 public import Proof.go_etcd_io.raft.v3.ApiCtx
-public import Proof.go_etcd_io.raft.v3.InvNodeChan
 public import Spec.context.ErrDone
 public import Perennial.Proof.context
 

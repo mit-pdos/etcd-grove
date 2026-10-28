@@ -26,7 +26,7 @@ variable [sem : go.Semantics]
 variable [package_sem : github_com.mit_pdos.etcd_grove.examples.kv.Assumptions]
 variable [StorageModel GF]
 
-theorem tick.wp_proof (wp_node_Tick : Draft.node.Tick.spec (GF := GF) (hG := hG)) :
+theorem tick.wp_proof (wp_node_Tick : node.Tick.spec (GF := GF) (hG := hG)) :
     tick.spec (GF := GF) (hG := hG) := by
   intro γ id n
   wp_start as #HisNode
@@ -44,7 +44,7 @@ theorem tick.wp_proof (wp_node_Tick : Draft.node.Tick.spec (GF := GF) (hG := hG)
     wp_apply +noauto time.wp_Sleep
     -- the tick's credit (D19b): the receipt of the resolution of `Tick`
     wp_take_receipt as Hc1
-    ihave Hc1 := Draft.tickCredit_intro γ 1 $$ Hc1
+    ihave Hc1 := tickCredit_intro γ 1 $$ Hc1
     wp_apply wp_node_Tick n γ kvRaftN id $$ [$Hraftinit $HisNode $Hc1]
     wp_for_post
     iframe

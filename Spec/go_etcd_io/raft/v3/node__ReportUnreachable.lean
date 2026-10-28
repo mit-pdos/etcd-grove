@@ -1,14 +1,14 @@
 /- Lean-first (no Rocq counterpart).
 
-## `node.ReportUnreachable(id)` (node.go:579), 2026-10-13
+## `node.ReportUnreachable`
 
-From any goroutine: `pb.Message{Type: MsgUnreachable, From: id}` onto `recvc`
-(`netP_local`), which `run` steps as `RawNode.ReportUnreachable` does: a leader's
-`Progress` of `id` only. `n.done` never fires.
+The node API's spec. (2026-10-28: moved here from `NodeApiDraft.lean`, where it was drafted over the
+API's sealed predicates, now `InvNode.lean`'s; until then this file held the triple over raft's
+internals, now the proof's private `node.ReportUnreachable.specRaw`.)
 -/
 module
 
-public import Proof.go_etcd_io.raft.v3.InvNodeChan
+public import Proof.go_etcd_io.raft.v3.InvNode
 
 @[expose] public section
 
@@ -26,10 +26,11 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [StorageModel GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
-/-- See the file header. -/
+/-- **`node.ReportUnreachable(id)`**, from any goroutine (the transport's): a leader's progress of
+`id` only; nothing is promised. -/
 abbrev node.ReportUnreachable.spec : Prop :=
-  ∀ (γ : NodeNames) (id : w64) (n : Loc) (to : w64),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ isNodeChan γ id n }}
+  ∀ (n : Loc) (γ : Cluster) (N : Namespace) (id : w64) (to : w64),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ isNode n γ N id }}
     (App (Val (n @!! go.GoType.PointerType node.ty @!! go!"ReportUnreachable")) (Val #to))
   {{ RET #(); True }}
 

@@ -798,7 +798,7 @@ theorem EtcdServer.apply.wp_proof
         have hmm := restModel_members γr.kv.c0 γr.raft.raft.boot (γr.raft.pre ++ (A ++ ms.take (sint.nat j)))
         wp_apply (hACC s cc_ptr ep cm csl false ci ua E ρ.raft
           iprop(True) iprop(True) iprop(True) iprop(True) m.index m.term γB sv.cluster _ dB alB stB lpB
-          none [] ⟨0, Draft.Membership.simple ∅⟩ 0 (Draft.Membership.simple ∅) m.toLE sv.lg bh ix lgh tl lid prs lgc cid
+          none [] ⟨0, Membership.simple ∅⟩ 0 (Membership.simple ∅) m.toLE sv.lg bh ix lgh tl lid prs lgc cid
           (Hcb cm Hdec)
           HROeq hkbB hgbB (fun h => (hdv.1 h).resolve_right (fun hn => hn m hmem h1))
           (fun γn h => by cases h) Hpeer Hloc Hsz hmm.1 hmm.2)
@@ -1658,7 +1658,7 @@ theorem EtcdServer.apply.wp_proofOn
         have hmm := restModel_members γr.kv.c0 γr.raft.raft.boot (γr.raft.pre ++ (A ++ ms.take (sint.nat j)))
         wp_apply (hACC s cc_ptr ep cm csl false ci ua E ρ.raft
           iprop(True) iprop(True) iprop(True) iprop(True) m.index m.term γB sv.cluster _ dB alB stB lpB
-          none [] ⟨0, Draft.Membership.simple ∅⟩ 0 (Draft.Membership.simple ∅) m.toLE sv.lg bh ix lgh tl lid prs lgc cid
+          none [] ⟨0, Membership.simple ∅⟩ 0 (Membership.simple ∅) m.toLE sv.lg bh ix lgh tl lid prs lgc cid
           (Hcb cm Hdec)
           HROeq hkbB hgbB (fun h => (hdv.1 h).resolve_right (fun hn => hn m hmem h1))
           (fun γn h => by cases h) Hpeer Hloc Hsz hmm.1 hmm.2)

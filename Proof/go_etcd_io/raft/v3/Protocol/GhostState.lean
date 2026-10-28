@@ -1465,7 +1465,7 @@ was created knowing (`readOk`). -/
 def readStateRaw (γ : RaftNames) (st : ReadStateM) : IProp GF :=
   iprop(∃ c, ⌜st.RequestCtx' = c⌝ ∗ readOk γ c st.Index')
 
-instance readStateOk_persistent (γ : RaftNames) (st : ReadStateM) :
+instance readStateRaw_persistent (γ : RaftNames) (st : ReadStateM) :
     Persistent (readStateRaw (GF := GF) γ st) := by
   unfold readStateRaw; infer_instance
 

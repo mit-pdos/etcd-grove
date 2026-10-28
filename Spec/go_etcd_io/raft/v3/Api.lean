@@ -55,12 +55,11 @@ public import Spec.go_etcd_io.raft.v3.node__ApplyConfChange
 public import Spec.go_etcd_io.raft.v3.node__Tick
 public import Spec.go_etcd_io.raft.v3.node__ReadIndex
 public import Spec.go_etcd_io.raft.v3.node__TransferLeadership
-public import Spec.go_etcd_io.raft.v3.node__ForgetLeader
 public import Spec.go_etcd_io.raft.v3.node__ReportSnapshot
 public import Spec.go_etcd_io.raft.v3.node__ReportUnreachable
 public import Spec.go_etcd_io.raft.v3.IsEmptyHardState
 public import Spec.go_etcd_io.raft.v3.IsEmptySnap
 public import Spec.go_etcd_io.raft.v3.NewMemoryStorage
-public import Proof.go_etcd_io.raft.v3.InvNodeChan
+public import Proof.go_etcd_io.raft.v3.InvNode
 public import Proof.go_etcd_io.raft.v3.InvNodeCtx
 public import Proof.go_etcd_io.raft.v3.ApiVocab

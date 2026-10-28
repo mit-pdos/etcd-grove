@@ -1,25 +1,14 @@
 /- Lean-first (no Rocq counterpart).
 
-## `node.Advance()` (node.go:549)
+## `node.Advance`
 
-The driver, done with a `Ready` (its entries appended: the storage's receipt), hands it
-back to `run` (`advancec <- struct{}{}`, `advanceP`); its token is idle again, at the
-committed log handed out so far. `n.done` is never closed (`Stop` is out of scope).
-
-(D19i part 1, 2026-10-18) And the storage's floor is at least the committed log handed out
-(`storFloor`): `run` raises it at the rendezvous (`advInv`), so the application may compact
-and snapshot its storage up to what it applied, before `run`'s `rn.Advance` moves `applied`.
-
-(D22 S-d4, 2026-10-21) For the `Ready`'s snapshot `L` (its loan, `nodeDriverBusy`): after a
-`Ready` with a snapshot the receipt is the storage at the snapshot with the half of the snapshot
-(`advReceipt`, `snapReceipt`), and no floor is raised (`reqWit γ none`); after one without, the
-floor's witness -- unless a snapshot was restored since (at a node that takes snapshots, `snapIn`:
-`reqWit`'s second case), which a client in raft's no-snapshot mode, in the dynamic mode or at a
-node that takes no `MsgSnap` refutes (`reqWit_none`).
+The node API's spec. (2026-10-28: moved here from `NodeApiDraft.lean`, where it was drafted over the
+API's sealed predicates, now `InvNode.lean`'s; until then this file held the triple over raft's
+internals, now the proof's private `node.Advance.specRaw`.)
 -/
 module
 
-public import Proof.go_etcd_io.raft.v3.InvNodeChan
+public import Proof.go_etcd_io.raft.v3.InvNode
 
 @[expose] public section
 
@@ -37,21 +26,41 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [StorageModel GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
-/-- See the file header. -/
+/-- (open) **`node.Advance()`**: the driver, done with a `Ready` (its entries `es` appended, or its
+snapshot installed: the storage contract's receipt, `advReceipt`), hands it back; the loop is idle
+again. After a `Ready` without a snapshot, the storage's floor is at least the committed log
+delivered (`storFloor`, today `reqWit`). (2026-10-27: the premise that no conf-change entry was
+delivered is gone: the nodes are in raft's static mode, which needs none -- a conf change the client
+applies keeps the voters, `node.ApplyConfChange`. For etcd's server: in a static cluster,
+`isStaticCluster`; a dynamic cluster's is `node.Advance.dynamicSpec`.) -/
 abbrev node.Advance.spec : Prop :=
-  ∀ (γ : NodeNames) (id : w64) (n : Loc) (ds es : List EntryM) (ca : Nat)
-    (cfg : CCState) (p : HardStateM) (L : Option SnapLoan),
-  -- (2026-10-15, stage N) **A1**, in the dynamic mode: every conf entry of the committed log
-  -- handed out has been applied (`node.ApplyConfChange`): none past the driver's configuration
-  -- index (`issues/raft-advance-before-applyconfchange.md`)
-  (γ.mode.isDyn = true → NoConfIn ds ca ds.length) →
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
-      nodeDriverBusy γ id n ds es p L ∗ advReceipt γ.stor es L ∗ nodeCfg γ ca cfg }}
+  ∀ (n : Loc) (γ : Cluster) (N : Namespace) (vs : List w64)
+    (snapOk : List LogEntry → List w8 → Prop) (st : NodeDriverState) (es : List EntryM)
+    (L : Option SnapLoan),
+  st.handling = some (es, L) →
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ isStaticCluster γ N vs snapOk ∗
+      nodeDriver n γ N st ∗ advReceipt st.storage es L }}
     (App (Val (n @!! go.GoType.PointerType node.ty @!! go!"Advance")) (Val #()))
-  {{ RET #(); nodeDriverChan γ id n ds p ∗ nodeCfg γ ca cfg ∗
-      -- (D19i part 1) the floor's witness for `ds`; (D22 S-d4) after a `Ready` without a snapshot,
-      -- unless one was restored since (`reqWit`)
-      reqWit γ (reqOf L ds) }}
+  {{ RET #(); nodeDriver n γ N { st with handling := none } ∗
+      match L with
+      | none => ∃ x : w64, storFloor st.storage x ∗ ⌜(st.delivered.length : Int) ≤ uint.Z x⌝
+      | some _ => True }}
+
+/-- **`node.Advance()`** in a dynamic cluster: as `node.Advance.spec`, if every conf-change entry
+of the committed log delivered is applied (none past the view's configuration index:
+`issues/raft-advance-before-applyconfchange.md`, today's A1). The view is unchanged. -/
+abbrev node.Advance.dynamicSpec : Prop :=
+  ∀ (n : Loc) (γ : Cluster) (N : Namespace) (c0 : Membership) (decode : ConfChangeDecoder)
+    (st : NodeDriverState) (es : List EntryM) (L : Option SnapLoan) (v : ConfigView),
+  st.handling = some (es, L) →
+  NoConfChangeIn st.delivered v.applied st.delivered.length →
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ isDynamicCluster γ N c0 decode ∗
+      nodeDriver n γ N st ∗ advReceipt st.storage es L ∗ nodeConfig n γ N v }}
+    (App (Val (n @!! go.GoType.PointerType node.ty @!! go!"Advance")) (Val #()))
+  {{ RET #(); nodeDriver n γ N { st with handling := none } ∗ nodeConfig n γ N v ∗
+      match L with
+      | none => ∃ x : w64, storFloor st.storage x ∗ ⌜(st.delivered.length : Int) ≤ uint.Z x⌝
+      | some _ => True }}
 
 end spec
 
