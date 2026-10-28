@@ -293,10 +293,10 @@ def memberBootOn (γ : SrvRaft) (ctxs : List (List w8))
       ρ.rd.kv.c0 = W64 0 ∧ ρ.rd.kv.ch0 = apply.alarmChain true false false ∧
       ρ.rd.kv.log0 = [[], []] ∧ ρ.rd.kv.cok = E₀.γ.cok ∧
       ρ.ids.pfx = idPfxOf (W16 (uint.Z id)) ∧ Φs ρ.ids.pfx = srvFloorFact E₀⌝ ∗
-    Draft.nodeBoot γ.cl srvClusterN γ.vs ctxs id ∗ srvRaftLogInv ρ.rd.raft ∗
+    nodeBoot γ.cl srvClusterN γ.vs ctxs id ∗ srvRaftLogInv ρ.rd.raft ∗
     idClusterInv ρ.ids.issued ρ.ids.cnt Φs ∗ idNoZero ρ.ids ∗
     srvPropMint ρ.rd.raft ρ.ids ∗ srvRdCtxInv ρ.rd.raft ρ.ids.issued ∗
-    idShare ρ.ids ∗ Draft.readCredits γ.cl (2 ^ 48) ∗ idWaitTok ρ.ids ∗
+    idShare ρ.ids ∗ readCredits γ.cl (2 ^ 48) ∗ idWaitTok ρ.ids ∗
     mvcc.idxFresh E₀.γ.idx ∗
     ghostMapAuth E₀.γ.cok 1 (∅ : GMap w64 mvcc.Log) ∗
     ghostMapAuth E₀.γrev 1 (∅ : GMap w64 Unit) ∗
