@@ -2421,6 +2421,25 @@ noncomputable def generation.isEmpty.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "$res0") (Var "$r0"))))))))
   (App (Val (GoInstruction (GoLoad go.bool))) (Var "$res0"))))))
 
+/-- isRecreatedAt reports whether this generation was created by a put in main
+    revision rev, i.e. the key was deleted and re-created within that revision.
+
+    go: key_index.go:365:22 -/
+noncomputable def generation.isRecreatedAt.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "g"
+  (Lam "rev"
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
+  (Seq (App (Val exceptionDo)
+  (Let "g" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType generation.ty)))) (Var "g"))
+  (Let "rev" (App (Val (GoInstruction (GoAlloc go.int64))) (Var "rev"))
+  (Let "$r0" (If (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType generation.ty) go!"isEmpty"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType generation.ty)))) (Var "g"))) (Val #()))) (App (Val (GoInstruction (GoOp GoEquals go.int64))) (Pair (App (Val (GoInstruction (GoLoad go.int64))) (App (Val (GoInstruction (StructFieldRef Revision.ty go!"Main"))) (App (Val (GoInstruction (IndexRef (go.GoType.SliceType Revision.ty)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.SliceType Revision.ty)))) (App (Val (GoInstruction (StructFieldRef generation.ty go!"revs"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType generation.ty)))) (Var "g")))) (Val #(W64 0)))))) (App (Val (GoInstruction (GoLoad go.int64))) (Var "rev")))) (Val #false))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "$res0") (Var "$r0")))))))))
+  (App (Val (GoInstruction (GoLoad go.bool))) (Var "$res0"))))))
+
 /-- walk walks through the revisions in the generation in descending order.
     It passes the revision to the given function.
     walk returns until: 1. it finishes walking all pairs 2. the function returns false.
@@ -10030,6 +10049,7 @@ class generation.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] 
   method_set : go.MethodSetIs generation.ty [(go!"go.etcd.io/etcd/server/v3/storage/mvcc.equal", (some (go.signature.Signature [generation.ty] false [go.bool])))]
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType generation.ty) [(go!"String", (some (go.signature.Signature [] false [go.string]))), (go!"go.etcd.io/etcd/server/v3/storage/mvcc.equal", (some (go.signature.Signature [generation.ty] false [go.bool]))), (go!"go.etcd.io/etcd/server/v3/storage/mvcc.isEmpty", (some (go.signature.Signature [] false [go.bool]))), (go!"go.etcd.io/etcd/server/v3/storage/mvcc.isRecreatedAt", (some (go.signature.Signature [go.int64] false [go.bool]))), (go!"go.etcd.io/etcd/server/v3/storage/mvcc.walk", (some (go.signature.Signature [(go.GoType.FunctionType (go.signature.Signature [Revision.ty] false [go.bool]))] false [go.int])))]
   ptr_isEmpty_unfold : MethodUnfold (go.GoType.PointerType generation.ty) go!"isEmpty" generation.isEmpty.impl
+  ptr_isRecreatedAt_unfold : MethodUnfold (go.GoType.PointerType generation.ty) go!"isRecreatedAt" generation.isRecreatedAt.impl
   ptr_walk_unfold : MethodUnfold (go.GoType.PointerType generation.ty) go!"walk" generation.walk.impl
 
 attribute [instance] generation.TypeAssumptions.type_repr
@@ -10043,6 +10063,7 @@ attribute [instance] generation.TypeAssumptions.type_repr
   generation.TypeAssumptions.method_set
   generation.TypeAssumptions.ptr_method_set
   generation.TypeAssumptions.ptr_isEmpty_unfold
+  generation.TypeAssumptions.ptr_isRecreatedAt_unfold
   generation.TypeAssumptions.ptr_walk_unfold
 
 structure RangeOptions [GooseExts] where

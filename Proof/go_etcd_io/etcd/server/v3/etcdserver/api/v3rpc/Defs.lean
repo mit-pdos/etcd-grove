@@ -191,10 +191,15 @@ def txnReqOk (maxTxnOps : Int) (cs : List CmpModel) (ts es : List ReqOp) : Prop 
 /-- `NewStringAffinePoint(k)`: `[k, k + "\x00")`. -/
 def pointIvl (k : GoString) : adt.IvlS := (k, k ++ [W8 0])
 
-/-- A delete's interval: `NewStringAffinePoint(Key)` for an empty range end,
-`NewStringAffineInterval(Key, RangeEnd)` otherwise (`"\x00"` included: the empty `[k, "\x00")`). -/
+/-- A delete's interval: `NewStringAffinePoint(Key)` for an empty range end; for the range end
+`"\x00"` (a from-key delete) `NewStringAffineInterval(Key, "")`, `[k, +∞)`; otherwise
+`NewStringAffineInterval(Key, RangeEnd)`. (Until the fork's fix of etcd-io/etcd#22395, M2,
+2026-10-28, `"\x00"` was taken literally, the empty `[k, "\x00")`, so a from-key delete overlapped
+nothing: `issues/etcd-txn-delete-then-ignore-put.md`.) -/
 def delIvl (o : OpFull) : adt.IvlS :=
-  if o.base.rangeEnd = [] then pointIvl o.key else (o.key, o.base.rangeEnd)
+  if o.base.rangeEnd = [] then pointIvl o.key
+  else if o.base.rangeEnd = [W8 0] then (o.key, [])
+  else (o.key, o.base.rangeEnd)
 
 /-- `dels.Intersects(NewStringAffinePoint(k))`: some interval of `ds` overlaps the point `k`. -/
 def hits (ds : List adt.IvlS) (k : GoString) : Bool :=

@@ -176,9 +176,9 @@ theorem mvcc.watchableStore.syncWatchers.wp_proof
   iunfold mvcc.revMuBody at HQ
   icases HQ with ⟨%C, %ntok, %cQ, HQ⟩
   iNamedSuffix HQ "Q"
-  -- (M2, `notes/m2-plan.md`, S1 step 4) the store's compaction revision: `-1` while the reader
-  -- carried the frozen fact; the watchable store's generalization to compaction is S1 step 4
-  have HcQ1 : cQ = -1 := sorry -- M2 S1: re-prove from 6e23b02e5d:Proof/go_etcd_io/etcd/server/v3/storage/mvcc/watchableStore__syncWatchers.lean (S1 step 4: the watchable store over a compacting store)
+  -- the store's compaction revision is `-1`: the watchable store's store is never compacted
+  -- (`isWatchableStore`'s `crevFrozen`; until M2, `notes/m2-plan.md`, the reader's)
+  imod mvcc.crevFrozen_agree γ.st _ cQ HcQ.1 $$ Hfrz HcrevQ with ⟨HcrevQ, %HcQ1⟩
   subst HcQ1
   icases persistent_entails_right (mvcc.idxLogAuth_cert_prefix _ _ _ _) $$ [$HlogQ $Hcert]
     with ⟨%HpC, HlogQ, -⟩
@@ -302,7 +302,7 @@ theorem mvcc.watchableStore.syncWatchers.wp_proof
     ipureintro; exact H
   have hcur1 : sint.Z (W64 ((C.length : Int) - 1) + W64 1) = (C.length : Int) := by word
   ihave #HfrzP : mvcc.crevFrozen (γ.st.withPhys p) $$ []
-  · sorry -- M2 S1: re-prove from 6e23b02e5d:Proof/go_etcd_io/etcd/server/v3/storage/mvcc/watchableStore__syncWatchers.lean (S1 step 4: `rangeEvents` over a compacting store)
+  · rw [mvcc.crevFrozen_withPhys]; iexact Hfrz
   ihave #HcertP : mvcc.idxCert (γ.st.withPhys p).idx C $$ []
   · rw [mvcc.idxCert_withPhys]; iexact HcertQ
   ihave #HbkS := mvcc.isKeyBackendG_wand $$ HbkS

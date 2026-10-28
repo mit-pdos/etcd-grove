@@ -1537,6 +1537,10 @@ def isWatchableStore (s st : Loc) (γ : WsNames) : IProp GF :=
     "#Hvcb" ∷ isChanBag (V := Unit) γv vc (fun _ => iprop(True)) ∗
     "#Hstopc" ∷ s.[watchableStore, go!"stopc"] ↦□ stc ∗
     "#Hstop" ∷ isStopChan stc ∗
+    -- (M2, `notes/m2-plan.md`, S1) the inner store never compacted, as `newWatchableStore` makes
+    -- it (`crevFrozen_alloc`): what `syncWatchers`' snapshot (`rangeEvents`) needs, which until M2
+    -- the store's reader carried
+    "#Hfrz" ∷ crevFrozen γ.st ∗
     "%Hwq" ∷ ⌜γ.st.watchQ = true⌝)
 
 /-- **A holder of a watchable store's `s.mu` finds the inner store's `s.revMu` not restoring**

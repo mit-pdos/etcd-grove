@@ -117,6 +117,8 @@ theorem EtcdServer.Compact.wp_proof
     EtcdServer.Compact.spec (GF := GF) (hG := hG) := by
   intro s E ρ γr ctx cd p r
   wp_start as ⟨#Hsrv, #Hsrd, Hlt, Hlr, Hrd, Hrdr, #Hcred, #Hctx, #Htrc, #Hlb, Hreq⟩
+  -- (Perennial 25bd32450) the named results are allocated before the defer frame
+  wp_auto
   wp_apply wp_with_defer as %defer defer
   ihave Hinit : (srvInit : IProp GF) $$ []
   · iapply isPkgInit_access $$ Hpkg
@@ -155,7 +157,7 @@ theorem EtcdServer.Compact.wp_proof
   iintro %osl ⟨-, -⟩
   (try wp_auto)
   -- the span, over the caller's context (which carries no trace: `Htrc`, kept by `Start`)
-  wp_apply hStart tr ctx cd _ _ $$ [] as %ctx1 %sp ⟨⟨%vs1, #Hctx1t, Hctx1w⟩, #Hctr1, #Hsp⟩
+  wp_apply hStart tr ctx cd _ _ $$ [] as %ctx1 %sp ⟨⟨%vs1, #Hctx1t, Hctx1w⟩, #Hctr1, %Hinc1, #Hsp⟩
   · iframe #; iunfold mvcc.txnCtx; iright; iexact Hctx
   ihave #Hctx1 := Hctx1w $$ Hctx
   ihave #Htrc1 := Hctr1 $$ %none Htrc
@@ -176,7 +178,7 @@ theorem EtcdServer.Compact.wp_proof
   (try wp_auto)
   -- the trace: a new one (the context carries none)
   wp_apply hEnsure ctx1 _ none false v.lg _ slice.nil $$ []
-    as %ctx2 %trc ⟨⟨%Htrcnn, -⟩, Hown0, #Hct2, %vs2, #Hctx2t, Hctx2w⟩
+    as %ctx2 %trc ⟨⟨%Htrcnn, -⟩, Hown0, #Hct2, %Hinc2, %vs2, #Hctx2t, Hctx2w⟩
   · iframe Hctx1t
     isplitr
     · iexact Htrc1

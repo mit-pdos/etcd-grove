@@ -71,10 +71,10 @@ peers' contexts `ctxs` (the node API's `BootLog`: one conf change adding the mem
 `ctxs[0]`), each entry a conf change of id `0` that the server's `applyConfChange` takes
 (`ccBootOk`). (2026-10-27, the server port: until then `srvBootLogOk (ccOk id) [id] bootLog`, under
 the conf-change policy `ccOk id`, over raft's records.) -/
-structure BootFacts (id : w64) (ctxs : List (List w8)) (bl : List Draft.LogEntry) : Prop where
+structure BootFacts (id : w64) (ctxs : List (List w8)) (bl : List LogEntry) : Prop where
   idLow : uint.Z id % 2 ^ 16 ≠ 0
-  boot : Draft.BootLog [id] ctxs bl
-  cc : ∀ e ∈ Draft.LogEntry.toEntries bl 0,
+  boot : BootLog [id] ctxs bl
+  cc : ∀ e ∈ LogEntry.toEntries bl 0,
     ccIdOf e.Data' = W64 0 ∧ ccBootOk (GMap.listToSet [id]) e.Data'
 
 /-- `Main`'s peer URL, `http://127.0.0.1:23801`. -/
@@ -118,7 +118,7 @@ def cfgOk (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) : Prop :=
 /-- **`Main`'s named premises** (persistent; see the file header), at the bound `N` of the apply
 thread's write tokens, the member id `id`, the peers' contexts `ctxs` and the bootstrap log `boot`: each a triple of a
 function the program calls, whose postcondition holds fresh resources (D19a's second kind). -/
-def premises (N : Nat) (id : w64) (ctxs : List (List w8)) (boot : List Draft.LogEntry) :
+def premises (N : Nat) (id : w64) (ctxs : List (List w8)) (boot : List LogEntry) :
     IProp GF :=
   iprop(
     -- `bootstrap`'s contract (D13b), at every server raft names of the one-member cluster (2026-10-27,
@@ -126,12 +126,12 @@ def premises (N : Nat) (id : w64) (ctxs : List (List w8)) (boot : List Draft.Log
     -- name), for `Main`'s configuration and URLs (D19r (B), (F)), at the peers' contexts `ctxs`
     (□ ∀ (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (U : BootURLs) (γ : SrvRaft),
       ⌜cfgOk cfg ∧ urlsOk U ∧ γ.vs = [id] ∧ γ.dyn = false ∧
-        γ.boot = Draft.LogEntry.toEntries boot 0⌝ -∗
+        γ.boot = LogEntry.toEntries boot 0⌝ -∗
       letI : MemStorReg GF := ⟨γ.reg⟩; bootstrapContract cfg U γ id ctxs N (putgetcDir id)) ∗
     -- (2026-10-27, the server port) `proto.Marshal` of the peers' conf changes returns the bootstrap
     -- entries' bytes (raft's `bootMarshal`, which `StartNode` takes; the cluster's allocation's
     -- premise; until then `bootstrap`'s contract gave it)
-    bootMarshal [id] ctxs (Draft.LogEntry.toEntries boot 0) ∗
+    bootMarshal [id] ctxs (LogEntry.toEntries boot 0) ∗
     -- the raft wrapper's trust-boundary contracts (`NodeStartSpec`'s)
     rnLoggerZapOk ∗ rnSetLoggerOk ∗ rnTimeoutDetectorOk ∗ rnNewStorageOk ∗
     (□ ∀ E : RNEnv GF, ⌜E.T = iprop(True)⌝ -∗ rnTickerOk E) ∗
@@ -140,7 +140,7 @@ def premises (N : Nat) (id : w64) (ctxs : List (List w8)) (boot : List Draft.Log
     v3rpc.runsNoRequireLeader)
 
 instance premises_persistent (N : Nat) (id : w64) (ctxs : List (List w8))
-    (boot : List Draft.LogEntry) : Persistent (premises (GF := GF) N id ctxs boot) := by
+    (boot : List LogEntry) : Persistent (premises (GF := GF) N id ctxs boot) := by
   unfold premises; infer_instance
 
 end defs

@@ -271,10 +271,13 @@ theorem etcd_rangeHandlerOn (p s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr
       iunfold v3rpc.rangeAnsOkOn at Hans
       icases Hans with ⟨%log, #Hcert, #Hcok, %Hlog, #Hrl, HQl, Hres⟩
       ihave #HQl' := readQ_of_ansOn γr d Q o.base.serializable log Hdd $$ HQl
+      icases Hres with ⟨%crev, Hres⟩
       iunfold txn.rangeResult at Hres
-      icases Hres with (⟨%Hx, -⟩ | ⟨%Hx, -⟩ | ⟨%Hx, %kvs, %more, #Hrr, %Hsel⟩)
+      icases Hres with (⟨%Hx, -⟩ | ⟨%Hx, -⟩ | ⟨%Hx, %kvs, %more, #Hrr, %Hsel⟩ | ⟨%Hx, -⟩)
       · exact absurd Hx.2 Hrn
-      · exact absurd Hx.2.2.2 Hrn
+      · exact absurd Hx.2.2.2.1 Hrn
+      rotate_left
+      · exact absurd Hx.2.2 Hrn
       iunfold txn.rangeResponseIs at Hrr
       icases Hrr with ⟨-, %h2, %sl, %ps, #Hh2, %Hh2n, #Hrev, #Hkvs, #Hps, #Hkv, #Hmore, #Hcount⟩
       icombine Hh Hh2 gives %Heq

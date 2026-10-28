@@ -152,7 +152,7 @@ theorem mvcc.newWatchableStore.wp_proof
   · iunfold mvcc.isWatchableStore
     iexists vc, stc, rv, γv
     simp only [named]
-    iframe store Hst HRV kv Hmug victimc Hvcb stopc
+    iframe store Hst HRV kv Hmug victimc Hvcb stopc Hfrz
     isplitr
     · iunfold mvcc.isStopChan
       iexists γstc; iexact Hstop0
