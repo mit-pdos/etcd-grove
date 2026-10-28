@@ -20,8 +20,9 @@ the adequacy of `examples/kvreconf` (its `Main` never panics: porcupine answers 
 
 ## The spec
 
-Designed with the spec skill: candidate (scratch file, outside the repository) and reviews
-(`notes/spec-first-study/raft-node-unified-review-*.md`). Its shape:
+Designed with the spec skill over eleven review rounds (`notes/spec-first-study/raft-node-unified-review-*.md`);
+frozen as candidate 12 (`notes/spec-first-study/raft-node-unified-candidate.md`, the design the stages
+implement; Tier 2-3 wording settles in the stages). Its shape:
 
 - one parameterless `isCluster γ N`; the cluster's fixed choices projections of `γ`: `γ.c0` (the initial
   membership of a storage's `ConfState`), `γ.rule : ConfRule` (the application's decision for each
@@ -78,8 +79,12 @@ commit per lemma.
   `msgCredits_intro` (a client-supplied update per copied `MsgProp` entry); `SentMsgShape` in every
   cluster (a re-forwarded `MsgTransferLeader` never reaches `send`'s `Panicf`); the transfer choice;
   raft's proofs take their own time receipts (no read or tick credits in the API).
-- **U8. Storage.** `storHoldsLb` (laws from the append receipt and `Advance`); `CreateSnapshot` over it,
-  its term fixed in the post; the wrapper law.
+- **U8. Storage.** `storHoldsLb` (a `StorageModel` field; laws from the append receipt and `Advance`) and
+  the hold mark `storHoldMark` that `ApplySnapshot` respects (so `storHoldsLb` is persistent);
+  `CreateSnapshot` over it with today's token, mask and resources, its term fixed in the post;
+  `SetHardState` importable; the wrapper law.
+- **U9a. Stopped nodes.** `nodeLive` (fractional, whole from `StartNode`/`RestartNode`), `Stop` taking it,
+  `nodeStopped` with every stopped answer; each method's one triple with the stopped disjunct.
 - **U9. The node specs.** One spec per function over `isCluster`; `Campaign`, `ForgetLeader`, `Status`,
   `Stop`; the static family and `dynamicSpec`s deleted; `interface/` regenerated; the unfold list of the
   clients emptied (laws).
