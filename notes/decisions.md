@@ -21944,6 +21944,93 @@ tracks own): what blocks the rest, so that the next pass starts from it.
 - Taken up in parallel: `container/heap`'s `Fix`/`Push` and `unicode/utf8`'s `ValidString`
   (translated here, names-only until now).
 
+## D49: the DaemonSet controller over a model API server; client-go's libraries verified (2026-10-26 · the user: "What we should *avoid* verifying is the apiserver itself", "Some of these libaries (util/workqueue) are better off being verified directly")
+
+**The goal.** Safety of the real DaemonSet controller (`k8s.io/kubernetes/pkg/controller/daemon`),
+first `MaxOnePodPerNode` (kubernetes/kubernetes#139657's robustness test), in every execution of a
+Go example that runs it (`notes/k8s-daemonset-plan.md`).
+
+**The cut.** The API server is modeled, not verified: the model implements the typed clients the
+controller and its informers call (`k8s.io/client-go/kubernetes`, `kubernetes/typed/{apps,core}/v1`:
+the few CRUD methods, `List`, `Watch`), over one shared state, with nondeterministic failures (a
+failed write has no effect) and watch ends; its spec is the trusted statement of the API server.
+Everything above it is real code: client-go's informers (the reflector, the FIFO, the shared
+informer: they reach the server only through the `ListWatch` closures over the typed clients'
+`List`/`Watch`), its leaf libraries (`util/workqueue`, `util/consistency` (the consistency store, moved into client-go on master, 2026-10), `tools/cache`'s stores and indexers, the
+listers, `util/flowcontrol`, `util/retry`, `features`: none reaches `k8s.io/client-go/rest`), and
+the controller. The event recorder (`tools/record`) reaches the server only at its sink; events do
+not affect safety, so it is a trusted no-op or verified over a no-op sink (open).
+
+**Why not mock the informers too** (the first proposal, at the controller's constructor). The
+consistency store's guarantee is only as good as the informer's `LastStoreSyncResourceVersion`;
+a mocked informer would make that contract an assumption. Verifying the informers over List/Watch
+proves it from the API server's List/Watch semantics, which are simpler and better understood.
+
+**Why not the real API server.** The etcd3 store's proofs cover its unary methods only (`GetList`
+and the watcher do not translate: G2, G1 of `notes/k8s-etcd3-goose.md`), and kube-apiserver's
+handlers, registry, admission and serialization are far larger than the controller.
+
+## D50: the model API server is trusted Go code; the theorem is about a test program over it (2026-10-26 · the user: "focus on writing a high quality model in Go and treat it as part of the TCB. The top-level theorem will be about a test program that operations against this Go model")
+
+**The choice.** D49 left open whether the trusted statement of the API server is a Lean spec
+(with a Go model proved to meet it) or the Go model itself. It is the Go model:
+`examples/k8sdaemonset/apimodel`, a `kubernetes.Interface` over one shared state. The top-level
+theorem is about a Go test program (the robustness test's scenario: one node, one DaemonSet, the
+real controller and informers over the model, a checker) whose execution includes the model's
+code; the proofs step through that code like any other, and no spec of the model is stated or
+proved. What a reader must trust is that the model behaves like kube-apiserver for these calls:
+its package documentation (`doc.go`) says how, operation by operation, with the deviations.
+
+**What follows for the code.** The model is written to be read and to be stepped through: one
+mutex and condition variable, maps, one append-only change log per resource, resource versions
+issued as `strconv.FormatUint(n, 10)` (injective; never parsed: issued versions are looked up),
+no reflection, no `fmt`, nondeterminism only through `math/rand.Int63n` gated by `Config`
+flags. Client-go's typed interfaces are embedded with nil values, so a method the model does not
+implement panics: the no-panic theorem shows none is called (a Goose check pending: an embedded
+interface field).
+
+**The premise as configuration** (superseded by D51: the program now runs with the flag on).
+`Config.AmbiguousWrites` (a write may commit and still report failure) is the realistic behavior;
+the theorem's program ran with it off, which was the premise "a failed write had no effect". It
+matters: with it on, the real controller puts two pods on a node in 4 of 50 runs
+(`issues/k8s-daemonset-ambiguous-create-duplicate-pod.md`), with it off 0 of 30.
+
+**The model's spec is an internal layer** (2026-10-27 · the user: "The go model is *still* the
+trust base ... The proven spec is an internal proof detail that does not show up in the spec
+boundary."). Phase 3 of `notes/k8s-daemonset-plan.md` gives the model's code specs and proves
+it meets them (`Spec/.../k8sdaemonset/apimodel/`, `Proof/.../k8sdaemonset/apimodel/`): an
+abstract state (`State.lean`'s `St`: the resource version counter, the UIDs issued, per resource
+the stored objects and the change log), each operation logically atomic over it, the typed
+clients over the server's operations. This does not change the trust base: the Go model stays
+what a reader trusts, and the top-level theorem is still about the test program executing the
+model's code. The specs are a proof device, so that the informers' and the controller's proofs
+reason about one abstract state rather than step through the model; a wrong spec would make a
+proof fail, not a theorem say something false, since no statement at the spec boundary mentions
+it.
+
+## D51: realistic failures in the theorem's program; a bug is fixed only when a proof is genuinely stuck on it (2026-10-27 · the user: "I want AmbiguousWrites on Main, and for now, leave the thing unfixed. We'll only fix it when we genuinely get stuck in a proof (or I might do it earlier myself)"; "This will cause the test to fail, and that's ok for now")
+
+**The choice.** The DaemonSet theorem's program (`examples/k8sdaemonset/dsmain`) runs the model API
+server with every failure flag, `AmbiguousWrites` included: a write may commit and still report
+failure, as a timeout after the commit does in practice. D50's premise "a failed write had no
+effect" (the flag off) is withdrawn: it removed exactly the behavior that breaks the controller.
+
+**What follows.** With ambiguous writes the unmodified controller can put two pods of the DaemonSet
+on one node (`issues/k8s-daemonset-ambiguous-create-duplicate-pod.md`; reproduced on a real API
+server), so `Main`'s checker can panic: the adequacy theorem for `Main` is false of the code as it
+is, and `Main`'s Go test `TestMainNeverPanics` fails in such runs (2 of 100 at the change). Both are
+accepted. The bug is not fixed now: the proofs go on bottom up, and the controller is changed only
+when a proof genuinely gets stuck on it (the S1 proof is expected to, at the ambiguous create in
+`syncNodes`), or by the user. The candidate fixes are in
+`issues/upstream/k8s-daemonset-ambiguous-create-duplicate-pod/` (04, 05).
+
+**The rule, generally.** Implementations and the program's configuration are not changed to make a
+property provable or to dodge a gap; a gap that blocks a proof is left open (a named hypothesis)
+until a proof is genuinely stuck on it, then raised. So the informers stay on their default batch
+path (`InOrderInformersBatchProcess` on, gaps C4/D3), and the proposal to turn the gate off is
+withdrawn. `Main` setting its feature gates in code (phase B) is configuration of the scenario the
+robustness test runs, not a dodge, and stays.
+
 ## E2x of the auth plan: `encoding/base64` names-only here with a package fact; `EtcdServer.UserAdd` proposes a `pwSure` request (2026-10-26 · `notes/auth-plan.md`, the user's option (1))
 
 The handler `EtcdServer.UserAdd` (`v3_server.go`) hashes the password

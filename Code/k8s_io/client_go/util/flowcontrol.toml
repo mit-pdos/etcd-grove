@@ -1,0 +1,11 @@
+# With bodies (project k8s-apiserver; notes/k8s-clientgo-goose.md): `Backoff` (`backoff.go`), the
+# DaemonSet controller's failed-pod backoff (notes/k8s-daemonset-plan.md), and the token-bucket
+# throttle (`throttle.go`), whose limiter is `golang.org/x/time/rate`'s (names only).
+# `Backoff.Next` names only: its `min(delay, p.maxDuration)` on `time.Duration` is rejected by the
+# pinned Goose (gap C4; it translates with the fix proposed in notes/perennial-changes.md).
+# (`!_`: the `var _ I = &T{}` interface assertions, compile-time only, names only: translated, each
+# would be an allocation for `etc/gen-init.py`'s `Init.lean` to step through)
+translate = ["*", "!Backoff.Next", "!_"]
+imports = ["*"]
+
+translate_types = true

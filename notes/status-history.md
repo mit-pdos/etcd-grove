@@ -18319,3 +18319,40 @@ etcd's v1 changes), `confStateIs`, `LogEntry.isConfChange`, `NoConfChangeIn`, `C
 `RestartNode.dynamicSpec`, `node.ReportUnreachable.spec`, `node.ReportSnapshot.spec`, with `sorry`
 placeholders (`node.wp_ApplyConfChange_dynamic`, ...). Nothing uses them yet; the existing statements
 and their proofs are unchanged (`interface/.../NodeApiDraft.txt` regenerated).
+
+## `lean` merged into the DaemonSet branch: three Perennial pins, and a Goose blocker (2026-10-28, branch `k8s-daemonset-proof`)
+
+`origin/lean` (`d56018bd59`, 429 commits, Perennial `24bef275e` -> `edcadb1e5` through `f73703285`
+and `6b58510f9`) merged into `k8s-daemonset-proof`, so that the k8s proofs (client-go's leaf
+libraries, the informers, the model API server, the controller's first round) follow `lean`.
+
+- **Translations regenerated** (`etc/goose.py`): `k8s-apiserver` 265 files, `k8s-daemonset` 26;
+  `iter` is Perennial's in both k8s projects now (`lean_roots`, `owned`). Package initializers
+  regenerated (`etc/gen-init.py`, `--check` clean).
+- **The proofs ported** (no statement, spec or `Spec/` file changed; no axiom or `sorry` added):
+  the extension binders by script (935 files: `[GooseExts] [GooseSemantics] [GooseInterp]`);
+  uniform function results (a `wp_auto` for the result variables before `wp_with_defer` and
+  before the final postcondition; loop invariants and `wp_join` postconditions that leave or carry
+  `«$res0»`; constructors whose allocation `wp_auto` now does, `iapply wp_fupd` where ghost state
+  is allocated after it; `au_mono*`'s premise split so the continuation keeps the result
+  variables); `SafeMapKey`'s new fields (`key_ok`, `wp_go_eq_map_key`: the consistency store's
+  and the model's struct keys, equality of values); IEEE float `==` (the exponential rate
+  limiter's `float64Eq`); `wp_with_defer_recover` applied with `wp_apply`; container/heap's
+  `Push`/`Fix` now proved on `lean` (the work queue's link list takes `heap_up`, `heap_down`).
+- **`queue[T].Pop` names only**: Goose at `edcadb1e5` rejects its `(*q)[0] = *new(T)` (R4; a
+  false positive, `*new(T)` overlaps nothing): `!queue[T].Pop` in `workqueue.toml`, its proof
+  deleted, its spec a named hypothesis (`queue__Pop: ?`, `links_pending`) of the work queue's
+  results that reach `Typed.Get`; no axiom (`notes/perennial-changes.md`, "Goose rejects a store
+  of `*new(T)`").
+- **Blocker: the pinned Goose's method sets** (`notes/perennial-changes.md`, "Goose: an excluded
+  method keeps its unfold; a method set in the receiver's type-parameter names"). The generated
+  `Code/k8s_io/client_go/util/workqueue.lean` does not elaborate as Goose writes it: the excluded
+  `queue.Pop` keeps its `MethodUnfold` (unknown `queue.Pop.impl`), and `Typed`'s method set uses
+  the methods' type parameter `T` for the type's `t`. **The committed file is patched by hand**
+  (marked `LOCAL PATCH`: an `axiom queue.Pop.impl`, `T` renamed `t` on one line), so `lake build`
+  passes but `etc/goose.py --check` (CI) does not, and the patch's `axiom` is a declaration of the
+  translation, not of any result's trust base (nothing unfolds `Pop` once its spec is a
+  hypothesis). Until a Goose fix lands on Perennial's `lean` and the pin moves, the branch cannot
+  merge into `lean` as is.
+- `lake build` (10749 jobs) passes; `etc/gen-init.py --check` passes; every generated `Link.lean`
+  is current.

@@ -1,0 +1,7 @@
+# Types and names only: function and method bodies are axiomatized (project k8s-daemonset;
+# notes/k8s-daemonset-goose.md: what the DaemonSet controller and its example name).
+translate = ["!*"]
+imports = ["!*"]
+
+# translate the definitions of all type declarations goose supports
+translate_types = true

@@ -1,7 +1,57 @@
-# Names only, types axiomatized but the indexers' (`IndexFunc`, `Indexers`), which the watch
-# cache's store ranges over (`indexer.updateElem`; project k8s-apiserver, notes/kep-6404-plan.md).
-# Not `translate_types`: it takes the constraint interface `Object` (`interface { GetName() string;
-# GetNamespace() string; comparable }`), whose `comparable` term the Lean side has no name for
-# (`go.comparable`, notes/perennial-changes.md).
-translate = ["!*", "IndexFunc", "Indexers"]
-imports = ["!*"]
+# With bodies (project k8s-apiserver): the local half (notes/k8s-clientgo-goose.md: the store,
+# the thread-safe map and its indices, object names and keys, the listers' helpers, the store's
+# metrics, the cache-sync wait) and, since phase 4 of the DaemonSet plan
+# (notes/k8s-daemonset-goose.md, "The informers"), the informer layer: the reflector, the FIFOs,
+# the controller, the shared informer, its processor and listeners, the list-watch.
+translate = ["*", "!Object",
+  # (`!_`: the `var _ I = &T{}` interface assertions, compile-time only, names only, as in
+  # util/workqueue.toml: translated, each would be an allocation for `Init.lean` to step through)
+  "!_",
+  # names only: its `min` on `time.Duration` (the slow-trace threshold) is rejected by the pinned
+  # Goose (gap C4)
+  "!threadSafeMap.Transaction",
+  # names only: the same `min` (the slow-batch trace's threshold), in the AtomicFIFO informers'
+  # batch pop (gap C4; notes/k8s-daemonset-goose.md, D3)
+  "!RealFIFO.PopBatch",
+  # names only: a labeled `break` out of the `select` loop (gap D4), the reflector's watch loop
+  "!handleAnyWatch",
+  # names only: package variables of anonymous struct types (gap D5), the informer-name registry
+  # (identity.go) and the reflector's metrics factory (reflector_metrics.go), and what uses them
+  "!informerNameRegistry", "!NewInformerName", "!InformerName.Release",
+  "!ResetInformerNamesForTesting", "!metricsFactory", "!SetReflectorMetricsProvider",
+  # excluded: the methods the generic structs `typedIndexer[T]` and `typedSharedIndexInformer[T]`
+  # promote from their embedded `Indexer` and `SharedIndexInformer` (gap C2, as in
+  # util/workqueue.toml: the pinned Goose's pointer-receiver unfolding names the generic struct
+  # without its type argument); the Perennial bump with C2's fix brings them back
+  "!typedIndexer.Add", "!typedIndexer.AddIndexers", "!typedIndexer.Bookmark",
+  "!typedIndexer.ByIndex", "!typedIndexer.Delete", "!typedIndexer.Get", "!typedIndexer.GetByKey",
+  "!typedIndexer.GetIndexers", "!typedIndexer.Index", "!typedIndexer.IndexKeys",
+  "!typedIndexer.LastStoreSyncResourceVersion", "!typedIndexer.List",
+  "!typedIndexer.ListIndexFuncValues", "!typedIndexer.ListKeys", "!typedIndexer.Replace",
+  "!typedIndexer.Resync", "!typedIndexer.Update",
+  "!typedSharedIndexInformer.AddEventHandler", "!typedSharedIndexInformer.AddEventHandlerWithOptions",
+  "!typedSharedIndexInformer.AddEventHandlerWithResyncPeriod",
+  "!typedSharedIndexInformer.AddIndexers", "!typedSharedIndexInformer.GetController",
+  "!typedSharedIndexInformer.GetIndexer", "!typedSharedIndexInformer.GetStore",
+  "!typedSharedIndexInformer.HasSynced", "!typedSharedIndexInformer.HasSyncedChecker",
+  "!typedSharedIndexInformer.IsStopped", "!typedSharedIndexInformer.LastSyncResourceVersion",
+  "!typedSharedIndexInformer.RemoveEventHandler", "!typedSharedIndexInformer.Run",
+  "!typedSharedIndexInformer.RunWithContext", "!typedSharedIndexInformer.SetShardSelector",
+  "!typedSharedIndexInformer.SetTransform", "!typedSharedIndexInformer.SetWatchErrorHandler",
+  "!typedSharedIndexInformer.SetWatchErrorHandlerWithContext",
+  # names only: the package variables whose initializers run calls or build maps (C7: a translated
+  # one needs hand-written steps in `etc/gen-init.py`'s `Init.lean`; names only, `opaqueInitsOk`
+  # says each runs): the FIFOs' errors, the reflector's stop error and backoff and watch-timeout
+  # constants, the batchable delta types, the mutation detector's switch, the table GVKs, the
+  # processor's test hook
+  "!ErrFIFOClosed", "!ErrZeroLengthDeltasObject", "!errorStopRequested", "!batchable",
+  "!sharedProcessorRunHook", "!unsupportedTableGVK", "!internalPackages", "!defaultBackoffJitter",
+  "!defaultBackoffFactor", "!defaultBackoffReset", "!defaultBackoffMax", "!defaultBackoffInit",
+  "!defaultMaxWatchTimeout", "!defaultMinWatchTimeout", "!mutationDetectionEnabled",
+  # names only: the handler's name for logs and metrics (`runtime.FuncForPC` of the function's
+  # pointer, `event_handler_name.go`), so that the package does not import `runtime`, which has no
+  # `wp_initialize'` at the pinned Perennial
+  "!nameForFunction"]
+imports = ["*", "!runtime"]
+# Not `translate_types`: `Object` (an interface embedding `comparable`, gap C6) stays axiomatized,
+# so the types are translated by `translate`'s "*" and `Object` excluded.

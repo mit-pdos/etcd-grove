@@ -1,0 +1,3 @@
+# With bodies (project k8s-daemonset; notes/k8s-daemonset-goose.md): the theorem's program `Main`.
+translate = ["*"]
+imports = ["*"]

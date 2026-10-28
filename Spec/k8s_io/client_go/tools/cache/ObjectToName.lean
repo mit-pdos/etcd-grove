@@ -1,0 +1,44 @@
+/-
+`ObjectToName(obj)` (`store.go:167`): `meta.Accessor(obj)` (an error only for an object without
+metadata), then `MetaObjectToName`. Stated for a `*DaemonSet` (the DaemonSet controller's key
+function's argument), owned at any fraction, given back: its `ObjectName` and no error.
+Lean-first.
+-/
+module
+
+public import Proof.k8s_io.client_go.tools.cache.Keys
+public import Proof.github_com.mit_pdos.etcd_grove.examples.k8sdaemonset.apimodel.Defs
+
+@[expose] public section
+
+set_option linter.unusedSectionVars false
+
+noncomputable section
+
+namespace Perennial
+namespace EtcdGrove
+namespace cache
+
+open Iris Iris.BI k8s_io.client_go.tools.cache apimodel
+
+section spec
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [sem : go.Semantics]
+variable [package_sem : k8s_io.client_go.tools.cache.Assumptions]
+
+/-- **`ObjectToName(ds)`** of a `*DaemonSet`: `ObjectName{ns, name}` of its metadata, `nil`. -/
+abbrev ObjectToName.spec : Prop :=
+  ∀ (l : Loc) (dq : DFrac) (dd : kd.apps.DaemonSet),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.k8s_io.client_go.tools.cache ∗ dsAt l dq dd }}
+    (App (Val (@! k8s_io.client_go.tools.cache.ObjectToName))
+      (Val #(interface.mkOk (go.GoType.PointerType k8s_io.api.apps.v1.DaemonSet.ty) #l : GoInterface)))
+  {{ RET (PairV #(ObjectName.mk dd.ObjectMeta'.Namespace' dd.ObjectMeta'.Name')
+      #(interface.nil : GoInterface)); dsAt l dq dd }}
+
+end spec
+
+end cache
+end EtcdGrove
+end Perennial

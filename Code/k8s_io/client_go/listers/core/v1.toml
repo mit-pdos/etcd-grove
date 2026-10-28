@@ -1,0 +1,8 @@
+# The DaemonSet controller's listers with bodies (project k8s-apiserver;
+# notes/k8s-clientgo-goose.md): Nodes and Pods; the other resources' listers names only.
+translate = ["!*",
+  "NodeLister", "nodeLister", "nodeLister.*", "NewNodeLister", "NodeListerExpansion",
+  "PodLister", "podLister", "podLister.*", "NewPodLister", "PodNamespaceLister",
+  "podNamespaceLister", "podNamespaceLister.*", "PodListerExpansion",
+  "PodNamespaceListerExpansion"]
+imports = ["*"]

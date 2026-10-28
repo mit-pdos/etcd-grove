@@ -1,0 +1,29 @@
+# Types and names only: function and method bodies (the generated `DeepCopy`, protobuf and
+# registration code, the taint and toleration helpers) are axiomatized (project k8s-apiserver;
+# notes/k8s-clientgo-goose.md). It imports what its types name, so that the API types (`Pod`,
+# `Node`, `PodSpec`, ...) are concrete structs (gap G4 of notes/k8s-etcd3-goose.md); `resource`
+# and `intstr` are names only, so `resource.Quantity` and `intstr.IntOrString` stay axiomatized.
+# The promoted `metav1.Object` accessors of the resources the model API server serves (their
+# unfolds into `ObjectMeta`'s, translated with bodies; examples/k8sdaemonset/apimodel,
+# notes/k8s-apimodel-goose.md); the types' own methods stay names only.
+translate = ["!*", "Pod.Get*", "Pod.Set*", "Node.Get*", "Node.Set*",
+  # the constants the model reads (a names-only constant is a value of unknown shape)
+  "DefaultTerminationGracePeriodSeconds", "PodPending", "PodFailed", "PodSucceeded",
+  "RestartPolicyAlways", "DNSClusterFirst", "DefaultSchedulerName",
+  # the constants the DaemonSet controller reads (phase 5 of notes/k8s-daemonset-plan.md): the
+  # target node's affinity, the daemon pods' tolerations, the pod conditions and phases, the
+  # event types, the namespace cause (exact names: a pattern matches the types' methods too)
+  "NodeSelectorOpIn", "NodeSelectorOpNotIn", "NodeSelectorOpExists",
+  "NodeSelectorOpDoesNotExist", "NodeSelectorOpGt", "NodeSelectorOpLt",
+  "TaintEffectNoExecute", "TaintEffectNoSchedule", "TaintNodeNotReady",
+  "TaintNodeUnreachable", "TaintNodeDiskPressure", "TaintNodeMemoryPressure",
+  "TaintNodePIDPressure", "TaintNodeUnschedulable", "TaintNodeNetworkUnavailable",
+  "TolerationOpExists", "ConditionTrue", "PodReady", "ContainersReady", "PodRunning",
+  "PodUnknown", "EventTypeNormal", "EventTypeWarning", "NamespaceTerminatingCause",
+  "RestartPolicyNever", "RestartPolicyOnFailure"]
+imports = ["!*", "k8s.io/apimachinery/pkg/apis/meta/v1", "k8s.io/apimachinery/pkg/types",
+  "k8s.io/apimachinery/pkg/runtime", "k8s.io/apimachinery/pkg/api/resource",
+  "k8s.io/apimachinery/pkg/util/intstr"]
+
+# translate the definitions of all type declarations goose supports
+translate_types = true

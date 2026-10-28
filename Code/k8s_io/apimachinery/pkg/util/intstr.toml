@@ -1,0 +1,10 @@
+# Types and names only: function and method bodies are axiomatized (project k8s-apiserver;
+# notes/k8s-clientgo-goose.md): `IntOrString`, which the API types' rolling-update fields and probes
+# hold. Its struct stays axiomatized: its field `Type` has the type `Type`, and the generated
+# setter's binder `(y : Type')` resolves to the field's projection, not the type (gap C5).
+translate = ["!*"]
+imports = ["!*"]
+
+# translate the definitions of all type declarations goose supports
+translate_types = true
+translate_types_except_structs = true

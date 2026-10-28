@@ -1,0 +1,97 @@
+diff --git a/pkg/controller/daemon/daemon_controller.go b/pkg/controller/daemon/daemon_controller.go
+index 90bc45f1..9b286c64 100644
+--- a/pkg/controller/daemon/daemon_controller.go
++++ b/pkg/controller/daemon/daemon_controller.go
+@@ -23,6 +23,7 @@ import (
+ 	"reflect"
+ 	"sort"
+ 	"sync"
++	"sync/atomic"
+ 	"time"
+ 
+ 	apps "k8s.io/api/apps/v1"
+@@ -1035,6 +1036,46 @@ func (dsc *DaemonSetsController) manage(ctx context.Context, ds *apps.DaemonSet,
+ 	return nil
+ }
+ 
++// createMayHaveSucceeded reports whether a failed pod create may nonetheless
++// have been committed by the API server: any error but a 4xx status, which
++// the server sends only for a request it rejected. A 5xx (a 504 from the
++// request timeout, a 500 from an etcd timeout), a client-side timeout or a
++// broken connection leave the outcome unknown.
++func createMayHaveSucceeded(err error) bool {
++	var status apierrors.APIStatus
++	if errors.As(err, &status) {
++		code := status.Status().Code
++		return code < 400 || code >= 500
++	}
++	return true
++}
++
++// recordUnknownPodWrites follows pod creates whose outcome is unknown: it
++// lists the DaemonSet's pods from the API server (a quorum read) and records
++// the newest resource version of those it controls in the consistency store,
++// so that the next sync waits until the pod informer has seen every pod that
++// exists now, including one an ambiguous create committed. (A create the
++// server commits after this list, which its request timeout allows, is not
++// covered.)
++func (dsc *DaemonSetsController) recordUnknownPodWrites(ctx context.Context, ds *apps.DaemonSet) error {
++	selector, err := metav1.LabelSelectorAsSelector(ds.Spec.Selector)
++	if err != nil {
++		return err
++	}
++	pods, err := dsc.kubeClient.CoreV1().Pods(ds.Namespace).List(ctx, metav1.ListOptions{LabelSelector: selector.String()})
++	if err != nil {
++		return err
++	}
++	owner := types.NamespacedName{Namespace: ds.Namespace, Name: ds.Name}
++	for i := range pods.Items {
++		pod := &pods.Items[i]
++		if ref := metav1.GetControllerOf(pod); ref != nil && ref.UID == ds.UID {
++			dsc.consistencyStore.WroteAt(owner, ds.UID, podGroupResource, pod.ResourceVersion)
++		}
++	}
++	return nil
++}
++
+ // syncNodes deletes given pods and creates new daemon set pods on the given nodes
+ // returns slice with errors if any
+ func (dsc *DaemonSetsController) syncNodes(ctx context.Context, ds *apps.DaemonSet, podsToDelete, nodesNeedingDaemonPods []string, hash string) error {
+@@ -1069,6 +1110,7 @@ func (dsc *DaemonSetsController) syncNodes(ctx context.Context, ds *apps.DaemonS
+ 		generation = nil
+ 	}
+ 	template := util.CreatePodTemplate(ds.Spec.Template, generation, hash)
++	var unknownCreates atomic.Int32
+ 	// Batch the pod creates. Batch sizes start at SlowStartInitialBatchSize
+ 	// and double with each successful iteration in a kind of "slow start".
+ 	// This handles attempts to start large numbers of pods that would
+@@ -1102,6 +1144,13 @@ func (dsc *DaemonSetsController) syncNodes(ctx context.Context, ds *apps.DaemonS
+ 						return
+ 					}
+ 				}
++				if err != nil && createMayHaveSucceeded(err) {
++					// The pod may exist; settled after the batch (recordUnknownPodWrites).
++					unknownCreates.Add(1)
++					errCh <- err
++					utilruntime.HandleError(err)
++					return
++				}
+ 				if err != nil {
+ 					logger.V(2).Info("Failed creation, decrementing expectations for daemon set", "daemonset", klog.KObj(ds))
+ 					dsc.expectations.CreationObserved(logger, dsKey)
+@@ -1111,6 +1160,15 @@ func (dsc *DaemonSetsController) syncNodes(ctx context.Context, ds *apps.DaemonS
+ 			}(i)
+ 		}
+ 		createWait.Wait()
++		if n := int(unknownCreates.Swap(0)); n > 0 {
++			if err := dsc.recordUnknownPodWrites(ctx, ds); err != nil {
++				// Keep expecting the pods: the expectation's timeout settles them.
++				logger.V(2).Info("Failed creation that may have succeeded, and its pods could not be listed; keeping expectations", "daemonset", klog.KObj(ds), "err", err)
++			} else {
++				logger.V(2).Info("Failed creation that may have succeeded, decrementing expectations after recording the listed pods", "daemonset", klog.KObj(ds), "count", n)
++				dsc.expectations.LowerExpectations(logger, dsKey, n, 0)
++			}
++		}
+ 		// any skipped pods that we never attempted to start shouldn't be expected.
+ 		skippedPods := createDiff - (batchSize + pos)
+ 		if errorCount < len(errCh) && skippedPods > 0 {

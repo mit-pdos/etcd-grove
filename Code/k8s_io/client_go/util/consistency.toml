@@ -1,0 +1,8 @@
+# With bodies (project k8s-apiserver; notes/k8s-clientgo-goose.md): the consistency store
+# (KEP-5647) the DaemonSet controller checks before a sync (notes/k8s-daemonset-plan.md).
+# (`!_`: the `var _ I = &T{}` interface assertions, compile-time only, names only: translated, each
+# would be an allocation for `etc/gen-init.py`'s `Init.lean` to step through)
+translate = ["*", "!_"]
+imports = ["*"]
+
+translate_types = true

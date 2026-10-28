@@ -392,7 +392,8 @@ axiom GroupName [GooseExts] [GoGlobalContext] : val
 
 axiom WatchEventKind [GooseExts] [GoGlobalContext] : val
 
-axiom ObjectNameField [GooseExts] [GoGlobalContext] : val
+@[reducible] noncomputable def ObjectNameField [GooseExts] [GoGlobalContext] : val :=
+  #(go!"metadata.name")
 
 axiom FinalizerOrphanDependents [GooseExts] [GoGlobalContext] : val
 
@@ -400,7 +401,8 @@ axiom FinalizerDeleteDependents [GooseExts] [GoGlobalContext] : val
 
 axiom NamespaceDefault [GooseExts] [GoGlobalContext] : val
 
-axiom NamespaceAll [GooseExts] [GoGlobalContext] : val
+@[reducible] noncomputable def NamespaceAll [GooseExts] [GoGlobalContext] : val :=
+  #(go!"")
 
 axiom NamespaceNone [GooseExts] [GoGlobalContext] : val
 
@@ -433,46 +435,65 @@ axiom StatusSuccess [GooseExts] [GoGlobalContext] : val
 @[reducible] noncomputable def StatusFailure [GooseExts] [GoGlobalContext] : val :=
   #(go!"Failure")
 
-axiom StatusReasonUnknown [GooseExts] [GoGlobalContext] : val
+@[reducible] noncomputable def StatusReasonUnknown [GooseExts] [GoGlobalContext] : val :=
+  #(go!"")
 
-axiom StatusReasonUnauthorized [GooseExts] [GoGlobalContext] : val
+@[reducible] noncomputable def StatusReasonUnauthorized [GooseExts] [GoGlobalContext] : val :=
+  #(go!"Unauthorized")
 
-axiom StatusReasonForbidden [GooseExts] [GoGlobalContext] : val
+@[reducible] noncomputable def StatusReasonForbidden [GooseExts] [GoGlobalContext] : val :=
+  #(go!"Forbidden")
 
-axiom StatusReasonNotFound [GooseExts] [GoGlobalContext] : val
+@[reducible] noncomputable def StatusReasonNotFound [GooseExts] [GoGlobalContext] : val :=
+  #(go!"NotFound")
 
-axiom StatusReasonAlreadyExists [GooseExts] [GoGlobalContext] : val
+@[reducible] noncomputable def StatusReasonAlreadyExists [GooseExts] [GoGlobalContext] : val :=
+  #(go!"AlreadyExists")
 
-axiom StatusReasonConflict [GooseExts] [GoGlobalContext] : val
+@[reducible] noncomputable def StatusReasonConflict [GooseExts] [GoGlobalContext] : val :=
+  #(go!"Conflict")
 
-axiom StatusReasonGone [GooseExts] [GoGlobalContext] : val
+@[reducible] noncomputable def StatusReasonGone [GooseExts] [GoGlobalContext] : val :=
+  #(go!"Gone")
 
-axiom StatusReasonInvalid [GooseExts] [GoGlobalContext] : val
+@[reducible] noncomputable def StatusReasonInvalid [GooseExts] [GoGlobalContext] : val :=
+  #(go!"Invalid")
 
-axiom StatusReasonServerTimeout [GooseExts] [GoGlobalContext] : val
+@[reducible] noncomputable def StatusReasonServerTimeout [GooseExts] [GoGlobalContext] : val :=
+  #(go!"ServerTimeout")
 
-axiom StatusReasonStoreReadError [GooseExts] [GoGlobalContext] : val
+@[reducible] noncomputable def StatusReasonStoreReadError [GooseExts] [GoGlobalContext] : val :=
+  #(go!"StorageReadError")
 
 @[reducible] noncomputable def StatusReasonTimeout [GooseExts] [GoGlobalContext] : val :=
   #(go!"Timeout")
 
-axiom StatusReasonTooManyRequests [GooseExts] [GoGlobalContext] : val
+@[reducible] noncomputable def StatusReasonTooManyRequests [GooseExts] [GoGlobalContext] : val :=
+  #(go!"TooManyRequests")
 
-axiom StatusReasonBadRequest [GooseExts] [GoGlobalContext] : val
+@[reducible] noncomputable def StatusReasonBadRequest [GooseExts] [GoGlobalContext] : val :=
+  #(go!"BadRequest")
 
-axiom StatusReasonMethodNotAllowed [GooseExts] [GoGlobalContext] : val
+@[reducible] noncomputable def StatusReasonMethodNotAllowed [GooseExts] [GoGlobalContext] : val :=
+  #(go!"MethodNotAllowed")
 
-axiom StatusReasonNotAcceptable [GooseExts] [GoGlobalContext] : val
+@[reducible] noncomputable def StatusReasonNotAcceptable [GooseExts] [GoGlobalContext] : val :=
+  #(go!"NotAcceptable")
 
-axiom StatusReasonRequestEntityTooLarge [GooseExts] [GoGlobalContext] : val
+@[reducible] noncomputable def StatusReasonRequestEntityTooLarge [GooseExts] [GoGlobalContext] : val :=
+  #(go!"RequestEntityTooLarge")
 
-axiom StatusReasonUnsupportedMediaType [GooseExts] [GoGlobalContext] : val
+@[reducible] noncomputable def StatusReasonUnsupportedMediaType [GooseExts] [GoGlobalContext] : val :=
+  #(go!"UnsupportedMediaType")
 
-axiom StatusReasonInternalError [GooseExts] [GoGlobalContext] : val
+@[reducible] noncomputable def StatusReasonInternalError [GooseExts] [GoGlobalContext] : val :=
+  #(go!"InternalError")
 
-axiom StatusReasonExpired [GooseExts] [GoGlobalContext] : val
+@[reducible] noncomputable def StatusReasonExpired [GooseExts] [GoGlobalContext] : val :=
+  #(go!"Expired")
 
-axiom StatusReasonServiceUnavailable [GooseExts] [GoGlobalContext] : val
+@[reducible] noncomputable def StatusReasonServiceUnavailable [GooseExts] [GoGlobalContext] : val :=
+  #(go!"ServiceUnavailable")
 
 axiom CauseTypeFieldValueNotFound [GooseExts] [GoGlobalContext] : val
 
@@ -1081,6 +1102,484 @@ noncomputable def Convert_url_Values_To_v1_UpdateOptions [GooseExts] [GoGlobalCo
 
 noncomputable def RegisterDefaults [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/apis/meta/v1.RegisterDefaults"
+
+/-- go: meta.go:158:24 -/
+noncomputable def ObjectMeta.GetObjectMeta.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "obj"
+  (Lam BAnon
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc Object.ty))) (App (Val (GoInstruction (GoZeroVal Object.ty))) (Val #())))
+  (Seq (App (Val exceptionDo)
+  (Let "obj" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType ObjectMeta.ty)))) (Var "obj"))
+  (Let "$r0" (App (Val (GoInstruction (Convert (go.GoType.PointerType ObjectMeta.ty) Object.ty))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType ObjectMeta.ty)))) (Var "obj")))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore Object.ty))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (App (Val (GoInstruction (GoLoad Object.ty))) (Var "$res0"))))))
+
+/-- Namespace implements metav1.Object for any object with an ObjectMeta typed field. Allows
+    fast, direct access to metadata fields for API objects.
+
+    go: meta.go:162:25 -/
+noncomputable def ObjectMeta.GetNamespace.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "meta"
+  (Lam BAnon
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc go.string))) (App (Val (GoInstruction (GoZeroVal go.string))) (Val #())))
+  (Seq (App (Val exceptionDo)
+  (Let "meta" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType ObjectMeta.ty)))) (Var "meta"))
+  (Let "$r0" (App (Val (GoInstruction (GoLoad go.string))) (App (Val (GoInstruction (StructFieldRef ObjectMeta.ty go!"Namespace"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType ObjectMeta.ty)))) (Var "meta"))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.string))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (App (Val (GoInstruction (GoLoad go.string))) (Var "$res0"))))))
+
+/-- go: meta.go:163:25 -/
+noncomputable def ObjectMeta.SetNamespace.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "meta"
+  (Lam "namespace"
+  (Seq (App (Val exceptionDo)
+  (Let "meta" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType ObjectMeta.ty)))) (Var "meta"))
+  (Let "namespace" (App (Val (GoInstruction (GoAlloc go.string))) (Var "namespace"))
+  (Let "$r0" (App (Val (GoInstruction (GoLoad go.string))) (Var "namespace"))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.string))) (Pair (App (Val (GoInstruction (StructFieldRef ObjectMeta.ty go!"Namespace"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType ObjectMeta.ty)))) (Var "meta"))) (Var "$r0"))))))))
+  (Val #()))))
+
+/-- go: meta.go:164:25 -/
+noncomputable def ObjectMeta.GetName.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "meta"
+  (Lam BAnon
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc go.string))) (App (Val (GoInstruction (GoZeroVal go.string))) (Val #())))
+  (Seq (App (Val exceptionDo)
+  (Let "meta" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType ObjectMeta.ty)))) (Var "meta"))
+  (Let "$r0" (App (Val (GoInstruction (GoLoad go.string))) (App (Val (GoInstruction (StructFieldRef ObjectMeta.ty go!"Name"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType ObjectMeta.ty)))) (Var "meta"))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.string))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (App (Val (GoInstruction (GoLoad go.string))) (Var "$res0"))))))
+
+/-- go: meta.go:165:25 -/
+noncomputable def ObjectMeta.SetName.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "meta"
+  (Lam "name"
+  (Seq (App (Val exceptionDo)
+  (Let "meta" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType ObjectMeta.ty)))) (Var "meta"))
+  (Let "name" (App (Val (GoInstruction (GoAlloc go.string))) (Var "name"))
+  (Let "$r0" (App (Val (GoInstruction (GoLoad go.string))) (Var "name"))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.string))) (Pair (App (Val (GoInstruction (StructFieldRef ObjectMeta.ty go!"Name"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType ObjectMeta.ty)))) (Var "meta"))) (Var "$r0"))))))))
+  (Val #()))))
+
+/-- go: meta.go:166:25 -/
+noncomputable def ObjectMeta.GetGenerateName.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "meta"
+  (Lam BAnon
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc go.string))) (App (Val (GoInstruction (GoZeroVal go.string))) (Val #())))
+  (Seq (App (Val exceptionDo)
+  (Let "meta" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType ObjectMeta.ty)))) (Var "meta"))
+  (Let "$r0" (App (Val (GoInstruction (GoLoad go.string))) (App (Val (GoInstruction (StructFieldRef ObjectMeta.ty go!"GenerateName"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType ObjectMeta.ty)))) (Var "meta"))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.string))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (App (Val (GoInstruction (GoLoad go.string))) (Var "$res0"))))))
+
+/-- go: meta.go:167:25 -/
+noncomputable def ObjectMeta.SetGenerateName.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "meta"
+  (Lam "generateName"
+  (Seq (App (Val exceptionDo)
+  (Let "meta" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType ObjectMeta.ty)))) (Var "meta"))
+  (Let "generateName" (App (Val (GoInstruction (GoAlloc go.string))) (Var "generateName"))
+  (Let "$r0" (App (Val (GoInstruction (GoLoad go.string))) (Var "generateName"))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.string))) (Pair (App (Val (GoInstruction (StructFieldRef ObjectMeta.ty go!"GenerateName"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType ObjectMeta.ty)))) (Var "meta"))) (Var "$r0"))))))))
+  (Val #()))))
+
+/-- go: meta.go:168:25 -/
+noncomputable def ObjectMeta.GetUID.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "meta"
+  (Lam BAnon
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc _root_.Perennial.k8s_io.apimachinery.pkg.types.UID.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.k8s_io.apimachinery.pkg.types.UID.ty))) (Val #())))
+  (Seq (App (Val exceptionDo)
+  (Let "meta" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType ObjectMeta.ty)))) (Var "meta"))
+  (Let "$r0" (App (Val (GoInstruction (GoLoad _root_.Perennial.k8s_io.apimachinery.pkg.types.UID.ty))) (App (Val (GoInstruction (StructFieldRef ObjectMeta.ty go!"UID"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType ObjectMeta.ty)))) (Var "meta"))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore _root_.Perennial.k8s_io.apimachinery.pkg.types.UID.ty))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (App (Val (GoInstruction (GoLoad _root_.Perennial.k8s_io.apimachinery.pkg.types.UID.ty))) (Var "$res0"))))))
+
+/-- go: meta.go:169:25 -/
+noncomputable def ObjectMeta.SetUID.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "meta"
+  (Lam "uid"
+  (Seq (App (Val exceptionDo)
+  (Let "meta" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType ObjectMeta.ty)))) (Var "meta"))
+  (Let "uid" (App (Val (GoInstruction (GoAlloc _root_.Perennial.k8s_io.apimachinery.pkg.types.UID.ty))) (Var "uid"))
+  (Let "$r0" (App (Val (GoInstruction (GoLoad _root_.Perennial.k8s_io.apimachinery.pkg.types.UID.ty))) (Var "uid"))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore _root_.Perennial.k8s_io.apimachinery.pkg.types.UID.ty))) (Pair (App (Val (GoInstruction (StructFieldRef ObjectMeta.ty go!"UID"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType ObjectMeta.ty)))) (Var "meta"))) (Var "$r0"))))))))
+  (Val #()))))
+
+/-- go: meta.go:170:25 -/
+noncomputable def ObjectMeta.GetResourceVersion.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "meta"
+  (Lam BAnon
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc go.string))) (App (Val (GoInstruction (GoZeroVal go.string))) (Val #())))
+  (Seq (App (Val exceptionDo)
+  (Let "meta" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType ObjectMeta.ty)))) (Var "meta"))
+  (Let "$r0" (App (Val (GoInstruction (GoLoad go.string))) (App (Val (GoInstruction (StructFieldRef ObjectMeta.ty go!"ResourceVersion"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType ObjectMeta.ty)))) (Var "meta"))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.string))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (App (Val (GoInstruction (GoLoad go.string))) (Var "$res0"))))))
+
+/-- go: meta.go:171:25 -/
+noncomputable def ObjectMeta.SetResourceVersion.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "meta"
+  (Lam "version"
+  (Seq (App (Val exceptionDo)
+  (Let "meta" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType ObjectMeta.ty)))) (Var "meta"))
+  (Let "version" (App (Val (GoInstruction (GoAlloc go.string))) (Var "version"))
+  (Let "$r0" (App (Val (GoInstruction (GoLoad go.string))) (Var "version"))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.string))) (Pair (App (Val (GoInstruction (StructFieldRef ObjectMeta.ty go!"ResourceVersion"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType ObjectMeta.ty)))) (Var "meta"))) (Var "$r0"))))))))
+  (Val #()))))
+
+/-- go: meta.go:172:25 -/
+noncomputable def ObjectMeta.GetGeneration.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "meta"
+  (Lam BAnon
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc go.int64))) (App (Val (GoInstruction (GoZeroVal go.int64))) (Val #())))
+  (Seq (App (Val exceptionDo)
+  (Let "meta" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType ObjectMeta.ty)))) (Var "meta"))
+  (Let "$r0" (App (Val (GoInstruction (GoLoad go.int64))) (App (Val (GoInstruction (StructFieldRef ObjectMeta.ty go!"Generation"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType ObjectMeta.ty)))) (Var "meta"))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.int64))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (App (Val (GoInstruction (GoLoad go.int64))) (Var "$res0"))))))
+
+/-- go: meta.go:173:25 -/
+noncomputable def ObjectMeta.SetGeneration.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "meta"
+  (Lam "generation"
+  (Seq (App (Val exceptionDo)
+  (Let "meta" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType ObjectMeta.ty)))) (Var "meta"))
+  (Let "generation" (App (Val (GoInstruction (GoAlloc go.int64))) (Var "generation"))
+  (Let "$r0" (App (Val (GoInstruction (GoLoad go.int64))) (Var "generation"))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.int64))) (Pair (App (Val (GoInstruction (StructFieldRef ObjectMeta.ty go!"Generation"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType ObjectMeta.ty)))) (Var "meta"))) (Var "$r0"))))))))
+  (Val #()))))
+
+/-- go: meta.go:174:25 -/
+noncomputable def ObjectMeta.GetSelfLink.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "meta"
+  (Lam BAnon
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc go.string))) (App (Val (GoInstruction (GoZeroVal go.string))) (Val #())))
+  (Seq (App (Val exceptionDo)
+  (Let "meta" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType ObjectMeta.ty)))) (Var "meta"))
+  (Let "$r0" (App (Val (GoInstruction (GoLoad go.string))) (App (Val (GoInstruction (StructFieldRef ObjectMeta.ty go!"SelfLink"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType ObjectMeta.ty)))) (Var "meta"))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.string))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (App (Val (GoInstruction (GoLoad go.string))) (Var "$res0"))))))
+
+/-- go: meta.go:175:25 -/
+noncomputable def ObjectMeta.SetSelfLink.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "meta"
+  (Lam "selfLink"
+  (Seq (App (Val exceptionDo)
+  (Let "meta" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType ObjectMeta.ty)))) (Var "meta"))
+  (Let "selfLink" (App (Val (GoInstruction (GoAlloc go.string))) (Var "selfLink"))
+  (Let "$r0" (App (Val (GoInstruction (GoLoad go.string))) (Var "selfLink"))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.string))) (Pair (App (Val (GoInstruction (StructFieldRef ObjectMeta.ty go!"SelfLink"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType ObjectMeta.ty)))) (Var "meta"))) (Var "$r0"))))))))
+  (Val #()))))
+
+/-- go: meta.go:176:25 -/
+noncomputable def ObjectMeta.GetCreationTimestamp.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "meta"
+  (Lam BAnon
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc Time.ty))) (App (Val (GoInstruction (GoZeroVal Time.ty))) (Val #())))
+  (Seq (App (Val exceptionDo)
+  (Let "meta" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType ObjectMeta.ty)))) (Var "meta"))
+  (Let "$r0" (App (Val (GoInstruction (GoLoad Time.ty))) (App (Val (GoInstruction (StructFieldRef ObjectMeta.ty go!"CreationTimestamp"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType ObjectMeta.ty)))) (Var "meta"))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore Time.ty))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (App (Val (GoInstruction (GoLoad Time.ty))) (Var "$res0"))))))
+
+/-- go: meta.go:177:25 -/
+noncomputable def ObjectMeta.SetCreationTimestamp.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "meta"
+  (Lam "creationTimestamp"
+  (Seq (App (Val exceptionDo)
+  (Let "meta" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType ObjectMeta.ty)))) (Var "meta"))
+  (Let "creationTimestamp" (App (Val (GoInstruction (GoAlloc Time.ty))) (Var "creationTimestamp"))
+  (Let "$r0" (App (Val (GoInstruction (GoLoad Time.ty))) (Var "creationTimestamp"))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore Time.ty))) (Pair (App (Val (GoInstruction (StructFieldRef ObjectMeta.ty go!"CreationTimestamp"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType ObjectMeta.ty)))) (Var "meta"))) (Var "$r0"))))))))
+  (Val #()))))
+
+/-- go: meta.go:180:25 -/
+noncomputable def ObjectMeta.GetDeletionTimestamp.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "meta"
+  (Lam BAnon
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType Time.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType Time.ty)))) (Val #())))
+  (Seq (App (Val exceptionDo)
+  (Let "meta" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType ObjectMeta.ty)))) (Var "meta"))
+  (Let "$r0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Time.ty)))) (App (Val (GoInstruction (StructFieldRef ObjectMeta.ty go!"DeletionTimestamp"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType ObjectMeta.ty)))) (Var "meta"))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType Time.ty)))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Time.ty)))) (Var "$res0"))))))
+
+/-- go: meta.go:181:25 -/
+noncomputable def ObjectMeta.SetDeletionTimestamp.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "meta"
+  (Lam "deletionTimestamp"
+  (Seq (App (Val exceptionDo)
+  (Let "meta" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType ObjectMeta.ty)))) (Var "meta"))
+  (Let "deletionTimestamp" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType Time.ty)))) (Var "deletionTimestamp"))
+  (Let "$r0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Time.ty)))) (Var "deletionTimestamp"))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType Time.ty)))) (Pair (App (Val (GoInstruction (StructFieldRef ObjectMeta.ty go!"DeletionTimestamp"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType ObjectMeta.ty)))) (Var "meta"))) (Var "$r0"))))))))
+  (Val #()))))
+
+/-- go: meta.go:184:25 -/
+noncomputable def ObjectMeta.GetDeletionGracePeriodSeconds.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "meta"
+  (Lam BAnon
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType go.int64)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType go.int64)))) (Val #())))
+  (Seq (App (Val exceptionDo)
+  (Let "meta" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType ObjectMeta.ty)))) (Var "meta"))
+  (Let "$r0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType go.int64)))) (App (Val (GoInstruction (StructFieldRef ObjectMeta.ty go!"DeletionGracePeriodSeconds"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType ObjectMeta.ty)))) (Var "meta"))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType go.int64)))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (App (Val (GoInstruction (GoLoad (go.GoType.PointerType go.int64)))) (Var "$res0"))))))
+
+/-- go: meta.go:187:25 -/
+noncomputable def ObjectMeta.SetDeletionGracePeriodSeconds.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "meta"
+  (Lam "deletionGracePeriodSeconds"
+  (Seq (App (Val exceptionDo)
+  (Let "meta" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType ObjectMeta.ty)))) (Var "meta"))
+  (Let "deletionGracePeriodSeconds" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType go.int64)))) (Var "deletionGracePeriodSeconds"))
+  (Let "$r0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType go.int64)))) (Var "deletionGracePeriodSeconds"))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType go.int64)))) (Pair (App (Val (GoInstruction (StructFieldRef ObjectMeta.ty go!"DeletionGracePeriodSeconds"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType ObjectMeta.ty)))) (Var "meta"))) (Var "$r0"))))))))
+  (Val #()))))
+
+/-- go: meta.go:190:25 -/
+noncomputable def ObjectMeta.GetLabels.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "meta"
+  (Lam BAnon
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc (go.GoType.MapType go.string go.string)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.MapType go.string go.string)))) (Val #())))
+  (Seq (App (Val exceptionDo)
+  (Let "meta" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType ObjectMeta.ty)))) (Var "meta"))
+  (Let "$r0" (App (Val (GoInstruction (GoLoad (go.GoType.MapType go.string go.string)))) (App (Val (GoInstruction (StructFieldRef ObjectMeta.ty go!"Labels"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType ObjectMeta.ty)))) (Var "meta"))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.MapType go.string go.string)))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (App (Val (GoInstruction (GoLoad (go.GoType.MapType go.string go.string)))) (Var "$res0"))))))
+
+/-- go: meta.go:191:25 -/
+noncomputable def ObjectMeta.SetLabels.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "meta"
+  (Lam "labels"
+  (Seq (App (Val exceptionDo)
+  (Let "meta" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType ObjectMeta.ty)))) (Var "meta"))
+  (Let "labels" (App (Val (GoInstruction (GoAlloc (go.GoType.MapType go.string go.string)))) (Var "labels"))
+  (Let "$r0" (App (Val (GoInstruction (GoLoad (go.GoType.MapType go.string go.string)))) (Var "labels"))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.MapType go.string go.string)))) (Pair (App (Val (GoInstruction (StructFieldRef ObjectMeta.ty go!"Labels"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType ObjectMeta.ty)))) (Var "meta"))) (Var "$r0"))))))))
+  (Val #()))))
+
+/-- go: meta.go:192:25 -/
+noncomputable def ObjectMeta.GetAnnotations.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "meta"
+  (Lam BAnon
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc (go.GoType.MapType go.string go.string)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.MapType go.string go.string)))) (Val #())))
+  (Seq (App (Val exceptionDo)
+  (Let "meta" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType ObjectMeta.ty)))) (Var "meta"))
+  (Let "$r0" (App (Val (GoInstruction (GoLoad (go.GoType.MapType go.string go.string)))) (App (Val (GoInstruction (StructFieldRef ObjectMeta.ty go!"Annotations"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType ObjectMeta.ty)))) (Var "meta"))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.MapType go.string go.string)))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (App (Val (GoInstruction (GoLoad (go.GoType.MapType go.string go.string)))) (Var "$res0"))))))
+
+/-- go: meta.go:193:25 -/
+noncomputable def ObjectMeta.SetAnnotations.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "meta"
+  (Lam "annotations"
+  (Seq (App (Val exceptionDo)
+  (Let "meta" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType ObjectMeta.ty)))) (Var "meta"))
+  (Let "annotations" (App (Val (GoInstruction (GoAlloc (go.GoType.MapType go.string go.string)))) (Var "annotations"))
+  (Let "$r0" (App (Val (GoInstruction (GoLoad (go.GoType.MapType go.string go.string)))) (Var "annotations"))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.MapType go.string go.string)))) (Pair (App (Val (GoInstruction (StructFieldRef ObjectMeta.ty go!"Annotations"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType ObjectMeta.ty)))) (Var "meta"))) (Var "$r0"))))))))
+  (Val #()))))
+
+/-- go: meta.go:194:25 -/
+noncomputable def ObjectMeta.GetFinalizers.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "meta"
+  (Lam BAnon
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType go.string)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.SliceType go.string)))) (Val #())))
+  (Seq (App (Val exceptionDo)
+  (Let "meta" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType ObjectMeta.ty)))) (Var "meta"))
+  (Let "$r0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.string)))) (App (Val (GoInstruction (StructFieldRef ObjectMeta.ty go!"Finalizers"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType ObjectMeta.ty)))) (Var "meta"))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.SliceType go.string)))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.string)))) (Var "$res0"))))))
+
+/-- go: meta.go:195:25 -/
+noncomputable def ObjectMeta.SetFinalizers.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "meta"
+  (Lam "finalizers"
+  (Seq (App (Val exceptionDo)
+  (Let "meta" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType ObjectMeta.ty)))) (Var "meta"))
+  (Let "finalizers" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType go.string)))) (Var "finalizers"))
+  (Let "$r0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.string)))) (Var "finalizers"))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.SliceType go.string)))) (Pair (App (Val (GoInstruction (StructFieldRef ObjectMeta.ty go!"Finalizers"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType ObjectMeta.ty)))) (Var "meta"))) (Var "$r0"))))))))
+  (Val #()))))
+
+/-- go: meta.go:196:25 -/
+noncomputable def ObjectMeta.GetOwnerReferences.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "meta"
+  (Lam BAnon
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType OwnerReference.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.SliceType OwnerReference.ty)))) (Val #())))
+  (Seq (App (Val exceptionDo)
+  (Let "meta" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType ObjectMeta.ty)))) (Var "meta"))
+  (Let "$r0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType OwnerReference.ty)))) (App (Val (GoInstruction (StructFieldRef ObjectMeta.ty go!"OwnerReferences"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType ObjectMeta.ty)))) (Var "meta"))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.SliceType OwnerReference.ty)))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (App (Val (GoInstruction (GoLoad (go.GoType.SliceType OwnerReference.ty)))) (Var "$res0"))))))
+
+/-- go: meta.go:197:25 -/
+noncomputable def ObjectMeta.SetOwnerReferences.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "meta"
+  (Lam "references"
+  (Seq (App (Val exceptionDo)
+  (Let "meta" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType ObjectMeta.ty)))) (Var "meta"))
+  (Let "references" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType OwnerReference.ty)))) (Var "references"))
+  (Let "$r0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType OwnerReference.ty)))) (Var "references"))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.SliceType OwnerReference.ty)))) (Pair (App (Val (GoInstruction (StructFieldRef ObjectMeta.ty go!"OwnerReferences"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType ObjectMeta.ty)))) (Var "meta"))) (Var "$r0"))))))))
+  (Val #()))))
+
+/-- go: meta.go:200:25 -/
+noncomputable def ObjectMeta.GetManagedFields.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "meta"
+  (Lam BAnon
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType ManagedFieldsEntry.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.SliceType ManagedFieldsEntry.ty)))) (Val #())))
+  (Seq (App (Val exceptionDo)
+  (Let "meta" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType ObjectMeta.ty)))) (Var "meta"))
+  (Let "$r0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType ManagedFieldsEntry.ty)))) (App (Val (GoInstruction (StructFieldRef ObjectMeta.ty go!"ManagedFields"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType ObjectMeta.ty)))) (Var "meta"))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.SliceType ManagedFieldsEntry.ty)))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (App (Val (GoInstruction (GoLoad (go.GoType.SliceType ManagedFieldsEntry.ty)))) (Var "$res0"))))))
+
+/-- go: meta.go:201:25 -/
+noncomputable def ObjectMeta.SetManagedFields.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "meta"
+  (Lam "managedFields"
+  (Seq (App (Val exceptionDo)
+  (Let "meta" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType ObjectMeta.ty)))) (Var "meta"))
+  (Let "managedFields" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType ManagedFieldsEntry.ty)))) (Var "managedFields"))
+  (Let "$r0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType ManagedFieldsEntry.ty)))) (Var "managedFields"))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.SliceType ManagedFieldsEntry.ty)))) (Pair (App (Val (GoInstruction (StructFieldRef ObjectMeta.ty go!"ManagedFields"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType ObjectMeta.ty)))) (Var "meta"))) (Var "$r0"))))))))
+  (Val #()))))
+
+/-- Now returns the current local time.
+
+    go: time.go:56:6 -/
+noncomputable def Now.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV BAnon
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc Time.ty))) (App (Val (GoInstruction (GoZeroVal Time.ty))) (Val #())))
+  (Seq (App (Val exceptionDo)
+  (Let "$r0" (Let "$v0" (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.time.Now []))) (Val #())) (Val #()))
+  (App (Val (GoInstruction (CompositeLiteral Time.ty))) (LiteralValue [(KeyedElement none (ElementExpression _root_.Perennial.time.Time.ty (Var "$v0")))])))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore Time.ty))) (Pair (Var "$res0") (Var "$r0")))))))
+  (App (Val (GoInstruction (GoLoad Time.ty))) (Var "$res0")))))
+
+/-- Equal reports whether the time instant t is equal to u.
+
+    go: time.go:77:16 -/
+noncomputable def Time.Equal.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "t"
+  (Lam "u"
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
+  (Seq (App (Val exceptionDo)
+  (Let "t" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType Time.ty)))) (Var "t"))
+  (Let "u" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType Time.ty)))) (Var "u"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Val #false)
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (If (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals (go.GoType.PointerType Time.ty)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Time.ty)))) (Var "t")) (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType Time.ty)))) (Val UntypedNil))))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals (go.GoType.PointerType Time.ty)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Time.ty)))) (Var "u")) (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType Time.ty)))) (Val UntypedNil))))) (Val #false)))
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad _root_.Perennial.time.Time.ty))) (App (Val (GoInstruction (StructFieldRef Time.ty go!"Time"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Time.ty)))) (Var "u"))))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.time.Time.ty) go!"Equal"))) (App (Val (GoInstruction (StructFieldRef Time.ty go!"Time"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Time.ty)))) (Var "t")))) (Var "$a0")))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "$res0") (Var "$r0"))))))
+  (App (Val doExecute)
+  (Val #()))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (If (App (Val (GoInstruction (GoOp GoEquals (go.GoType.PointerType Time.ty)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Time.ty)))) (Var "t")) (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType Time.ty)))) (Val UntypedNil)))) (App (Val (GoInstruction (GoOp GoEquals (go.GoType.PointerType Time.ty)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Time.ty)))) (Var "u")) (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType Time.ty)))) (Val UntypedNil)))) (Val #false)))
+  (Let "$r0" (Val #true)
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "$res0") (Var "$r0"))))))
+  (App (Val doExecute)
+  (Val #())))))))
+  (App (Val (GoInstruction (GoLoad go.bool))) (Var "$res0"))))))
 
 noncomputable instance info' : PkgInfo pkg_id.k8s_io.apimachinery.pkg.apis.«meta».v1 where
   pkgImportedPkgs := [pkg_id.k8s_io.apimachinery.pkg.runtime.schema, pkg_id.k8s_io.apimachinery.pkg.types, pkg_id.k8s_io.apimachinery.pkg.runtime, pkg_id.time]
@@ -1728,6 +2227,7 @@ class Time.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSem
   set_Time : ∀ (x : Time) (y : _root_.Perennial.time.Time), go.IsGoStepPureDetTagged under (StructFieldSet Time.underlying go!"Time") (PairV #x #y) (Val #(({ x with Time' := y } : Time)))
   method_set : go.MethodSetIs Time.ty [(go!"Add", (some (go.signature.Signature [_root_.Perennial.time.Duration.ty] false [_root_.Perennial.time.Time.ty]))), (go!"AddDate", (some (go.signature.Signature [go.int, go.int, go.int] false [_root_.Perennial.time.Time.ty]))), (go!"After", (some (go.signature.Signature [_root_.Perennial.time.Time.ty] false [go.bool]))), (go!"AppendBinary", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [(go.GoType.SliceType go.byte), go.error]))), (go!"AppendFormat", (some (go.signature.Signature [(go.GoType.SliceType go.byte), go.string] false [(go.GoType.SliceType go.byte)]))), (go!"AppendText", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [(go.GoType.SliceType go.byte), go.error]))), (go!"Clock", (some (go.signature.Signature [] false [go.int, go.int, go.int]))), (go!"Compare", (some (go.signature.Signature [_root_.Perennial.time.Time.ty] false [go.int]))), (go!"Date", (some (go.signature.Signature [] false [go.int, _root_.Perennial.time.Month.ty, go.int]))), (go!"Day", (some (go.signature.Signature [] false [go.int]))), (go!"Format", (some (go.signature.Signature [go.string] false [go.string]))), (go!"GoString", (some (go.signature.Signature [] false [go.string]))), (go!"GobEncode", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), go.error]))), (go!"Hour", (some (go.signature.Signature [] false [go.int]))), (go!"ISOWeek", (some (go.signature.Signature [] false [go.int, go.int]))), (go!"In", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.time.Location.ty)] false [_root_.Perennial.time.Time.ty]))), (go!"IsDST", (some (go.signature.Signature [] false [go.bool]))), (go!"Local", (some (go.signature.Signature [] false [_root_.Perennial.time.Time.ty]))), (go!"Location", (some (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.time.Location.ty)]))), (go!"MarshalBinary", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), go.error]))), (go!"MarshalCBOR", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), go.error]))), (go!"MarshalJSON", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), go.error]))), (go!"MarshalQueryParameter", (some (go.signature.Signature [] false [go.string, go.error]))), (go!"MarshalText", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), go.error]))), (go!"Minute", (some (go.signature.Signature [] false [go.int]))), (go!"Month", (some (go.signature.Signature [] false [_root_.Perennial.time.Month.ty]))), (go!"Nanosecond", (some (go.signature.Signature [] false [go.int]))), (go!"OpenAPIModelName", (some (go.signature.Signature [] false [go.string]))), (go!"OpenAPISchemaFormat", (some (go.signature.Signature [] false [go.string]))), (go!"OpenAPISchemaType", (some (go.signature.Signature [] false [(go.GoType.SliceType go.string)]))), (go!"Rfc3339Copy", (some (go.signature.Signature [] false [Time.ty]))), (go!"Round", (some (go.signature.Signature [_root_.Perennial.time.Duration.ty] false [_root_.Perennial.time.Time.ty]))), (go!"Second", (some (go.signature.Signature [] false [go.int]))), (go!"String", (some (go.signature.Signature [] false [go.string]))), (go!"Sub", (some (go.signature.Signature [_root_.Perennial.time.Time.ty] false [_root_.Perennial.time.Duration.ty]))), (go!"ToUnstructured", (some (go.signature.Signature [] false [(go.GoType.InterfaceType [])]))), (go!"Truncate", (some (go.signature.Signature [_root_.Perennial.time.Duration.ty] false [_root_.Perennial.time.Time.ty]))), (go!"UTC", (some (go.signature.Signature [] false [_root_.Perennial.time.Time.ty]))), (go!"Unix", (some (go.signature.Signature [] false [go.int64]))), (go!"UnixMicro", (some (go.signature.Signature [] false [go.int64]))), (go!"UnixMilli", (some (go.signature.Signature [] false [go.int64]))), (go!"UnixNano", (some (go.signature.Signature [] false [go.int64]))), (go!"Weekday", (some (go.signature.Signature [] false [_root_.Perennial.time.Weekday.ty]))), (go!"Year", (some (go.signature.Signature [] false [go.int]))), (go!"YearDay", (some (go.signature.Signature [] false [go.int]))), (go!"Zone", (some (go.signature.Signature [] false [go.string, go.int]))), (go!"ZoneBounds", (some (go.signature.Signature [] false [_root_.Perennial.time.Time.ty, _root_.Perennial.time.Time.ty]))), (go!"time.absSec", (some (go.signature.Signature [] false [_root_.Perennial.time.absSeconds.ty]))), (go!"time.appendFormat", (some (go.signature.Signature [(go.GoType.SliceType go.byte), go.string] false [(go.GoType.SliceType go.byte)]))), (go!"time.appendFormatRFC3339", (some (go.signature.Signature [(go.GoType.SliceType go.byte), go.bool] false [(go.GoType.SliceType go.byte)]))), (go!"time.appendStrictRFC3339", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [(go.GoType.SliceType go.byte), go.error]))), (go!"time.appendTo", (some (go.signature.Signature [(go.GoType.SliceType go.byte), go.string] false [(go.GoType.SliceType go.byte), go.error]))), (go!"time.locabs", (some (go.signature.Signature [] false [go.string, go.int, _root_.Perennial.time.absSeconds.ty])))]
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType Time.ty) [(go!"Add", (some (go.signature.Signature [_root_.Perennial.time.Duration.ty] false [_root_.Perennial.time.Time.ty]))), (go!"AddDate", (some (go.signature.Signature [go.int, go.int, go.int] false [_root_.Perennial.time.Time.ty]))), (go!"After", (some (go.signature.Signature [_root_.Perennial.time.Time.ty] false [go.bool]))), (go!"AppendBinary", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [(go.GoType.SliceType go.byte), go.error]))), (go!"AppendFormat", (some (go.signature.Signature [(go.GoType.SliceType go.byte), go.string] false [(go.GoType.SliceType go.byte)]))), (go!"AppendText", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [(go.GoType.SliceType go.byte), go.error]))), (go!"Before", (some (go.signature.Signature [(go.GoType.PointerType Time.ty)] false [go.bool]))), (go!"Clock", (some (go.signature.Signature [] false [go.int, go.int, go.int]))), (go!"Compare", (some (go.signature.Signature [_root_.Perennial.time.Time.ty] false [go.int]))), (go!"Date", (some (go.signature.Signature [] false [go.int, _root_.Perennial.time.Month.ty, go.int]))), (go!"Day", (some (go.signature.Signature [] false [go.int]))), (go!"DeepCopy", (some (go.signature.Signature [] false [(go.GoType.PointerType Time.ty)]))), (go!"DeepCopyInto", (some (go.signature.Signature [(go.GoType.PointerType Time.ty)] false []))), (go!"Equal", (some (go.signature.Signature [(go.GoType.PointerType Time.ty)] false [go.bool]))), (go!"Format", (some (go.signature.Signature [go.string] false [go.string]))), (go!"GoString", (some (go.signature.Signature [] false [go.string]))), (go!"GobDecode", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.error]))), (go!"GobEncode", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), go.error]))), (go!"Hour", (some (go.signature.Signature [] false [go.int]))), (go!"ISOWeek", (some (go.signature.Signature [] false [go.int, go.int]))), (go!"In", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.time.Location.ty)] false [_root_.Perennial.time.Time.ty]))), (go!"IsDST", (some (go.signature.Signature [] false [go.bool]))), (go!"IsZero", (some (go.signature.Signature [] false [go.bool]))), (go!"Local", (some (go.signature.Signature [] false [_root_.Perennial.time.Time.ty]))), (go!"Location", (some (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.time.Location.ty)]))), (go!"Marshal", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), go.error]))), (go!"MarshalBinary", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), go.error]))), (go!"MarshalCBOR", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), go.error]))), (go!"MarshalJSON", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), go.error]))), (go!"MarshalQueryParameter", (some (go.signature.Signature [] false [go.string, go.error]))), (go!"MarshalText", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), go.error]))), (go!"MarshalTo", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"MarshalToSizedBuffer", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"Minute", (some (go.signature.Signature [] false [go.int]))), (go!"Month", (some (go.signature.Signature [] false [_root_.Perennial.time.Month.ty]))), (go!"Nanosecond", (some (go.signature.Signature [] false [go.int]))), (go!"OpenAPIModelName", (some (go.signature.Signature [] false [go.string]))), (go!"OpenAPISchemaFormat", (some (go.signature.Signature [] false [go.string]))), (go!"OpenAPISchemaType", (some (go.signature.Signature [] false [(go.GoType.SliceType go.string)]))), (go!"ProtoTime", (some (go.signature.Signature [] false [(go.GoType.PointerType Timestamp.ty)]))), (go!"RandFill", (some (go.signature.Signature [(go.GoType.PointerType (go.GoType.Named go!"math/rand.Rand" []))] false []))), (go!"Reset", (some (go.signature.Signature [] false []))), (go!"Rfc3339Copy", (some (go.signature.Signature [] false [Time.ty]))), (go!"Round", (some (go.signature.Signature [_root_.Perennial.time.Duration.ty] false [_root_.Perennial.time.Time.ty]))), (go!"Second", (some (go.signature.Signature [] false [go.int]))), (go!"Size", (some (go.signature.Signature [] false [go.int]))), (go!"String", (some (go.signature.Signature [] false [go.string]))), (go!"Sub", (some (go.signature.Signature [_root_.Perennial.time.Time.ty] false [_root_.Perennial.time.Duration.ty]))), (go!"ToUnstructured", (some (go.signature.Signature [] false [(go.GoType.InterfaceType [])]))), (go!"Truncate", (some (go.signature.Signature [_root_.Perennial.time.Duration.ty] false [_root_.Perennial.time.Time.ty]))), (go!"UTC", (some (go.signature.Signature [] false [_root_.Perennial.time.Time.ty]))), (go!"Unix", (some (go.signature.Signature [] false [go.int64]))), (go!"UnixMicro", (some (go.signature.Signature [] false [go.int64]))), (go!"UnixMilli", (some (go.signature.Signature [] false [go.int64]))), (go!"UnixNano", (some (go.signature.Signature [] false [go.int64]))), (go!"Unmarshal", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.error]))), (go!"UnmarshalBinary", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.error]))), (go!"UnmarshalCBOR", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.error]))), (go!"UnmarshalJSON", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.error]))), (go!"UnmarshalQueryParameter", (some (go.signature.Signature [go.string] false [go.error]))), (go!"UnmarshalText", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.error]))), (go!"Weekday", (some (go.signature.Signature [] false [_root_.Perennial.time.Weekday.ty]))), (go!"Year", (some (go.signature.Signature [] false [go.int]))), (go!"YearDay", (some (go.signature.Signature [] false [go.int]))), (go!"Zone", (some (go.signature.Signature [] false [go.string, go.int]))), (go!"ZoneBounds", (some (go.signature.Signature [] false [_root_.Perennial.time.Time.ty, _root_.Perennial.time.Time.ty]))), (go!"time.absSec", (some (go.signature.Signature [] false [_root_.Perennial.time.absSeconds.ty]))), (go!"time.addSec", (some (go.signature.Signature [go.int64] false []))), (go!"time.appendFormat", (some (go.signature.Signature [(go.GoType.SliceType go.byte), go.string] false [(go.GoType.SliceType go.byte)]))), (go!"time.appendFormatRFC3339", (some (go.signature.Signature [(go.GoType.SliceType go.byte), go.bool] false [(go.GoType.SliceType go.byte)]))), (go!"time.appendStrictRFC3339", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [(go.GoType.SliceType go.byte), go.error]))), (go!"time.appendTo", (some (go.signature.Signature [(go.GoType.SliceType go.byte), go.string] false [(go.GoType.SliceType go.byte), go.error]))), (go!"time.locabs", (some (go.signature.Signature [] false [go.string, go.int, _root_.Perennial.time.absSeconds.ty]))), (go!"time.mono", (some (go.signature.Signature [] false [go.int64]))), (go!"time.nsec", (some (go.signature.Signature [] false [go.int32]))), (go!"time.sec", (some (go.signature.Signature [] false [go.int64]))), (go!"time.setLoc", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.time.Location.ty)] false []))), (go!"time.setMono", (some (go.signature.Signature [go.int64] false []))), (go!"time.stripMono", (some (go.signature.Signature [] false []))), (go!"time.unixSec", (some (go.signature.Signature [] false [go.int64])))]
+  ptr_Equal_unfold : MethodUnfold (go.GoType.PointerType Time.ty) go!"Equal" Time.Equal.impl
 
 attribute [instance] Time.TypeAssumptions.type_repr
   Time.TypeAssumptions.underlying
@@ -1735,6 +2235,7 @@ attribute [instance] Time.TypeAssumptions.type_repr
   Time.TypeAssumptions.set_Time
   Time.TypeAssumptions.method_set
   Time.TypeAssumptions.ptr_method_set
+  Time.TypeAssumptions.ptr_Equal_unfold
 
 structure Timestamp [GooseExts] where
   mk ::
@@ -1995,6 +2496,37 @@ class ObjectMeta.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] 
   set_ManagedFields : ∀ (x : ObjectMeta) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet ObjectMeta.underlying go!"ManagedFields") (PairV #x #y) (Val #(({ x with ManagedFields' := y } : ObjectMeta)))
   method_set : go.MethodSetIs ObjectMeta.ty [(go!"OpenAPIModelName", (some (go.signature.Signature [] false [go.string]))), (go!"SwaggerDoc", (some (go.signature.Signature [] false [(go.GoType.MapType go.string go.string)])))]
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType ObjectMeta.ty) [(go!"DeepCopy", (some (go.signature.Signature [] false [(go.GoType.PointerType ObjectMeta.ty)]))), (go!"DeepCopyInto", (some (go.signature.Signature [(go.GoType.PointerType ObjectMeta.ty)] false []))), (go!"GetAnnotations", (some (go.signature.Signature [] false [(go.GoType.MapType go.string go.string)]))), (go!"GetCreationTimestamp", (some (go.signature.Signature [] false [Time.ty]))), (go!"GetDeletionGracePeriodSeconds", (some (go.signature.Signature [] false [(go.GoType.PointerType go.int64)]))), (go!"GetDeletionTimestamp", (some (go.signature.Signature [] false [(go.GoType.PointerType Time.ty)]))), (go!"GetFinalizers", (some (go.signature.Signature [] false [(go.GoType.SliceType go.string)]))), (go!"GetGenerateName", (some (go.signature.Signature [] false [go.string]))), (go!"GetGeneration", (some (go.signature.Signature [] false [go.int64]))), (go!"GetLabels", (some (go.signature.Signature [] false [(go.GoType.MapType go.string go.string)]))), (go!"GetManagedFields", (some (go.signature.Signature [] false [(go.GoType.SliceType ManagedFieldsEntry.ty)]))), (go!"GetName", (some (go.signature.Signature [] false [go.string]))), (go!"GetNamespace", (some (go.signature.Signature [] false [go.string]))), (go!"GetObjectMeta", (some (go.signature.Signature [] false [Object.ty]))), (go!"GetOwnerReferences", (some (go.signature.Signature [] false [(go.GoType.SliceType OwnerReference.ty)]))), (go!"GetResourceVersion", (some (go.signature.Signature [] false [go.string]))), (go!"GetSelfLink", (some (go.signature.Signature [] false [go.string]))), (go!"GetUID", (some (go.signature.Signature [] false [_root_.Perennial.k8s_io.apimachinery.pkg.types.UID.ty]))), (go!"Marshal", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), go.error]))), (go!"MarshalTo", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"MarshalToSizedBuffer", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"OpenAPIModelName", (some (go.signature.Signature [] false [go.string]))), (go!"Reset", (some (go.signature.Signature [] false []))), (go!"SetAnnotations", (some (go.signature.Signature [(go.GoType.MapType go.string go.string)] false []))), (go!"SetCreationTimestamp", (some (go.signature.Signature [Time.ty] false []))), (go!"SetDeletionGracePeriodSeconds", (some (go.signature.Signature [(go.GoType.PointerType go.int64)] false []))), (go!"SetDeletionTimestamp", (some (go.signature.Signature [(go.GoType.PointerType Time.ty)] false []))), (go!"SetFinalizers", (some (go.signature.Signature [(go.GoType.SliceType go.string)] false []))), (go!"SetGenerateName", (some (go.signature.Signature [go.string] false []))), (go!"SetGeneration", (some (go.signature.Signature [go.int64] false []))), (go!"SetLabels", (some (go.signature.Signature [(go.GoType.MapType go.string go.string)] false []))), (go!"SetManagedFields", (some (go.signature.Signature [(go.GoType.SliceType ManagedFieldsEntry.ty)] false []))), (go!"SetName", (some (go.signature.Signature [go.string] false []))), (go!"SetNamespace", (some (go.signature.Signature [go.string] false []))), (go!"SetOwnerReferences", (some (go.signature.Signature [(go.GoType.SliceType OwnerReference.ty)] false []))), (go!"SetResourceVersion", (some (go.signature.Signature [go.string] false []))), (go!"SetSelfLink", (some (go.signature.Signature [go.string] false []))), (go!"SetUID", (some (go.signature.Signature [_root_.Perennial.k8s_io.apimachinery.pkg.types.UID.ty] false []))), (go!"Size", (some (go.signature.Signature [] false [go.int]))), (go!"String", (some (go.signature.Signature [] false [go.string]))), (go!"SwaggerDoc", (some (go.signature.Signature [] false [(go.GoType.MapType go.string go.string)]))), (go!"Unmarshal", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.error])))]
+  ptr_GetAnnotations_unfold : MethodUnfold (go.GoType.PointerType ObjectMeta.ty) go!"GetAnnotations" ObjectMeta.GetAnnotations.impl
+  ptr_GetCreationTimestamp_unfold : MethodUnfold (go.GoType.PointerType ObjectMeta.ty) go!"GetCreationTimestamp" ObjectMeta.GetCreationTimestamp.impl
+  ptr_GetDeletionGracePeriodSeconds_unfold : MethodUnfold (go.GoType.PointerType ObjectMeta.ty) go!"GetDeletionGracePeriodSeconds" ObjectMeta.GetDeletionGracePeriodSeconds.impl
+  ptr_GetDeletionTimestamp_unfold : MethodUnfold (go.GoType.PointerType ObjectMeta.ty) go!"GetDeletionTimestamp" ObjectMeta.GetDeletionTimestamp.impl
+  ptr_GetFinalizers_unfold : MethodUnfold (go.GoType.PointerType ObjectMeta.ty) go!"GetFinalizers" ObjectMeta.GetFinalizers.impl
+  ptr_GetGenerateName_unfold : MethodUnfold (go.GoType.PointerType ObjectMeta.ty) go!"GetGenerateName" ObjectMeta.GetGenerateName.impl
+  ptr_GetGeneration_unfold : MethodUnfold (go.GoType.PointerType ObjectMeta.ty) go!"GetGeneration" ObjectMeta.GetGeneration.impl
+  ptr_GetLabels_unfold : MethodUnfold (go.GoType.PointerType ObjectMeta.ty) go!"GetLabels" ObjectMeta.GetLabels.impl
+  ptr_GetManagedFields_unfold : MethodUnfold (go.GoType.PointerType ObjectMeta.ty) go!"GetManagedFields" ObjectMeta.GetManagedFields.impl
+  ptr_GetName_unfold : MethodUnfold (go.GoType.PointerType ObjectMeta.ty) go!"GetName" ObjectMeta.GetName.impl
+  ptr_GetNamespace_unfold : MethodUnfold (go.GoType.PointerType ObjectMeta.ty) go!"GetNamespace" ObjectMeta.GetNamespace.impl
+  ptr_GetObjectMeta_unfold : MethodUnfold (go.GoType.PointerType ObjectMeta.ty) go!"GetObjectMeta" ObjectMeta.GetObjectMeta.impl
+  ptr_GetOwnerReferences_unfold : MethodUnfold (go.GoType.PointerType ObjectMeta.ty) go!"GetOwnerReferences" ObjectMeta.GetOwnerReferences.impl
+  ptr_GetResourceVersion_unfold : MethodUnfold (go.GoType.PointerType ObjectMeta.ty) go!"GetResourceVersion" ObjectMeta.GetResourceVersion.impl
+  ptr_GetSelfLink_unfold : MethodUnfold (go.GoType.PointerType ObjectMeta.ty) go!"GetSelfLink" ObjectMeta.GetSelfLink.impl
+  ptr_GetUID_unfold : MethodUnfold (go.GoType.PointerType ObjectMeta.ty) go!"GetUID" ObjectMeta.GetUID.impl
+  ptr_SetAnnotations_unfold : MethodUnfold (go.GoType.PointerType ObjectMeta.ty) go!"SetAnnotations" ObjectMeta.SetAnnotations.impl
+  ptr_SetCreationTimestamp_unfold : MethodUnfold (go.GoType.PointerType ObjectMeta.ty) go!"SetCreationTimestamp" ObjectMeta.SetCreationTimestamp.impl
+  ptr_SetDeletionGracePeriodSeconds_unfold : MethodUnfold (go.GoType.PointerType ObjectMeta.ty) go!"SetDeletionGracePeriodSeconds" ObjectMeta.SetDeletionGracePeriodSeconds.impl
+  ptr_SetDeletionTimestamp_unfold : MethodUnfold (go.GoType.PointerType ObjectMeta.ty) go!"SetDeletionTimestamp" ObjectMeta.SetDeletionTimestamp.impl
+  ptr_SetFinalizers_unfold : MethodUnfold (go.GoType.PointerType ObjectMeta.ty) go!"SetFinalizers" ObjectMeta.SetFinalizers.impl
+  ptr_SetGenerateName_unfold : MethodUnfold (go.GoType.PointerType ObjectMeta.ty) go!"SetGenerateName" ObjectMeta.SetGenerateName.impl
+  ptr_SetGeneration_unfold : MethodUnfold (go.GoType.PointerType ObjectMeta.ty) go!"SetGeneration" ObjectMeta.SetGeneration.impl
+  ptr_SetLabels_unfold : MethodUnfold (go.GoType.PointerType ObjectMeta.ty) go!"SetLabels" ObjectMeta.SetLabels.impl
+  ptr_SetManagedFields_unfold : MethodUnfold (go.GoType.PointerType ObjectMeta.ty) go!"SetManagedFields" ObjectMeta.SetManagedFields.impl
+  ptr_SetName_unfold : MethodUnfold (go.GoType.PointerType ObjectMeta.ty) go!"SetName" ObjectMeta.SetName.impl
+  ptr_SetNamespace_unfold : MethodUnfold (go.GoType.PointerType ObjectMeta.ty) go!"SetNamespace" ObjectMeta.SetNamespace.impl
+  ptr_SetOwnerReferences_unfold : MethodUnfold (go.GoType.PointerType ObjectMeta.ty) go!"SetOwnerReferences" ObjectMeta.SetOwnerReferences.impl
+  ptr_SetResourceVersion_unfold : MethodUnfold (go.GoType.PointerType ObjectMeta.ty) go!"SetResourceVersion" ObjectMeta.SetResourceVersion.impl
+  ptr_SetSelfLink_unfold : MethodUnfold (go.GoType.PointerType ObjectMeta.ty) go!"SetSelfLink" ObjectMeta.SetSelfLink.impl
+  ptr_SetUID_unfold : MethodUnfold (go.GoType.PointerType ObjectMeta.ty) go!"SetUID" ObjectMeta.SetUID.impl
 
 attribute [instance] ObjectMeta.TypeAssumptions.type_repr
   ObjectMeta.TypeAssumptions.underlying
@@ -2030,6 +2562,37 @@ attribute [instance] ObjectMeta.TypeAssumptions.type_repr
   ObjectMeta.TypeAssumptions.set_ManagedFields
   ObjectMeta.TypeAssumptions.method_set
   ObjectMeta.TypeAssumptions.ptr_method_set
+  ObjectMeta.TypeAssumptions.ptr_GetAnnotations_unfold
+  ObjectMeta.TypeAssumptions.ptr_GetCreationTimestamp_unfold
+  ObjectMeta.TypeAssumptions.ptr_GetDeletionGracePeriodSeconds_unfold
+  ObjectMeta.TypeAssumptions.ptr_GetDeletionTimestamp_unfold
+  ObjectMeta.TypeAssumptions.ptr_GetFinalizers_unfold
+  ObjectMeta.TypeAssumptions.ptr_GetGenerateName_unfold
+  ObjectMeta.TypeAssumptions.ptr_GetGeneration_unfold
+  ObjectMeta.TypeAssumptions.ptr_GetLabels_unfold
+  ObjectMeta.TypeAssumptions.ptr_GetManagedFields_unfold
+  ObjectMeta.TypeAssumptions.ptr_GetName_unfold
+  ObjectMeta.TypeAssumptions.ptr_GetNamespace_unfold
+  ObjectMeta.TypeAssumptions.ptr_GetObjectMeta_unfold
+  ObjectMeta.TypeAssumptions.ptr_GetOwnerReferences_unfold
+  ObjectMeta.TypeAssumptions.ptr_GetResourceVersion_unfold
+  ObjectMeta.TypeAssumptions.ptr_GetSelfLink_unfold
+  ObjectMeta.TypeAssumptions.ptr_GetUID_unfold
+  ObjectMeta.TypeAssumptions.ptr_SetAnnotations_unfold
+  ObjectMeta.TypeAssumptions.ptr_SetCreationTimestamp_unfold
+  ObjectMeta.TypeAssumptions.ptr_SetDeletionGracePeriodSeconds_unfold
+  ObjectMeta.TypeAssumptions.ptr_SetDeletionTimestamp_unfold
+  ObjectMeta.TypeAssumptions.ptr_SetFinalizers_unfold
+  ObjectMeta.TypeAssumptions.ptr_SetGenerateName_unfold
+  ObjectMeta.TypeAssumptions.ptr_SetGeneration_unfold
+  ObjectMeta.TypeAssumptions.ptr_SetLabels_unfold
+  ObjectMeta.TypeAssumptions.ptr_SetManagedFields_unfold
+  ObjectMeta.TypeAssumptions.ptr_SetName_unfold
+  ObjectMeta.TypeAssumptions.ptr_SetNamespace_unfold
+  ObjectMeta.TypeAssumptions.ptr_SetOwnerReferences_unfold
+  ObjectMeta.TypeAssumptions.ptr_SetResourceVersion_unfold
+  ObjectMeta.TypeAssumptions.ptr_SetSelfLink_unfold
+  ObjectMeta.TypeAssumptions.ptr_SetUID_unfold
 
 structure OwnerReference [GooseExts] where
   mk ::
@@ -4129,6 +4692,7 @@ class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFun
   Condition_instance : Condition.TypeAssumptions
   WatchEvent_instance : WatchEvent.TypeAssumptions
   InternalEvent_instance : InternalEvent.TypeAssumptions
+  Now_unfold : FuncUnfold Now [] Now.impl
   import_schema_Assumption : _root_.Perennial.k8s_io.apimachinery.pkg.runtime.schema.Assumptions
   import_types_Assumption : _root_.Perennial.k8s_io.apimachinery.pkg.types.Assumptions
   import_runtime_Assumption : _root_.Perennial.k8s_io.apimachinery.pkg.runtime.Assumptions
@@ -4204,6 +4768,7 @@ attribute [instance] Assumptions.Duration_instance
   Assumptions.Condition_instance
   Assumptions.WatchEvent_instance
   Assumptions.InternalEvent_instance
+  Assumptions.Now_unfold
   Assumptions.import_schema_Assumption
   Assumptions.import_types_Assumption
   Assumptions.import_runtime_Assumption

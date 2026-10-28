@@ -422,7 +422,7 @@ it), [bbolt-large-page-size](bbolt-large-page-size.md) (an option check),
 error return; added 2026-10-27),
 [bbolt-mmap-madvise-leak](bbolt-mmap-madvise-leak.md) (one line; moot if #940 lands).
 
-## Kubernetes (the API server's etcd3 store and its test model; not etcd's)
+## Kubernetes (the API server's etcd3 store, its test model, the DaemonSet controller; not etcd's)
 
 For Kubernetes' sig-api-machinery, not etcd's maintainers:
 [k8s-correctness-model-noop-rewrite](k8s-correctness-model-noop-rewrite.md) (2026-10-22). The
@@ -434,6 +434,34 @@ Go reproduction and a small fix in the Model.
 indexer, with no event in its history; reproduced at the store. Only reached through an index
 function that fails, which Kubernetes' own do only on an object of the wrong type: worth a small
 robustness fix (index before mutating), not urgent.
+
+For sig-apps (the DaemonSet controller):
+[k8s-daemonset-ambiguous-create-duplicate-pod](k8s-daemonset-ambiguous-create-duplicate-pod.md)
+(2026-10-26): after a pod create that committed but returned an error, the next sync creates a
+second pod on the node (the consistency store of KEP-5647 records only successful writes, and the
+expectations are lowered). Transient (the extra pod is deleted once the cache sees it), but it
+breaks the invariant the controller robustness test of kubernetes/kubernetes#139657 checks, and
+that test cannot reach it (its faults never reach the server). Reproduced deterministically on the
+real API server with a commit-then-fail fault added to that test (10 of 10), with a tested small
+fix (record the listed pods in the consistency store after an ambiguous error); #86140's review
+(2019) had accepted extra pods on this path for ReplicaSets, never for DaemonSets. Worth reporting
+to sig-apps and the KEP-5647 / #139657 author with the reproduction (draft in `upstream/`).
+
+For sig-api-machinery (client-go's work queue, found verifying it for the DaemonSet controller):
+[k8s-workqueue-done-without-get-duplicates](k8s-workqueue-done-without-get-duplicates.md)
+(2026-10-27): `Done` for an item that is queued but not being processed (a double `Done`) pushes a
+duplicate, after which two workers process the same key concurrently, the one guarantee the queue
+gives controllers. A caller bug, but undocumented and easy to write; a one-line guard with a Go
+reproduction, worth proposing (with the documentation) after the DaemonSet report.
+[k8s-workqueue-exponential-backoff-2to63](k8s-workqueue-exponential-backoff-2to63.md)
+(2026-10-27): an off-by-one cap in the exponential limiter gives a negative delay at exactly
+`2^63` ns; unreachable with the defaults (5 ms, 1 ms), so low priority, but a one-character fix
+with a test.
+[k8s-clientgo-getindexers-unlocked-map](k8s-clientgo-getindexers-unlocked-map.md) (2026-10-27):
+`GetIndexers` hands out the store's own indexers' map without the lock while `AddIndexers` (allowed
+on a started shared informer) writes it under the lock; `go test -race` reproduces it; reached by
+`pkg/controller`'s `AddPod*Indexer` on a shared pod informer and by the mutation cache. A
+`RLock` + `maps.Clone` fix; worth bringing with the work-queue findings.
 
 ## How to bring them
 

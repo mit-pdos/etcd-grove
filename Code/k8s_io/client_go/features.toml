@@ -1,0 +1,18 @@
+# With bodies (project k8s-apiserver; notes/k8s-clientgo-goose.md): client-go's feature gates
+# (`FeatureGates`, `ReplaceFeatureGates`, the environment-variable gates: `Enabled`, `Set`, the
+# environment reading), which the informers and the thread-safe store read (`AtomicFIFO`,
+# `WatchListClient`; notes/k8s-daemonset-plan.md).
+#
+# Names only for now: the package's initialization, its variables' initializers (the gate holder
+# `featureGates`, the known-feature table `defaultVersionedKubernetesFeatureGates`, a map literal of
+# `version.MustParse` calls, `internalPackages`) and the `init` that installs the env-var gates over
+# the table. Translated, its `Init.lean` (etc/gen-init.py) needs hand-written steps (the `init` calls
+# `naming.GetNameFromCallsite` and ranges over the table) and a fact (what `featureGates` holds),
+# which is proof work: the variables then hold what `opaqueInitsOk` says nothing about.
+# (`!_`: the `var _ I = &T{}` interface assertions, compile-time only, names only: translated, each
+# would be an allocation for `etc/gen-init.py`'s `Init.lean` to step through)
+translate = ["*", "!_", "!init.*", "!featureGates", "!defaultVersionedKubernetesFeatureGates",
+  "!internalPackages"]
+imports = ["*"]
+
+translate_types = true

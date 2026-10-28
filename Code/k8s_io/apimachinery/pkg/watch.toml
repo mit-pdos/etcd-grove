@@ -3,7 +3,9 @@
 # cache's store switches on (`WatchCacheStorage.UpdateStore`; notes/kep-6404-plan.md): a
 # names-only constant is a value of unknown shape.
 translate = ["!*", "Added", "Modified", "Deleted", "Bookmark", "Error"]
-imports = ["!*"]
+# It imports `runtime` (names only) so that `Event` (`Type`, `Object runtime.Object`), which the
+# model API server sends on its watches (examples/k8sdaemonset/apimodel), is a concrete struct.
+imports = ["!*", "k8s.io/apimachinery/pkg/runtime"]
 
 # translate the definitions of all type declarations goose supports
 translate_types = true

@@ -1,0 +1,7 @@
+# With bodies (project k8s-apiserver; notes/k8s-clientgo-goose.md): `CompareResourceVersion`, with
+# which the consistency store compares written and read resource versions. `isWellFormed` names
+# only: its loop is a range over a string, which Goose rejects (gap C1).
+translate = ["*", "!isWellFormed"]
+imports = ["*"]
+
+translate_types = true
