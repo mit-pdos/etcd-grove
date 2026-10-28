@@ -8,20 +8,19 @@ What a proof outside raft may use of raft's proof: import this module, and nothi
 
 **The specs** (`Spec/go_etcd_io/raft/v3/`): `StartNode`, `RestartNode` and the `Node` interface's
 methods (`node.Propose`, `ProposeConfChange`, `Step`, `Ready`, `Advance`, `ApplyConfChange`,
-`Tick`, `ReadIndex`, `TransferLeadership`, `ForgetLeader`, `ReportSnapshot`, `ReportUnreachable`),
+`Tick`, `ReadIndex`, `TransferLeadership`, `ReportSnapshot`, `ReportUnreachable`),
 `MemoryStorage`'s, and the helpers `IsEmptyHardState`, `IsEmptySnap`. Their linked results, for a
 proof that uses one as a lemma rather than taking it as a callee's spec, are
 `Proof/go_etcd_io/raft/v3/Linked.lean`'s (`RaftLink`).
 
 **The vocabulary** the specs and the laws are stated in:
-- `Proof/go_etcd_io/raft/v3/InvNode.lean` and `InvNodeCtx.lean`, the node API: the node and its
-  driver's tokens (`isNodeChan`, `nodeDriverChan`, `nodeDriverBusy`, `nodeCfg`, `dlvLb`) and the `Ready`
-  channel's payload (`readyP`, `isReadyChanRaw`) are **sealed** (`@[no_expose]`): a client sees their
-  names, never their bodies -- the node struct's channels, their protocols and the ghost state
-  between `run` and the driver. What the client receives or must build is transparent: a
-  `Ready`'s data (`readyData`, `readySnapData`, `readyDataL`), a message to step (`stepP`, `netP`,
-  `fwdP`), a proposal (`propArg`, `ccPropArg`, keyed by `entKey`), the term budget (`budgetInv`,
-  `termLB`, `tickCred`), the errors (`InvNodeCtx`);
+- `Proof/go_etcd_io/raft/v3/InvNode.lean`, the node API (2026-10-28): the cluster and its committed
+  log as the client sees it (`ownCommittedOps`, `isCommittedLogLb`), the read contexts, the node and
+  its `Ready` loop's token (`isNode`, `nodeDriver`), the messages (`sentMsg`, `stepIn`), the
+  snapshots' certificates and the dynamic cluster's configuration, all **sealed** (`@[no_expose]`:
+  a client sees their names, never their bodies), with their laws and the allocations
+  (`cluster_alloc`, `dynamicCluster_alloc`); its pure vocabulary in `NodeApiVocab.lean` (`LogEntry`,
+  `opsOf`, `Membership`, ...); the errors and contexts in `InvNodeCtx.lean`;
 - `Proof/go_etcd_io/raft/v3/ApiVocab.lean`: the records and predicates of those statements that
   raft's internals also use (`QMsg`, `SnapLoan`, `RNMode`, `RNState`, `NetMsgOk`, `SentMsgOk`,
   `isRaftMsg`, `readyIdx`, `bootInit`, `ConfigValid`, ...);
@@ -30,14 +29,14 @@ proof that uses one as a lemma rather than taking it as a callee's spec, are
   proposal deposits, the read index), the protobuf model (`InvPb*`), the `Storage` contract
   (`InvStorage`) and `MemoryStorage`'s predicates (`InvMemstorage`).
 
-**The laws** of the sealed predicates are theorems of `InvNode.lean` (e.g. `isNode_id`,
-`isNode_commitInv`, `nodeDriver_isNode`, `readyP_take`, `readyP_take_ns`, `node_ready_receive`,
-`node_prop_register`, `node_committed_data`, `node_read_deposit`, `budget_alloc`); a client can
-prove nothing else of a sealed predicate. Raft's own proofs see the bodies (`import all
-Proof.go_etcd_io.raft.v3.InvNodeChan`).
+**The laws** of the sealed predicates are theorems of `InvNode.lean` (e.g.
+`ownCommittedOps_lb_prefix`, `readCtx_commit`, `readStateOk_ctx`, `stepIn_intro`,
+`isReadyChan_recvAu`, `node.wp_readyRecv`); a client can prove nothing else of a sealed predicate.
+Raft's own proofs see the bodies (`import all Proof.go_etcd_io.raft.v3.InvNode`).
 
 **Sealed below the API** (internal: no client module may import them, even transitively):
-`InvRawnode`, `InvRawnodeReady`, `InvRawnodeC`, `InvNodeRun`, `InvBoot`, `InvRaftPhys` and
+`InvNodeChan` (the older sealed node API over `NodeNames`), `InvApi`, `InvApiDyn`, `InvRawnode`,
+`InvRawnodeReady`, `InvRawnodeC`, `InvNodeRun`, `InvBoot`, `InvRaftPhys` and
 everything importing them -- the `RawNode`'s invariant (`ownRawNode`), the raft struct's
 (`ownRaftPhys`), `node.go`'s run loop. The `RawNode` API's specs are stated over them and are not
 part of the signature yet.

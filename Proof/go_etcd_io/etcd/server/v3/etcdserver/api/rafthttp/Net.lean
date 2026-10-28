@@ -36,6 +36,7 @@ public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Defs
 public import Proof.go_etcd_io.etcd.server.v3.storage.backend.InvSnapshot
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.snap.Defs
 public import Proof.go_etcd_io.raft.v3.InvNodeCtx
+public import Proof.go_etcd_io.raft.v3.ApiVocab
 public import Proof.go_etcd_io.raft.v3.InvPb
 public import Perennial.Ghost.GhostMap
 public import Perennial.Ghost.MonoNat

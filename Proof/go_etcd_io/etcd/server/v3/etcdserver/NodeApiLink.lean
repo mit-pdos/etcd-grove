@@ -1,6 +1,6 @@
 /-
 **The node API's results at the server's storage model** (2026-10-27, the server port): the node
-API's specs (`NodeApiDraft.lean`) are stated over any raft storage model (`[StorageModel GF]`);
+API's specs (`Spec/go_etcd_io/raft/v3/`) are stated over any raft storage model (`[StorageModel GF]`);
 the server states its node premises at the cluster's, `srvStor γr` (the `MemoryStorage` registry
 of its `SrvRaft`), for every `γr` it allocates. These are the node API's linked results at it, the
 terms `Link.lean` passes (`=` callees of `etc/link-lean-first-server.txt`); and raft's

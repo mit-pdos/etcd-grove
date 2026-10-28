@@ -2,7 +2,7 @@
 
 `node.ReadIndex` for a read already deposited (2026-10-27, the node API over an abstract log): as
 `node.ReadIndex.spec`, with the read's record `readReq γ c Lc` in place of the fresh token, the update
-and the committed log (the adapter deposits the read itself, `NodeApiImpl.lean`, and retries reuse
+and the committed log (the adapter deposits the read itself, `InvApi.lean`, and retries reuse
 it). The proof is `node.ReadIndex.wp_proof`'s without the deposit. -/
 module
 
@@ -41,7 +41,7 @@ What the proof over raft's internals shows, from which the wrapper (below) deriv
 
 `node.ReadIndex` for a read already deposited (2026-10-27, the node API over an abstract log): as
 `node.ReadIndex.spec`, with the read's record `readReq γ c Lc` in place of the fresh token, the update
-and the committed log (the adapter deposits the read itself, `NodeApiImpl.lean`, and retries reuse
+and the committed log (the adapter deposits the read itself, `InvApi.lean`, and retries reuse
 it). The proof is `node.ReadIndex.wp_proof`'s without the deposit. -/
 
 

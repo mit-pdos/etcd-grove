@@ -1,5 +1,12 @@
 /-
-# Raft's node API, redesigned: draft statements for review (2026-10-27)
+# Raft's node API: the sealed predicates and their laws (2026-10-27; the API module since 2026-10-28)
+
+What a client of raft's `node` states its proofs in: the predicates of the specs in
+`Spec/go_etcd_io/raft/v3/<fn>.lean` (`StartNode`, `RestartNode`, `node.Propose`, ...), each sealed
+(`@[no_expose]`) over its definition in the internal `InvApi.lean`/`InvApiDyn.lean` (namespace
+`ApiImpl`), and the laws a client proves with. (Until 2026-10-28 `NodeApiDraft.lean`, namespace
+`Draft`, which also held the specs; this module's name was the older sealed node API's, now
+`InvNodeChan.lean`.)
 
 The statements decided with the user on 2026-10-27 (`notes/decisions.md`, "Raft's node API over an
 abstract log"; memory "spec state principles"):
@@ -20,9 +27,8 @@ abstract log"; memory "spec state principles"):
   update's mask is `⊤ \ ↑N`; raft divides `N` privately.
 
 **Implemented (2026-10-27):** every predicate is sealed (`@[no_expose]`) over its definition in
-`NodeApiImpl.lean` and `NodeApiImplDyn.lean` (namespace `ApiImpl`), every law and spec proved
-there, from raft's internals and raft's linked specs (`node.wp_Propose`, ..., which a client's
-linking file links against): nothing here is `sorry`.
+`InvApi.lean` and `InvApiDyn.lean` (namespace `ApiImpl`), every law proved there, every spec in its
+function's proof file: nothing here is `sorry`.
 Marked **(open)**: premises carried over unchanged from today's specs, for the items not yet
 redesigned (the storage contract, the term budget, the static/dynamic modes, the rest of a `Ready`).
 
@@ -557,7 +563,7 @@ The server runs raft's **dynamic** mode (its membership changes: `notes/membersh
 raft's no-snapshot and no-transfer modes, and its transport (rafthttp) carries the messages a
 `Ready` hands out. What it uses of raft's tree today, and the statements below, are listed in
 `notes/decisions.md`, "Raft's node API for etcd's server (draft)". Every predicate here is sealed
-over its definition in `NodeApiImplDyn.lean` (or `NodeApiImpl.lean`), every law and spec proved
+over its definition in `InvApiDyn.lean` (or `InvApi.lean`), every law and spec proved
 there: nothing here is `sorry`; **(open)** marks what carries
 today's meaning unchanged (no redesign). The pure vocabulary (`Membership`, `ConfChangeDecoder`,
 `ConfigView`, `NoConfChangeIn`, `confStateIs`) is in `NodeApiVocab.lean`. -/

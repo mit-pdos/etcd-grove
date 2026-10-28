@@ -1,7 +1,7 @@
 /-
 # Raft's node API over an abstract log: the implementation (2026-10-27)
 
-The definitions behind the drafted API (`NodeApiDraft.lean`, namespace `Draft`) and the proofs of
+The definitions behind the node API (`InvNode.lean`; until 2026-10-28 `NodeApiImpl.lean`, behind `NodeApiDraft.lean`) and the proofs of
 its laws and specs (`*_impl`), from raft's internals. Once done, the draft's `sorry` bodies are
 replaced by these (`notes/decisions.md`, "Raft's node API over an abstract log").
 

@@ -116,12 +116,8 @@ instance msgWithResult_countable : Pos.Countable msgWithResult :=
   countableOfLeftInverse (fun m : msgWithResult => (m.m', m.result'))
     (fun p => ⟨p.1, p.2⟩) (fun _ => rfl)
 
-instance ready_countable : Pos.Countable Ready :=
-  countableOfLeftInverse
-    (fun r : Ready => (r.SoftState', r.HardState', r.ReadStates', r.Entries', r.Snapshot',
-      r.CommittedEntries', r.Messages', r.MustSync'))
-    (fun p => ⟨p.1, p.2.1, p.2.2.1, p.2.2.2.1, p.2.2.2.2.1, p.2.2.2.2.2.1, p.2.2.2.2.2.2.1,
-      p.2.2.2.2.2.2.2⟩) (fun _ => rfl)
+-- (2026-10-28) `ready_countable` moved to `ApiVocab.lean` (the node API's `isReadyChan_recvAu`
+-- states the `Ready` channel)
 
 /-- (2026-10-15, stage N) a configuration, for the run loop's configuration shared with the
 driver (`NodeNames.cap`). -/
@@ -718,12 +714,8 @@ theorem readyP_none (γ : NodeNames) (rd : Ready)
   rw [show d ++ ce = dlvAfter d ce none from rfl]
   iframe Hd Hrof Hdata Hlb
 
-/-- (D22 S-d4) The driver's receipt at `Advance` for the `Ready`'s storage hand-out: of the append
-of its entries (`appendReceipt`), or after a snapshot `Ready` the storage at the snapshot and the
-half of the snapshot (`snapReceipt`, which `RawNode.Advance` takes, `loanRet`). -/
-def advReceipt (st : Storage) (es : List EntryM) : Option SnapLoan → IProp GF
-  | none => appendReceipt st es
-  | some l => snapReceipt st l es
+-- (2026-10-28) `advReceipt` moved to `ApiVocab.lean` (the storage contract's vocabulary, which
+-- `node.Advance`'s spec states)
 
 /-- An `Advance` on `advancec`: a `dlv` half after the last `Ready`, `run`'s record back,
 and the receipt of the append of the `Ready`'s entries. (D22 S-d4, 2026-10-21) For the `Ready`'s

@@ -3,7 +3,7 @@ Lean-first (no Rocq counterpart).
 
 # The key-value store's predicates (2026-10-10; 2026-10-14, stage R; the store, 2026-10-19)
 
-## The client-facing state (2026-10-27: over raft's draft API, `NodeApiDraft.lean`)
+## The client-facing state (2026-10-27: over raft's node API, `InvNode.lean`)
 
 A cluster of replicas shares raft's cluster `γr.cluster`, in the store's namespace `kvRaftN` (the
 caller's, for the draft API). The store's invariant (`rkvInv`) owns raft's committed requested
@@ -72,6 +72,7 @@ whose authority is in `kvStorInv`) so that a storage's tokens are of its own nam
 module
 
 public import Proof.github_com.mit_pdos.etcd_grove.examples.kv.Base
+public import Proof.go_etcd_io.etcd.cache.v3.Handoff
 
 @[expose] public section
 

@@ -5,10 +5,10 @@
 theorem node.ReportSnapshot.wp_proof [package_sem : Assumptions] (wp_MessageType_Enum :
     raftpb.MessageType.Enum.spec) : node.ReportSnapshot.spec
   -- `Perennial.EtcdGrove.node.ReportSnapshot.spec`, unfolded:
-  ∀ (γ : NodeNames) (id : w64) (n : Loc) (to : w64) (st : SnapshotStatus),
+  ∀ (n : Loc) (γ : Cluster) (N : Namespace) (id to : w64) (status : SnapshotStatus),
     ⊢
       ∀ Φ,
-        isPkgInit pkg_id.go_etcd_io.raft.v3 ∗ isNode γ id n -∗
+        isPkgInit pkg_id.go_etcd_io.raft.v3 ∗ isNode n γ N id -∗
           ▷ (True -∗ Φ (intoVal ())) -∗
             WP
               (((intoVal
@@ -16,5 +16,5 @@ theorem node.ReportSnapshot.wp_proof [package_sem : Assumptions] (wp_MessageType
                       go!"ReportSnapshot"
                       (intoVal n)))
                   (intoVal to))
-                (intoVal st))
+                (intoVal status))
               {{ Φ }}

@@ -463,6 +463,13 @@ def snapReceipt (st : Storage) (l : SnapLoan) (es : List EntryM) : IProp GF :=
       σr.pend = [] ∧ σr.fl = l.fl ∧ σr.scs = l.snap.Metadata'.ConfState'.lists ∧
       σr.sal = l.snap.Metadata'.ConfState'.AutoLeave' ∧ σr.sdat = l.snap.Data'⌝)
 
+/-- (D22 S-d4; here since 2026-10-28, from `InvNodeChan.lean`) The driver's receipt at `Advance` for the `Ready`'s storage hand-out: of the append
+of its entries (`appendReceipt`), or after a snapshot `Ready` the storage at the snapshot and the
+half of the snapshot (`snapReceipt`, which `RawNode.Advance` takes, `loanRet`). -/
+def advReceipt (st : Storage) (es : List EntryM) : Option SnapLoan → IProp GF
+  | none => appendReceipt st es
+  | some l => snapReceipt st l es
+
 /-- The indices a `Ready` hands out are within the node's log at hand-out time (2026-10-18, D19b
 stage 5): its last index `L` has a record (`lastRec`, whose time receipt bounds it,
 `lastRec_receipt`), the entries to append end at most at `L`, the committed log handed out is
@@ -607,6 +614,21 @@ def ccPropArg (γ : RaftNames) (o : ConfChangeIM) : IProp GF :=
       propAu1 γ (entKey (confChangeEntryType (some o)) bs) Q)
 
 end
+
+/-! ## The `Ready` channel's element type is countable (2026-10-28: from `InvNodeChan.lean`; the
+node API states the channel, `isReadyChan_recvAu`) -/
+
+section readyCountable
+variable [GooseExts]
+
+instance ready_countable : Pos.Countable Ready :=
+  countableOfLeftInverse
+    (fun r : Ready => (r.SoftState', r.HardState', r.ReadStates', r.Entries', r.Snapshot',
+      r.CommittedEntries', r.Messages', r.MustSync'))
+    (fun p => ⟨p.1, p.2.1, p.2.2.1, p.2.2.2.1, p.2.2.2.2.1, p.2.2.2.2.2.1, p.2.2.2.2.2.2.1,
+      p.2.2.2.2.2.2.2⟩) (fun _ => rfl)
+
+end readyCountable
 
 end EtcdGrove
 end Perennial

@@ -8,7 +8,7 @@ theorem node.stepWithWaitOption.wp_proof [package_sem : Assumptions] (wp_GetType
   ∀ (γ : NodeNames) (id : w64) (n ml : Loc) (wait : Bool) (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)),
     ⊢
       ∀ Φ,
-        isPkgInit pkg_id.go_etcd_io.raft.v3 ∗ isNode γ id n ∗ nodeCtx ctx cd ∗ stepArg γ id ml wait -∗
+        isPkgInit pkg_id.go_etcd_io.raft.v3 ∗ isNodeChan γ id n ∗ nodeCtx ctx cd ∗ stepArg γ id ml wait -∗
           (▷ ∀ err, (if wait = true then propErr cd err else nodeErr cd err) -∗ Φ (intoVal err)) -∗
             WP
               ((((intoVal

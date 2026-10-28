@@ -13,6 +13,6 @@ theorem node.run.wp_proof [package_sem : Assumptions] (wp_RawNode_HasReady : Raw
   ∀ (γ : NodeNames) (id : w64) (n : Loc),
     ⊢
       ∀ Φ,
-        isPkgInit pkg_id.go_etcd_io.raft.v3 ∗ isNode γ id n ∗ runPre γ id n -∗
+        isPkgInit pkg_id.go_etcd_io.raft.v3 ∗ isNodeChan γ id n ∗ runPre γ id n -∗
           ▷ (True -∗ Φ (intoVal ())) -∗
             WP ((intoVal (methods node.ty.PointerType go!"run" (intoVal n))) (intoVal ())) {{ Φ }}

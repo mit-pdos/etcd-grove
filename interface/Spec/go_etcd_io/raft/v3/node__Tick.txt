@@ -3,9 +3,9 @@
 -- (`ext`, `ffi`, `go_gctx`, `sem`, the package's `Assumptions`), `GF`, `hG`, `StorageModel GF`, `AllG GF`.
 
 def node.Tick.spec : Prop :=
-  ∀ (γ : NodeNames) (id : w64) (n : Loc),
+  ∀ (n : Loc) (γ : Cluster) (N : Namespace) (id : w64),
     ⊢
       ∀ Φ,
-        isPkgInit pkg_id.go_etcd_io.raft.v3 ∗ isNode γ id n ∗ tickCred γ.bud 1 -∗
+        isPkgInit pkg_id.go_etcd_io.raft.v3 ∗ isNode n γ N id ∗ tickCredit γ 1 -∗
           ▷ (True -∗ Φ (intoVal ())) -∗
             WP ((intoVal (methods node.ty.PointerType go!"Tick" (intoVal n))) (intoVal ())) {{ Φ }}

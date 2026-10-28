@@ -5,12 +5,18 @@
 theorem node.ProposeConfChange.wp_proof [package_sem : Assumptions] (wp_confChangeToMsg :
     confChangeToMsg.spec) (wp_node_Step : node.Step.spec) : node.ProposeConfChange.spec
   -- `Perennial.EtcdGrove.node.ProposeConfChange.spec`, unfolded:
-  ∀ (γ : NodeNames) (id : w64) (n : Loc) (c : GoInterface) (o : ConfChangeIM) (dq : DFrac) (ctx : GoInterfaceOk)
-    (cd : context.ContextDesc (IProp GF)),
+  ∀ (n : Loc) (γ : Cluster) (N : Namespace) (id : w64) (c : GoInterface) (o : ConfChangeIM) (dq : DFrac)
+    (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)),
     ⊢
       ∀ Φ,
         isPkgInit pkg_id.go_etcd_io.raft.v3 ∗
-            isNode γ id n ∗ nodeCtx ctx cd ∗ ownConfChangeI c dq (some o) ∗ ccPropArg γ.raft o -∗
+            isNode n γ N id ∗
+              nodeCtx ctx cd ∗
+                ownConfChangeI c dq (some o) ∗
+                  AU <{ ∃∃ ops, ownCommittedOps γ ops }> @ ⊤ \ ↑N, ∅ <{ ∀∀ t bs,
+                      ⌜MarshalsConfChange (some o) bs⌝ ∗
+                        ownCommittedOps γ (ops ++ [{ term := t, type := confChangeEntryType (some o), data := bs }]),
+                      COMM True }> -∗
           (▷ ∀ err, ownConfChangeI c dq (some o) ∗ nodeErr cd err -∗ Φ (intoVal err)) -∗
             WP
               (((intoVal

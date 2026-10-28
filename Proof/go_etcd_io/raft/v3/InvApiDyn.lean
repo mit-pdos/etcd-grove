@@ -1,7 +1,7 @@
 /-
 # Raft's node API: dynamic clusters, the implementation (2026-10-27)
 
-The definitions behind the draft's dynamic-cluster items (`NodeApiDraft.lean`, "What etcd's server
+The definitions behind the draft's dynamic-cluster items (`InvNode.lean`, "What etcd's server
 needs") and the proofs of their laws and specs (`*_impl`), from raft's dynamic mode
 (`RNMode.dyn`, `raft_dyn_alloc_boot`'s allocation, `node.ApplyConfChange`'s dynamic case,
 `node.Advance`'s A1) and its no-snapshot mode.

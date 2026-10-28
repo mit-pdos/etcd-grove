@@ -2,8 +2,7 @@
 **Raft's committed log, at the server, over raft's node API** (2026-10-27, branch `server-port`;
 `notes/decisions.md`, "etcd's server on raft's node API"). Until then (stage R7b, 2026-10-16) the
 server's contract predicates were definitions over raft's protocol (`rLog`, `isCommitted`,
-`propIs`, `readReq`, ...); now they are over raft's node API (`NodeApiDraft.lean`, namespace
-`Draft`) and the server's own ghost state, and name nothing of raft's internals.
+`propIs`, `readReq`, ...); now they are over raft's node API (`InvNode.lean`) and the server's own ghost state, and name nothing of raft's internals.
 
 **The two logs.** Raft's committed log, as the server's records (`EntryModel`, with their
 indices), is known through lower bounds (`srvRLogLb γ L`: the node API's `isCommittedLogLb` of
