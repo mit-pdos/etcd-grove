@@ -4,7 +4,8 @@
 the generator `func(id int) any` (a write of `vals[id%4]` for an even client, a read for an odd
 one), with the given clock. For any clock with `clockSpec` (whose invariants are not
 `lintestN`), under `Run`'s bounds on `clients` and `ops`, the result is never `Illegal`, and it
-is `Ok` if `timeout ≤ 0`.
+is `Ok` if `timeout ≤ 0`. For executions of fewer than `2^64` steps (`receiptBound GF ≤ 2^64`,
+`New`'s premise).
 -/
 module
 
@@ -34,7 +35,7 @@ abbrev Check.spec : Prop :=
     (clients ops dur : w64),
   (↑lintestN : CoPset) ⊆ ⊤ \ Eclk →
   0 ≤ sint.Z clients → sint.Z clients < 2 ^ 31 → 0 ≤ sint.Z ops →
-  sint.Z clients * sint.Z ops < 2 ^ 60 →
+  sint.Z clients * sint.Z ops < 2 ^ 60 → receiptBound GF ≤ 2 ^ 64 →
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.lintest.logkvcompact ∗
       context.isClosedchanInit ∗
       clockSpec clockVal Eclk clock ∗ clockVal t0 }}

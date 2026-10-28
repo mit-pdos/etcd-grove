@@ -53,10 +53,10 @@ theorem Check.wp_proof
     (wp_New : New.spec (GF := GF) (hG := hG))
     (wp_Apply : Server.Apply.spec (GF := GF) (hG := hG)) :
     Check.spec (GF := GF) (hG := hG) := by
-  intro clockVal t0 Eclk clock clients ops dur HN H0 H31 Hops Hmul
+  intro clockVal t0 Eclk clock clients ops dur HN H0 H31 Hops Hmul Hbound
   wp_start as ⟨#Hcc, #Hclk, Ht0⟩
   wp_auto
-  wp_apply wp_New as %s ⟨%γ, #Hs, Hst⟩
+  wp_apply wp_New Hbound as %s ⟨%γ, #Hs, Hst⟩
   wp_apply wp_slice_literal (V := GoString) [go!"a", go!"b", go!"c", go!"d"]
   isplitr
   · ipureintro; rfl

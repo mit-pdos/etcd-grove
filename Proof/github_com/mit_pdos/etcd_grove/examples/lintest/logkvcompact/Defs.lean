@@ -25,10 +25,13 @@ would have. Nothing in them mentions the log.
 
 ## The lock invariant (`logkvcompactR γ s`)
 
-The mutex guards the log `s.log`, the applied count `s.applied` and the state `s.state`. The
-log is a list of requests `rs` (`Req`: the value, the name of the writer's saved postcondition
+The mutex guards the log `s.log`, its offset `s.start`, the applied count `s.applied` and the
+state `s.state`. The writes ever made are a list of requests `rs` (`Req`: the value, the name of the writer's saved postcondition
 and the name of its ticket), recorded in a monotone ghost list `γr` (a writer keeps a
-persistent witness of its request's index). The state is the other half of `γ`. The first
+persistent witness of its request's index); the log holds the values of those from `start` on
+(`start ≤ applied`: the apply goroutine compacts only what it applied). `start + len(log)`, the
+number of writes, does not wrap around: the lock invariant keeps one time receipt per write
+(`⧗ |rs|`), so `|rs| < receiptBound GF ≤ 2^64` (`isServer`). The state is the other half of `γ`. The first
 `applied` requests are done (`doneSlot`): the writer's postcondition `P` waits there until the
 writer takes it, leaving its ticket. The others are pending (`pendSlot`): each holds its
 writer's atomic update (`regAu`), a fancy update that takes the register to its value and gives
@@ -205,6 +208,9 @@ abbrev condAddr (s : Loc) : Loc :=
 /-- The address of `s.log`. -/
 abbrev logAddr (s : Loc) : Loc :=
   structFieldRef github_com.mit_pdos.etcd_grove.examples.lintest.logkvcompact.Server go!"log" s
+/-- The address of `s.start`. -/
+abbrev startAddr (s : Loc) : Loc :=
+  structFieldRef github_com.mit_pdos.etcd_grove.examples.lintest.logkvcompact.Server go!"start" s
 /-- The address of `s.applied`. -/
 abbrev appliedAddr (s : Loc) : Loc :=
   structFieldRef github_com.mit_pdos.etcd_grove.examples.lintest.logkvcompact.Server go!"applied" s
@@ -260,18 +266,20 @@ def doneSlot (r : Req) : IProp GF :=
 
 /-- The lock invariant of `s.mu` (see the file header). -/
 def logkvcompactR (γ γr : GName) (s : Loc) : IProp GF :=
-  iprop(∃ (sl : GoSlice) (rs : List Req) (a : w64) (st : GoString),
-    logAddr s ↦ sl ∗ sl ↦* rs.map Prod.fst ∗ ownSliceCap GoString sl (DFrac.own 1) ∗
-    appliedAddr s ↦ a ∗ stateAddr s ↦ st ∗
-    ghostVar γ (1 : Qp).half st ∗ monoListAuthOwn γr 1 rs ∗
-    ⌜uint.nat a ≤ rs.length⌝ ∗
+  iprop(∃ (sl : GoSlice) (rs : List Req) (b a : w64) (st : GoString),
+    logAddr s ↦ sl ∗ sl ↦* (rs.drop (uint.nat b)).map Prod.fst ∗
+    ownSliceCap GoString sl (DFrac.own 1) ∗
+    startAddr s ↦ b ∗ appliedAddr s ↦ a ∗ stateAddr s ↦ st ∗
+    ghostVar γ (1 : Qp).half st ∗ monoListAuthOwn γr 1 rs ∗ ⧗ rs.length ∗
+    ⌜uint.nat b ≤ uint.nat a ∧ uint.nat a ≤ rs.length ∧ rs.length < 2 ^ 64⌝ ∗
     ([∗list] r ∈ rs.take (uint.nat a), doneSlot r) ∗
     ([∗list] r ∈ rs.drop (uint.nat a), pendSlot γ r))
 
 /-- **The server `s` serves the register `γ`** (persistent): its condition variable (fixed
-after `New`) over its mutex, and the mutex with its lock invariant. -/
+after `New`) over its mutex, and the mutex with its lock invariant; and the executions are
+shorter than `2^64` steps (`receiptBound GF ≤ 2^64`), so the count of writes does not wrap. -/
 def isServer (γ : GName) (s : Loc) : IProp GF :=
-  iprop(∃ (γr : GName) (c : Loc), condAddr s ↦□ c ∗ sync.isCond c (muLocker s) ∗
+  iprop(∃ (γr : GName) (c : Loc), ⌜receiptBound GF ≤ 2 ^ 64⌝ ∗ condAddr s ↦□ c ∗ sync.isCond c (muLocker s) ∗
     sync.isMutex (muAddr s) (logkvcompactR γ γr s))
 
 instance isServer_persistent (γ : GName) (s : Loc) : Persistent (isServer (GF := GF) γ s) := by

@@ -9,7 +9,9 @@ goroutine fires the update when it applies the entry (`applyLoop`, the lineariza
 `Put` waits on the condition variable until `applied` passes the entry; the entry's slot is then
 done (`doneSlot`): its result is there (the ticket is `Put`'s, so it was not taken), it is `P`
 (the saved proposition, `▷ (P' ≡ P)`), and `Put` takes it, leaving its ticket. The later from the
-saved proposition's agreement goes with `Unlock`'s step.
+saved proposition's agreement goes with `Unlock`'s step. The index `start + len(log)` does not
+wrap: `Put` takes a time receipt (resolving `Lock`) and adds it to the lock invariant's, one per
+write, so `|rs| + 1 < receiptBound GF ≤ 2^64` (`isServer`).
 -/
 module
 
@@ -20,6 +22,7 @@ public import Perennial.Spec.sync.Cond__Wait
 public import Perennial.Spec.sync.Cond__Broadcast
 public import Perennial.Proof.sync.Link
 public import Perennial.Proof.sync.Results
+public import Proof.ReceiptTactics
 
 @[expose] public section
 
@@ -48,14 +51,19 @@ theorem Server.Put.wp_proof : Server.Put.spec (GF := GF) (hG := hG) := by
   ihave #Hsync : isPkgInit (PROP := IProp GF) pkg_id.sync $$ []
   · iPkgInit
   iunfold isServer at Hs
-  icases Hs with ⟨%γr, %c, #Hc, #Hcond, #Hmu⟩
+  icases Hs with ⟨%γr, %c, %Hbnd, #Hc, #Hcond, #Hmu⟩
   ihave #Hlocker := sync.Mutex_is_Locker (muAddr s) (logkvcompactR γ γr s) $$ Hsync Hmu
   wp_method_call
   wp_call
-  wp_auto
+  wp_call
+  wp_take_receipt as Hr1
   wp_apply sync.Mutex.wp_Lock (muAddr s) (logkvcompactR γ γr s) $$ [$Hmu] as ⟨Hlocked, HR⟩
   iunfold logkvcompactR at HR
-  icases HR with ⟨%sl, %rs, %a, %st, Hlog, Hsl, Hcap, Happ, Hst, Hg, Hrs, %Ha, Hdone, Hpend⟩
+  icases HR with ⟨%sl, %rs, %b, %a, %st, Hlog, Hsl, Hcap, Hstart, Happ, Hst, Hg, Hrs, Hrc, %Ha,
+    Hdone, Hpend⟩
+  -- one more write: `|rs| + 1 < receiptBound GF ≤ 2^64`
+  icases receipt_add_one_lt rs.length $$ [Hr1 Hrc] with ⟨%Hrl, Hrc⟩
+  · iframe
   wp_auto
   ihave %Hlen := ownSlice_len $$ Hsl
   wp_apply wp_slice_literal (V := GoString) [v]
@@ -72,13 +80,21 @@ theorem Server.Put.wp_proof : Server.Put.spec (GF := GF) (hG := hG) := by
   let r : Req := (v, γP, γt)
   imod monoListAuthOwn_update_app (A := Req) [r] $$ Hrs with ⟨Hrs, #Hlb⟩
   ihave #Hidx := monoListIdxOwn_get (GF := GF) rs.length r (by simp) $$ Hlb
-  ihave HR : logkvcompactR γ γr s $$ [Hlog Hsl Hcap Happ Hst Hg Hrs Hdone Hpend HAU]
+  -- `idx`, the number of writes: `start + len(log) = |rs| + 1` (no wrap-around)
+  have Hidx1 : uint.nat (b + sl'.len) = rs.length + 1 := by
+    simp only [List.length_append, List.length_map, List.length_drop, List.length_singleton]
+      at Hlen'
+    have := Hbnd
+    word
+  ihave HR : logkvcompactR γ γr s $$ [Hlog Hsl Hcap Hstart Happ Hst Hg Hrs Hrc Hdone Hpend HAU]
   · iunfold logkvcompactR
-    iexists sl', rs ++ [r], a, st
-    rw [List.map_append, List.take_append_of_le_length Ha, List.drop_append_of_le_length Ha]
+    iexists sl', rs ++ [r], b, a, st
+    have Hb : uint.nat b ≤ rs.length := by omega
+    rw [List.drop_append_of_le_length Hb, List.map_append, List.take_append_of_le_length Ha.2.1,
+      List.drop_append_of_le_length Ha.2.1, List.length_append, List.length_singleton]
     iframe
     isplitr
-    · ipureintro; simp only [List.length_append]; omega
+    · ipureintro; omega
     iapply BigSepL.bigSepL_singleton.2
     iunfold pendSlot
     iexists iprop(True -∗ Φ #())
@@ -88,13 +104,14 @@ theorem Server.Put.wp_proof : Server.Put.spec (GF := GF) (hG := hG) := by
   wp_apply sync.Cond.wp_Broadcast $$ [$Hcond]
   wp_for
   iunfold logkvcompactR at HR
-  icases HR with ⟨%sl1, %rs1, %a1, %st1, Hlog, Hsl, Hcap, Happ, Hst, Hg, Hrs, %Ha1, Hdone, Hpend⟩
+  icases HR with ⟨%sl1, %rs1, %b1, %a1, %st1, Hlog, Hsl, Hcap, Hstart, Happ, Hst, Hg, Hrs, Hrc, %Ha1,
+    Hdone, Hpend⟩
   wp_auto
   wp_if_destruct
   · -- not applied yet: wait
-    ihave HR : logkvcompactR γ γr s $$ [Hlog Hsl Hcap Happ Hst Hg Hrs Hdone Hpend]
+    ihave HR : logkvcompactR γ γr s $$ [Hlog Hsl Hcap Hstart Happ Hst Hg Hrs Hrc Hdone Hpend]
     · iunfold logkvcompactR
-      iexists sl1, rs1, a1, st1
+      iexists sl1, rs1, b1, a1, st1
       iframe
       ipureintro; exact Ha1
     wp_apply sync.Cond.wp_Wait c (muLocker s) (iprop(sync.ownMutex (muAddr s) ∗ logkvcompactR γ γr s))
@@ -107,13 +124,12 @@ theorem Server.Put.wp_proof : Server.Put.spec (GF := GF) (hG := hG) := by
     wp_for_post
     iframe
   · -- applied: collect the result
-    have Hd : decide (uint.Z a1 < uint.Z sl'.len) = false := by
-      cases h : decide (uint.Z a1 < uint.Z sl'.len)
+    have Hd : decide (uint.Z a1 < uint.Z (b + sl'.len)) = false := by
+      cases h : decide (uint.Z a1 < uint.Z (b + sl'.len))
       · rfl
       · rw [h] at Hif; exact absurd rfl Hif
     have Hge : rs.length < uint.nat a1 := by
       have := of_decide_eq_false Hd
-      simp only [List.length_append, List.length_map, List.length_singleton] at Hlen'
       word
     simp only [Hd, Bool.false_eq_true, ite_false]
     icases mono_list_auth_idx_lookup γr 1 rs1 rs.length r $$ Hrs Hidx with %Hlook
@@ -142,9 +158,9 @@ theorem Server.Put.wp_proof : Server.Put.spec (GF := GF) (hG := hG) := by
         ihave Hiff := internalEq_iff _ _ $$ Heq
         icases Hiff with ⟨Hiff, -⟩
         iapply Hiff $$ HPr
-      ihave HR : logkvcompactR γ γr s $$ [Hlog Hsl Hcap Happ Hst Hg Hrs Hdone Hpend]
+      ihave HR : logkvcompactR γ γr s $$ [Hlog Hsl Hcap Hstart Happ Hst Hg Hrs Hrc Hdone Hpend]
       · iunfold logkvcompactR
-        iexists sl1, rs1, a1, st1
+        iexists sl1, rs1, b1, a1, st1
         iframe
         ipureintro; exact Ha1
       wp_auto

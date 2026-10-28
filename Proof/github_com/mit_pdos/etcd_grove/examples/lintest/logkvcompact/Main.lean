@@ -45,7 +45,8 @@ theorem Main.wp_proof
   wp_start as #Hcc
   wp_apply wp_CounterClock logkvcompactClockN Hbound as %f ⟨%clockVal, #Hclk, Ht0⟩
   wp_apply wp_Check clockVal (W64 0) ↑logkvcompactClockN f (W64 4) (W64 10) (W64 0)
-    lintestN_logkvcompactClockN (by decide) (by decide) (by decide) (by decide) $$ [Ht0]
+    lintestN_logkvcompactClockN (by decide) (by decide) (by decide) (by decide)
+    (Nat.le_trans Hbound (by decide)) $$ [Ht0]
     as %r %Hr
   · iframe
     iframe #
