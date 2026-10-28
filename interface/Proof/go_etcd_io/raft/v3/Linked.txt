@@ -2,6 +2,8 @@
 -- Every declaration also takes the ambient section variables (left out below): the Go semantics
 -- (`ext`, `ffi`, `go_gctx`, `sem`, the package's `Assumptions`), `GF`, `hG`, `StorageModel GF`, `AllG GF`.
 
+theorem RaftLink.node.wp_Advance_unified [package_sem : Assumptions] : node.Advance.unifiedSpec
+
 theorem RaftLink.MemoryStorage.wp_Term [package_sem : Assumptions] : MemoryStorage.Term.spec
   -- `Perennial.EtcdGrove.MemoryStorage.Term.spec`, unfolded:
   ∀ (ms : Loc) (γs : MemStorNames) (σ : StorState) (i0 : w64) (ec : GoInterface),
@@ -19,6 +21,8 @@ theorem RaftLink.MemoryStorage.wp_Term [package_sem : Assumptions] : MemoryStora
                   Φ (intoVal t, intoVal err)) -∗
             WP ((intoVal (methods MemoryStorage.ty.PointerType go!"Term" (intoVal ms))) (intoVal i0))
               {{ Φ }}
+
+theorem RaftLink.wp_RestartNode_unified [package_sem : Assumptions] : RestartNode.unifiedSpec
 
 theorem RaftLink.MemoryStorage.wp_FirstIndex [package_sem : Assumptions] :
     MemoryStorage.FirstIndex.spec
@@ -262,6 +266,9 @@ theorem RaftLink.wp_IsEmptySnap [package_sem : Assumptions] : IsEmptySnap.spec
             WP ((intoVal (functions IsEmptySnap [])) (intoVal sp)) {{ Φ }}
 
 theorem RaftLink.node.wp_Advance_dynamic [package_sem : Assumptions] : node.Advance.dynamicSpec
+
+theorem RaftLink.node.wp_ApplyConfChange_unified [package_sem : Assumptions] :
+    node.ApplyConfChange.unifiedSpec
 
 theorem RaftLink.wp_NewMemoryStorage [package_sem : Assumptions] : NewMemoryStorage.spec
   -- `Perennial.EtcdGrove.NewMemoryStorage.spec`, unfolded:

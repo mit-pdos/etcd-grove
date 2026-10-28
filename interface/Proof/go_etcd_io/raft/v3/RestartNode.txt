@@ -2,6 +2,9 @@
 -- Every declaration also takes the ambient section variables (left out below): the Go semantics
 -- (`ext`, `ffi`, `go_gctx`, `sem`, the package's `Assumptions`), `GF`, `hG`, `StorageModel GF`, `AllG GF`.
 
+theorem RestartNode.wp_proof_unified [package_sem : Assumptions] (wp_NewRawNode : NewRawNode.spec)
+    (wp_newNode : newNode.spec) (wp_node_run : node.run.spec) : RestartNode.unifiedSpec
+
 theorem RestartNode.wp_proof [package_sem : Assumptions] (wp_NewRawNode : NewRawNode.spec)
     (wp_newNode : newNode.spec) (wp_node_run : node.run.spec) : RestartNode.spec
   -- `Perennial.EtcdGrove.RestartNode.spec`, unfolded:

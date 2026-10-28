@@ -2,6 +2,10 @@
 -- Every declaration also takes the ambient section variables (left out below): the Go semantics
 -- (`ext`, `ffi`, `go_gctx`, `sem`, the package's `Assumptions`), `GF`, `hG`, `StorageModel GF`, `AllG GF`.
 
+theorem node.ApplyConfChange.wp_proof_unified [package_sem : Assumptions] (wp_ConfChange_AsV2 :
+    raftpb.ConfChange.AsV2.spec) (wp_ConfChangeV2_AsV2 : raftpb.ConfChangeV2.AsV2.spec) :
+    node.ApplyConfChange.unifiedSpec
+
 theorem node.ApplyConfChange.wp_proof [package_sem : Assumptions] (wp_ConfChange_AsV2 :
     raftpb.ConfChange.AsV2.spec) (wp_ConfChangeV2_AsV2 : raftpb.ConfChangeV2.AsV2.spec) :
     node.ApplyConfChange.spec

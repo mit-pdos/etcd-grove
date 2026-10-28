@@ -47,6 +47,11 @@ theorem Membership.fold_snoc_normal (r : ConfRule) (c0 : Membership) (l : List L
 
 theorem ConfRule.clamp_ok (r : ConfRule) : r.clamp.Ok
 
+def ConfDecision.ofRule : Option ConfChangeIM → ConfDecision :=
+  match x✝ with
+  | some o => ConfDecision.apply o
+  | none => ConfDecision.skip
+
 def ConfRule.Ok (r : ConfRule) : Prop :=
   ∀ (pre : List LogEntry) (m : Membership) (e : LogEntry) (o : ConfChangeIM),
     m.Valid → r pre m e = some o → ∃ m', Membership.applyChange o m = some m' ∧ m'.Valid
@@ -58,6 +63,10 @@ def ccDecode (e : LogEntry) : Option ConfChangeIM :=
 def Membership.empty : Membership :=
   { voters := ∅, votersOutgoing := ∅, learners := ∅, learnersNext := ∅, autoLeave := false }
 
+inductive ConfDecision : Type
+  | ConfDecision.apply (o : ConfChangeIM) : ConfDecision
+  | ConfDecision.skip : ConfDecision
+
 theorem Membership.WellFormed.of_valid {m : Membership} (h : m.Valid) : m.WellFormed
 
 def Membership.WellFormed (m : Membership) : Prop :=
@@ -68,6 +77,11 @@ def Membership.fold (r : ConfRule) (c0 : Membership) (l : List LogEntry) : Optio
 
 def ConfRule.validated : ConfRule :=
   ConfRule.clamp fun x x_1 e => ccDecode e
+
+def CSLists.Is (cl : CSLists) (m : Membership) : Prop :=
+  cl.voters.Perm (elements m.voters) ∧
+    cl.outgoing.Perm (elements m.votersOutgoing) ∧
+      cl.learners.Perm (elements m.learners) ∧ cl.learnersNext.Perm (elements m.learnersNext)
 
 theorem ccDecode_isConfChange {e : LogEntry} {o : ConfChangeIM} (h : ccDecode e = some o) :
     e.isConfChange
@@ -100,6 +114,11 @@ theorem ConfRule.validated_ok : ConfRule.validated.Ok
 theorem opsOfRule_noType2 (r : ConfRule) (c0 : Membership) (l : List LogEntry) (h : ∀ (e :
     LogEntry), e ∈ l → e.type ≠ W32 2) : opsOfRule r c0 l = List.filter (fun e => !decide
     e.isFiller) l
+
+def ConfDecision.step : ConfDecision → Membership → Option Membership :=
+  match x✝¹, x✝ with
+  | ConfDecision.apply o, m => Membership.applyChange o m
+  | ConfDecision.skip, m => some m
 
 def opsOfRuleFrom (r : ConfRule) (c0 : Membership) (pre : List LogEntry) : List LogEntry → List
     LogEntry :=
