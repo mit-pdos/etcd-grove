@@ -24686,3 +24686,37 @@ empty or justified here. For the compactor:
 - **Left, justified (phase 4): `context.cancelSpec`**, unfolded by `Periodic.Stop`/`Revision.Stop` to
   call the cancel function; no Perennial law yet (`notes/perennial-changes.md`, "a law for calling a
   `cancelSpec` cancel function"). Not a statement change: the frozen specs are unchanged.
+
+## E3zb of the auth plan: the auth-on member's KV layer, and what its replies must carry (2026-10-28 · `notes/auth-plan.md`, E3za's first left item; in progress)
+
+**Done.** (1) `v3rpc.Server` registers the Auth service's admin methods: the Auth `ServiceDesc`'s
+methods stated exactly (`authDescMethods`, in `svcDescsOk` and `etcdserverpbDescs`; `gen-init.py`
+follows), so `v3rpc.Server.spec`'s post reports the `*AuthServer` `pa` (`authServerIs`) and its
+five registrations (`authRegs`), which `etcd_auth_served` takes. (2) The KV handlers with auth on:
+`v3rpc/ServerKVOn.lean`'s `srvKVAnsOn` (the server's answers as `raftKV`'s parameters with auth
+on) and `raftKV_of_serverOn`, from the linked `EtcdServer.{Put,DeleteRange,Txn}.specOn`,
+`Range.specOn` and `Txn.specOnR`; `v3rpc/Results.lean`'s `raftKV_serverOn` and
+`{put,deleteRange,range,txn}_end_to_end_on`. `srvKVAns`'s shape is kept (the `kvServer` proofs are
+generic in it), with: a call's lower bound `n` of the published auth index (`authPubLbM`, `0`
+free); requests of the permission cache's shape (`kvDepPreOn`: a delete's `reqShape`, a writing
+transaction's `kvShapeAll`; a put's non-empty key is the gRPC check's); reads at the mode-`on`
+model (`rangeDepQOn`, `rangeAnsOkOn`, `txnReadAnsOn`) with their checks' class (`rangeAuthed`,
+`txnAuthed`: granted at states recorded at an index `m ≥ n`, and for a linearizable read no older
+than the read index's).
+
+**Found: a write's reply must carry its grant.** `authkv`'s `Work` panics (`refused`) when a
+request its principal may not make succeeds, so `Main`'s proof must derive an error from the
+history being `setupSt` after `SetUp` (E2b). For reads the answers carry what is needed
+(`rangeAuthed`/`txnAuthed` at a bound `n` taken after `SetUp`: the state checked is `setupSt`). For
+writes they do not: `Put.specOn`'s success gives the client's result `Q` (fired only if granted,
+`grantedRes`) and the published state after the entry (`pubAfterM`), but not that the request
+with the stamped header `hm` (its principal) was granted at the committed prefix `L` before its
+entry (`grantedAt ρ.kv srvAuthSt0 (withHeader rq hm) L`), which the proof has (the left disjunct of
+`grantedRes`, the result being dispatched). Next: strengthen the three writes' `specOn` success
+with that fact (a stronger post, interface diff), carry it and the header's principal (from the
+request context's token, E2c's `ctxBound`) into `srvKVAnsOn`'s write answers, then the
+gRPC-level specs with auth on (`etcdPutSpecOn`, ...: the client's bound `n`, the shape premises,
+the grant and the read class in the replies), the handlers as grpc runs them and one serve of the
+KV and Auth methods.
+
+**Trust base.** Unchanged so far (no axiom, no `sorry`).
