@@ -1,7 +1,7 @@
 # Plan: M2, compaction in the server's model (spec-first)
 
-Status: phase 0 decided (2026-10-27, the user's: decisions 1(a), 2 and the reader redefined in
-place; 3 and 4 as drafted). Next: phase 1, the spec skeleton. The compactor pilot's
+Status: Scope decided (2026-10-27, the user's: decisions 1(a), 2 and the reader redefined in
+place; 3 and 4 as drafted). Next: Draft, the spec skeleton. The compactor pilot's
 server side (`notes/compactor-pilot-plan.md`, "The server side" and "The scope narrowed"), run as its
 own spec-first stage (`notes/spec-first-plan.md`). It is also the first test of the pilot's freeze:
 the compactor's frozen specs (`v3compactor`) must not change.
@@ -33,7 +33,7 @@ the compactor's frozen specs (`v3compactor`) must not change.
   plain transaction can violate (`issues/etcd-compaction-delete-then-put.md`, etcd-io/etcd#22377). A
   workload of single puts meets it trivially.
 
-## Phase 0: the decisions (the user's, 2026-10-27)
+## Scope: the decisions (the user's, 2026-10-27)
 
 1. **The program.** (a) A new example, `putgetc`: `putget` with the auto-compactor on, leaving every
    existing example and theorem as is; or (b) turn the compactor on in `examples/common`, changing
@@ -49,7 +49,7 @@ the compactor's frozen specs (`v3compactor`) must not change.
    "neither a compaction" premise, and reads that may answer `ErrCompacted` only at a revision at or
    below `compactLb`, where `compactLb` is at most what the compactor's permit allows (C3).
 
-## The trusted statements M2 changes (to approve with phase 1's drafts)
+## The trusted statements M2 changes (to approve with Draft's drafts)
 
 `NewServer.spec`/`specOn` (the `AutoCompactionRetention = 0` premise goes); `apply.dispatchOk` and the
 three apply specs over it; `plainCover`, `putgetKind`, `plainReq`, `logShape`'s "neither a
@@ -61,16 +61,16 @@ compaction revision to a new server-wide `compactLb`, replacing the frozen `-1`)
 client's KV specs, v3rpc's KV results (beyond the reader), the cache's results, every existing
 example theorem.
 
-## Open (for phase 1)
+## Open (for Draft)
 
 - Whether the watchable store can stay on the frozen path while watches are out of scope (a second
   reader kind), or must be generalized now because `storeReader` is shared.
 - Whether `Restore` is unreachable for one member (then it keeps its premise).
 - Whether the client's error predicate admits gRPC's compacted status (the read path's error answer).
 
-## Phase 1: the design of the skeleton (2026-10-27)
+## Draft: the design of the skeleton (2026-10-27)
 
-**The reader, redefined** (phase 0's decision): `storeReader s γ` loses `crevFrozen` and becomes
+**The reader, redefined** (Scope's decision): `storeReader s γ` loses `crevFrozen` and becomes
 `storeReaderC` plus what a read needs of the compaction revision `c` it observes. What a read needs
 depends on the result:
 - **For `putgetc` (latest reads only), nothing tied to the compactor.** mvcc's `rangeOutcomeC`
@@ -81,7 +81,7 @@ depends on the result:
   transactions' `crev := -1` defaults) to "`c` the observed revision, `c ≤` the transaction's
   revision", and a latest read's outcome is still `rangeOutcome` (a lemma like
   `rangeOutcomeC_neg`, for `c ≤ rev`).
-- **For C3 (phase 0's library result: `ErrCompacted` only at or below a server-wide `compactLb`,
+- **For C3 (Scope's library result: `ErrCompacted` only at or below a server-wide `compactLb`,
   itself at most what the compactor's permit allows), an mvcc change.** A reader learns `c` only
   as a lower bound (`crevLb`); bounding it from above needs a share of the revision's authority in a
   server invariant beside `compactLb`. The authority is split between the store's lock invariant
@@ -92,7 +92,7 @@ depends on the result:
   function (`store.Compact` 157 proof lines, `store.updateCompactRev` 341) and its one caller
   (the apply's compaction arm).
 
-**The stages** (phase 0's S1-S4, refined):
+**The stages** (Scope's S1-S4, refined):
 - **S0, the program**: `examples/putgetc` (Go: `putget` with `AutoCompactionMode: "revision"` and a
   fixed retention; `examples/common` gains the configuration as a parameter of `newServer`, zero
   for every existing caller), its Goose project, and `putgetc_safe`'s statement over it.
@@ -122,9 +122,9 @@ depends on the result:
 
 **C3 deferred** (the user's, 2026-10-27): the first result is `putgetc_safe`, with reads answering
 `ErrCompacted` exactly below the observed compaction revision (mvcc's statement); C3 and S5 are a
-later stage. A scope revision of phase 0 (decision 4), found in phase 1's design, before any spec.
+later stage. A scope revision of Scope (decision 4), found in Draft's design, before any spec.
 
-## Phase 1, S0: the program and the top-level statement (2026-10-27)
+## Draft, S0: the program and the top-level statement (2026-10-27)
 
 - **Go**: `examples/putgetc` (putget with `common.StartCompactingServer(..., retention = 1, ...)`:
   revision mode, the most aggressive retention, every compaction at the revision before the
@@ -143,7 +143,7 @@ later stage. A scope revision of phase 0 (decision 4), found in phase 1's design
   statement of S1-S4: a generalization's unproved case goes in a variant, linked by hand
   (`putgetc/MainLinked.lean`), until it is proved.
 
-## Phase 1, S1: the readers' statements, drafted (2026-10-27; for the user's approval)
+## Draft, S1: the readers' statements, drafted (2026-10-27; for the user's approval)
 
 **What uses the frozen store today** (measured): mvcc's frozen layer (`FrozenSpecs.lean`: 14 specs
 restated at compaction revision `-1`, `<fn>.specFrozen`, with corollaries `<fn>.spec_frozen`), used
@@ -155,7 +155,7 @@ generalized even with watches out of scope: its `syncWatchers` goroutine runs in
 `putgetc`'s too, and its invariant assumes no compaction.
 
 **The drafts:**
-1. **`mvcc.storeReader s γ := storeReaderC s γ`** (the frozen fact dropped; the name kept, phase 0's
+1. **`mvcc.storeReader s γ := storeReaderC s γ`** (the frozen fact dropped; the name kept, Scope's
    decision). `crevFrozen`, `crevFrozen_alloc` and the frozen layer go; `NewServer` keeps the
    compaction right (`compactRight γ (-1)`) for the apply thread instead of freezing it.
 2. **The frozen layer becomes the readers' layer** (`ReaderSpecs.lean`, `<fn>.specR`): each
@@ -182,7 +182,7 @@ generalized even with watches out of scope: its `syncWatchers` goroutine runs in
 What the user approves here: (1)'s definition and (3)-(5)'s statements (trusted: they are the
 statements of linked results, e.g. `txn.Range`'s).
 
-## Phase 1, S2-S4: the statements, drafted (2026-10-28)
+## Draft, S2-S4: the statements, drafted (2026-10-28)
 
 **Redirected (the user's, 2026-10-28): the skeleton before the proofs.** S1's re-proofs stop at
 its statements (the proofs that are more than threading become `sorry`s); S2-S4's statements are
@@ -211,7 +211,7 @@ proofs. (S1 had gone to re-proving about 45 files before S2-S4 existed: the old 
   (b) fix the Go: upstream's PRs (etcd-io/etcd#22377, `keyIndex.doCompact`; #22395, the gRPC
       path) in the fork, so `store.Compact` needs no premise; re-proves mvcc's `doCompact` and
       `store.Compact` (proved, about 500 lines with `updateCompactRev`).
-  (a) is phase 0's scope (decision 3) made precise; (b) removes the premise for every later
+  (a) is Scope's scope (decision 3) made precise; (b) removes the premise for every later
   widening. **Taken: (a)** (the user's, 2026-10-28).
 
 **S3, `EtcdServer.Compact`'s glue** over `processInternalRaftRequestOnce` with `reqPropOk`'s
@@ -220,7 +220,7 @@ persistent (the time-receipt bound), so the compactor's `R` can hold it across c
 
 **S4, the server with the compactor.**
 - `NewServer.spec`/`specOn`: `AutoCompactionRetention = 0` becomes `retention = 0 ∨ (mode =
-  "revision" ∧ 0 < retention)` (phase 0's scope).
+  "revision" ∧ 0 < retention)` (Scope's scope).
 - The server's `compactorOk c` (`InvRun.lean`): `⌜c = nil⌝ ∨ ∃ T P, v3compactor.compactorOk c T P`
   (persistent: `run`'s `Pause`/`Resume`); new `compactorRun c` in `start`'s resources: `⌜c = nil⌝ ∨
   ∃ T, v3compactor.compactorOk c T (runPre E (revPermit E.RevLb ret)) ∗ T ∗ runPre …`, spent by
@@ -235,16 +235,16 @@ persistent (the time-receipt bound), so the compactor's `R` can hold it across c
 `Pause`/`Resume` calls, `NewServer`'s construction of `E` and the `New` call (the compactor case),
 `EtcdServer.Compact`, `putgetc.Main` (done).
 
-## Phase 1, S1 steps 4-5: two scope revisions (2026-10-28, the user's)
+## Draft, S1 steps 4-5: two scope revisions (2026-10-28, the user's)
 
-Writing the statements of drafts 4 and 5 found both understated (phase 1, before any review or
+Writing the statements of drafts 4 and 5 found both understated (Draft, before any review or
 proof):
 - **The watchable store** (draft 4): stating its compaction case needs the watch response model
   (`RespM`, `mvcc/InvWatchStore.lean`, in 173 files) to carry a compaction revision, and every
   consumer (v3rpc's watch stream, the client's watch proofs, the cache, the examples' watch models)
   to drop `compactRev = 0`: a watch stage of its own. **Taken: no watchers in compaction mode.** The
-  watchable store's invariant admits a compacted store only while no watcher is registered (phase
-  0's "no watches"), so `syncWatchers`' compaction case is vacuous and `RespM` is unchanged; the
+  watchable store's invariant admits a compacted store only while no watcher is registered (Scope's
+   "no watches"), so `syncWatchers`' compaction case is vacuous and `RespM` is unchanged; the
   watch stage is a later widening.
 - **Restore** (draft 5): `store.Restore` installs a backend never compacted (the compaction
   revision back to `-1`), while the compaction right is a monotone counter: a restore needs the
@@ -252,9 +252,9 @@ proof):
   restore in compaction mode.** Only the server configuration that never installs a snapshot (one
   member, D21 M3's no-snapshot bound) gets the compactor; `Restore` keeps its frozen premise for
   compaction-off servers.
-Counted as the stage's phase-1 scope revisions (found by drafting, not by proof).
+Counted as the stage's Draft scope revisions (found by drafting, not by proof).
 
-## Phase 1, S2-S4: the fork's result, and the freeze test (2026-10-28)
+## Draft, S2-S4: the fork's result, and the freeze test (2026-10-28)
 
 Committed: `0e344652a6` (S4 statements and glue: the server's `compactorOk` split into the
 persistent contract and a one-shot `compactorRun`, spent by `start`'s `Run`; `run`'s
@@ -299,5 +299,5 @@ one family.** The delete-then-put decision changes from (a) to (b): upstream's f
 invariant admits compaction entries for every server (no write restriction), `dispatchOk` loses its
 compaction conjunct, and the `…C` statements merge into the general ones. Restore is excluded by a
 `NewServer` configuration premise (compactor on only in the no-snapshot configuration); watchers by
-a persistent "no compactor" fact that off servers hand out and the watch API takes. A phase-1
-design revision found by review round 1 (decision 3 of phase 0 reversed).
+a persistent "no compactor" fact that off servers hand out and the watch API takes. A Draft
+design revision found by review round 1 (decision 3 of Scope reversed).

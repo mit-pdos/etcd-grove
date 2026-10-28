@@ -1,8 +1,8 @@
 # Plan: the spec-first pilot, etcd's auto-compactor
 
-Status: phase 0 done (2026-10-27, branch `compactor-pilot`): this note is phase 0's output, the
+Status: Scope done (2026-10-27, branch `compactor-pilot`): this note is Scope's output, the
 scope and the top-level statements. Scope **(A)**, the compactor and the server's compaction path
-(the user, 2026-10-27). Next: phase 1.
+(the user, 2026-10-27). Next: Draft.
 Step 3 of `notes/spec-first-plan.md` ("Testing the plan").
 
 ## What the pilot is
@@ -35,7 +35,7 @@ none FALSE-BEH).
 So turning the compactor on is not a 14-function change: its `Compact` calls go to
 `EtcdServer.Compact` (`v3_server.go:382`), which proposes `InternalRaftRequest{Compaction}`
 through raft, and every member applies it (`applierV3backend.Compaction`, `apply/backend.go:66`,
-over mvcc's `store.Compact`). That is the first thing phase 0 found.
+over mvcc's `store.Compact`). That is the first thing Scope found.
 
 ## The configuration (fixed now)
 
@@ -62,14 +62,14 @@ retention). Every `CompactionRequest` the compactor sends has a revision `r` wit
 - its requests' revisions never decrease (`Rev()` is monotone, and the periodic window only slides).
 
 Not in C1: "no request after `Stop`". `Stop` only cancels the context, so a call in flight still
-completes (with the context canceled). Phase 2 checks what `Stop` does guarantee.
+completes (with the context canceled). Test checks what `Stop` does guarantee.
 
 The clock is a trust boundary (`clockwork.Clock`: `Now` monotone in the real clock's monotonic
-reading, `After(d)` fires no earlier than `d`); phase 1 states it, phase 2 tests it.
+reading, `After(d)` fires no earlier than `d`); Draft states it, Test tests it.
 
 **C2, the server with auto-compaction on** (option A only). The examples' closed theorems hold
 when the server runs with auto-compaction on, in either mode, for any accepted retention (in
-periodic mode at least 10ns: narrowed in phase 1's third review round, a negative one busy-loops): starting
+periodic mode at least 10ns: narrowed in Draft's third review round, a negative one busy-loops): starting
 with `putget_safe` (`examples/putget`), whose workload (puts and latest reads) never reads a
 compacted revision; then the others. With compaction in the model, `KVState.compacted` advances at
 a compaction's apply, reads below it answer `ErrCompacted` (the model has the field already).
@@ -88,8 +88,8 @@ the retention (a watch resuming within it) needs.
   `dispatchOk` premise lifted for compactions); the KV model's compaction step and the server's
   invariants with compactions applied; `NewServer`'s `AutoCompactionRetention = 0` premise and the
   `New` axiom and `compactorOk` replaced; C1, C2 (putget first), C3. About 20 Go functions plus the
-  model work. It is the plan's phase 0 doing its job: decided now, not found as a scope extension
-  in phase 4 (step 1: 20 of 64 spec revisions were scope extensions).
+  model work. It is the plan's Scope doing its job: decided now, not found as a scope extension
+  in Prove (step 1: 20 of 64 spec revisions were scope extensions).
 - **(B) The compactor alone**: the 14 functions against a trust-boundary contract for its
   `Compactable` (an axiom on `EtcdServer.Compact`); C1 only; the server keeps auto-compaction off.
   Comparable in size to the read-index loop, so the cleaner experiment; but it narrows the scope the
@@ -99,15 +99,15 @@ the retention (a watch resuming within it) needs.
 Under (A) the pilot is larger than the baseline; the comparison then normalizes by functions and
 Go lines, and counts the server-side spec revisions separately from the compactor's.
 
-## Phase 1, once the scope is chosen
+## Draft, once the scope is chosen
 
 Write every spec of the chosen scope (the compactor's 14; the clock's; under (A) `Compact`'s,
 `Compaction`'s, the dispatch arm's, the model step), proofs `sorry`; generate the links; prove the
 glue: `New`'s dispatch, `NewServer` and `run` over `New.spec` (the compactor's goroutine's
 proposals with `Compact`'s contract before `Start`), and under (A) `EtcdServer.Compact` over
-`processInternalRaftRequestOnce`. Record the freeze candidates' state for phase 2.
+`processInternalRaftRequestOnce`. Record the freeze candidates' state for Test.
 
-## Phase 1: the design of the skeleton (2026-10-27)
+## Draft: the design of the skeleton (2026-10-27)
 
 **Translation (done).** `v3compactor` with bodies (`Code/.../api/v3compactor.toml`, all 14
 functions, no axiom left); `EtcdServer.Compact` with its body (`etcdserver.toml`);
@@ -151,11 +151,11 @@ before `v3compactor`'s, which now imports it).
 - `NewServer`: the premise `AutoCompactionRetention = 0` replaced by the mode/retention premises;
   `compactorOk` derived from `New.spec` instead of assumed.
 
-**Glue proofs of phase 1:** `New` (the mode dispatch, `newPeriodic`, `newRevision`, the getters),
+**Glue proofs of Draft:** `New` (the mode dispatch, `newPeriodic`, `newRevision`, the getters),
 `EtcdServer.Compact`, and `NewServer`/`run` over the new contracts. `Periodic.Run` and
-`Revision.Run` are phase 3's full proofs (`Periodic.Run` first, the riskiest), `sorry` until then.
+`Revision.Run` are Probe's full proofs (`Periodic.Run` first, the riskiest), `sorry` until then.
 
-## Phase 1, step 2: the specs (2026-10-27)
+## Draft, step 2: the specs (2026-10-27)
 
 **Written** (all check; proofs `sorry` unless said):
 - the clock's trust boundary: `Proof/github_com/jonboulle/clockwork/Defs.lean` (axiomatized
@@ -169,8 +169,8 @@ before `v3compactor`'s, which now imports it).
   getters `CompactionRequest.GetPhysical`/`GetRevision` (translated now, proved);
 - the server's link list (`etc/link-lean-first-server.txt`) and `Link.lean`.
 
-**What writing the specs changed** (the pilot counts these: changes to phase 0's statements and to
-phase 1's design, before any proof):
+**What writing the specs changed** (the pilot counts these: changes to Scope's statements and to
+Draft's design, before any proof):
 1. **C1 restated for the periodic mode.** A compaction's revision is the window's oldest sample,
    which the code never stamps with a clock reading: it reads the clock (`Now`) before the first
    sample, and compares elapsed times with `Time.Sub`, which Perennial specifies as returning any
@@ -196,7 +196,7 @@ phase 1's design, before any proof):
    `compactor-pilot` (with `lean` merged in) until the compactor's proofs are done; the
    translation (step 1) is merged.
 
-**Step 2b, the review** (added 2026-10-27: `notes/spec-first-plan.md`, "Phase 1b"): before the
+**Step 2b, the review** (added 2026-10-27: `notes/spec-first-plan.md`, "Review"): before the
 glue, a fresh reviewer ranks the specs that cross a package boundary (`New`, `compactorOk`, the
 environment's contracts and C1's permits, the clock's, `EtcdServer.Compact`) in the two tiers;
 steps 2 and 3 then alternate per boundary until the freeze. Self-review before it, by the rubric,
@@ -225,7 +225,7 @@ exact age where a simpler bound may be all C3 needs.
 | the clock axioms have a trivial model | (documentation) | the docstring says how results over them read |
 | coupling to mvcc's `IdxNames` | preference | `CompactEnv.RevLb`, an abstract lower bound (the server's is `revLb`) |
 | `periodK` one `retry` short, and not needed | preference | gone (the permit uses `period`) |
-| `New`'s `10 ≤ ret` stricter than the code | requirement | kept as the pilot's configuration (phase 0), cited in the docstring |
+| `New`'s `10 ≤ ret` stricter than the code | requirement | kept as the pilot's configuration (Scope), cited in the docstring |
 | name clash with the server's `compactorOk` | preference | left for the glue (the server's becomes a corollary) |
 
 **Step 2b, round 2: the findings and the repairs** (`notes/spec-first-study/pilot-review-2.md`; two
@@ -239,7 +239,7 @@ of its three blockers came from round 1's repairs; one finding a false positive)
 | `Compact` dropped the compactor's permit | a permit `Pc r` travels with the proposal (the compactor's C1 permit; the gRPC caller's `True`) |
 | `New` asked for contracts it never uses | moved to `Run`'s precondition (`runPre`); `New` and the constructors take none |
 | `New`'s `10 ≤ ret` uncited for negative periods | the docstring cites the busy loop (`issues/etcd-compactor-periodic-tiny-retention.md`, etcd-io/etcd#22396) |
-| the clock: what survives the trivial model, a phase-2 test | in its docstring |
+| the clock: what survives the trivial model, a Test test | in its docstring |
 | "possible Go issue": a negative retention busy-loops | false positive: already in `issues/` |
 | `Compact` unprovable today (`dispatchOk` excludes compactions) | expected: the server side's model step (step 3) |
 
@@ -254,7 +254,7 @@ whose invariant contradicts the function; repairs introduce defects.
 | `periodicRunTok` does not own the `revs` slice (since round 1: rounds 1-2 missed it) | the empty slice and its capacity (what `make` gives) |
 | **`NewServer` cannot meet `Run`'s pre**: `Compact` needs `isServerReq`, which only `start()` makes true, and the Go code can call it before (a nil `s.w`) | **fork fix** (the user's choice (a)): `start()` runs the compactor (`964dccdb4`, branch `goose-lean-compactorstart`; `issues/etcd-compactor-started-before-start.md`) |
 | `Compact` unprovable (its callee excludes compactions); physical compactions uncovered | expected: step 3's model step; physical stays out (scope) |
-| `New`'s `10 ≤ ret` vs C2's "any accepted retention" | phase 0 narrowed: C2 covers a periodic retention of at least 10ns (a negative one is the busy loop of the tiny-retention issue) |
+| `New`'s `10 ≤ ret` vs C2's "any accepted retention" | Scope narrowed: C2 covers a periodic retention of at least 10ns (a negative one is the busy loop of the tiny-retention issue) |
 | revision mode took an unused first-sample ghost | `modeRunPre`: only the periodic `Run` takes `firstUnset` |
 | missing laws: `firstSample`'s agreement, `revPermit`'s and `modePermit`'s persistence | added (`firstSample_agree` proved) |
 | coupling (the clock's `Defs` imports `BaseApply`; `Compact`'s spec imports the compactor's `Defs`) | left: a cleanup for the freeze |
@@ -279,10 +279,10 @@ examples' `go.mod` replaces moved to it (`v3.0.0-20261027170615-964dccdb4205`, `
 `etc/goose.py --check` passes for every project against the pushed pin; the examples build and
 `examples/kv`'s tests pass.
 
-**Step 3 of phase 3 (planned): an easy and a hard proof.** The easy one, `Revision.Run` (the same
+**Step 3 of Probe (planned): an easy and a hard proof.** The easy one, `Revision.Run` (the same
 loop shape as `Periodic.Run`, with no window and no clock bound to chain); the hard one,
 `Periodic.Run`. Each records its time and the spec problems it found that the reviews and the glue had
-not; the comparison says whether the hard proof was needed (`notes/spec-first-plan.md`, "Phase 3").
+not; the comparison says whether the hard proof was needed (`notes/spec-first-plan.md`, "Probe").
 
 **Step 3 results (2026-10-27).** Both proved, no `sorry`; neither changed a spec or a trust-boundary
 axiom:
@@ -314,7 +314,7 @@ a Perennial branch, landed (`3c384b081`) but past the pin's stopping point (Pere
 function results, `notes/perennial-changes.md`); until the pin moves there, the `isContextDef`
 unfold stays, the one cross-package unfold left, and the freeze records it as pending.
 
-**The server side (phase 1's remaining glue, 2026-10-27): what it needs.** `EtcdServer.Compact`'s
+**The server side (Draft's remaining glue, 2026-10-27): what it needs.** `EtcdServer.Compact`'s
 glue goes through `processInternalRaftRequestOnce`, whose precondition `reqPropOk` has no compaction
 form, because the server's model excludes compactions: `apply.dispatchOk` has `dispatchKind rq ≠
 .compaction` (`apply/InvUber.lean`), `KVModelDefs.lean` lists compaction as excluded, and reads
@@ -342,13 +342,13 @@ user's choice of design) needs more than the note said: the server's readers (tx
 request path, the watchable store, the cache's and the examples' glue) are stated over mvcc's
 `storeReader`, which carries `crevFrozen` (the store never compacted; `NewServer` freezes the
 compaction right), so compaction on means moving about 66 files' statements to `storeReaderC` with
-`ErrCompacted` answers. The pilot finishes the compactor first (phase 2, the freeze, phase 4) with
+`ErrCompacted` answers. The pilot finishes the compactor first (Test, the freeze, Prove) with
 `EtcdServer.Compact`'s proof as its boundary (a `sorry`), and M2 runs afterwards as its own
 spec-first stage (S1 the readers, S2 the apply's compaction arm and `reqPropOk`'s compaction form,
 S3 `Compact`'s glue, S4 `NewServer` with the compactor on, `putget_safe` first). A deviation from
-phase 0's scope (A): counted as the pilot's first scope revision (found in phase 1, not phase 4).
+Scope's scope (A): counted as the pilot's first scope revision (found in Draft, not Prove).
 
-**Phase 2 (2026-10-27): the specs tested against the Go code** (`etc/spec-test/v3compactor/`, an
+**Test (2026-10-27): the specs tested against the Go code** (`etc/spec-test/v3compactor/`, an
 in-package test at the pin, clockwork's fake clock; the checks transcribe `revPermit`, `perPermit`
 and `compactReqIs`'s pure parts). Results:
 - **No refutation**: 1000 runs per mode (about 3700 revision-mode and 24 000 periodic compactions,
@@ -389,7 +389,7 @@ have caught it, or "none". Its checks:
   round leaves nothing in the first tier;
 - one cross-package unfold, justified (`notes/decisions.md`, "The compactor pilot's freeze"):
   `context.isContextDef`, until the Perennial pin brings `isContext_Done`;
-- phase 2 refutes nothing, and refutes the wrong permits.
+- Test refutes nothing, and refutes the wrong permits.
 
 **The retrospective at the freeze** (the feedback loop's checkpoint): where each revision was found.
 
@@ -399,16 +399,16 @@ have caught it, or "none". Its checks:
 | review, rounds 2-3 | 5 first-tier (3 caused by the previous repair) | a once-only token spent per call, a reader asserting "never compacted", a vacuous per-call permit, the run token's slice, the compactor run before `Start` (a Go bug: the fork fix) |
 | review, rounds 4-5 | 0 first-tier | second tier: the nil-only `compactorOk`, the first sample's ghost, the invariant's home, an unused import |
 | glue (step 3) | 1 | `isRevision`'s lock (`isLock` for `sync.isMutex`); plus a translation gap (the clock axiomatized: INFRA) and a tactic bug (`word`'s cache: INFRA) |
-| phase 3 (`Run`, easy and hard) | 0 | 3 missing laws (the clock, mvcc's `ErrCompacted`, context's `Done`), under the rule the user added then |
-| phase 2 (the tester) | 0 | strength margins only |
-| scope | 1 | the server side deferred (M2 is bigger than phase 0 assumed: the frozen-store readers) |
+| Probe (`Run`, easy and hard) | 0 | 3 missing laws (the clock, mvcc's `ErrCompacted`, context's `Done`), under the rule the user added then |
+| Test (the tester) | 0 | strength margins only |
+| scope | 1 | the server side deferred (M2 is bigger than Scope assumed: the frozen-store readers) |
 
 So the review found nearly every spec revision before any proof (18 of 19 first-tier ones), at the
 cost of five rounds; the glue found one the reviews missed; the full proofs and the tester found no
 spec revision, only laws (an API gap the reviews had no criterion for until round 5, which then
-found one more). Phase 4 measures what the freeze bought: revisions after it.
+found one more). Prove measures what the freeze bought: revisions after it.
 
-**Phase 4 (2026-10-27): done, no spec revision.** `Periodic`/`Revision`'s `Stop`, `Pause` and
+**Prove (2026-10-27): done, no spec revision.** `Periodic`/`Revision`'s `Stop`, `Pause` and
 `Resume` proved against the frozen specs, each on the first check (10-20 lines: the write side of
 `Periodic`'s `RWMutex` through the persistent guard, `sync.RWMutex.wp_Lock_guard`, which the specs'
 `isRWMutexGuard` already gives; `Revision`'s `Mutex`; the context's cancel function). The compactor's
@@ -416,7 +416,7 @@ proofs have no `sorry` left; the pilot's only one is `EtcdServer.Compact` (the s
 deferred). One more cross-package unfold, justified with the first: `context.cancelSpec` (no
 Perennial law for the call; `notes/perennial-changes.md`).
 
-**The end-of-phase-4 checkpoint.** Spec revisions after the freeze: **0** (the success bar: at most
+**The end-of-Prove checkpoint.** Spec revisions after the freeze: **0** (the success bar: at most
 2 not INFRA, none FALSE-BEH). The baseline, the read-index loop done the current way: after the
 commit that translated and proved it (`190ad33227`, 2026-10-13), 8 commits touched its specs by
 2026-10-27, by their subjects about 5 revisions (callers' needs: `start`, `Put`/`Get` as atomic
@@ -428,10 +428,10 @@ must not need to change the compactor's. Measured so far, per Go function: the r
 about 5-9 minutes each) and the tester cost less than the proofs they preceded (the glue, the two
 `Run` proofs), and every spec revision but one came before any proof.
 
-**Review checkpoints** (`notes/spec-first-plan.md`, "Phase 1b", the feedback loop): at the freeze, a
+**Review checkpoints** (`notes/spec-first-plan.md`, "Review", the feedback loop): at the freeze, a
 retrospective of the revisions the review found against those the glue proofs found; at the end of
-phase 4, every revision after the freeze attributed to a review criterion or to "none", and the
-`spec-repair` `LESSONS.md` entries written from them. The first review (step 2b) ran on the phase-1b
+Prove, every revision after the freeze attributed to a review criterion or to "none", and the
+`spec-repair` `LESSONS.md` entries written from them. The first review (step 2b) ran on the Review
 tiers; its findings are scored on the added metrics afterwards.
 
 **Next (step 3, the glue):** `New`, `newPeriodic`, `newRevision`, the getters; `EtcdServer.Compact`
