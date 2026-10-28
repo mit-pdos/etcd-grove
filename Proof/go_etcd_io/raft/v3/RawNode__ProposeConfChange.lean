@@ -53,7 +53,7 @@ theorem RawNode.ProposeConfChange.wp_proof
   imod cc_propose_ghost γ o bs Hbs $$ Hcinv Harg with ⟨#Hent, Htk⟩
   ihave #Hcc := ccEntsOk_cc (GF := GF) o bs Hbs
   imod rdCred_zero_upd (GF := GF) γ with Hcr
-  icases ownRaftPhysC_preFacts cf rnv.raft' id s (Hpvoff.guard rs.capplied rs.cfg) $$ Hphys with ⟨%Hpf, Hphys⟩
+  icases ownRaftPhysC_preFacts cf rnv.raft' id s (Hpvoff.guard rs.capplied rs.cfg (ds := ds)) $$ Hphys with ⟨%Hpf, Hphys⟩
   wp_apply wp_raft_Step cf _ γ _ id s ml propMsgM [ccEntryM (some o) bs] [] none []
     (by simp [StepMsg, stepMsgTypes, propMsgM, MsgProp]) 
     (by msg_ne) (by msg_ne)

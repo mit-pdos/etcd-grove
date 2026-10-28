@@ -853,7 +853,7 @@ theorem RawNode.acceptReady.wp_proof
     (by rw [toPState_ready]; rfl) (by rw [toPState_ready]; rfl) (by rw [toPState_ready]; rfl)
     Hrapp (by rw [Hlogst, Haf2, Hf_snap]) rfl
     (hst := by rw [Hlogst, Haf3, Hf_st]) $$ Hrest
-  ihave Hghost : ownStepGhost γ (rs.mode.toG ⟨rs.capplied, rs.cfg, fp⟩) cf id
+  ihave Hghost : ownStepGhost γ (rs.mode.toG ⟨rs.capplied, rs.cfg, fp, ds⟩) cf id
       (readyNstate s L ce sz) $$ [Hghost Hrest]
   · iunfold ownStepGhost
     iframe Hrest

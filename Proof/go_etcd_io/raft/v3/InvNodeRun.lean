@@ -214,7 +214,7 @@ theorem ownRawNodeReady_lead (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNStat
       leadFields r (ownRawNodeReady γ rn id rs rd ce es ms h L) := by
   iintro H #Hr
   iunfold ownRawNodeReady at H
-  icases H with ⟨%s, %cf, %fp, %rnv, %sv, %hprev, H⟩
+  icases H with ⟨%s, %cf, %fp, %ds, %rnv, %sv, %hprev, H⟩
   iNamed H
   ihave #Hr' := rawNodeOwn_raft rn rnv $$ Hrn
   icombine Hr Hr' gives %Heq
@@ -230,7 +230,7 @@ theorem ownRawNodeReady_lead (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNStat
   · iexact Hf_Term
   iintro Hf_lead Hf_Term
   iunfold ownRawNodeReady
-  iexists s, cf, fp, rnv, sv, hprev
+  iexists s, cf, fp, ds, rnv, sv, hprev
   simp only [named]
   iframe Hrn Hghost Hsdrf Hout Hsoft Hhard Hsteps Hsteps_cap Hcommitted Hstrecs Hrdsoft Hrdhard
     Hrdrs Hce Hce_cap Hents Hrdz Hsloc
@@ -271,7 +271,7 @@ theorem ownRawNodeReady_abandon_keep (γ : RaftNames) (rn : Loc) (id : w64) (rs 
         ownRawNode γ rn id { rs with outlb := n, unst := u, clb := c } := by
   iintro Hmsgs Hmsgs_cap Hown H
   iunfold ownRawNodeReady at H
-  icases H with ⟨%s, %cf, %fp, %rnv, %sv, %hprev, H⟩
+  icases H with ⟨%s, %cf, %fp, %ds, %rnv, %sv, %hprev, H⟩
   iNamed H
   -- (D22 S-d4) with a snapshot, one is pending
   ihave %Hrsn : ⌜L.isSome = true → s.logst.snap ≠ none⌝ $$ [Hrdz]
@@ -457,7 +457,7 @@ theorem wp_rn_raft_Step_net (wp_raft_Step : raft.Step.spec (GF := GF) (hG := hG)
     with ⟨%Hb1, Hghost⟩
   icases ownStepGhost_nsLink γ _ cf id s $$ Hghost with ⟨%Hnl, Hghost⟩
   have HnP : m.Type' ≠ MsgProp := by not_net
-  icases ownRaftPhysC_preFacts cf rnv.raft' id s (Hpvoff.guard rs.capplied rs.cfg) $$ Hphys with ⟨%Hpf, Hphys⟩
+  icases ownRaftPhysC_preFacts cf rnv.raft' id s (Hpvoff.guard rs.capplied rs.cfg (ds := ds)) $$ Hphys with ⟨%Hpf, Hphys⟩
   -- (D22 S-d3b) the log and what the storage will hold, before the step (`ackInv`'s carry)
   icases ownRaftPhysC_persistRel cf rnv.raft' id s $$ Hphys with ⟨%Hpr, Hphys⟩
   icases ownRaftPhysC_gh cf rnv.raft' id s $$ Hphys with ⟨%Hgh0, Hphys⟩
@@ -517,8 +517,8 @@ theorem wp_rn_raft_Step_net (wp_raft_Step : raft.Step.spec (GF := GF) (hG := hG)
       · rw [h2]; iapply (snapLocOk_some γ id (snapId sv0)).2
         rw [show (snapId sv0).index' = sv0.Metadata'.Index' from rfl]; iexact Hloc0
     -- (2026-10-28, stage U3c) in either mode: the ghost part at a new full prefix (a restore's)
-    obtain ⟨fp', Hmd, Hfp'⟩ := RNMode.stepOut_snap Href Hs
-    ihave Hghost : ownStepGhost γ (rs.mode.toG ⟨rs.capplied, rs.cfg, fp'⟩) cf id s' $$ [Hghost]
+    obtain ⟨fp', ds', Hmd, Hfp'⟩ := RNMode.stepOut_snap Href Hs
+    ihave Hghost : ownStepGhost γ (rs.mode.toG ⟨rs.capplied, rs.cfg, fp', ds'⟩) cf id s' $$ [Hghost]
     · rw [← Hmd]; iexact Hghost
     have HnT : m.Type' ≠ MsgTimeoutNow := by rw [Hs]; simp [MsgSnap, MsgTimeoutNow]
     have Ht3' : m.Type' ≠ MsgPreVoteResp → uint.Z s'.term ≤ max (uint.Z s.term) (uint.Z m.Term') +
@@ -750,7 +750,7 @@ theorem wp_rn_raft_Step_prop (wp_raft_Step : raft.Step.spec (GF := GF) (hG := hG
     iexact Hed
   icases propData_ccEnts γ ents $$ Hed with ⟨%cs, #Hcc⟩
   imod rdCred_zero_upd (GF := GF) γ with Hcr
-  icases ownRaftPhysC_preFacts cf rnv.raft' id s (Hpvoff.guard rs.capplied rs.cfg) $$ Hphys with ⟨%Hpf, Hphys⟩
+  icases ownRaftPhysC_preFacts cf rnv.raft' id s (Hpvoff.guard rs.capplied rs.cfg (ds := ds)) $$ Hphys with ⟨%Hpf, Hphys⟩
   wp_apply wp_raft_Step cf _ γ _ id s ml m ents ctx sn rsp
     (by simp only [StepMsg, stepMsgTypes]; rw [Hty]; simp [MsgProp])
     (by msg_ne') (by msg_ne')
@@ -1020,7 +1020,7 @@ theorem wp_applyConf_dyn
     -- (2026-10-28, stage U3d) of a committed log `D` within the commit index: the committed log
     -- handed out (while a snapshot `Ready` is lent, the loan's)
     (D : List EntryM)
-    (Hpre : DynCCPreOp dec D rs.capplied rs.cfg (ccm.transition, ccm.changes) k e cs')
+    (ds : DecMap) (Hpre : DynCCPreOp (effDec dec ds) D rs.capplied rs.cfg (ccm.transition, ccm.changes) k e cs')
     (s : NState) (cf : CfgM) (fp : List EntryM) (rnv : RawNode) (sv : SoftState)
     (hprev : HardStateM) (steps : List Loc)
     (Hwf : NStateWf s) (Hin : rs.mode = .static → id ∈ γ.reCfg) (Hasync : rnv.asyncStorageWrites' = false)
@@ -1035,7 +1035,7 @@ theorem wp_applyConf_dyn
     (HDc : (D.length : Int) ≤ uint.Z s.logst.committed) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
         rawNodeOwn rn rnv ∗ ownRaftPhysCV cf cf.voters rnv.raft' id s ∗
-        ownStepGhost γ (rs.mode.toG ⟨rs.capplied, rs.cfg, fp⟩) cf id s ∗
+        ownStepGhost γ (rs.mode.toG ⟨rs.capplied, rs.cfg, fp, ds⟩) cf id s ∗
         sdrOk rnv.raft' rs.mode ∗ rnv.prevSoftSt' ↦□ sv ∗ prevHS γ rnv.prevHardSt' hprev rs.phs ∗
         rnv.stepsOnAdvance' ↦* steps ∗
         ownSliceCap Loc rnv.stepsOnAdvance' (DFrac.own 1) ∗
@@ -1053,21 +1053,21 @@ theorem wp_applyConf_dyn
   obtain ⟨Hk1, Hk2, Hke, Hconf, Hnoc, ⟨op', Hdec, Hstep'⟩, Hstep, Hal'⟩ := Hpre
   iintro %Φ ⟨#Hpkg, Hrn, Hphys, Hghost, #Hsdrf, #Hsoft, #Hhard, Hsteps, Hcap, Hpend, #Hdeliv,
     #Hstrecs, #Hloanc, #Hsloc, Hch, Hlc, #HDd⟩ HΦ
-  let g : RGh := ⟨rs.capplied, rs.cfg, fp⟩
+  let g : RGh := ⟨rs.capplied, rs.cfg, fp, ds⟩
   ihave Hghost : ownStepGhost γ (.dyn dec c0 h0 g) cf id s $$ [Hghost]
-  · rw [show (GMode.dyn dec c0 h0 g) = rs.mode.toG ⟨rs.capplied, rs.cfg, fp⟩ by rw [hm]; rfl]
+  · rw [show (GMode.dyn dec c0 h0 g) = rs.mode.toG ⟨rs.capplied, rs.cfg, fp, ds⟩ by rw [hm]; rfl]
     iexact Hghost
   icases ownRaftPhysC_logwf cf rnv.raft' id s $$ Hphys with ⟨%Hlw, Hphys⟩
   icases ownStepGhost_deliv γ dec c0 h0 g cf id s D HDc $$ HDd Hghost
     with ⟨%Hdp, Hghost⟩
   icases ownStepGhost_ns_last γ _ cf id s $$ Hghost with ⟨%Hli2, Hghost⟩
-  icases (ownStepGhost_dyn γ dec c0 h0 g cf id s).1 $$ Hghost with ⟨%HDc, Hgr, #Hcl⟩
+  icases (ownStepGhost_dyn γ dec c0 h0 g cf id s).1 $$ Hghost with ⟨%HDc, #HM, Hgr, #Hcl⟩
   obtain ⟨HD, Hgc, Hnl⟩ := HDc
   iunfold ownRaftGhostR at Hgr
   icases Hgr with ⟨Hg, %HI, #Hfr, #Hcamp⟩
   icases (entails_wand (persistent_entails_left (wand_entails
     (ownRaftGhost_logRecs (GF := GF) γ id (rOf s g).p true)))) $$ Hg with ⟨Hg, %-, #Hlr⟩
-  icases ownRaftPhysC_preFacts cf rnv.raft' id s (Hpvoff.guard rs.capplied rs.cfg) $$ Hphys with ⟨%Hpf, Hphys⟩
+  icases ownRaftPhysC_preFacts cf rnv.raft' id s (Hpvoff.guard rs.capplied rs.cfg (ds := ds)) $$ Hphys with ⟨%Hpf, Hphys⟩
   -- the entry, in the node's full log
   have Hfull_k : (rOf s g).full[k]? = some e := by
     obtain ⟨t, ht⟩ := Hdp
@@ -1108,23 +1108,23 @@ theorem wp_applyConf_dyn
         · exact absurd h Hnpc) Hli2
     $$ [$Hphys $Hch] as %cs %xs %os %ls %lns %s' ⟨Hphys, Hch, Hcs, %Hcs0, %Hok⟩
   -- the ghost step
-  let g' : RGh := ⟨k + 1, cs', fp⟩
-  have Hadm : AdmS dec c0 (fun l => l = (rOf s g).full.take (k + 1)) ((rOf s g).full.take (k + 1))
+  let g' : RGh := ⟨k + 1, cs', fp, ds⟩
+  have Hadm : AdmS (effDec dec ds) c0 (fun l => l = (rOf s g).full.take (k + 1)) ((rOf s g).full.take (k + 1))
       cs' := by
     refine ⟨?_, rfl⟩
     unfold AdmFold
-    have H0 := cfgFold_noConf dec c0 Hnoc' Hk1 HI.cfg
+    have H0 := cfgFold_noConf (effDec dec ds) c0 Hnoc' Hk1 HI.cfg
     rw [show (rOf s g).full.take (k + 1) = (rOf s g).full.take k ++ [e] by
       rw [List.take_add_one, Hfull_k]; rfl, cfgFold_snoc, H0, Option.bind_some]
     unfold entStep
     rw [ite_eq_left Hconf, Htake, Hdec, Option.bind_some]
     exact Hstep'
-  have HR1 : StepR (AdmS dec c0 (fun l => l = (rOf s g).full.take (k + 1))) dec id 0 (rOf s g) []
+  have HR1 : StepR (AdmS (effDec dec ds) c0 (fun l => l = (rOf s g).full.take (k + 1))) (effDec dec ds) id 0 (rOf s g) []
       (rOf s g') :=
     StepR.applyConf (rOf s g) k e op' cs' Hk1 Hkc Hfull_k Hconf
       Hnoc'.noUndec (by rw [Htake]; exact Hdec) Hstep' Hadm
-  have HR2 := applyCCOkC_stepR (B := 0) (Adm := AdmS dec c0 (fun l => l = (rOf s g).full.take (k + 1)))
-    (dec := dec) cs'.cfg id s s' g' Hok rfl
+  have HR2 := applyCCOkC_stepR (B := 0) (Adm := AdmS (effDec dec ds) c0 (fun l => l = (rOf s g).full.take (k + 1)))
+    (dec := effDec dec ds) cs'.cfg id s s' g' Hok rfl
   have HR := StepR.trans _ _ _ _ _ HR1 HR2
   ihave #Hrecs : □ ∀ (fp' : List EntryM), ⌜fp' = (rOf s g).full.take (k + 1)⌝ -∗
       logRecs (GF := GF) γ base0 fp' $$ []
@@ -1134,14 +1134,14 @@ theorem wp_applyConf_dyn
     subst Hfp'
     rw [show (rOf s g).full = (rOf s g).fp ++ (rOf s g).p.log from rfl]
     iapply logRecs_take γ _ (k + 1) $$ Hfl
-  ihave Hgr : ownRaftGhostR γ dec c0 id (rOf s g) $$ [Hg]
+  ihave Hgr : ownRaftGhostR γ (effDec dec ds) c0 id (rOf s g) $$ [Hg]
   · iunfold ownRaftGhostR
     iframe Hg Hfr
     isplitr
     · ipureintro; exact HI
     iintro %hc; iapply Hcamp; exact hc
   imod (preceipt_zero_bound (GF := GF) γ.reBoot.length) with #Hrc0
-  imod ownRaftGhostR_stepR γ dec c0 h0 HD _ id 0 (by decide) _ _ _ HR $$ Hrc0 Hrecs [] [Hcr0] []
+  imod ownRaftGhostR_stepR γ dec ds c0 h0 HD _ id 0 (by decide) _ _ _ HR $$ Hrc0 HM Hrecs [] [Hcr0] []
     Hlc Hgr with Hgr
   · rw [List.nil_append]
     iapply (BigSepL.bigSepL_nil (Φ := fun _ m => isMessage (GF := GF) γ m)).2
@@ -1150,17 +1150,17 @@ theorem wp_applyConf_dyn
   · rw [List.nil_append]; iapply msgsTks_nil
   ihave Hghost : ownStepGhost γ (.dyn dec c0 h0 g') cs'.cfg id s' $$ [Hgr]
   · iapply (ownStepGhost_dyn γ dec c0 h0 g' cs'.cfg id s').2
-    iframe Hgr
+    iframe Hgr HM
     isplitr
     · ipureintro; exact ⟨HD, rfl, by unfold NsLink; rw [Hok.gh]; exact Hnl⟩
     rw [show s'.logst.storage = s.logst.storage by rw [(applyCCOkC_frame Hok Hwf).2.2.2.2.1]]
     iexact Hcl
   ihave Hghost : ownStepGhost γ (({ rs with cfg := cs', capplied := k + 1 } : RNState).mode.toG
       ⟨({ rs with cfg := cs', capplied := k + 1 } : RNState).capplied,
-       ({ rs with cfg := cs', capplied := k + 1 } : RNState).cfg, fp⟩) cs'.cfg id s' $$ [Hghost]
+       ({ rs with cfg := cs', capplied := k + 1 } : RNState).cfg, fp, ds⟩) cs'.cfg id s' $$ [Hghost]
   · rw [show (({ rs with cfg := cs', capplied := k + 1 } : RNState).mode.toG
         ⟨({ rs with cfg := cs', capplied := k + 1 } : RNState).capplied,
-         ({ rs with cfg := cs', capplied := k + 1 } : RNState).cfg, fp⟩) = GMode.dyn dec c0 h0 g' by
+         ({ rs with cfg := cs', capplied := k + 1 } : RNState).cfg, fp, ds⟩) = GMode.dyn dec c0 h0 g' by
       simp only; rw [hm]; rfl]
     iexact Hghost
   obtain ⟨Hwf', Ht', Hpv', Hgh', Hls', Hc', Hrl', Hfol'⟩ := applyCCOkC_frame Hok Hwf
@@ -1286,7 +1286,7 @@ theorem wp_rn_raft_applyConfChange
   ihave #Hr' := rawNodeOwn_raft rn rnv $$ Hrn
   icombine Hr Hr' gives %Heq
   subst Heq
-  icases ownRawNode_static_open γ rs Hm fp cf rnv.raft' id s $$ Hphys Hghost with
+  icases ownRawNode_static_open γ rs Hm fp ds cf rnv.raft' id s $$ Hphys Hghost with
     ⟨Hphys, Hghost, %Htrk, %Hnl, #Hcl⟩
   have Hrel : NStateRel s (toPState s) := ⟨rfl, Hwf⟩
   have Hin := Hin Hm
@@ -1320,7 +1320,7 @@ theorem ownRawNode_borrow_in (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNStat
   icases ownRawNode_mode γ rn id rs $$ H with ⟨%Hmd, H⟩
   have Hm : rs.mode = .static := Hmd.2 Hst
   iNamed H
-  icases ownRawNode_static_open γ rs Hm fp cf rnv.raft' id s $$ Hphys Hghost with
+  icases ownRawNode_static_open γ rs Hm fp ds cf rnv.raft' id s $$ Hphys Hghost with
     ⟨Hphys, Hghost, %Htrk, %Hnl, #Hcl⟩
   have Hrel : NStateRel s (toPState s) := ⟨rfl, Hwf⟩
   have Hin := Hin Hm
@@ -1378,7 +1378,7 @@ theorem wp_rn_raft_applyConfChange_dyn
       obtain ⟨-, -, Hi, -, -, -, -, Hdl, -⟩ := Hloan.2.2 l hs
       simp only; rw [Hdl]; have := uint_Z_nonneg l.snap.Metadata'.Index'; omega
   iapply wp_applyConf_dyn wp_raft_applyConfChange γ rn id rs dec c0 h0 h1 hm k e cs' cc ccm
-      DFrac.discard (rsDlv rs) Hpre s cf fp rnv sv hprev steps Hwf Hin Hasync Hdlen Hunp Hsnap Hstok
+      DFrac.discard (rsDlv rs) ds (Hpre.mono_dec (effDec_base dec ds)) s cf fp rnv sv hprev steps Hwf Hin Hasync Hdlen Hunp Hsnap Hstok
       Htrm Hstor Hpvoff Hrs_out Hrs_unst Hrs_clb Hrnfl Hloan Hsdt HDc
     $$ [$Hpkg $Hrn $Hphys $Hghost $Hsdrf $Hsoft $Hhard $Hsteps $Hsteps_cap $Hpend $Hdeliv
       $Hstrecs $Hloanc $Hsloc $Hccs $Hlc $HDd]

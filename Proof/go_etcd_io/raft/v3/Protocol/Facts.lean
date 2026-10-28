@@ -1205,7 +1205,9 @@ theorem ownRaftGhost_alloc_core_reg (E : CoPset) (cfg ids : GSet w64)
     -- (2026-10-27) the snapshot-certificate registries' namespace (`RaftNames.reCertNs`)
     (certN : Namespace)
     -- (2026-10-28, stage U4a) the registry of the snapshots made (`RaftNames.reSnapReg`)
-    (reg : Option GName) :
+    (reg : Option GName)
+    -- (2026-10-28, the decision switch) the client's decision map (`RaftNames.reDec`)
+    (rdec : Option GName) :
     -- (2026-10-14, reconfiguration stage B2) the voters are not empty: `RaftNames.reCfg_ne`
     cfg ≠ ∅ →
     W64 0 ∉ ids →
@@ -1213,7 +1215,8 @@ theorem ownRaftGhost_alloc_core_reg (E : CoPset) (cfg ids : GSet w64)
     ⊢ allocClientGen E cfg dyn ccOk L C nsN -∗
       |={E}=> ∃ γ : RaftNames, ⌜γ.reCfg = cfg ∧ γ.reDyn = dyn ∧ γ.reCCOk = ccOk ∧ γ.reBoot = L ∧
           γ.reTracked = trk ∧ γ.reNoSnap = ns ∧ γ.reNoXfer = nx ∧ γ.reSnapOkRaw = sok ∧
-          γ.reSnapLoc = sl ∧ γ.reNs = nsN ∧ γ.reCertNs = certN ∧ γ.reSnapReg = reg⌝ ∗
+          γ.reSnapLoc = sl ∧ γ.reNs = nsN ∧ γ.reCertNs = certN ∧ γ.reSnapReg = reg ∧
+          γ.reDec = rdec⌝ ∗
         raftCommitInv (GF := GF) γ ∗
         isCommitted γ L ∗
         ([∗map] id ↦ _u ∈ toMap ids, ownRaftGhost γ id (initPStateAt t L) dyn.isSome) ∗
@@ -1254,7 +1257,7 @@ theorem ownRaftGhost_alloc_core_reg (E : CoPset) (cfg ids : GSet w64)
       γ0 = ⟨cfg, nv, nt, na, nc, nl, nw, ne, γc, γpr, γcl, γfr, nlc, nrq, γrd, γrf, γrc, γtb,
         dyn, ccOk, L.map BootEntry.ofEntry, Hcne, trk, Htrk, ns,
         fun h he => Hns h (List.map_eq_nil_iff.1 he), nx,
-        fun h he => Hnx h (List.map_eq_nil_iff.1 he), sok, sl, nsN, certN, reg⟩ :=
+        fun h he => Hnx h (List.map_eq_nil_iff.1 he), sok, sl, nsN, certN, reg, rdec⟩ :=
     ⟨_, rfl⟩
   have e1 : γ0.reVotes = nv := by rw [Hγ0]
   have e2 : γ0.reTerms = nt := by rw [Hγ0]
@@ -1379,7 +1382,7 @@ theorem ownRaftGhost_alloc_core_reg (E : CoPset) (cfg ids : GSet w64)
   imodintro
   iexists γ0
   isplitr; · ipureintro; exact ⟨e0, eD, eCC, eB, by rw [Hγ0], by rw [Hγ0], by rw [Hγ0], by rw [Hγ0],
-    by rw [Hγ0], by rw [Hγ0], by rw [Hγ0], by rw [Hγ0]⟩
+    by rw [Hγ0], by rw [Hγ0], by rw [Hγ0], by rw [Hγ0], by rw [Hγ0]⟩
   isplitr; · iexact Hinv'
   isplitr; · iexact Hc0
   isplitl [Hv Ht Ha Hc Hl Hw He Hlc Hrq Hcr0]
@@ -1411,8 +1414,17 @@ theorem ownRaftGhost_alloc_core (E : CoPset) (cfg ids : GSet w64)
         isCommitted γ L ∗
         ([∗map] id ↦ _u ∈ toMap ids, ownRaftGhost γ id (initPStateAt t L) dyn.isSome) ∗
         C γ ∗
-        (rdCred γ (2 ^ 64 - 2) ∗ rdCredInv γ) :=
-  ownRaftGhost_alloc_core_reg E cfg ids dyn ccOk L t C trk Htrk ns Hns nx Hnx sok sl nsN certN none
+        (rdCred γ (2 ^ 64 - 2) ∗ rdCredInv γ) := by
+  intro a b c d
+  iintro H
+  imod ownRaftGhost_alloc_core_reg E cfg ids dyn ccOk L t C trk Htrk ns Hns nx Hnx sok sl nsN certN
+    none none a b c d $$ H with ⟨%γ, %Hp, Hrest⟩
+  imodintro
+  iexists γ
+  iframe Hrest
+  ipureintro
+  obtain ⟨a1, a2, a3, a4, a5, a6, a7, a8, a9, a10, a11, a12, -⟩ := Hp
+  exact ⟨a1, a2, a3, a4, a5, a6, a7, a8, a9, a10, a11, a12⟩
 
 
 /-- The allocation, in either mode (2026-10-14, stage B5: `dyn` is the ghost state's mode,

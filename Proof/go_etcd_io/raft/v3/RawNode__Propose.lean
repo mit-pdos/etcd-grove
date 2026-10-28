@@ -56,7 +56,7 @@ theorem RawNode.Propose.wp_proof
   wp_apply wp_MessageType_Enum (W32 2) as %pty Hpty
   imod cellRO_alloc $$ Hpty with #cTy
   wp_apply raft.wp_load_idC $$ Hphys as Hphys
-  icases ownRaftPhysC_preFacts cf rnv.raft' id s (Hpvoff.guard rs.capplied rs.cfg) $$ Hphys with ⟨%Hpf, Hphys⟩
+  icases ownRaftPhysC_preFacts cf rnv.raft' id s (Hpvoff.guard rs.capplied rs.cfg (ds := ds)) $$ Hphys with ⟨%Hpf, Hphys⟩
   wp_apply wp_slice_literal_ex (V := Loc)
   wp_alloc l0 as Hl0
   wp_auto

@@ -56,7 +56,7 @@ theorem RawNode.ApplyConfChange.wp_proof
       wp_auto_lc 1
       wp_apply wp_ConfChange_AsV2 p dq m $$ [$Hc1] as %v2 ⟨Hc1, Hch⟩
       wp_apply wp_applyConf_dyn wp_raft_applyConfChange γ rn id rs dec c0 h0 h1 hm k0 e0
-          cs0 v2 m.asV2 (DFrac.own 1) rs.delivered Hpre s cf fp rnv sv hprev steps Hwf Hin
+          cs0 v2 m.asV2 (DFrac.own 1) rs.delivered ds (Hpre.mono_dec (effDec_base dec ds)) s cf fp rnv sv hprev steps Hwf Hin
           Hasync Hdlen Hunp Hsnap Hstok Htrm Hstor Hpvoff Hrs_out Hrs_unst Hrs_clb Hrnfl Hloan Hsdt HDc
         $$ [$Hrn $Hphys $Hghost $Hsdrf $Hsoft $Hhard $Hsteps $Hsteps_cap $Hpend $Hdeliv $Hstrecs
           $Hloanc $Hsloc $Hch $Hlc1] as %cs %xs %os %ls %lns ⟨Hrn, -, Hcs, %Hcs0⟩
@@ -80,7 +80,7 @@ theorem RawNode.ApplyConfChange.wp_proof
       wp_auto_lc 1
       wp_apply wp_ConfChangeV2_AsV2
       wp_apply wp_applyConf_dyn wp_raft_applyConfChange γ rn id rs dec c0 h0 h1 hm k0 e0
-          cs0 p m dq rs.delivered Hpre s cf fp rnv sv hprev steps Hwf Hin
+          cs0 p m dq rs.delivered ds (Hpre.mono_dec (effDec_base dec ds)) s cf fp rnv sv hprev steps Hwf Hin
           Hasync Hdlen Hunp Hsnap Hstok Htrm Hstor Hpvoff Hrs_out Hrs_unst Hrs_clb Hrnfl Hloan Hsdt HDc
         $$ [$Hrn $Hphys $Hghost $Hsdrf $Hsoft $Hhard $Hsteps $Hsteps_cap $Hpend $Hdeliv $Hstrecs
           $Hloanc $Hsloc $Hch $Hlc1] as %cs %xs %os %ls %lns ⟨Hrn, Hch, Hcs, %Hcs0⟩
@@ -100,7 +100,7 @@ theorem RawNode.ApplyConfChange.wp_proof
       ipureintro; exact ⟨Hcs0.1, Hcs0.2.1, Hcs0.2.2.1, Hcs0.2.2.2, trivial⟩
   have Hm := hm
   have Hap0 := Hap0 hm
-  icases ownRawNode_static_open γ rs Hm fp cf rnv.raft' id s $$ Hphys Hghost with
+  icases ownRawNode_static_open γ rs Hm fp ds cf rnv.raft' id s $$ Hphys Hghost with
     ⟨Hphys, Hghost, %Htrk, %Hnl, #Hcl⟩
   have Hrel : NStateRel s (toPState s) := ⟨rfl, Hwf⟩
   have Hin := Hin Hm

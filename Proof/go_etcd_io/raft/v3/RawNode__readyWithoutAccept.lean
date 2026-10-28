@@ -631,7 +631,7 @@ theorem RawNode.readyWithoutAccept.wp_proof
   simp only [named]
   isplitl [Hrn Hphys Hghost Hrest Hsteps Hsteps_cap Hce_cap Hrdz]
   · unfold ownRawNodeReady
-    iexists s, cf, fp, rnv, sv, hprev
+    iexists s, cf, fp, ds, rnv, sv, hprev
     simp only [named, Bool.false_eq_true, ↓reduceIte]
     rw [show s.outbox = (toPState s).outbox from rfl]
     iframe Hrn Hphys Hsdrf Hout Hsoft Hhard Hsteps Hsteps_cap Hdeliv' Hstrecs Hrdsoft Hrdrs' Hce

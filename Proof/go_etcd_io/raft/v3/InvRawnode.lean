@@ -136,10 +136,10 @@ theorem RNMode.toG_isDyn (md : RNMode) (g : RGh) : (md.toG g).isDyn = md.isDyn :
 mode afterwards is the node's at some `ca'`, moved only by a `MsgStorageApplyResp`, to at
 most the new `applied` (`CidxMove`), and not at all in the static mode. -/
 theorem RNMode.stepOut_ca {mode : RNMode} {ca : Nat} {cfg : CCState} {fp : List EntryM}
-    {c : CfgM} {id : w64} {m : MessageM} {s s' : NState} {md' : GMode}
-    (H : (mode.toG ⟨ca, cfg, fp⟩).StepOut c id m s s' md') (hs : m.Type' ≠ MsgSnap)
+    {ds : DecMap} {c : CfgM} {id : w64} {m : MessageM} {s s' : NState} {md' : GMode}
+    (H : (mode.toG ⟨ca, cfg, fp, ds⟩).StepOut c id m s s' md') (hs : m.Type' ≠ MsgSnap)
     (ha : m.Type' = MsgStorageAppendResp → s'.logst.applied = s.logst.applied) :
-    ∃ ca', md' = mode.toG ⟨ca', cfg, fp⟩ ∧ ca ≤ ca' ∧
+    ∃ ca', md' = mode.toG ⟨ca', cfg, fp, ds⟩ ∧ ca ≤ ca' ∧
       ca' ≤ max ca (uint.nat s'.logst.applied) ∧ (mode = .static → ca' = ca) ∧
       (m.Type' ≠ MsgStorageApplyResp → ca' = ca) := by
   cases mode with
@@ -160,20 +160,20 @@ theorem RNMode.stepOut_ca {mode : RNMode} {ca : Nat} {cfg : CCState} {fp : List 
 node's at the same configuration index and configuration (a restore keeps them, `GMove`), with some
 full prefix `fp'` (a restore's), the same at a pre-candidate (which no restore makes). -/
 theorem RNMode.stepOut_snap {mode : RNMode} {ca : Nat} {cfg : CCState} {fp : List EntryM}
-    {c : CfgM} {id : w64} {m : MessageM} {s s' : NState} {md' : GMode}
-    (H : (mode.toG ⟨ca, cfg, fp⟩).StepOut c id m s s' md') (hs : m.Type' = MsgSnap) :
-    ∃ fp', md' = mode.toG ⟨ca, cfg, fp'⟩ ∧ (s'.role = .preCandidate → fp' = fp) := by
+    {ds : DecMap} {c : CfgM} {id : w64} {m : MessageM} {s s' : NState} {md' : GMode}
+    (H : (mode.toG ⟨ca, cfg, fp, ds⟩).StepOut c id m s s' md') (hs : m.Type' = MsgSnap) :
+    ∃ fp' ds', md' = mode.toG ⟨ca, cfg, fp', ds'⟩ ∧ (s'.role = .preCandidate → fp' = fp) := by
   cases mode with
-  | static => exact ⟨fp, H.1, fun _ => rfl⟩
+  | static => exact ⟨fp, ds, H.1, fun _ => rfl⟩
   | dyn dec c0 h0 _ =>
     obtain ⟨g', Hcm, rfl, -⟩ := H
-    rcases Hcm with ⟨-, hci, hcf, hpc⟩ | h | ⟨hty, -⟩ | ⟨hty, -⟩
-    · refine ⟨g'.fp, ?_, fun h => by rw [hpc h]⟩
+    rcases Hcm with ⟨-, hci, hcf, -, hpc⟩ | h | ⟨hty, -⟩ | ⟨hty, -⟩
+    · refine ⟨g'.fp, g'.decs, ?_, fun h => hpc h⟩
       cases g'
       simp only at hci hcf
       subst hci hcf
       rfl
-    · subst h; exact ⟨fp, rfl, fun _ => rfl⟩
+    · subst h; exact ⟨fp, ds, rfl, fun _ => rfl⟩
     · rw [hs] at hty; simp [MsgSnap, MsgStorageApplyResp] at hty
     · rw [hs] at hty; simp [MsgSnap, MsgStorageAppendResp] at hty
 
@@ -752,7 +752,7 @@ def RNPv (rs : RNState) (fp : List EntryM) (s : NState) : Prop :=
 
 /-- The guard as the mode's (`GMode.Guard`), at the ghost part over `fp`. -/
 theorem RNPv.guard {rs : RNState} {fp : List EntryM} {s : NState} (H : RNPv rs fp s) (ca : Nat)
-    (cfg : CCState) : (rs.mode.toG ⟨ca, cfg, fp⟩).Guard s := by
+    (cfg : CCState) {ds : DecMap} : (rs.mode.toG ⟨ca, cfg, fp, ds⟩).Guard s := by
   have H1 := H.1
   revert H1
   cases rs.mode with
@@ -867,8 +867,8 @@ theorem NetMsgOk.raftStep {γ : RaftNames} {id : w64} {rs : RNState} {s : NState
 
 /-- The mode's guard from the guard in the dynamic mode. -/
 theorem RNMode.guard_of {mode : RNMode} {fp : List EntryM} {s : NState}
-    (h : mode.isDyn = true → PreGuardF fp s) (ca : Nat) (cfg : CCState) :
-    (mode.toG ⟨ca, cfg, fp⟩).Guard s := by
+    (h : mode.isDyn = true → PreGuardF fp s) (ca : Nat) (cfg : CCState) {ds : DecMap} :
+    (mode.toG ⟨ca, cfg, fp, ds⟩).Guard s := by
   cases mode with
   | static => trivial
   | dyn dec c0 h0 _ => exact h rfl
@@ -1295,7 +1295,7 @@ the acknowledgement is stale (`raft.Step`'s lower-term arm: no `stableTo`). -/
 theorem isLeader_term_nz (γ : RaftNames) (id term : w64) :
     ⊢ isLeader (GF := GF) γ id term -∗ ⌜term ≠ W64 0⌝ := by
   unfold isLeader isWin isWinCore
-  iintro ⟨%q, %c, ⟨%γw, %F0, %k, -, #HcK, -, -⟩, -⟩
+  iintro ⟨%q, %c, ⟨%γw, %F0, %k, %M, -, #HcK, -, -, -⟩, -⟩
   icases isCampK_ok γ id term F0 k $$ HcK with %H
   ipureintro; exact H.term_nz
 
@@ -1885,7 +1885,7 @@ theorem ownStepGhost_deliv (γ : RaftNames) (dec : CCDec) (c0 : CCState) (h0 : C
     with ⟨Hg, %fp', %Hf', #Hfr', #Hc⟩
   iunfold ghostRest at Hr
   iunfold ghostRestM at Hr
-  icases Hr with ⟨%Hnl, ⟨%HC, #Hfr, Hcamp⟩, #Hcl⟩
+  icases Hr with ⟨%Hnl, ⟨%HC, #HM, #Hfr, Hcamp⟩, #Hcl⟩
   icases FullOk_unique γ (toPState s).base fp' g.fp Hf' HC.2.2.full $$ Hfr' Hfr with %He
   icases isCommitted_agree γ _ _ $$ HD Hc with %Hag
   isplitr
@@ -1918,6 +1918,7 @@ theorem ownStepGhost_deliv (γ : RaftNames) (dec : CCDec) (c0 : CCState) (h0 : C
   isplitl [Hcamp]
   · isplitr
     · ipureintro; exact HC
+    iframe HM
     isplitr
     · iexact Hfr
     iexact Hcamp
@@ -2047,11 +2048,11 @@ mode (`rs.mode`): the struct at any configuration (`ownRaftPhysCV c`) and the gh
 spec states it; `stepsOnAdvance` holds pointers `steps`, each message owned (`msgIn`, its
 entries read-only), with `pendingRel` of its state -- `Advance` hands each to `raft.Step`.) -/
 def ownRawNode (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNState) : IProp GF :=
-  iprop(∃ (s : NState) (cf : CfgM) (fp : List EntryM) (rnv : RawNode) (sv : SoftState)
+  iprop(∃ (s : NState) (cf : CfgM) (fp : List EntryM) (ds : DecMap) (rnv : RawNode) (sv : SoftState)
       (hprev : HardStateM) (steps : List Loc),
   "Hrn" ∷ rawNodeOwn rn rnv ∗
   "Hphys" ∷ ownRaftPhysCV cf cf.voters rnv.raft' id s ∗
-  "Hghost" ∷ ownStepGhost γ (rs.mode.toG ⟨rs.capplied, rs.cfg, fp⟩) cf id s ∗
+  "Hghost" ∷ ownStepGhost γ (rs.mode.toG ⟨rs.capplied, rs.cfg, fp, ds⟩) cf id s ∗
   "#Hsdrf" ∷ sdrOk rnv.raft' rs.mode ∗
   "%Hwf" ∷ ⌜NStateWf s⌝ ∗
   -- scope (static mode): the node is a voter (`Step`'s premise for a snapshot; a shrinking
@@ -2114,7 +2115,7 @@ def ownRawNode (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNState) : IProp GF 
 the definition. (2026-10-16, stage R5: the hard state `hprev` after the soft state; the
 queue `pendList`, owned; no `pendingOwn`.) -/
 theorem ownRawNode_intro (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNState)
-    (s : NState) (c : CfgM) (fp : List EntryM) (rnv : RawNode) (sv : SoftState)
+    (s : NState) (c : CfgM) (fp : List EntryM) {ds : DecMap} (rnv : RawNode) (sv : SoftState)
     (hprev : HardStateM) (steps : List Loc)
     (Hwf : NStateWf s) (Hin : rs.mode = .static → id ∈ γ.reCfg) (Hal : c.autoLeave = false)
     (Hasync : rnv.asyncStorageWrites' = false)
@@ -2127,7 +2128,7 @@ theorem ownRawNode_intro (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNState)
     (Hrs_unst : rs.unst = s.gh.unst) (Hrs_clb : uint.Z rs.clb ≤ uint.Z s.logst.committed)
     (Hrnfl : RNFl rs s) (Hloan : LoanOk rs s) (Hsdt : SdtTie rs s) :
     ⊢ rawNodeOwn rn rnv -∗ ownRaftPhysCV c c.voters rnv.raft' id s -∗
-      ownStepGhost (GF := GF) γ (rs.mode.toG ⟨rs.capplied, rs.cfg, fp⟩) c id s -∗
+      ownStepGhost (GF := GF) γ (rs.mode.toG ⟨rs.capplied, rs.cfg, fp, ds⟩) c id s -∗
       sdrOk rnv.raft' rs.mode -∗
       rnv.prevSoftSt' ↦□ sv -∗ prevHS γ rnv.prevHardSt' hprev rs.phs -∗ rnv.stepsOnAdvance' ↦* steps -∗
       ownSliceCap Loc rnv.stepsOnAdvance' (DFrac.own 1) -∗
@@ -2140,7 +2141,7 @@ theorem ownRawNode_intro (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNState)
       ownRawNode γ rn id rs := by
   iintro Hrn Hphys Hghost #Hsdrf #Hsoft #Hhard Hsteps Hcap Hpend #Hdeliv #Hstrecs #Hloanc #Hsloc
   unfold ownRawNode
-  iexists s, c, fp, rnv, sv, hprev, steps
+  iexists s, c, fp, ds, rnv, sv, hprev, steps
   simp only [named]
   iframe Hrn Hphys Hghost Hsdrf Hsoft Hhard Hsteps Hcap Hpend Hdeliv Hstrecs Hloanc Hsloc
   ipureintro
@@ -2155,9 +2156,9 @@ stage B7 part 2 -- `ownRaftPhys γ.reCfg` and `ownRaftGhost` -- for the proofs t
 the static mode only (a shrinking `ApplyConfChange`, `node.go`'s loop). -/
 
 theorem ownRawNode_static_open (γ : RaftNames) (rs : RNState) (Hm : rs.mode = .static)
-    (fp : List EntryM) (cf : CfgM) (r : Loc) (id : w64) (s : NState) :
+    (fp : List EntryM) (ds : DecMap) (cf : CfgM) (r : Loc) (id : w64) (s : NState) :
     ⊢ ownRaftPhysCV (GF := GF) cf cf.voters r id s -∗
-      ownStepGhost γ (rs.mode.toG ⟨rs.capplied, rs.cfg, fp⟩) cf id s -∗
+      ownStepGhost γ (rs.mode.toG ⟨rs.capplied, rs.cfg, fp, ds⟩) cf id s -∗
       ownRaftPhys γ.reCfg r id s ∗ ownRaftGhost γ id (toPState s) ∗
       -- (D19p, 2026-10-18) the tracker within the tracked bound
       ⌜TrackedOk γ (CfgM.simple γ.reCfg (domSet s.progress \ γ.reCfg)) id⌝ ∗
@@ -2213,7 +2214,7 @@ theorem ownRawNode_intro_static (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNS
   obtain ⟨rfl, Hwf⟩ := Hrel
   ihave %Hst := ownRaftGhost_static γ id _ $$ Hghost
   ihave Hphys := ownRaftPhys_toC' $$ Hphys
-  ihave Hghost : ownStepGhost γ (rs.mode.toG ⟨rs.capplied, rs.cfg, []⟩)
+  ihave Hghost : ownStepGhost γ (rs.mode.toG ⟨rs.capplied, rs.cfg, [], ∅⟩)
       (CfgM.simple γ.reCfg (domSet s.progress \ γ.reCfg)) id s $$ [Hghost]
   · rw [Hm]
     simp only [RNMode.toG, ownStepGhost, ghostRest, ghostRestM, GMode.isDyn]
@@ -2234,7 +2235,7 @@ theorem ownRawNode_mode (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNState) :
   iunfold ownStepGhost at Hghost
   icases Hghost with ⟨Hg, Hr⟩
   ihave %Hm := ownRaftGhost_mode γ id (toPState s) (md := (rs.mode.toG _).isDyn) $$ Hg
-  ihave Hghost : ownStepGhost γ (rs.mode.toG ⟨rs.capplied, rs.cfg, fp⟩) cf id s $$ [Hg Hr]
+  ihave Hghost : ownStepGhost γ (rs.mode.toG ⟨rs.capplied, rs.cfg, fp, ds⟩) cf id s $$ [Hg Hr]
   · iunfold ownStepGhost; iframe Hg Hr
   isplitr
   · ipureintro

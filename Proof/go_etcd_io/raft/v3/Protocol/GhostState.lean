@@ -154,13 +154,14 @@ a leader at most one conf entry at or past `a` (I3), at a candidate `a` is the c
 and its campaign record is of its full log at the commit index. The dynamic refinement
 (`RefinementDyn.lean`) supplies it from `RInv`. -/
 def dynEnv (γ : RaftNames) (id : w64) (c : CfgM) (s : PState) : IProp GF :=
-  iprop(⌜CfgStatic γ c⌝ ∨ (⌜γ.reDyn ≠ none⌝ ∗ ∃ (fpR : List EntryM) (a : w64),
+  iprop(⌜CfgStatic γ c⌝ ∨ (⌜γ.reDyn ≠ none⌝ ∗ ∃ (fpR : List EntryM) (a : w64) (M : DecMap),
     ⌜FullOk s.base fpR ∧ ConfI1 (fpR ++ s.log) (uint.Z s.commit).toNat ∧
-      uint.Z a ≤ uint.Z s.commit ∧ CfgAt γ ((fpR ++ s.log).take (uint.Z a).toNat) c ∧
+      uint.Z a ≤ uint.Z s.commit ∧ CfgAt γ M ((fpR ++ s.log).take (uint.Z a).toNat) c ∧
       (s.role = .leader → confCount ((fpR ++ s.log).drop (uint.Z a).toNat) ≤ 1) ∧
       (s.role = .candidate → a = s.commit)⌝ ∗
     logRecs γ base0 fpR ∗
-    (∀ (_ : s.role = .candidate), isCampK γ id s.term (fpR ++ s.log) s.commit)))
+    (∀ (_ : s.role = .candidate), isCampK γ id s.term (fpR ++ s.log) s.commit) ∗ decLb γ M))
+
 
 instance dynEnv_persistent (γ : RaftNames) (id : w64) (c : CfgM) (s : PState) :
     Persistent (dynEnv (GF := GF) γ id c s) := by

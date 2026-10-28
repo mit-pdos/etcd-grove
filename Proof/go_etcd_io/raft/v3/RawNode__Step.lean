@@ -119,7 +119,7 @@ theorem RawNode.Step.wp_proof
         with ⟨%Hb1, Hghost⟩
       icases ownStepGhost_nsLink γ _ cf id s $$ Hghost with ⟨%Hnl, Hghost⟩
       have HnP : m.Type' ≠ MsgProp := by not_net
-      icases ownRaftPhysC_preFacts cf rnv.raft' id s (Hpvoff.guard rs.capplied rs.cfg) $$ Hphys with ⟨%Hpf, Hphys⟩
+      icases ownRaftPhysC_preFacts cf rnv.raft' id s (Hpvoff.guard rs.capplied rs.cfg (ds := ds)) $$ Hphys with ⟨%Hpf, Hphys⟩
       -- (D22 S-d3b) the log and what the storage will hold, before the step (`ackInv`'s carry)
       icases ownRaftPhysC_persistRel cf rnv.raft' id s $$ Hphys with ⟨%Hpr, Hphys⟩
       icases ownRaftPhysC_gh cf rnv.raft' id s $$ Hphys with ⟨%Hgh0, Hphys⟩
@@ -181,8 +181,8 @@ theorem RawNode.Step.wp_proof
           · rw [h2]; iapply (snapLocOk_some γ id (snapId sv0)).2
             rw [show (snapId sv0).index' = sv0.Metadata'.Index' from rfl]; iexact Hloc0
         -- (2026-10-28, stage U3c) in either mode: the ghost part at a new full prefix (a restore's)
-        obtain ⟨fp', Hmd, Hfp'⟩ := RNMode.stepOut_snap Href Hs
-        ihave Hghost : ownStepGhost γ (rs.mode.toG ⟨rs.capplied, rs.cfg, fp'⟩) cf id s' $$ [Hghost]
+        obtain ⟨fp', ds', Hmd, Hfp'⟩ := RNMode.stepOut_snap Href Hs
+        ihave Hghost : ownStepGhost γ (rs.mode.toG ⟨rs.capplied, rs.cfg, fp', ds'⟩) cf id s' $$ [Hghost]
         · rw [← Hmd]; iexact Hghost
         have HnT : m.Type' ≠ MsgTimeoutNow := by rw [Hs]; simp [MsgSnap, MsgTimeoutNow]
         have Ht3' : m.Type' ≠ MsgPreVoteResp → uint.Z s'.term ≤ max (uint.Z s.term) (uint.Z m.Term') +

@@ -62,9 +62,9 @@ theorem cluster_alloc_rule_impl (N : Namespace) (vs : List w64) (r : ConfRule) (
   imod ownRaftGhost_alloc_core_reg E (GMap.listToSet vs) (GMap.listToSet vs) (some (DynCfg.all dc))
     (fun _ _ => True) [] (W64 0) (allocOut N [] bud md tab) none (fun _ h => by cases h)
     false (fun h => by cases h) false (fun h => by cases h) (fun _ _ => True) (fun _ => none)
-    (N .@ "raft") N (some g) Hcne Hnz' BootWf_nil (fun h => absurd rfl h)
+    (N .@ "raft") N (some g) none Hcne Hnz' BootWf_nil (fun h => absurd rfl h)
     $$ Hcl with ⟨%γr, %Hγ, #Hcinv, #Hc0, Hnodes, Hout, Hcr, -⟩
-  obtain ⟨Hcfg, Hdyn, -, -, -, Hns, Hnx, Hsok, Hsl, HNs, Hcert, Hrg⟩ := Hγ
+  obtain ⟨Hcfg, Hdyn, -, -, -, Hns, Hnx, Hsok, Hsl, HNs, Hcert, Hrg, -⟩ := Hγ
   iunfold allocOut at Hout
   icases Hout with ⟨%γ, %Hγr, #HspT, #Hinv, Hops, Hctx⟩
   obtain ⟨Hγr, Hγb, Hγm, Hγt⟩ := Hγr

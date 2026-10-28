@@ -463,7 +463,7 @@ theorem stepCDS_handle_snap (c : CfgM) (id : w64) (s t : NState) (m : MessageM)
     rcases Hres with ⟨Hle, -⟩ | ⟨Hlt, -, Hm, -⟩ | ⟨Hlt, Hin, Hnm, rfl⟩
     · exact Hle.elim (fun H => absurd Hr.1 (Int.not_lt.2 H)) (fun H => absurd Hr.2.1 H)
     · exact absurd Hm Hr.2.2
-    refine ⟨⟨g.cidx, g.cfg, fp'⟩, hgc, rfl, rfl, fun h => absurd h (by simp [sendMsgs, Htr]), ?_⟩
+    refine ⟨⟨g.cidx, g.cfg, fp', g.decs⟩, hgc, rfl, rfl, fun h => absurd h (by simp [sendMsgs, Htr]), ?_⟩
     rw [Hc] at Hlt; rw [Hb, Hl] at Hnm
     have Hp : toPState (sendMsgs { t with logst := logRestore t.logst (snapTrip sv voters) }
         [appResp id t m.From' false (snapId sv).index' (W64 0) (W64 0)]) =

@@ -520,7 +520,7 @@ theorem RawNode.Bootstrap.wp_proof
       icases Hghost with ⟨%HD, Hgr⟩
       obtain ⟨HD, rfl⟩ := HD
       ihave Hphys := ownRaftPhys_toC' $$ Hphys
-      have Hro : rOf ({ sk with gh := { sk.gh with tc := W64 1, ns := γ.reNoSnap, xf := γ.reNoXfer, bt := γ.reNoXfer } } : NState) ⟨0, cfgState (GMap.listToSet ps) ∅, []⟩ =
+      have Hro : rOf ({ sk with gh := { sk.gh with tc := W64 1, ns := γ.reNoSnap, xf := γ.reNoXfer, bt := γ.reNoXfer } } : NState) ⟨0, cfgState (GMap.listToSet ps) ∅, [], ∅⟩ =
           rboot (cfgState (GMap.listToSet ps) ∅) bootLog := by
         have HpS : toPState ({ sk with gh := { sk.gh with tc := W64 1, ns := γ.reNoSnap, xf := γ.reNoXfer, bt := γ.reNoXfer } } : NState) = bootPState bootLog := HNrel.1
         unfold rOf rboot pciR
@@ -535,16 +535,17 @@ theorem RawNode.Bootstrap.wp_proof
         · intro h; exact absurd h (GMap.not_elem_of_empty _)
       ihave Hghost : ownStepGhost γ
           (RNMode.toG (.dyn dec (cfgState (GMap.listToSet ps) ∅) h0 h1)
-            ⟨0, cfgState (GMap.listToSet ps) ∅, []⟩)
+            ⟨0, cfgState (GMap.listToSet ps) ∅, [], ∅⟩)
           (CfgM.simple γ.reCfg (domSet ({ sk with gh := { sk.gh with tc := W64 1, ns := γ.reNoSnap, xf := γ.reNoXfer, bt := γ.reNoXfer } } : NState).progress \ γ.reCfg)) id ({ sk with gh := { sk.gh with tc := W64 1, ns := γ.reNoSnap, xf := γ.reNoXfer, bt := γ.reNoXfer } } : NState) $$ [Hgr]
       · simp only [RNMode.toG]
         iapply (ownStepGhost_dyn γ dec _ h0 _ _ id ({ sk with gh := { sk.gh with tc := W64 1, ns := γ.reNoSnap, xf := γ.reNoXfer, bt := γ.reNoXfer } } : NState)).2
-        rw [Hro]
+        rw [Hro, effDec_empty]
         iframe Hgr
         isplitr
         · ipureintro
           refine ⟨HD, ?_, Hnl0⟩
           rw [Hdiff, R7]; rfl
+        isplitr; · iapply decLb_empty
         simp only; rw [HNls]; simp only [logAppend, Hsg]; iexact Hcl
       iapply ownRawNode_intro γ rn id
           { delivered := [], unpersisted := [], steps := [], term := W64 1,

@@ -479,13 +479,15 @@ end frame_lemmas
 section code
 variable [GooseExts] [GoGlobalContext] [GoSemanticsFunctions]
 variable {B : Int}
-
 /-- The ghost part of a node's `RState`: the configuration index, the configuration (with the
-learner flags), the full log's prefix below the compaction boundary. -/
+learner flags), the full log's prefix below the compaction boundary, and (2026-10-28, the decision
+switch) the client's decisions the node has witnessed (a lower bound of the map), which the dynamic mode folds
+over its decoder (`effDec`). -/
 structure RGh where
   cidx : Nat
   cfg : CCState
   fp : List EntryM
+  decs : DecMap
 
 /-- `pendingConfIndex` as the dynamic model reads it: the code's at a leader, `0` elsewhere (see
 the file header). -/
@@ -686,7 +688,7 @@ theorem stepR_snap_restore {Adm : List EntryM → CCState → Prop} {dec : CCDec
       [Msg.mk .appResp id m.src (toPState s).term false m.index (W64 0) (W64 0) (W64 0) []])
     (Ha : s'.logst.applied = s.logst.applied) (Hsn : s'.logst.snap.isSome = true)
     (Hl' : s'.role ≠ .leader) :
-    StepR Adm dec id B (rOf s g) [m] (rOf s' ⟨g.cidx, g.cfg, fp'⟩) := by
+    StepR Adm dec id B (rOf s g) [m] (rOf s' ⟨g.cidx, g.cfg, fp', g.decs⟩) := by
   have Hnl : (rOf s g).p.role ≠ .leader := by
     simp only [rOf, toPState_role]; exact proleRole_not_leader _ h5
   have Hag : (rOf s g).full.take (uint.nat (rOf s g).p.commit) <+: fp' := by
@@ -696,7 +698,7 @@ theorem stepR_snap_restore {Adm : List EntryM → CCState → Prop} {dec : CCDec
     omega
   have H := StepR.snapRestore (dec := dec) (B := B) m (rOf s g) fp' cs' h1 h2 h3 h4 Hnl h6 h7 h8 Hag
     h9 h10
-  have e : rOf s' ⟨g.cidx, g.cfg, fp'⟩ =
+  have e : rOf s' ⟨g.cidx, g.cfg, fp', g.decs⟩ =
       { rOf s g with
         p := psendMsgs
           { padoptLeader (rOf s g).p m.src with

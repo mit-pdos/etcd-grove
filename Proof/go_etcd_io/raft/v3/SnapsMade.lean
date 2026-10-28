@@ -200,12 +200,12 @@ theorem snapMade_elem (γ : Cluster) (r : ConfRule) (c0 : Membership) (S : List 
 /-- The rule's mode folds a raft log as the rule folds it. -/
 theorem RuleNames.fold {γ : Cluster} {r : ConfRule} {c0 : Membership} (h : RuleNames γ r c0)
     (D : DynCfg) (hD : γ.raft.dyn = some D) (L : List EntryM) :
-    D.fold L = (Membership.fold r c0 (strip L)).map cfgOf := by
+    D.fold ∅ L = (Membership.fold r c0 (strip L)).map cfgOf := by
   obtain ⟨h0, hv, hd, -⟩ := h
   rw [hd] at hD
   cases hD
-  show (cfgFold (r.toDec c0) (stOf c0) L).map (fun s => s.cfg) = _
-  rw [cfgFold_toDec r c0 hv L, Option.map_map]
+  show (cfgFold (effDec (r.toDec c0) ∅) (stOf c0) L).map (fun s => s.cfg) = _
+  rw [effDec_empty, cfgFold_toDec r c0 hv L, Option.map_map]
   rfl
 
 /-- **Certifying a snapshot of a committed prefix** (the candidate's `snapshotCert_make`, stage U2;
@@ -236,7 +236,7 @@ theorem snapshotCert_make (γ : Cluster) (N : Namespace) (E : CoPset) (HE : ↑N
   -- the membership is valid: a fold from a valid one
   have Hal : cs.VotersOutgoing' = [] → m.autoLeave = false := fun h => Hok.2.2.2.2.2.2.1 h
   have Hcfg := cfgM_of_confStateIs cs m t i d Hcs Hal
-  have HD : (DynCfg.ofFold (r.toDec c0) (stOf c0) h0).fold L =
+  have HD : (DynCfg.ofFold (r.toDec c0) (stOf c0) h0).fold ∅ L =
       some (SnapTrip.cfgM ⟨⟨t, i⟩, cs.lists, m.autoLeave, d⟩) := by
     rw [Hrn.fold _ hd L, HL, Hfold, Hcfg]; rfl
   have HLlen : L.length = uint.nat i := by rw [← Hlen, ← HL, strip_length]

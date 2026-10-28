@@ -1401,7 +1401,7 @@ snapshot `k`'s length, in a cluster that keeps a registry of the snapshots made:
 `k`'s, `k`'s lists are well formed and denote the mode's configuration of `L`. -/
 def SnapAtPure (γr : RaftNames) (k : SnapTrip) (L : List EntryM) : Prop :=
   γr.reSnapReg ≠ none → L.getLast?.map EntryM.Term' = some k.sid.term' ∧ SnapListsOk k ∧
-    ∀ D, γr.dyn = some D → D.fold L = some k.cfgM
+    ∀ D, γr.dyn = some D → D.fold ∅ L = some k.cfgM
 
 /-- **The snapshot `k` is certified** for the cluster: raft's configuration certificate, and its
 data what the cluster admits of a committed log as long as its index, which the client knows.

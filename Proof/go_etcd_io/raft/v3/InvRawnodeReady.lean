@@ -1123,11 +1123,11 @@ read-only hard state (`Hrdhard`: `hardState()`'s fresh one, which `acceptReady` 
 def ownRawNodeReady (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNState) (rd : Ready)
     (ce es : List EntryM) (ms : List QMsg) (h : Bool := false) (L : Option SnapLoan := none) :
     IProp GF :=
-  iprop(∃ (s : NState) (cf : CfgM) (fp : List EntryM) (rnv : RawNode) (sv : SoftState)
+  iprop(∃ (s : NState) (cf : CfgM) (fp : List EntryM) (ds : DecMap) (rnv : RawNode) (sv : SoftState)
       (hprev : HardStateM),
   "Hrn" ∷ rawNodeOwn rn rnv ∗
   "Hphys" ∷ ownRaftPhysReady cf rnv.raft' id s rd.Messages' ms h L.isSome ∗
-  "Hghost" ∷ ownStepGhost γ (rs.mode.toG ⟨rs.capplied, rs.cfg, fp⟩) cf id
+  "Hghost" ∷ ownStepGhost γ (rs.mode.toG ⟨rs.capplied, rs.cfg, fp, ds⟩) cf id
     (if h then { s with outbox := [] } else s) ∗
   "#Hsdrf" ∷ sdrOk rnv.raft' rs.mode ∗
   "#Hout" ∷ ([∗list] x ∈ s.outbox, isMessage γ x) ∗
@@ -1205,7 +1205,7 @@ theorem ownRawNodeReady_softStateRO (γ : RaftNames) (rn : Loc) (id : w64) (rs :
   iintro H
   ihave #Hss : softStateRO rd.SoftState' $$ [H]
   · iunfold ownRawNodeReady at H
-    icases H with ⟨%s, %cf, %fp, %rnv, %sv, %hprev, H⟩
+    icases H with ⟨%s, %cf, %fp, %ds, %rnv, %sv, %hprev, H⟩
     iNamed H
     iapply softStateRO_of_opt $$ Hrdsoft
   iframe Hss H
@@ -1219,7 +1219,7 @@ theorem ownRawNodeReady_loanLoc (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNS
   iintro H
   ihave #Hss : snapLocal γ id l.snap.Metadata'.Index' $$ [H]
   · iunfold ownRawNodeReady at H
-    icases H with ⟨%s, %cf, %fp, %rnv, %sv, %hprev, H⟩
+    icases H with ⟨%s, %cf, %fp, %ds, %rnv, %sv, %hprev, H⟩
     iNamed H
     unfold rdSnapRel
     icases Hrdz with ⟨-, -, %Hr⟩
@@ -1254,7 +1254,7 @@ theorem ownRawNodeReady_abandon (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNS
         ownRawNode γ rn id { rs with outlb := n, unst := u, clb := c } := by
   iintro Hmsgs Hmsgs_cap Hown H
   iunfold ownRawNodeReady at H
-  icases H with ⟨%s, %c, %fp, %rnv, %sv, %hprev, H⟩
+  icases H with ⟨%s, %c, %fp, %ds, %rnv, %sv, %hprev, H⟩
   iNamed H
   iclear Hrdz
   iunfold ownRaftPhysReady at Hphys
@@ -1437,7 +1437,7 @@ theorem ownRawNodeReady_handout (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNS
       readyIdx γ rs.delivered ce es := by
   iintro H
   iunfold ownRawNodeReady at H
-  icases H with ⟨%s, %c, %fp, %rnv, %sv, %hprev, H⟩
+  icases H with ⟨%s, %c, %fp, %ds, %rnv, %sv, %hprev, H⟩
   iNamed H
   iunfold ownRaftPhysReady at Hphys
   icases Hphys with ⟨%rsl, %sl1, %sl2, %ms1, %ms2, Hphys⟩
@@ -1486,7 +1486,7 @@ theorem ownRawNodeReady_handout (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNS
       rdCountM (ms.map QMsg.st) + (rdCount s.outbox - rdCountM (ms.map QMsg.st)) by
     rw [show rdCount ([] : List Msg) = 0 from rfl]; show rdCount s.outbox - 0 = _; omega]
   icases (rdCred_split γ _ _).1 $$ Hcr with ⟨Hcr, -⟩
-  ihave Hghost : ownStepGhost γ (rs.mode.toG ⟨rs.capplied, rs.cfg, fp⟩) c id
+  ihave Hghost : ownStepGhost γ (rs.mode.toG ⟨rs.capplied, rs.cfg, fp, ds⟩) c id
       { s with outbox := [] } $$ [Hghost Hrest]
   · iunfold ownStepGhost
     iframe Hrest
@@ -1495,7 +1495,7 @@ theorem ownRawNodeReady_handout (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNS
   imodintro
   isplitr [Hout Hcr Htk]
   · iunfold ownRawNodeReady
-    iexists s, c, fp, rnv, sv, hprev
+    iexists s, c, fp, ds, rnv, sv, hprev
     simp only [named, ↓reduceIte]
     iframe Hrn Hghost Hout Hsdrf Hsoft Hhard Hsteps Hsteps_cap Hcommitted Hstrecs Hrdsoft
       Hrdhard Hrdrs Hce Hce_cap Hents Hrdz Hsloc
@@ -1544,11 +1544,11 @@ the next ones, and possibly a stale `SoftState`/`HardState` (which only reset wh
 `Hhard`, the queue `pendList`.) (D22 S-d3a, 2026-10-21: `ownRawNode`'s, a snapshot pending in
 progress allowed.) -/
 def ownRawNodeIdle (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNState) : IProp GF :=
-  iprop(∃ (s : NState) (cf : CfgM) (fp : List EntryM) (rnv : RawNode) (sv : SoftState)
+  iprop(∃ (s : NState) (cf : CfgM) (fp : List EntryM) (ds : DecMap) (rnv : RawNode) (sv : SoftState)
       (hprev : HardStateM) (steps : List Loc),
   "Hrn" ∷ rawNodeOwn rn rnv ∗
   "Hphys" ∷ ownRaftPhysCV cf cf.voters rnv.raft' id s ∗
-  "Hghost" ∷ ownStepGhost γ (rs.mode.toG ⟨rs.capplied, rs.cfg, fp⟩) cf id s ∗
+  "Hghost" ∷ ownStepGhost γ (rs.mode.toG ⟨rs.capplied, rs.cfg, fp, ds⟩) cf id s ∗
   "#Hsdrf" ∷ sdrOk rnv.raft' rs.mode ∗
   "%Hwf" ∷ ⌜NStateWf s⌝ ∗
   "%Hin" ∷ ⌜rs.mode = .static → id ∈ γ.reCfg⌝ ∗
@@ -1584,7 +1584,7 @@ def ownRawNodeIdle (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNState) : IProp
   "%Hsdt" ∷ ⌜SdtTie rs s⌝)
 
 theorem ownRawNodeIdle_intro (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNState)
-    (s : NState) (c : CfgM) (fp : List EntryM) (rnv : RawNode) (sv : SoftState)
+    (s : NState) (c : CfgM) (fp : List EntryM) {ds : DecMap} (rnv : RawNode) (sv : SoftState)
     (hprev : HardStateM) (steps : List Loc)
     (Hwf : NStateWf s) (Hin : rs.mode = .static → id ∈ γ.reCfg) (Hal : c.autoLeave = false)
     (Hasync : rnv.asyncStorageWrites' = false)
@@ -1599,7 +1599,7 @@ theorem ownRawNodeIdle_intro (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNStat
     (Hidle : s.gh.outlb = 0 ∧ nextUnstable s.logst = [] ∧ s.rd.states = [] ∧
       (s.logst.snap = none ∨ s.logst.sip = true)) :
     ⊢ rawNodeOwn rn rnv -∗ ownRaftPhysCV c c.voters rnv.raft' id s -∗
-      ownStepGhost (GF := GF) γ (rs.mode.toG ⟨rs.capplied, rs.cfg, fp⟩) c id s -∗
+      ownStepGhost (GF := GF) γ (rs.mode.toG ⟨rs.capplied, rs.cfg, fp, ds⟩) c id s -∗
       sdrOk rnv.raft' rs.mode -∗
       rnv.prevSoftSt' ↦□ sv -∗ prevHS γ rnv.prevHardSt' hprev rs.phs -∗ rnv.stepsOnAdvance' ↦* steps -∗
       ownSliceCap Loc rnv.stepsOnAdvance' (DFrac.own 1) -∗
@@ -1611,7 +1611,7 @@ theorem ownRawNodeIdle_intro (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNStat
       ownRawNodeIdle γ rn id rs := by
   iintro Hrn Hphys Hghost #Hsdrf #Hsoft #Hhard Hsteps Hcap Hpend #Hdeliv #Hstrecs #Hloanc #Hsloc
   unfold ownRawNodeIdle
-  iexists s, c, fp, rnv, sv, hprev, steps
+  iexists s, c, fp, ds, rnv, sv, hprev, steps
   simp only [named]
   iframe Hrn Hphys Hghost Hsdrf Hsoft Hhard Hsteps Hcap Hpend Hdeliv Hstrecs Hloanc Hsloc
   ipureintro
@@ -1713,7 +1713,7 @@ theorem ownRawNodeIdle_ready (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNStat
   ihave Hrdz : rdSnapRel γ rs rd ce none s $$ []
   · unfold rdSnapRel; ipureintro; exact ⟨Hrdz0, Hsn⟩
   iunfold ownRawNodeReady
-  iexists s, cf, fp, rnv, sv, hprev
+  iexists s, cf, fp, ds, rnv, sv, hprev
   simp only [named, Bool.false_eq_true, ↓reduceIte]
   iframe Hrn Hghost Hsdrf Hout Hsoft Hhard Hsteps Hsteps_cap Hcommitted Hstrecs Hrdsoft Hrdrs
     Hce Hce_cap Hents Hrdhard Hrdz Hsloc
@@ -1788,7 +1788,7 @@ theorem ownRawNodeReady_loanLast (γ : RaftNames) (rn : Loc) (id : w64) (rs : RN
   iintro H
   ihave %Hx : ⌜plogLast base0 l.dlv = snapId l.snap⌝ $$ [H]
   · iunfold ownRawNodeReady at H
-    icases H with ⟨%s, %cf, %fp, %rnv, %sv, %hprev, H⟩
+    icases H with ⟨%s, %cf, %fp, %ds, %rnv, %sv, %hprev, H⟩
     iNamed H
     unfold rdSnapRel
     icases Hrdz with ⟨-, #Hcl, %Hr⟩

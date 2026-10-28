@@ -54,7 +54,7 @@ def SnapAckDyn [GooseExts] (md : GMode) (s : NState) (sv : SnapshotM) : Prop :=
     uint.Z s.logst.applied < uint.Z sv.Metadata'.Index' ∧
     (s.logst.snap = none ∨ snapHit s.logst.snap sv.Metadata'.Index' = true →
       sv.Metadata'.Index' = s.logst.prev.index') ∧
-    ∃ cs', cfgFold dec c0 (g.fp.take (uint.nat sv.Metadata'.Index')) = some cs' ∧
+    ∃ cs', cfgFold (effDec dec g.decs) c0 (g.fp.take (uint.nat sv.Metadata'.Index')) = some cs' ∧
       cs'.cfg = snapCfg sv sv.Metadata'.ConfState'.lists
 
 /-- (2026-10-28, stage U0) The snapshot/role clause of `PreCandStep` for a concrete end state:

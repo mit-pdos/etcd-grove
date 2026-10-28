@@ -29,6 +29,7 @@ Lean-first: pure, no ghost state. The paper proof this file founds is
 module
 
 public import Proof.go_etcd_io.raft.v3.CCApply
+public import Proof.go_etcd_io.raft.v3.Protocol.DecMap
 
 @[expose] public section
 
@@ -390,10 +391,6 @@ base decoder (`effDec`, the base first: an older cluster's pure decoder, with th
 fold that is defined keeps its result under more decisions (`cfgFold_mono`), and two lower
 bounds of one map are compatible (`DecCompat`), so two records fold one prefix alike. -/
 
-/-- The client's decisions by position: `some o` the change `o` applied, `none` the entry
-skipped. -/
-abbrev DecMap := GMap Nat (Option ConfChangeIM)
-
 /-- A recorded decision as the protocol's: an applied change's `AsV2` form; a skip rejects. -/
 def ccDecOf : Option ConfChangeIM → CCDecision
   | some o => .apply (ccV2Of o)
@@ -467,25 +464,6 @@ theorem cfgFoldFrom_mono {d1 d2 : CCDec} (h : DecLe d1 d2) {pre : List EntryM} {
 theorem cfgFold_mono {d1 d2 : CCDec} (h : DecLe d1 d2) {s s' : CCState} {l : List EntryM}
     (hs : cfgFold d1 s l = some s') : cfgFold d2 s l = some s' :=
   cfgFoldFrom_mono h hs
-
-/-- Two maps that agree where both are defined. -/
-def DecCompat (M1 M2 : DecMap) : Prop :=
-  ∀ k v1 v2, M1.lookup k = some v1 → M2.lookup k = some v2 → v1 = v2
-
-theorem DecCompat.symm {M1 M2 : DecMap} (h : DecCompat M1 M2) : DecCompat M2 M1 :=
-  fun k v1 v2 h1 h2 => (h k v2 v1 h2 h1).symm
-
-theorem DecCompat.sub_left (M1 M2 : DecMap) : M1 ⊆ M1 ∪ M2 := by
-  intro k v h
-  show (M1.lookup k).or (M2.lookup k) = some v
-  rw [h]; rfl
-
-theorem DecCompat.sub_right {M1 M2 : DecMap} (hc : DecCompat M1 M2) : M2 ⊆ M1 ∪ M2 := by
-  intro k v h
-  show (M1.lookup k).or (M2.lookup k) = some v
-  cases h1 : M1.lookup k with
-  | none => rw [h]; rfl
-  | some v1 => rw [hc k v1 v h1 h]; rfl
 
 /-! ### The decoder from the entries' bytes (2026-10-14, reconfiguration stage B3)
 

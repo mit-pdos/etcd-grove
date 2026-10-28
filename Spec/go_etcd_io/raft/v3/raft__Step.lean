@@ -736,7 +736,7 @@ abbrev raft.Step.spec : Prop :=
                       -- (2026-10-28, stage U3c) dynamically the configuration index at the
                       -- snapshot's, the full prefix kept (`StepR.applySnap`)
                       (∀ dec c0 h0 g, md = .dyn dec c0 h0 g →
-                        ∃ cs', md' = .dyn dec c0 h0 ⟨uint.nat sv.Metadata'.Index', cs', g.fp⟩))⌝ ∗
+                        ∃ cs', md' = .dyn dec c0 h0 ⟨uint.nat sv.Metadata'.Index', cs', g.fp, g.decs⟩))⌝ ∗
       -- for every other message but a snapshot (and its acknowledgement), what is kept of the
       -- log (2026-10-09)
       "%Hframe" ∷ ⌜m.Type' ≠ MsgSnap → m.Type' ≠ MsgStorageApplyResp →

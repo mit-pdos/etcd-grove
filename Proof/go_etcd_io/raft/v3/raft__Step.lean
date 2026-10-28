@@ -730,7 +730,7 @@ theorem raft.Step.wp_proof
       intro x hx; rw [Hrecv x hx]; simp [absMsg, absMsgFrom]
     imod rdCred_zero (GF := GF) γ with Hz
     imod ghost_step_md γ md c id m s s' _ recv 0 B HBb.2.2 Hrecv Hstep
-      (fun _ _ _ _ hmd HI => Hpre.dynHyp (fun h => absurd (Hty.symm.trans h) (by w32_ne))
+      (fun _ _ _ _ hmd _ HI => Hpre.dynHyp (fun h => absurd (Hty.symm.trans h) (by w32_ne))
         (fun h => absurd (Hty.symm.trans h) (by w32_ne)) hmd HI)
       (by omega) (Hfr.1.nsst) $$ HrcB Hm' Hz [Htks] Hlc Hghost Hrest with ⟨%md', %Hout, Hghost⟩
     · -- (2026-10-19, D21 M6) the proposal's tickets, for the step that appends or forwards it
@@ -785,7 +785,7 @@ theorem raft.Step.wp_proof
         $$ [$Hphys $Hmi]
         as %err %s' ⟨Hphys, %Hwf', %Hfr, %Happ0, %Hpk, %Hst, %Herr⟩
       imod ghost_step_md0 γ md c id m s s' Hst
-        (fun _ _ _ _ hmd HI => Hpre.dynHyp (fun h => absurd (HtyA.symm.trans h) (by w32_ne))
+        (fun _ _ _ _ hmd _ HI => Hpre.dynHyp (fun h => absurd (HtyA.symm.trans h) (by w32_ne))
           (fun h => absurd (HtyA.symm.trans h) (by w32_ne)) hmd HI) Hfr.1.nsst
         $$ Hlc Hghost Hrest with ⟨%md', %Hout, Hghost⟩
       imodintro
@@ -847,7 +847,7 @@ theorem raft.Step.wp_proof
             uint.Z sv.Metadata'.Index' ≤ uint.Z s.logst.prev.index' ∧
             ((ackSnapLog s.logst m s.term sv).snap = none →
               sv.Metadata'.Index' = s.logst.prev.index') ∧
-            ∃ cs', cfgFold dec c0 (g.fp.take (uint.nat sv.Metadata'.Index')) = some cs' ∧
+            ∃ cs', cfgFold (effDec dec g.decs) c0 (g.fp.take (uint.nat sv.Metadata'.Index')) = some cs' ∧
               cs'.cfg = snapCfg sv sv.Metadata'.ConfState'.lists) := by
         rcases Hmode with ⟨h1, h2⟩ | h
         · exact .inl ⟨h1, h2.2⟩
@@ -897,7 +897,7 @@ theorem raft.Step.wp_proof
         Hwf (Hsal HtyB)) $$ [$Hphys $Hmi]
       as %err %s' ⟨Hphys, %Hwf', %Hfr, %Hpk, %Hst, %Happ', %Happ2, %Herr⟩
     imod ghost_step_md0 γ md c id m s s' Hst
-      (fun _ _ _ _ hmd HI => Hpre.dynHyp (fun h => absurd (HtyB.symm.trans h) (by w32_ne))
+      (fun _ _ _ _ hmd _ HI => Hpre.dynHyp (fun h => absurd (HtyB.symm.trans h) (by w32_ne))
         (fun _ => Happ') hmd HI) Hfr.1.nsst
       $$ Hlc Hghost Hrest with ⟨%md', %Hout, Hghost⟩
     imodintro
@@ -954,7 +954,7 @@ theorem raft.Step.wp_proof
   -- (D22 S-d3b, 2026-10-21) MsgApp: `dispatch_App`, with the truncation's mark (`AppTrunc`), which
   -- `stepPost` does not carry
   by_cases HtyApp : m.Type' = MsgApp
-  · have Hdh : ∀ s', DynHypFor md m s s' := fun _ _ _ _ _ hmd HI =>
+  · have Hdh : ∀ s', DynHypFor md m s s' := fun _ _ _ _ _ hmd _ HI =>
       Hpre.dynHyp Hns (fun h => absurd h HtyB) hmd HI
     ihave HΦa : ▷ stepPostT γ md c r id s m (AppTrunc m ents s) Φ $$ [HΦ Hlc]
     · inext
@@ -986,7 +986,7 @@ theorem raft.Step.wp_proof
       fun h _ _ => Hfr' h, Htm', Hresp', fun h => absurd h Hns, fun h => absurd h HtyApp⟩
   -- the remaining types are no storage acknowledgement and no snapshot: the dynamic premises
   -- from `Hpre`
-  have Hdh : ∀ s', DynHypFor md m s s' := fun _ _ _ _ _ hmd HI =>
+  have Hdh : ∀ s', DynHypFor md m s s' := fun _ _ _ _ _ hmd _ HI =>
     Hpre.dynHyp Hns (fun h => absurd h HtyB) hmd HI
   -- from here on `m` is not a `MsgSnap`, so `Hm`'s `ty ≠ .snap` guard always holds
   ihave #Hmsgc : (□ ∀ ty, ⌜mtypeOf m.Type' = some ty⌝ -∗ isMessage γ (absMsg ty m ents ctx)) $$ []

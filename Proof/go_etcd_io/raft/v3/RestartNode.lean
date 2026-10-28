@@ -278,7 +278,7 @@ private theorem RestartNode.wp_raw
       ihave #Hsdrf : sdrOk (GF := GF) rnv.raft'
           (RNMode.dyn dec (cfgState (GMap.listToSet csm.Voters') ∅) h0 h1) $$ []
       · iunfold sdrOk; iexists s.sdr; iexact Hsd0
-      have Hro : rOf s ⟨0, cfgState (GMap.listToSet csm.Voters') ∅, []⟩ =
+      have Hro : rOf s ⟨0, cfgState (GMap.listToSet csm.Voters') ∅, [], ∅⟩ =
           rinit (cfgState (GMap.listToSet csm.Voters') ∅) := by
         unfold rOf rinit pciR
         rw [Hrel.1, Hap, Hsn]
@@ -292,17 +292,18 @@ private theorem RestartNode.wp_raw
         · intro h; exact absurd h (GMap.not_elem_of_empty _)
       ihave Hghost : ownStepGhost γ
           (RNMode.toG (.dyn dec (cfgState (GMap.listToSet csm.Voters') ∅) h0 h1)
-            ⟨0, cfgState (GMap.listToSet csm.Voters') ∅, []⟩)
+            ⟨0, cfgState (GMap.listToSet csm.Voters') ∅, [], ∅⟩)
           (CfgM.simple (GMap.listToSet csm.Voters') (domSet s.progress \ GMap.listToSet csm.Voters'))
           cv.ID' s $$ [Hgr]
       · simp only [RNMode.toG]
         iapply (ownStepGhost_dyn γ dec _ h0 _ _ cv.ID' s).2
-        rw [Hro]
+        rw [Hro, effDec_empty]
         iframe Hgr
         isplitr
         · ipureintro
           refine ⟨HD, ?_, by unfold NsLink; rw [Hgh, Hns0, Hnx0]; exact ⟨rfl, rfl, rfl⟩⟩
           rw [Hdiff]; rfl
+        isplitr; · iapply decLb_empty
         rw [Hsg]; iexact Hcl
       iapply ownRawNode_intro γ rn cv.ID'
           { delivered := [], unpersisted := [], steps := [], term := W64 0,

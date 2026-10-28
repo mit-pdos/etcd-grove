@@ -113,7 +113,7 @@ theorem raftSnapCert_make_dyn (γ : RaftNames) (E : CoPset) (L : List EntryM) (k
     (D : DynCfg) :
     ↑(raftLogN γ) ⊆ E → γ.dyn = some D →
     L.length = uint.nat k.sid.index' → L.getLast?.map EntryM.Term' = some k.sid.term' →
-    SnapListsOk k → D.fold L = some k.cfgM →
+    SnapListsOk k → D.fold ∅ L = some k.cfgM →
     ⊢ raftCommitInv (GF := GF) γ -∗ isCommitted γ L ={E}=∗ raftSnapCert γ k := by
   intro HE HD HlenN Hlast Hok Hfold
   have Hlen : (L.length : Int) = uint.Z k.sid.index' := by rw [HlenN]

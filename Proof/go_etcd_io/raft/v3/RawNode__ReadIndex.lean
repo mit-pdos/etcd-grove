@@ -94,7 +94,7 @@ theorem RawNode.ReadIndex.wp_proof
   have HmC : needsCap ({ (zero_val MessageM) with Type' := W32 15 } : MessageM) = false := rfl
   have hP : (W32 15 : w32) ≠ MsgProp := by simp [MsgProp]
   have hR : (W32 15 : w32) = MsgReadIndex := rfl
-  icases ownRaftPhysC_preFacts cf rnv.raft' id s (Hpvoff.guard rs.capplied rs.cfg) $$ Hphys with ⟨%Hpf, Hphys⟩
+  icases ownRaftPhysC_preFacts cf rnv.raft' id s (Hpvoff.guard rs.capplied rs.cfg (ds := ds)) $$ Hphys with ⟨%Hpf, Hphys⟩
   wp_apply wp_raft_Step cf _ γ _ id s «$a0_ptr» ({ (zero_val MessageM) with Type' := W32 15 } : MessageM)
     [propEntryM c] [] none []
     (by simp [StepMsg, stepMsgTypes, MsgReadIndex])
