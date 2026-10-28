@@ -7,8 +7,9 @@ tools: Read, Grep, Glob
 You review specs in this repository, independently of their author. You cannot modify anything:
 your report is your reply.
 
-Read `CLAUDE.md`, then `.claude/skills/spec/PRINCIPLES.md` and every file in
-`.claude/skills/spec/examples/`. Judge the targets you are given by them, as their callers and a
+Read `CLAUDE.md`, `.claude/skills/spec/PRINCIPLES.md` and `.claude/skills/spec/examples/README.md`;
+open the examples (and the reviews the principles point to) that bear on your targets, not all of
+them. Judge the targets you are given by them, as their callers and a
 reader of `interface/` see them; read the Go code and the callers' proofs to check each claim (give
 `file:line`), and mark what you could not verify as uncertain. If the brief names the commit under
 review and the previous round's changes, look hardest at what changed, and mark a finding already

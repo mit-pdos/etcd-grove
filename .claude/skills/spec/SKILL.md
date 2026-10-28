@@ -12,9 +12,10 @@ whatever exists, including nothing. How to get there is up to you.
 **Read first**, before writing anything:
 
 - `PRINCIPLES.md`: what makes a good spec here — the judgments the code and the proofs cannot decide
-  for you.
-- `examples/`: specs the user reviewed, each from its first version through the user's critiques to
-  the spec the user approved. They are the ground truth; imitate them.
+  for you, each pointing to where it was learned.
+- `examples/README.md`: the index of specs the user reviewed, each from its first version through the
+  user's critiques to the spec after them. They are the ground truth; open the ones whose kind or
+  principles match your target (and those the principles you rely on point to), not all of them.
 
 **A second opinion.** The author misses what it wrote (a vacuous disjunct the author had written
 itself survived the author's own review). For an outside reading, spawn the `spec-reviewer` agent
@@ -26,9 +27,10 @@ definition, with a header listing its changes), in a scratch file outside the re
 committed), and point to it: no abbreviated sketch in chat.
 
 **The user's feedback teaches the skill.** A critique of a spec becomes a principle in
-`PRINCIPLES.md` (or sharpens one), and a spec the user approves becomes an example in `examples/`
-(the first version, each critique with what it changed, the approved spec; one sitting to read).
-Only specs the user reviewed go in `examples/`.
+`PRINCIPLES.md` (or sharpens one), stated so it reads without this conversation, with a pointer to
+where it was learned; and a spec the user approves becomes an example in `examples/` (the first
+version, each critique with what it changed, the approved spec; one sitting to read), with a row in
+`examples/README.md`. Only specs the user reviewed go in `examples/`.
 
 **Repository policy** (not a sequence; what must hold when you are done):
 

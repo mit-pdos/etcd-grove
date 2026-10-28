@@ -1,92 +1,104 @@
 # What makes a good spec
 
-The judgments the code and the proofs cannot make for you: most choose between specs that are all
-true. Each comes from a review, the user's or the compactor pilot's (`notes/spec-first-study/`);
-`examples/` shows them applied.
+The judgments the code and the proofs cannot make for you; most choose between specs that are all
+true. Each rule says why, and points to where it was learned: an example in `examples/` (the spec,
+the critique, the result) or a review of the compactor pilot in `notes/spec-first-study/`. Open those
+only for the rules your target touches.
 
 ## Requirements
 
-A spec failing one of these is wrong, whatever else it does well.
+A spec that fails one of these is wrong, whatever else it does well.
 
-- **True of the code.** Check it against the Go source at the pin; a trust-boundary axiom against the
-  library's code or documented behavior. A WP excludes panics: a precondition under which the code
-  can panic is false.
-- **Sufficient for every caller.** Each caller can establish the precondition, and the postcondition
-  gives what its proof needs: every caller, not the one in mind (a server method has internal users
-  and a gRPC handler). When the vocabulary changes, judge against the callers as restated.
-- **Faithful to concurrency.** Concurrent callers need persistent contracts; once-only or exclusive
-  use needs a token.
-- **No unneeded premise.** Each premise is one the code needs or one a stronger result needs, or a
-  scope restriction marked as such and filed (`issues/`, or a decision). Compare a configuration
-  premise with what the Go code accepts (`time.ParseDuration` takes negative durations).
+- **True of the code**, including no panic under its precondition (a WP excludes panics); a
+  trust-boundary axiom true of the library's code or documented behavior.
+- **Sufficient for every caller**: each caller can establish the precondition and gets from the
+  postcondition what its proof needs. All callers, not the one in mind; when the vocabulary changes,
+  the callers as restated.
+- **Faithful to concurrency**: concurrent callers need a persistent contract; a once-only or
+  exclusive use needs a token.
+- **No unneeded premise**: each is one the code needs, one a stronger result needs, or a scope
+  restriction marked as such and filed (`issues/` or a decision). A configuration premise is no
+  stricter than what the Go code accepts. (`pilot-review-1.md`)
 
 ## Strength
 
-- **Prefer the stronger spec, comparing whole specs.** A spec is at least as strong as another if the
-  other can be proved as a layer on top of it. `{{ AU }}` is as strong as `{{ ⌜Q = True⌝ ∨ AU }}`,
-  though its precondition is stronger: a caller with the state in an invariant builds the trivial AU.
-  Do not judge a pre or a post in isolation.
-- **No spec that is the disjunction of alternative specs.** Keep the stronger; the other is a layer.
-  A case split on the input (a read-only vs a writing transaction) is not such a disjunction.
-- **No vacuous guarantee.** For each disjunction, ask whether its weak side is ever false
-  (`appliedErr ∨ srvMaybeDeposited`, the latter provable from nothing). A parameter that appears only
-  in a precondition, chosen by the caller per call, constrains nothing. For a family of axiomatized
-  predicates, try `True` (or the predicate itself) as a model: if every axiom still holds, the family
-  says nothing.
-- **A postcondition says what the caller inspects.** Not `fun _ => R` when the caller tests `err` or
-  destructures the result.
-- **Facts that can be combined.** A fact at an unknown point (a clock reading `T`) unrelated to what
-  the caller already holds can never be chained with another.
+- **Prefer the stronger spec, comparing whole specs.** One spec is at least as strong as another if
+  the other can be proved as a layer on top of it; so a stronger precondition can still make an
+  equally strong spec, and a pre or a post is never judged alone. (`range.md`, critique 2)
+- **No disjunction of alternative specs** (a precondition "trivial result, or the caller's atomic
+  update"): keep the stronger, the other is a layer. A case split on the input is not one.
+  (`range.md`, critique 2)
+- **No vacuous guarantee.** For each disjunction, ask whether its weak side is ever false: one that
+  always holds makes the statement say nothing (`put.md`, critique 1). A parameter that appears only
+  in a precondition, chosen by the caller per call, constrains nothing (`pilot-review-3.md`). If every
+  axiom of an axiomatized family still holds when its predicates are read as `True`, the family says
+  nothing (`pilot-review-1.md`).
+- **The postcondition says what the caller inspects**: not a constant when the caller tests the error
+  or destructures the result. (`pilot-review-1.md`)
+- **Facts that can be combined**: a fact at an unknown point (a clock reading) that is not related to
+  what the caller already holds can never be chained with another. (`pilot-review-1.md`)
+- **Know the margin**: where the postcondition is weaker than what the code guarantees, say what the
+  code guarantees. (`notes/spec-first-plan.md`, phase 1b)
 
 ## Abstraction
 
-- **The spec of an API, not of an implementation.** Another reasonable implementation of the same
-  API has the same spec (etcd's `Put`: a single in-memory server, no raft). No ghost names, internal
-  records or fields, internal namespaces in masks, or the implementation's certificates and logs.
-- **The vocabulary is part of the spec.** Improving a spec includes replacing or redefining the
-  predicates it is written in, not only how it combines them.
-- **A client does not unfold the spec's definitions**, nor another package's (its contracts,
-  predicates, the initializer's facts by position). Each unfold is a missing law of the owning
-  package. Find them all, mechanically (every `unfold`, `iunfold`, `simp only [...]`, positional
-  `icases` in the callers), not from memory. A proof-only definition (a loop invariant) goes in a
-  module only that proof imports.
-- **Every premise has a source the client sees**: a spec or a law of the API, not the
-  implementation's internal lemmas (`Start`'s `kvBuilt` needs `NewServer`'s post and an allocation
-  law).
-- **No constant or conjunct whose reason you do not know.** `+ 4`, `2 ^ 62` are proof slack; a fact
-  of every reachable state is a law of the vocabulary, not one operation's post. Do not copy a
-  conjunct from a sibling spec without knowing why it is there.
+- **The spec of an API, not of an implementation**: another reasonable implementation of the same API
+  would satisfy it unchanged (for a replicated server: a single in-memory server). No ghost names,
+  internal records or fields, internal namespaces in masks, or the implementation's own logs and
+  certificates. (`put.md`, critique 2)
+- **The vocabulary is part of the spec**: improving a spec includes replacing the predicates it is
+  written in, not only rearranging them. (`put.md`, critique 2)
+- **A client does not unfold the spec's definitions, or any other package's**: each unfold is a
+  missing law of the owning package. Find them mechanically (every `unfold`, `iunfold`, `simp only
+  [...]` and positional destructuring in the callers), not from memory. A proof-only definition goes
+  in a module only that proof imports. (`pilot-review-5.md`)
+- **Every premise has a source the client sees**: a spec or a law of the API, never the
+  implementation's internal lemmas.
+- **No constant or conjunct whose reason you do not know.** A numeric bound in a post is usually the
+  proof's slack; a fact that holds of every reachable state is one law of the vocabulary, not a
+  conjunct of each operation's post. Do not copy a conjunct from a sibling spec without knowing why it
+  is there. (`put.md`, critique 5)
+- **Little coupling, small size**: each other package's predicate a spec mentions is a place where a
+  change elsewhere forces this spec to change (the main cause of spec churn here); and the unfolded
+  statement's length, binders and premises are a cost to every reader. Only specs that cross a
+  package boundary need this care; an internal helper's spec may mirror its code.
+  (`notes/spec-first-plan.md`, phase 1b)
 
 ## Shape
 
-- **TaDa, not HoCAP.** No caller-provided predicate as a parameter of a library predicate
-  (`isStaticCluster … snapOk`). The library's specs take and give back client-owned ghost state (the
-  set of snapshots made: making one takes the set and gives it back with the new snapshot; receiving
-  one gives a witness that it is in the set), and the client keeps whatever invariant it wants over
-  it (etcd: every snapshot's data is empty; an app that makes none: the set stays empty).
-- **Linearizability is the caller's atomic update, written in the triple**: not behind a helper
-  definition (`kvOpAu1`), and in the shape of the closest sibling spec (the server's `Put` and the
-  client's `kv.Put`).
-- **The caller's `Q` carries what the caller needs.** No witness or history predicate beside it
-  (`kvWas γ σ`). A stale read still fires the update at the current state, and answers from a past
-  state of it.
-- **One general spec; special cases are instances.** No predicate or spec family for a special case
-  beside the general one (`isStaticCluster` beside `isDynamicCluster`): it splits the proof in two.
-  No reconfiguration is a run of the proof with reconfiguration; auth disabled is a state. A mode
-  variant (`spec`/`specOn`) is at most a development hack to put off merge conflicts, never the
-  finished spec.
-- **After a change, drop what existed only for what it changed** (the `⌜Q = True⌝ ∨` of reads that
-  once took no atomic update).
+- **TaDa, not HoCAP**: no caller-provided predicate as a parameter of a library's predicate (a
+  cluster predicate taking "what a snapshot's data means"); such a parameter changes every use of the
+  predicate when it changes. Instead the library's specs take and give back ghost state the client
+  owns (the set of snapshots made: making one takes the set and returns it with the new snapshot;
+  receiving one gives a witness that it is in the set), and the client keeps whatever invariant it
+  wants over it (one client: every snapshot's data is empty; a client that makes none: the set stays
+  empty).
+- **Linearizability is the caller's atomic update, written in the triple**, not behind a helper
+  definition, and in the shape of the closest sibling spec (a server operation and the client
+  operation that calls it). (`put.md`, critique 4)
+- **The caller's result predicate carries what the caller needs**: no witness or history predicate
+  beside it. A read that may be stale still fires the update at the current state, and answers from a
+  past state of it. (`range.md`, critique 1)
+- **One general spec; special cases are instances**: no predicate or spec family for a special case
+  beside the general one (a static cluster beside a reconfigurable one), which splits every proof
+  above it in two; no reconfiguration is a run of the general proof. The same holds of modes (auth on
+  and off as two specs): a mode is part of the state. Two mode variants are at most a development
+  hack to put off merge conflicts.
+- **After a change, drop what existed only for what it changed.** (`range.md`, critique 2)
 
-## Resources
+## Resources and laws
 
-- **An exclusive resource the code needs is covered by a token every caller can supply.** A contract
-  `{{ True }}` over an implementation that needs a reader slot cannot be met. `threadTok` is one such
-  token (a reader slot of sorts: it bounds the live goroutines); another is fine if all callers have
-  it. Do not make callers thread a resource only the proof's bookkeeping needs.
-- **A once-only resource is not spent per call.** Check retry and loop paths (a failed call retried
-  with the same argument spends it again); make the exception depend on the value (a persistent
-  one-shot fact), not on the call.
+- **An exclusive resource the code needs is covered by a token every caller can supply**: a contract
+  with no resource over an implementation that needs one (a reader slot) cannot be met
+  (`pilot-review-1.md`). A thread token is one such token (it bounds the live goroutines, as reader
+  slots must be bounded); another is fine if all callers have it. Do not make callers thread a
+  resource only the proof's bookkeeping needs. (`put.md`, critique 3)
+- **A once-only resource is not spent per call**: check retry and loop paths; make the exception
+  depend on the value (a persistent one-shot fact), not on the call. (`pilot-review-2.md`)
 - **Read the definitions of the resources a spec takes**, not only their names: a predicate chosen
-  for the access it gives may also assert what the function breaks (a store reader asserting "never
-  compacted" in a compaction's spec).
+  for the access it gives may also assert what the function breaks. (`pilot-review-2.md`)
+- **The laws callers need come with the predicate**: persistence, timelessness, fractions,
+  agreement, exclusivity. (`notes/spec-first-plan.md`, phase 1b)
+- **Know what it rests on**: the axioms a spec depends on (`etc/tcb-report.py --roots`), whether a
+  tester covers them, and how much of the pre and post is pure and decidable (what a tester can
+  check). (`notes/spec-first-plan.md`, phase 1b)
