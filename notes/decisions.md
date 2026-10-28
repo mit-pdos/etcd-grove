@@ -25219,3 +25219,48 @@ since the `Ready`); kv's port not started.**
   Then `reqOf`/`reqWit` carry the delivered terms, and the raw `node.Advance` and
   `node.Advance.unifiedSpec` posts gain `storTermsAt st.storage (st.delivered.map LogEntry.term)`.
   Not done in this session; kv's port (step 2) waits for it.
+
+**2026-10-28 · step A done: raft hands out the storage's terms at the `advancec` floor raise (option
+(a), with a new invariant where the planned argument failed); kv's port next.**
+- *Where the fact lives, and why not beside `ownRaftLog`.* The coordinator asked for the new fact as
+  its own predicate beside `ownRaftLog`/`ownRawNode`, re-proved only where it can change. That does
+  not work for its storage half: the fact relates the storage's view `σ` to a record of terms, and `σ`
+  is existential inside `ownRaftLog` (`∃ lv σ`). A predicate outside cannot name it without exposing it,
+  which would change `ownRaftLog`'s interface at every site. The storage model has no token for a
+  lower bound of raft's view that a separate resource could hold, and no such token can be made: the
+  floor is the only thing that makes the storage keep entries (`storTermsAt_intro` needs `|ts| ≤ fl`,
+  and the floor is below `applying` between `Ready` and `Advance`). So the storage half is in
+  `ownRaftLog`, as a conjunct of its own: `FlOk` gains `StorTermsOk σ ls` (`InvRaftlog.lean`), and
+  `StorExtOk` is untouched. With a snapshot pending and the storage not lent, `StorTermsOk` says: the
+  storage (pending batch absorbed) has after `ls.stb` (at or below its boundary) the terms
+  `ls.sdt` (`TermsFrom`), which reach `sxt` (or `sxt` is at its boundary).
+- *The record* (`LogState.stb`/`sdt`, ghost): set by `logRestore` (`restoreSdt`). When no snapshot was
+  pending, a restore records the log's boundary and its terms up to `applying` (`logTermsTo`), which
+  the storage holds (`storTerms_of_inv`, from `LogPersistOk`). A second restore keeps the record.
+  `logAbsorbSnap` resets it (the snapshot's index, nothing after it). Sites of `FlOk` that changed:
+  about 10. Most append `Hfl.2.2.2.2.2`, which matches by definition. Real proofs were needed at
+  `raftLog.restore`, `ownRaftLog_absorb_snap`, the lent and no-snapshot cases, `newRaft`'s and
+  `newLogWithSize`'s literal states and `stableSnapTo`'s hit. `ownRaftLog_terms` hands out
+  `storTermsAt` for a prefix of any `Df` that agrees with the log (no snapshot pending) or with the
+  record (one pending).
+- *The `RawNode` half* (`SdtTie rs s`, `ownRawNode`'s `Hsdt`, `InvRawnode.lean`): with a snapshot
+  pending, `sdt[k]` is the term of `delivered`'s entry `stb + k + 1`. The tie has to survive every
+  `raft.Step` between the restore and the `Advance`, so the steps must say they keep `stb`/`sdt`.
+  The churn went into framing, not proofs:
+  - `NetFrame`/`LocalFrame`'s `stored` conjunct became `logStoreRec s'.logst = logStoreRec
+    s.logst` (`stored`, `stb`, `sdt`), which is `rfl` at every arm. About 70 consumer edits, each
+    one token (`logStoreRec_stored H`); the same change in `HandleAppResult`,
+    `raftLog.maybeAppend.spec` and `RawNode.Advance`'s loop invariants.
+  - `SnapLogStep` exposes the record a restore makes (`restoreSdt`).
+  - `ownRawNode_intro`, `ownRawNodeIdle` and `ownRawNodeReady` carry `Hsdt`. About 40 sites pass it
+    unchanged; about 15 need `Hsdt.ofRec` (frames), `Hsdt.snap` (`RawNode.Step`'s and the node
+    loop's `MsgSnap`: `delivered`'s terms are the log's, `ownStepGhost_dlv_terms`, from
+    `isCommitted_agree`), `Hsdt.keep` (`acceptReady`: `delivered` grows) or `of_none` (fresh nodes).
+    `RawNode.Advance`'s snapshot path: the receipt's absorption leaves `sdt = []`.
+- *The floor raise* (`ownRawNode_raise_floor`, now taking a prefix `D` of `delivered`) also returns
+  `storTermsAt rs.storage (D.map Term')`. It reads the log with no snapshot pending
+  (`ownStepGhost_dlv_terms`) and the record with one (`SdtTie`). The `advancec` request carries the
+  driver's log (`AdvReq`'s first part `Option (List EntryM)`, `reqOf none ds = some ds`), and
+  `reqWit (some ds)` adds `storTermsAt γ.stor (ds.map Term')`. `node.Advance.unifiedSpec`'s
+  post (no snapshot) adds `storTermsAt st.storage (st.delivered.map LogEntry.term)`. `.spec` and
+  `.dynamicSpec` are unchanged (their proofs drop the new part).

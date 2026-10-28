@@ -45,7 +45,12 @@ def node.Advance.unifiedSpec : Prop :=
                           { storage := st.storage, delivered := st.delivered, hardState := st.hardState,
                             handling := none } ∗
                         match L with
-                        | none => nodeConfig n γ N v ∗ ∃ x, storFloor st.storage x ∗ ⌜↑st.delivered.length ≤ uint.Z x⌝
+                        | none =>
+                          nodeConfig n γ N v ∗
+                            ∃ x,
+                              storFloor st.storage x ∗
+                                ⌜↑st.delivered.length ≤ uint.Z x⌝ ∗
+                                  storTermsAt st.storage (List.map LogEntry.term st.delivered)
                         | some l =>
                           ∃ m,
                             nodeConfig n γ N { applied := uint.nat l.snap.Metadata'.Index', membership := m } ∗

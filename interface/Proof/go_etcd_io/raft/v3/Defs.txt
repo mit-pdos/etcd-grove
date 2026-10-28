@@ -56,6 +56,8 @@ structure LogState : Type where
   aps : Bool
   sat : Bool
   sxt : w64
+  stb : w64
+  sdt : List w64
 
 def prstateOfW64 (st : w64) : Option PRState :=
   if st = W64 0 then some PRState.probe
@@ -136,6 +138,9 @@ theorem becomeFollower.proj_lt [GoGlobalContext] [GoSemanticsFunctions] (s : NSt
 def MsgHeartbeatResp : w32 :=
   W32 9
 
+theorem logStoreRec_stored {ls ls' : LogState} (h : logStoreRec ls' = logStoreRec ls) : ls'.stored =
+    ls.stored
+
 def becomeFollower [GoGlobalContext] [GoSemanticsFunctions] (s : NState) (term lead : w64) : NState
     :=
   have __src := resetTo s term;
@@ -178,13 +183,16 @@ def logAppend (ls : LogState) (ents : List EntryM) : LogState :=
   { prev := ls.prev, sents := ls.sents, uents := ls.uents ++ ents, committed := ls.committed, applied := ls.applied,
     snap := ls.snap, inprogress := ls.inprogress, applying := ls.applying, unpersisted := ls.unpersisted,
     stored := ls.stored, apsize := ls.apsize, apmax := ls.apmax, storage := ls.storage, ksn := ls.ksn, fl := ls.fl,
-    sip := ls.sip, lent := ls.lent, sapp := ls.sapp, aps := ls.aps, sat := ls.sat, sxt := ls.sxt }
+    sip := ls.sip, lent := ls.lent, sapp := ls.sapp, aps := ls.aps, sat := ls.sat, sxt := ls.sxt, stb := ls.stb,
+    sdt := ls.sdt }
 
 def instInhabitedPRole.default : PRole :=
   PRole.follower
 
 theorem logAppend.proj_sapp (ls : LogState) (ents : List EntryM) : (logAppend ls ents).sapp =
     ls.sapp
+
+theorem logAppend.proj_sdt (ls : LogState) (ents : List EntryM) : (logAppend ls ents).sdt = ls.sdt
 
 theorem becomePrecandidate.proj_rd [GoGlobalContext] [GoSemanticsFunctions] (s : NState) :
     (becomePrecandidate s).rd = s.rd
@@ -418,6 +426,9 @@ theorem isMessage_absMsg_ctx [ReceiptGS GF] (γ : RaftNames) (ty : MsgType) (m :
 
 def campaignTransfer : CampaignType :=
   go!"CampaignTransfer"
+
+def logStoreRec (ls : LogState) : List EntryM × w64 × List w64 :=
+  (ls.stored, ls.stb, ls.sdt)
 
 def inflightsReset (i : Inflights) : Inflights :=
   { count := 0, size := i.size, bytes := 0, maxBytes := i.maxBytes }
@@ -731,6 +742,9 @@ def InflightsFreed (i i' : Inflights) : Prop :=
 theorem becomeFollower.proj_ticking [GoGlobalContext] [GoSemanticsFunctions] (s : NState) (term lead
     : w64) : (becomeFollower s term lead).ticking = true
 
+def restoreSdt (ls : LogState) : w64 × List w64 :=
+  if ls.snap.isSome = true then (ls.stb, ls.sdt) else (ls.prev.index', logTermsTo ls)
+
 theorem logAppend.proj_fl (ls : LogState) (ents : List EntryM) : (logAppend ls ents).fl = ls.fl
 
 theorem PrOkN.clearSnap {ns : Bool} {ls : LogState} {p : Progress} (H : PrOkN ns ls p) : PrOkN ns ls
@@ -953,6 +967,8 @@ theorem progressBecomeProbe.proj_infl (p : Progress) : (progressBecomeProbe p).i
 
 theorem becomeCandidate.proj_vote [GoGlobalContext] [GoSemanticsFunctions] (id : w64) (s : NState) :
     (becomeCandidate id s).vote = id
+
+theorem logAppend.proj_stb (ls : LogState) (ents : List EntryM) : (logAppend ls ents).stb = ls.stb
 
 theorem becomeLeaderPre.proj_role [GoGlobalContext] [GoSemanticsFunctions] (id : w64) (s : NState) :
     (becomeLeaderPre id s).role = PRole.leader
@@ -1287,7 +1303,8 @@ def logRestore (ls : LogState) (k : SnapTrip) : LogState :=
   { prev := k.sid, sents := [], uents := [], committed := k.sid.index', applied := ls.applied, snap := some k.sid,
     inprogress := k.sid.index' + W64 1, applying := ls.applying, unpersisted := ls.unpersisted, stored := ls.stored,
     apsize := ls.apsize, apmax := ls.apmax, storage := ls.storage, ksn := ls.ksn ++ [k], fl := ls.fl, lent := ls.lent,
-    sxt := if ls.snap.isSome = true ∧ uint.Z ls.applying ≤ uint.Z ls.sxt then ls.sxt else ls.applying }
+    sxt := if ls.snap.isSome = true ∧ uint.Z ls.applying ≤ uint.Z ls.sxt then ls.sxt else ls.applying,
+    stb := (restoreSdt ls).fst, sdt := (restoreSdt ls).snd }
 
 theorem becomeLeaderLog.proj_log [GoGlobalContext] [GoSemanticsFunctions] (id : w64) (s : NState) :
     (becomeLeaderLog id s).log = (becomeLeaderPre id s).log
@@ -1309,6 +1326,9 @@ theorem resetTo.proj_stepfn (s : NState) (term : w64) : (resetTo s term).stepfn 
     term).stepfn
 
 theorem logRestore.proj_prev (ls : LogState) (k : SnapTrip) : (logRestore ls k).prev = k.sid
+
+theorem logRestore.proj_stb (ls : LogState) (k : SnapTrip) : (logRestore ls k).stb = (restoreSdt
+    ls).fst
 
 theorem inflightsAdd.proj_maxBytes (i : Inflights) (b : w64) : (inflightsAdd i b).maxBytes =
     i.maxBytes
@@ -1493,6 +1513,9 @@ def progressAbs (pv : tracker.Progress) (i : Inflights) : Option Progress :=
         pendingSnapshot := pv.PendingSnapshot', paused := pv.MsgAppFlowPaused', infl := i, learner := pv.IsLearner' })
     (prstateOfW64 pv.State')
 
+theorem logRestore.proj_sdt (ls : LogState) (k : SnapTrip) : (logRestore ls k).sdt = (restoreSdt
+    ls).snd
+
 theorem PrOk.setPaused {ls : LogState} {p : Progress} (H : PrOk ls p) (b : Bool) : PrOk ls { matched
     := p.matched, next := p.next, sentCommit := p.sentCommit, state := p.state, pendingSnapshot :=
     p.pendingSnapshot, paused := b, infl := p.infl, learner := p.learner }
@@ -1571,3 +1594,6 @@ theorem mtypeOf_MsgSnap : mtypeOf MsgSnap = some MsgType.snap
 
 theorem becomePrecandidate.proj_cq [GoGlobalContext] [GoSemanticsFunctions] (s : NState) :
     (becomePrecandidate s).cq = s.cq
+
+def logTermsTo (ls : LogState) : List w64 :=
+  List.map (fun x => x.Term') (List.take (uint.nat ls.applying - uint.nat ls.prev.index') (ls.sents ++ ls.uents))

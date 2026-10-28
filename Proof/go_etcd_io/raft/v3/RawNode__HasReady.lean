@@ -59,7 +59,7 @@ local macro "finish0" : tactic => `(tactic| (
   · ipureintro; rfl
   iapply ownRawNode_intro γ rn id rs s cf fp rnv sv hprev steps Hwf Hin Hal Hasync Hdlen Hunp Hsnap Hstok
     Htrm Hstor Hpvoff Hrs_out Hrs_unst Hrs_clb Hrnfl Hloan
-    $$ Hrn Hphys Hghost Hsdrf Hsoft Hhard Hsteps Hsteps_cap Hpend Hdeliv Hstrecs Hloanc Hsloc))
+    Hsdt $$ Hrn Hphys Hghost Hsdrf Hsoft Hhard Hsteps Hsteps_cap Hpend Hdeliv Hstrecs Hloanc Hsloc))
 
 set_option hygiene false in
 /-- Close the view, refold `ownRawNode` unchanged, return. -/
@@ -71,7 +71,7 @@ local macro "finish" : tactic => `(tactic| (
   · ipureintro; rfl
   iapply ownRawNode_intro γ rn id rs s cf fp rnv sv hprev steps Hwf Hin Hal Hasync Hdlen Hunp Hsnap Hstok
     Htrm Hstor Hpvoff Hrs_out Hrs_unst Hrs_clb Hrnfl Hloan
-    $$ Hrn Hphys Hghost Hsdrf Hsoft Hhard Hsteps Hsteps_cap Hpend Hdeliv Hstrecs Hloanc Hsloc))
+    Hsdt $$ Hrn Hphys Hghost Hsdrf Hsoft Hhard Hsteps Hsteps_cap Hpend Hdeliv Hstrecs Hloanc Hsloc))
 
 set_option hygiene false in
 /-- The one path that returns `false`: no queue is non-empty, no unstable entry is
@@ -100,7 +100,7 @@ local macro "finish_false" : tactic => `(tactic| (
   · ipureintro; rfl
   -- (D22 S-d3a) no snapshot to hand out: none pending, or the pending one in progress
   iapply ownRawNodeIdle_intro γ rn id rs s cf fp rnv sv hprev steps Hwf Hin Hal Hasync Hdlen Hunp
-    Hsnap Hstok Htrm Hstor Hpvoff Hrs_out Hrs_unst Hrs_clb Hrnfl Hloan
+    Hsnap Hstok Htrm Hstor Hpvoff Hrs_out Hrs_unst Hrs_clb Hrnfl Hloan Hsdt
     ⟨Hout0, Hnu, Hrd0, Hsn.2 rfl⟩
     $$ Hrn Hphys Hghost Hsdrf Hsoft Hhard Hsteps Hsteps_cap Hpend Hdeliv Hstrecs Hloanc Hsloc))
 

@@ -160,7 +160,8 @@ def LocalFrame [GooseExts] (s s' : NState) : Prop :=
   s'.logst.unpersisted = s.logst.unpersisted ∧
   s'.logst.snap = s.logst.snap ∧
   s'.logst.prev = s.logst.prev ∧
-  s'.logst.stored = s.logst.stored ∧
+  -- (2026-10-28, stage U4a) with the record of the storage's terms (`logStoreRec`)
+  logStoreRec s'.logst = logStoreRec s.logst ∧
   s'.logst.storage = s.logst.storage ∧
   s'.prevote = s.prevote ∧
   s'.gh = s.gh ∧
@@ -208,7 +209,8 @@ def NetFrame [GooseExts] (s s' : NState) : Prop :=
   s'.logst.snap = s.logst.snap ∧
   s'.logst.unpersisted = s.logst.unpersisted ∧
   s'.logst.prev = s.logst.prev ∧
-  s'.logst.stored = s.logst.stored ∧
+  -- (2026-10-28, stage U4a) with the record of the storage's terms (`logStoreRec`)
+  logStoreRec s'.logst = logStoreRec s.logst ∧
   s'.logst.storage = s.logst.storage ∧
   s'.prevote = s.prevote ∧
   s'.gh = s.gh ∧
@@ -426,15 +428,19 @@ a `Ready` the restore came between (`ackBaseW`, `InvRawnode.lean`). -/
 def SnapLogStep [GooseExts] (sv : SnapshotM) (m : MessageM) (s s' : NState) : Prop :=
   (s'.logst.prev = s.logst.prev ∧ s'.logst.snap = s.logst.snap ∧
    s'.logst.sents ++ s'.logst.uents = s.logst.sents ++ s.logst.uents ∧
-   s'.logst.inprogress = s.logst.inprogress) ∨
+   s'.logst.inprogress = s.logst.inprogress ∧
+   -- (2026-10-28, stage U4a) the record of the storage's terms kept
+   s'.logst.stb = s.logst.stb ∧ s'.logst.sdt = s.logst.sdt) ∨
   (s'.term = m.Term' ∧ s'.logst.prev = snapId sv ∧ s'.logst.snap = some (snapId sv) ∧
    s'.logst.sents ++ s'.logst.uents = [] ∧
    uint.Z s.logst.committed < uint.Z sv.Metadata'.Index' ∧
-   ¬ PlogMatches s.logst.prev (s.logst.sents ++ s.logst.uents) (snapId sv))
+   ¬ PlogMatches s.logst.prev (s.logst.sents ++ s.logst.uents) (snapId sv) ∧
+   -- (2026-10-28, stage U4a) the record of the storage's terms the restore made (`restoreSdt`)
+   s'.logst.stb = (restoreSdt s.logst).1 ∧ s'.logst.sdt = (restoreSdt s.logst).2)
 
 theorem SnapLogStep.refl [GooseExts] (sv : SnapshotM) (m : MessageM) (s : NState) :
     SnapLogStep sv m s s :=
-  .inl ⟨rfl, rfl, rfl, rfl⟩
+  .inl ⟨rfl, rfl, rfl, rfl, rfl, rfl⟩
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]

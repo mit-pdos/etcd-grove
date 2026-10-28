@@ -98,7 +98,7 @@ theorem RawNode.ForgetLeader.wp_proof
     have h2 : uint.Z s'.term ≤ uint.Z s.term := by
       omega
     word
-  ihave #Hstr' := ackInv_keep (rs' := rs) γ rfl Hstok Ht1 Hpv Hsn Hsd (Hip4 (by msg_ne)) $$ Hstrecs
+  ihave #Hstr' := ackInv_keep (rs' := rs) γ rfl Hstok Ht1 Hpv Hsn (logStoreRec_stored Hsd) (Hip4 (by msg_ne)) $$ Hstrecs
   icases Herr with (%Herr | ⟨%Hc', -⟩)
   · iapply HΦ $$ %err
     simp only [named]
@@ -106,12 +106,12 @@ theorem RawNode.ForgetLeader.wp_proof
     ihave #Hsloc' := snapLocOk_keep γ id (.inl Hsn) $$ Hsloc
     · iapply ownRawNode_intro γ rn id rs s' cf fp rnv sv hprev steps Hwf' Hin Hal
         Hasync (by rw [Ha]; exact Hdlen) (by rw [Hu]; exact Hunp) (by rw [Hsn]; exact Hsnap)
-        (stepsOk_mono_le s s' _ Ht1 ⟨Hpv, Hsd⟩ Hc Ha (tc_le_of_gh Hgh) Hstok) Htrm' (by rw [Hsg]; exact Hstor)
+        (stepsOk_mono_le s s' _ Ht1 ⟨Hpv, (logStoreRec_stored Hsd)⟩ Hc Ha (tc_le_of_gh Hgh) Hstok) Htrm' (by rw [Hsg]; exact Hstor)
         (Hpvoff.step rfl rfl Hpre Hgh (by rw [← Htrm', Htrm]; exact Hpvoff.2.2.1) Hpcs
           (by msg_ne))
         (by rw [Hgh]; exact Hrs_out) (by rw [Hgh]; exact Hrs_unst) (Int.le_trans Hrs_clb Hc)
-        (RNFl.keep Hrnfl Hfl' Hap' Ha) (Hloan.keep Hgh Hsn Hfl' Hsd Hu Ha Hc)
-        $$ Hrn Hphys Hghost Hsdrf Hsoft Hhard Hsteps Hsteps_cap Hpend Hdeliv Hstr' Hloanc Hsloc'
+        (RNFl.keep Hrnfl Hfl' Hap' Ha) (Hloan.keep Hgh Hsn Hfl' (logStoreRec_stored Hsd) Hu Ha Hc)
+        (Hsdt.ofRec Hsn Hsd) $$ Hrn Hphys Hghost Hsdrf Hsoft Hhard Hsteps Hsteps_cap Hpend Hdeliv Hstr' Hloanc Hsloc'
     ipureintro; exact Herr
   · exfalso; revert Hc'; msg_ne
 

@@ -355,6 +355,16 @@ structure LogState [GooseExts] where
   `Ready`'s receipt (to the snapshot the storage is then at, which `appliedSnap` moves `applying`
   to also when a later snapshot was restored meanwhile: `SnpOk`'s link to the lent snapshot). -/
   sxt : w64 := 0
+  /-- (2026-10-28, stage U4a) With a snapshot pending and the storage not lent, the terms the
+  storage holds after the index `stb` (ghost): index `stb + k + 1` has the term `sdt[k]`, up to
+  `applying` (`StorExtOk`), so that the floor raised to `applying` with a snapshot pending comes
+  with the storage's terms (`ownRaftLog_terms`). Set by a restore when none was pending
+  (`restoreSdt`: the log's boundary and its terms up to `applying`, which the storage holds), kept
+  by a second one, reset by the absorption of a snapshot `Ready`'s receipt (the snapshot's index,
+  nothing after it: `applying ≤ sxt` there). The `RawNode` ties them to the committed log it
+  handed out (`SdtTie`). -/
+  stb : w64 := 0
+  sdt : List w64 := []
 
 /-! ## The tracker's records (2026-10-02)
 
@@ -915,6 +925,22 @@ def logAppend (ls : LogState) (ents : List EntryM) : LogState :=
 def snapId (sv : SnapshotM) : entryID :=
   entryID.mk sv.Metadata'.Term' sv.Metadata'.Index'
 
+/-- (2026-10-28, stage U4a) The log's terms after its boundary up to `applying`. -/
+def logTermsTo (ls : LogState) : List w64 :=
+  ((ls.sents ++ ls.uents).take (uint.nat ls.applying - uint.nat ls.prev.index')).map (·.Term')
+
+/-- (2026-10-28, stage U4a) What a restore records of the storage's terms (`LogState.stb`/`sdt`):
+as before if a snapshot was pending, else the log's boundary and its terms up to `applying`. -/
+def restoreSdt (ls : LogState) : w64 × List w64 :=
+  if ls.snap.isSome then (ls.stb, ls.sdt) else (ls.prev.index', logTermsTo ls)
+
+/-- (2026-10-28, stage U4a) The fields `NetFrame`/`LocalFrame` keep of what the storage holds:
+`stored`, and the record of the storage's terms (`stb`, `sdt`). -/
+def logStoreRec (ls : LogState) : List EntryM × w64 × List w64 := (ls.stored, ls.stb, ls.sdt)
+
+theorem logStoreRec_stored {ls ls' : LogState} (h : logStoreRec ls' = logStoreRec ls) :
+    ls'.stored = ls.stored := congrArg Prod.fst h
+
 /-- `raftLog.restore(s)` (`Spec/raftLog__restore.lean`): the log is the snapshot -- its
 id is the boundary, nothing after it, committed up to it, `applied` untouched, the
 snapshot pending. `unstable.restore` sets `offsetInProgress` to the new offset;
@@ -926,7 +952,9 @@ def logRestore (ls : LogState) (k : SnapTrip) : LogState :=
    -- (D22 S-d1b) the storage stays lent, if it is; the storage no longer at the pending snapshot
    ls.lent, false, false, false,
    -- (D22 S-d4 item 3) what the storage holds: as before if a snapshot was pending, else `applying`
-   if ls.snap.isSome ∧ uint.Z ls.applying ≤ uint.Z ls.sxt then ls.sxt else ls.applying⟩
+   if ls.snap.isSome ∧ uint.Z ls.applying ≤ uint.Z ls.sxt then ls.sxt else ls.applying,
+   -- (2026-10-28, stage U4a) the storage's terms (`restoreSdt`)
+   (restoreSdt ls).1, (restoreSdt ls).2⟩
 
 /-- A snapshot as the protocol knows it (2026-10-15, stage S): its id, the lists behind its
 `ConfState` and its `AutoLeave`; (D22 S-r, 2026-10-21) and its data. -/

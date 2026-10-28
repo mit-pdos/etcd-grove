@@ -210,7 +210,7 @@ theorem wp_Step_MsgStorageAppendResp_none (_P : raft.Step.Postulates (GF := GF) 
     ipureintro
     obtain ⟨Hap, Hun, Hsn', Hip, Hpv, Hst⟩ :=
       logStableTo_fields s.logst (entryID.mk m.LogTerm' m.Index')
-    refine ⟨Hwf, ⟨⟨rfl, Hip, Hun, Hsn', Hpv, Hst, logStableTo_storage _ _, rfl, rfl, rfl,
+    refine ⟨Hwf, ⟨⟨rfl, Hip, Hun, Hsn', Hpv, (by unfold logStableTo; split <;> rfl), logStableTo_storage _ _, rfl, rfl, rfl,
       by unfold logStableTo; split <;> rfl,
       by rw [show (logStableTo s.logst (entryID.mk m.LogTerm' m.Index')).applied = s.logst.applied
         by unfold logStableTo; split <;> rfl]; exact Int.le_refl _⟩, Hap⟩,

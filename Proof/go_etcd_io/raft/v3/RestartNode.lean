@@ -261,6 +261,7 @@ private theorem RestartNode.wp_raw
           -- (D22 S-d3a) no snapshot lent
           ⟨by rw [Hgh]; try rfl, fun _ => ⟨by rw [Hgh]; try rfl, fun _ _ _ _ h => (by cases h)⟩,
             fun l h => (by cases h)⟩
+          (SdtTie.of_none Hsn)
           (TrackedOk.of_sub (by rw [Hdom, P25]; exact GMap.subseteq_refl _)
             (by rw [P25]; exact (GMap.elem_of_list_to_set _ _).2 P26))
           (by unfold NsLink; rw [Hgh, Hns0, Hnx0]; exact ⟨rfl, rfl, rfl⟩)
@@ -314,7 +315,7 @@ private theorem RestartNode.wp_raw
           -- (D22 S-d3a) no snapshot lent
           ⟨by rw [Hgh]; try rfl, fun _ => ⟨by rw [Hgh]; try rfl, fun _ _ _ _ h => (by cases h)⟩,
             fun l h => (by cases h)⟩
-          $$ Hrn Hphys Hghost Hsdrf Hsoft Hhard0 Hsteps Hsteps_cap [] Hcommitted [] [] []
+          (SdtTie.of_none Hsn) $$ Hrn Hphys Hghost Hsdrf Hsoft Hhard0 Hsteps Hsteps_cap [] Hcommitted [] [] []
       · iapply pendList_nil
       · iapply ackInv_none; intro _ _ _ _ h; cases h
       · ipureintro; trivial

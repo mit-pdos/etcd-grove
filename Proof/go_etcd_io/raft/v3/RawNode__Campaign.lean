@@ -94,7 +94,7 @@ theorem RawNode.Campaign.wp_proof
   obtain ⟨Ha, Hsn, Hu, Hpv, Hsd, Hsg, Hpre, Hgh, Hfl', Hap'⟩ := Hfr (by msg_ne) (by msg_ne) (fun h => absurd h (by msg_ne))
   obtain ⟨Ht1, Ht2, -, Hip4, -, Hpcs⟩ := Htm (by msg_ne)
   have Ht2' := Ht2 rfl
-  ihave #Hstr' := ackInv_keep (rs' := rs) γ rfl Hstok Ht1 Hpv Hsn Hsd (Hip4 (by msg_ne)) $$ Hstrecs
+  ihave #Hstr' := ackInv_keep (rs' := rs) γ rfl Hstok Ht1 Hpv Hsn (logStoreRec_stored Hsd) (Hip4 (by msg_ne)) $$ Hstrecs
   icases Herr with (%Herr | ⟨%Hc', -⟩)
   · iapply HΦ $$ %err %s'.term
     simp only [named]
@@ -102,11 +102,11 @@ theorem RawNode.Campaign.wp_proof
     ihave #Hsloc' := snapLocOk_keep γ id (.inl Hsn) $$ Hsloc
     · iapply ownRawNode_intro γ rn id { rs with term := s'.term } s' cf fp rnv sv hprev steps Hwf' Hin Hal
         Hasync (by rw [Ha]; exact Hdlen) (by rw [Hu]; exact Hunp) (by rw [Hsn]; exact Hsnap)
-        (stepsOk_mono_le s s' _ Ht1 ⟨Hpv, Hsd⟩ Hc Ha (tc_le_of_gh Hgh) Hstok) rfl (by rw [Hsg]; exact Hstor) 
+        (stepsOk_mono_le s s' _ Ht1 ⟨Hpv, (logStoreRec_stored Hsd)⟩ Hc Ha (tc_le_of_gh Hgh) Hstok) rfl (by rw [Hsg]; exact Hstor) 
         (Hpvoff.step rfl rfl Hpre Hgh (by have := Ht2 rfl; omega) Hpcs (fun _ => Htc1))
         (by rw [Hgh]; exact Hrs_out) (by rw [Hgh]; exact Hrs_unst) (Int.le_trans Hrs_clb Hc)
-        (RNFl.keep Hrnfl Hfl' Hap' Ha) (Hloan.keep Hgh Hsn Hfl' Hsd Hu Ha Hc)
-        $$ Hrn Hphys Hghost Hsdrf Hsoft Hhard Hsteps Hsteps_cap Hpend Hdeliv Hstr' Hloanc Hsloc'
+        (RNFl.keep Hrnfl Hfl' Hap' Ha) (Hloan.keep Hgh Hsn Hfl' (logStoreRec_stored Hsd) Hu Ha Hc)
+        (Hsdt.ofRec Hsn Hsd) $$ Hrn Hphys Hghost Hsdrf Hsoft Hhard Hsteps Hsteps_cap Hpend Hdeliv Hstr' Hloanc Hsloc'
     ipureintro
     rw [Htrm]
     exact ⟨⟨Ht1, Ht2'⟩, Herr⟩

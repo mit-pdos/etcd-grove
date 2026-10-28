@@ -49,7 +49,7 @@ local macro "early_return" e:term : tactic => `(tactic| (
       (fun h => Hsnap ⟨Hps' h.1, h.2⟩) Hstok Htrm Hstor Hpvoff
       Hrs_out Hrs_unst Hrs_clb Hrnfl
       (Hloan.step rs.term rfl (fun _ => ⟨.inl rfl, rfl, rfl, rfl, rfl, Int.le_refl _⟩))
-      $$ Hrn Hphys Hghost Hsdrf Hsoft Hhard Hsteps Hsteps_cap Hpend Hdeliv Hstrecs Hloanc Hsloc
+      Hsdt $$ Hrn Hphys Hghost Hsdrf Hsoft Hhard Hsteps Hsteps_cap Hpend Hdeliv Hstrecs Hloanc Hsloc
   ipureintro
   refine ⟨Int.le_refl _, by rw [Htrm, Hpvoff.2.1]; exact Hpvoff.2.2.1, fun _ => ?_⟩
   split <;> omega))
@@ -124,6 +124,11 @@ theorem RawNode.Step.wp_proof
       icases ownRaftPhysC_persistRel cf rnv.raft' id s $$ Hphys with ⟨%Hpr, Hphys⟩
       icases ownRaftPhysC_gh cf rnv.raft' id s $$ Hphys with ⟨%Hgh0, Hphys⟩
       have Hrel := fun h => Hpr.2 (ack_snap_sip Hloan Hgh0.1.2 h)
+      -- (2026-10-28, stage U4a) `delivered`'s terms are the log's, for a restore's record
+      icases ownRaftPhysC_applying cf rnv.raft' id s $$ Hphys with ⟨%Hac0, Hphys⟩
+      icases ownStepGhost_dlv_terms γ _ cf id s rs.delivered
+        (by have := uint_Z_nonneg s.logst.applying; rw [Hdlen]; omega) Hac0 $$ Hdeliv Hghost
+        with ⟨%Hdag, Hghost⟩
       wp_apply Hok.raftStep Hpvoff Htrm Hmtc Htn Hb1 (Hrnfl.1 Hflw) (fun h => Hnl.2.1.trans (Hxt h)) (wp_raft_Step cf _ γ _ id s ml m ents ctx sn rsp)
           Hwf
         (RNMode.pre_net Hpf (by not_net)) (fun h => Hnl.1.trans (Hsnp h))
@@ -190,6 +195,9 @@ theorem RawNode.Step.wp_proof
         ihave #Hstr' : ackInv γ
             { rs with term := s'.term, psnap := rs.psnap || decide (m.Type' = MsgSnap) } s' $$ []
         · iapply ackInv_snap γ rfl Hstok Ht1 Hsd Hsl0 Hrel Hpr.1 $$ Hstrecs HG2
+        -- (2026-10-28, stage U4a) the record of the storage's terms: kept, or the restore's of the
+        -- log's terms, which are `delivered`'s
+        have Hsdt' : SdtTie rs s' := Hsdt.snap Hdag Hsl0
         wp_auto
         iapply HΦ $$ %err %s'.term
         isplitl
@@ -207,7 +215,7 @@ theorem RawNode.Step.wp_proof
                   rcases Hsl0 with ⟨-, h2, -, -⟩ | ⟨-, -, h2, -, h3, -⟩
                   · exact .inl h2
                   · exact .inr ⟨_, h2, h3, by simp [Hs]⟩, Hfl', Hsd, Hu, Ha, Hc⟩))
-              $$ Hrn Hphys Hghost Hsdrf Hsoft Hhard Hsteps Hsteps_cap Hpend Hdeliv Hstr' Hloanc Hsloc'
+              Hsdt' $$ Hrn Hphys Hghost Hsdrf Hsoft Hhard Hsteps Hsteps_cap Hpend Hdeliv Hstr' Hloanc Hsloc'
         ipureintro
         rw [Htrm]
         exact ⟨Ht1, by rw [Hpvoff.2.1]; exact Hle, Ht3'⟩
@@ -234,7 +242,8 @@ theorem RawNode.Step.wp_proof
             have := Int.max_le.2 ⟨Htc0, Hmtc'⟩; omega
       -- the queue survives any step, a truncating `MsgApp`'s too: what it needs of the log
       -- is `prev` and `stored`, which no network step changes (`NetFrame`)
-      have Hstok' : StepsOk s' rs.steps := stepsOk_mono_le s s' _ Ht1 ⟨Hpv, Hsd⟩ Hc Ha (tc_le_of_gh Hgh) Hstok
+      have Hstok' : StepsOk s' rs.steps :=
+        stepsOk_mono_le s s' _ Ht1 ⟨Hpv, logStoreRec_stored Hsd⟩ Hc Ha (tc_le_of_gh Hgh) Hstok
       -- (D22 S-d3b) the acknowledgement's facts across the step: a `MsgApp`'s truncation, at an
       -- entry of its leader's log (`ackInv_app`), or `offsetInProgress` not moved back
       ihave #Hstr' : ackInv γ
@@ -243,8 +252,9 @@ theorem RawNode.Step.wp_proof
         · ihave #Hm' := Hmsg $$ %MsgType.app %(by rw [Happ]; exact mtypeOf_MsgApp) %(by decide)
           rw [isMessage_absMsg_ctx γ .app m ents ctx (And.intro (by decide) (by decide))]
           ihave #Hents := isMessage_app_leadFull γ m ents $$ Hm'
-          iapply ackInv_app γ rfl Hstok Ht1 Hpv Hsn Hsd (Htrc Happ) Hrel Hpr.1 $$ Hstrecs Hents
-        · iapply ackInv_keep γ rfl Hstok Ht1 Hpv Hsn Hsd (Hip4 Happ) $$ Hstrecs
+          iapply ackInv_app γ rfl Hstok Ht1 Hpv Hsn (logStoreRec_stored Hsd) (Htrc Happ) Hrel Hpr.1
+            $$ Hstrecs Hents
+        · iapply ackInv_keep γ rfl Hstok Ht1 Hpv Hsn (logStoreRec_stored Hsd) (Hip4 Happ) $$ Hstrecs
       ihave #Hsloc' : snapLocOk γ id s'.logst.snap $$ []
       · rw [Hsn]; iexact Hsloc
       wp_auto
@@ -259,8 +269,8 @@ theorem RawNode.Step.wp_proof
             (Hpvoff.step rfl rfl Hpre Hgh Hle Hpcs (by not_net))
             (by rw [Hgh]; exact Hrs_out) (by rw [Hgh]; exact Hrs_unst) (Int.le_trans Hrs_clb Hc)
             (RNFl.keep Hrnfl Hfl' Hap' Ha)
-            (Hloan.step s'.term Hgh (fun _ => ⟨.inl Hsn, Hfl', Hsd, Hu, Ha, Hc⟩))
-            $$ Hrn Hphys Hghost Hsdrf Hsoft Hhard Hsteps Hsteps_cap Hpend Hdeliv Hstr' Hloanc Hsloc'
+            (Hloan.step s'.term Hgh (fun _ => ⟨.inl Hsn, Hfl', logStoreRec_stored Hsd, Hu, Ha, Hc⟩))
+            (Hsdt.ofRec Hsn Hsd) $$ Hrn Hphys Hghost Hsdrf Hsoft Hhard Hsteps Hsteps_cap Hpend Hdeliv Hstr' Hloanc Hsloc'
       ipureintro
       rw [Htrm]
       exact ⟨Ht1, by rw [Hpvoff.2.1]; exact Hle, Ht3'⟩)

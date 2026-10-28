@@ -991,6 +991,12 @@ theorem RawNode.acceptReady.wp_proof
   simp only [named]
   ihave #Hsloc' := snapLocOk_keep γ id (o' := (readyNstate s L ce sz).logst.snap)
     (.inl (by rw [Hlogst, Haf2, Hf_snap])) $$ Hsloc
+  -- (2026-10-28, stage U4a) the record of the storage's terms is untouched by a `Ready`
+  have Hsdtk : (readyNstate s L ce sz).logst.stb = s.logst.stb ∧
+      (readyNstate s L ce sz).logst.sdt = s.logst.sdt := by
+    rw [Hlogst, ← Hls0]; unfold logAcceptApplying logAcceptUnstable rdyLs
+    repeat' split
+    all_goals exact ⟨rfl, rfl⟩
   iapply ownRawNode_intro γ rn id rsN
     (readyNstate s L ce sz) cf fp
     { rnv with prevSoftSt' := psp, prevHardSt' := ph, stepsOnAdvance' := stl4 }
@@ -1005,7 +1011,8 @@ theorem RawNode.acceptReady.wp_proof
     ⟨fun h => readyNstate_guard (Hpvoff.1 h), Hpvoff.2.1, Hpvoff.2.2.1, Hpvoff.2.2.2.1,
       readyNstate_snapFol Hpvoff.2.2.2.2⟩ rfl rfl
     (by rw [Hlogst, Haf4, Hf_cm]; exact Hrs_clb) HrnflN HloanN
-    $$ Hrn Hphys Hghost Hsdrf Hpsp Hph Hsteps Hsteps_cap Hpend Hcommitted Hstrecs' Hloanc Hsloc'
+    (SdtTie.keep Hsdt (fun h => by rwa [Hlogst, Haf2, Hf_snap] at h) Hsdtk.1 Hsdtk.2
+      (List.prefix_append _ _)) $$ Hrn Hphys Hghost Hsdrf Hpsp Hph Hsteps Hsteps_cap Hpend Hcommitted Hstrecs' Hloanc Hsloc'
 
 end proof
 

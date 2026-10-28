@@ -89,9 +89,28 @@ theorem raftLog.restore.wp_proof
         split
         · rename_i hc
           obtain ⟨hs, hle⟩ := hc
-          have := Hfl.2.2.2.2 (by intro h; rw [h] at hs; cases hs) hl
+          have := Hfl.2.2.2.2.1 (by intro h; rw [h] at hs; cases hs) hl
           exact ⟨this.1, hle⟩
-        · exact ⟨Ha, Int.le_refl _⟩⟩
+        · exact ⟨Ha, Int.le_refl _⟩,
+        -- (2026-10-28, stage U4a) the record of the storage's terms (`restoreSdt`)
+        fun _ hl => by
+        show uint.Z (restoreSdt ls).1 ≤ _ ∧
+          uint.Z (if ls.snap.isSome ∧ uint.Z ls.applying ≤ uint.Z ls.sxt then ls.sxt
+            else ls.applying) ≤ uint.Z (restoreSdt ls).1 + ((restoreSdt ls).2.length : Int) ∧
+          TermsFrom σ (restoreSdt ls).1 (restoreSdt ls).2
+        unfold restoreSdt
+        cases hsn : ls.snap with
+        | none =>
+          simp only [Option.isSome_none, Bool.false_eq_true, false_and, ↓reduceIte]
+          obtain ⟨Hsp, -, -⟩ : LogStoreOk none σ ls.prev ls.sents ls.uents := hsn ▸ Hstore
+          obtain ⟨H1, H2⟩ := storTerms_of_inv hsn Hstore Hoffset Hipb Hpersist Hpend Hfl
+            (Int.le_trans (Hpapplied hsn) Happlying.1) (Int.le_trans Happlying.2 Hcommitted)
+          exact ⟨by rw [Hsp]; exact Int.le_refl _, H1, H2⟩
+        | some _ =>
+          have hs : ls.snap ≠ none := by rw [hsn]; simp
+          have He := Hfl.2.2.2.2.1 hs hl
+          simp only [Option.isSome_some, true_and, He.2, ↓reduceIte]
+          exact Hfl.2.2.2.2.2 hs hl⟩
       (fun h => List.mem_append_left _ (Hsksn h)) Hsip' (fun h => by simp [logRestore] at h)
       -- (D22 S-d1b) the storage stays lent, if it is; no window; the snapshot not in progress
       (fun _ => by simp [logRestore]) ⟨rfl, rfl⟩

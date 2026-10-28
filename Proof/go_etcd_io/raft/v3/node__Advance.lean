@@ -232,7 +232,7 @@ private theorem node.wp_Advance_impl
     simp only
     iunfold reqOf at Hw
     iunfold reqWit at Hw
-    icases Hw with ⟨%x, #Hx, %Hle⟩
+    icases Hw with ⟨%x, #Hx, %Hle, -⟩
     iexists x
     rw [← Hγs]
     iframe Hx
@@ -306,12 +306,16 @@ private theorem node.wp_Advance_dynamic_impl
     ipureintro; exact ⟨Hnok, Hd, Hf2.2.2⟩
   iunfold reqOf at Hw
   iunfold reqWit at Hw
-  icases Hw with ⟨%x, #Hx, %Hle⟩
+  icases Hw with ⟨%x, #Hx, %Hle, -⟩
   iexists x
   rw [← Hγs]
   iframe Hx
   ipureintro
   rw [← Hds, strip_length]; exact Hle
+
+/-- (2026-10-28, stage U4a) A log's terms as a client sees it. -/
+private theorem strip_terms (L : List EntryM) : (strip L).map LogEntry.term = L.map (·.Term') := by
+  simp only [strip, List.map_map]; rfl
 
 /-- A busy token with a snapshot's loan holds the loan's committed log. -/
 private theorem busy_dlv (γn : NodeNames) (id : w64) (n : Loc) (ds es : List EntryM)
@@ -404,12 +408,14 @@ private theorem node.wp_Advance_unified_impl
       ipureintro; exact ⟨Hnok, Hd, Hf2.2.2⟩
     iunfold reqOf at Hw
     iunfold reqWit at Hw
-    icases Hw with ⟨%x, #Hx, %Hle⟩
+    icases Hw with ⟨%x, #Hx, %Hle, #Hts⟩
     iexists x
     rw [← Hγs]
     iframe Hx
-    ipureintro
-    rw [← Hds, strip_length]; exact Hle
+    isplitr
+    · ipureintro
+      rw [← Hds, strip_length]; exact Hle
+    rw [← Hds, strip_terms]; iexact Hts
   | some l =>
     simp only
     obtain ⟨-, Hli⟩ := Hloan l rfl

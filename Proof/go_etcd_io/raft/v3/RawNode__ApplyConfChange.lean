@@ -57,7 +57,7 @@ theorem RawNode.ApplyConfChange.wp_proof
       wp_apply wp_ConfChange_AsV2 p dq m $$ [$Hc1] as %v2 ⟨Hc1, Hch⟩
       wp_apply wp_applyConf_dyn wp_raft_applyConfChange γ rn id rs dec c0 h0 h1 hm k0 e0
           cs0 v2 m.asV2 (DFrac.own 1) rs.delivered Hpre s cf fp rnv sv hprev steps Hwf Hin
-          Hasync Hdlen Hunp Hsnap Hstok Htrm Hstor Hpvoff Hrs_out Hrs_unst Hrs_clb Hrnfl Hloan HDc
+          Hasync Hdlen Hunp Hsnap Hstok Htrm Hstor Hpvoff Hrs_out Hrs_unst Hrs_clb Hrnfl Hloan Hsdt HDc
         $$ [$Hrn $Hphys $Hghost $Hsdrf $Hsoft $Hhard $Hsteps $Hsteps_cap $Hpend $Hdeliv $Hstrecs
           $Hloanc $Hsloc $Hch $Hlc1] as %cs %xs %os %ls %lns ⟨Hrn, -, Hcs, %Hcs0⟩
       try wp_auto
@@ -81,7 +81,7 @@ theorem RawNode.ApplyConfChange.wp_proof
       wp_apply wp_ConfChangeV2_AsV2
       wp_apply wp_applyConf_dyn wp_raft_applyConfChange γ rn id rs dec c0 h0 h1 hm k0 e0
           cs0 p m dq rs.delivered Hpre s cf fp rnv sv hprev steps Hwf Hin
-          Hasync Hdlen Hunp Hsnap Hstok Htrm Hstor Hpvoff Hrs_out Hrs_unst Hrs_clb Hrnfl Hloan HDc
+          Hasync Hdlen Hunp Hsnap Hstok Htrm Hstor Hpvoff Hrs_out Hrs_unst Hrs_clb Hrnfl Hloan Hsdt HDc
         $$ [$Hrn $Hphys $Hghost $Hsdrf $Hsoft $Hhard $Hsteps $Hsteps_cap $Hpend $Hdeliv $Hstrecs
           $Hloanc $Hsloc $Hch $Hlc1] as %cs %xs %os %ls %lns ⟨Hrn, Hch, Hcs, %Hcs0⟩
       try wp_auto
@@ -123,7 +123,7 @@ theorem RawNode.ApplyConfChange.wp_proof
           id s v2 m.asV2 (DFrac.own 1) lrn' Hd' Hsz' Hn Hli2 Hin
         $$ [$Hphys $Hch] as %cs %xs %ls %s' ⟨Hphys, -, Hcs, %Hcs0, %Hok, %Hdom'⟩
       imod rawNode_applyCC_reseal γ rn id rs s s' _ rnv sv hprev steps Hm Hrel Hin Hasync Hdlen Hunp
-        Hsnap Hstok Htrm Hstor Hpvoff Hrs_out Hrs_unst Hrs_clb Hrnfl Hloan (Hdom' ▸ Hok)
+        Hsnap Hstok Htrm Hstor Hpvoff Hrs_out Hrs_unst Hrs_clb Hrnfl Hloan Hsdt (Hdom' ▸ Hok)
         (trackedOk_shrink Htrk Hlp Hdom') Hnl
         $$ Hrn Hphys Hghost Hsdrf Hsoft Hhard Hsteps Hsteps_cap Hpend Hdeliv Hstrecs Hloanc Hcl Hsloc Hlc1 with Hrn
       try wp_auto
@@ -210,7 +210,7 @@ theorem RawNode.ApplyConfChange.wp_proof
           id s p m dq lrn' Hd' Hsz' Hn Hli2 Hin
         $$ [$Hphys $Hch] as %cs %xs %ls %s' ⟨Hphys, Hch, Hcs, %Hcs0, %Hok, %Hdom'⟩
       imod rawNode_applyCC_reseal γ rn id rs s s' _ rnv sv hprev steps Hm Hrel Hin Hasync Hdlen Hunp
-        Hsnap Hstok Htrm Hstor Hpvoff Hrs_out Hrs_unst Hrs_clb Hrnfl Hloan (Hdom' ▸ Hok)
+        Hsnap Hstok Htrm Hstor Hpvoff Hrs_out Hrs_unst Hrs_clb Hrnfl Hloan Hsdt (Hdom' ▸ Hok)
         (trackedOk_shrink Htrk Hlp Hdom') Hnl
         $$ Hrn Hphys Hghost Hsdrf Hsoft Hhard Hsteps Hsteps_cap Hpend Hdeliv Hstrecs Hloanc Hcl Hsloc Hlc1 with Hrn
       try wp_auto

@@ -1177,7 +1177,9 @@ def ownRawNodeReady (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNState) (rd : 
   -- `NsLink`): what the handed-out messages' `isRaftMsg` says
   "%Hnsout" ∷ ⌜γ.reNoSnap = true → ∀ x ∈ s.outbox, x.ty ≠ .snap⌝ ∗
   -- (2026-10-26, D22 J2, R-loc) as `ownRawNode`'s: the pending snapshot's receiver-local fact
-  "#Hsloc" ∷ snapLocOk γ id s.logst.snap)
+  "#Hsloc" ∷ snapLocOk γ id s.logst.snap ∗
+  -- (2026-10-28, stage U4a) the record of the storage's terms
+  "%Hsdt" ∷ ⌜SdtTie rs s⌝)
 
 /-- (D22 S-d3a) `loanCom` with no loan. -/
 theorem loanCom_none (γ : RaftNames) {o : Option SnapLoan} (h : o = none) :
@@ -1301,7 +1303,7 @@ theorem ownRawNodeReady_abandon (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNS
     (Hunp0.trans Hunp.symm) Hsnap (by show StepsOk _ rs.steps; rw [Hsteps0]; trivial) Htrm
     Hstor Hpvoff rfl rfl
     (Int.le_refl _) ⟨Hrnfl.1, fun h => absurd Hrnfl.2 (Int.not_le.2 h)⟩ Hloan.1
-    $$ Hrn Hphys Hghost Hsdrf Hsoft Hhard Hsteps Hsteps_cap Hpend Hdeliv Hstrecs Hlc Hsloc
+    Hsdt $$ Hrn Hphys Hghost Hsdrf Hsoft Hhard Hsteps Hsteps_cap Hpend Hdeliv Hstrecs Hlc Hsloc
 
 -- (2026-10-26, raft's signature, stage 1) `readyIdx` moved to `Proof.go_etcd_io.raft.v3.ApiVocab`.
 
@@ -1507,7 +1509,7 @@ theorem ownRawNodeReady_handout (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNS
       exact ⟨Houtbox, HmsgsAA_ok, Hout_term, Hgh_out, Hgh_unst, Hxf, Hmslen⟩
     ipureintro
     exact ⟨Hwf, Hin, Hal, Hasync, Hdlen, Hunp, Hsnap, Hloan, Htrm, Hstor, Hpvoff, Hrs_out, Hrs_unst,
-      Hrs_clb, Hrnfl, Hceok, Hes, Hrdc, Hprc, Hnsout⟩
+      Hrs_clb, Hrnfl, Hceok, Hes, Hrdc, Hprc, Hnsout, Hsdt⟩
   isplitl [Hout]
   · iexact Hout
   isplitl [Hcr]
@@ -1577,7 +1579,9 @@ def ownRawNodeIdle (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNState) : IProp
   "%Hidle" ∷ ⌜s.gh.outlb = 0 ∧ nextUnstable s.logst = [] ∧ s.rd.states = [] ∧
     (s.logst.snap = none ∨ s.logst.sip = true)⌝ ∗
   -- (2026-10-26, D22 J2, R-loc) as `ownRawNode`'s
-  "#Hsloc" ∷ snapLocOk γ id s.logst.snap)
+  "#Hsloc" ∷ snapLocOk γ id s.logst.snap ∗
+  -- (2026-10-28, stage U4a) as `ownRawNode`'s
+  "%Hsdt" ∷ ⌜SdtTie rs s⌝)
 
 theorem ownRawNodeIdle_intro (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNState)
     (s : NState) (c : CfgM) (fp : List EntryM) (rnv : RawNode) (sv : SoftState)
@@ -1591,7 +1595,7 @@ theorem ownRawNodeIdle_intro (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNStat
     (Htrm : rs.term = s.term) (Hstor : rs.storage = s.logst.storage)
     (Hpvoff : RNPv rs fp s) (Hrs_out : rs.outlb = s.gh.outlb)
     (Hrs_unst : rs.unst = s.gh.unst) (Hrs_clb : uint.Z rs.clb ≤ uint.Z s.logst.committed)
-    (Hrnfl : RNFl rs s) (Hloan : LoanOk rs s)
+    (Hrnfl : RNFl rs s) (Hloan : LoanOk rs s) (Hsdt : SdtTie rs s)
     (Hidle : s.gh.outlb = 0 ∧ nextUnstable s.logst = [] ∧ s.rd.states = [] ∧
       (s.logst.snap = none ∨ s.logst.sip = true)) :
     ⊢ rawNodeOwn rn rnv -∗ ownRaftPhysCV c c.voters rnv.raft' id s -∗
@@ -1612,7 +1616,7 @@ theorem ownRawNodeIdle_intro (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNStat
   iframe Hrn Hphys Hghost Hsdrf Hsoft Hhard Hsteps Hcap Hpend Hdeliv Hstrecs Hloanc Hsloc
   ipureintro
   exact ⟨Hwf, Hin, Hal, Hasync, Hdlen, Hunp, Hsnap, Hstok, Htrm, Hstor, Hpvoff, Hrs_out,
-    Hrs_unst, Hrs_clb, Hrnfl, Hloan, Hidle⟩
+    Hrs_unst, Hrs_clb, Hrnfl, Hloan, Hidle, Hsdt⟩
 
 theorem ownRawNodeIdle_ownRawNode (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNState) :
     ⊢ ownRawNodeIdle (GF := GF) γ rn id rs -∗ ownRawNode γ rn id rs := by
@@ -1620,7 +1624,7 @@ theorem ownRawNodeIdle_ownRawNode (γ : RaftNames) (rn : Loc) (id : w64) (rs : R
   iNamed H
   iapply ownRawNode_intro γ rn id rs s cf fp rnv sv hprev steps Hwf Hin Hal Hasync Hdlen Hunp
     Hsnap Hstok Htrm Hstor Hpvoff Hrs_out Hrs_unst Hrs_clb Hrnfl Hloan
-    $$ Hrn Hphys Hghost Hsdrf Hsoft Hhard Hsteps Hsteps_cap Hpend Hdeliv Hstrecs Hloanc Hsloc
+    Hsdt $$ Hrn Hphys Hghost Hsdrf Hsoft Hhard Hsteps Hsteps_cap Hpend Hdeliv Hstrecs Hloanc Hsloc
 
 /-- What the client sees of an idle node: the lower bounds at their least, and the commit
 index at most the committed log handed out (`applying`). (D22 S-d3a) With no loan: no snapshot
@@ -1646,7 +1650,7 @@ theorem ownRawNodeIdle_facts (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNStat
       · exact absurd Hidle.2.1 H
       · exact absurd Hsn H
   iapply ownRawNodeIdle_intro γ rn id rs s cf fp rnv sv hprev steps Hwf Hin Hal Hasync Hdlen Hunp
-    Hsnap Hstok Htrm Hstor Hpvoff Hrs_out Hrs_unst Hrs_clb Hrnfl Hloan Hidle
+    Hsnap Hstok Htrm Hstor Hpvoff Hrs_out Hrs_unst Hrs_clb Hrnfl Hloan Hsdt Hidle
     $$ Hrn Hphys Hghost Hsdrf Hsoft Hhard Hsteps Hsteps_cap Hpend Hdeliv Hstrecs Hloanc Hsloc
 
 /-- Accepting, after all, a `Ready` computed earlier and abandoned (see the section
@@ -1749,7 +1753,7 @@ theorem ownRawNodeIdle_ready (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNStat
     Hrs_out, Hrs_unst, Hrs_clb,
     ⟨Hrnfl.1, Int.not_lt.1 fun h => by
       obtain ⟨_, _, Hm, -⟩ := Hrnfl.2 h; rw [Hsteps0] at Hm; simp at Hm⟩,
-    fun e He => ?_, Hidle.2.1.symm, Nat.zero_le _, List.nil_subperm, Hnsout⟩
+    fun e He => ?_, Hidle.2.1.symm, Nat.zero_le _, List.nil_subperm, Hnsout, Hsdt⟩
   obtain ⟨H1, H2⟩ := Hce_ok e He
   have Hne : ce ≠ [] := by intro h; subst h; simp at He
   have : 0 < ce.length := List.length_pos_iff.2 Hne

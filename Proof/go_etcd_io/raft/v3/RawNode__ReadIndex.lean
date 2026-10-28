@@ -151,8 +151,8 @@ theorem RawNode.ReadIndex.wp_proof
     have h0 : 0 ≤ uint.Z s.term := by word
     rw [Int.max_eq_left h0] at Ht3
     word
-  have Hstok' : StepsOk s' rs.steps := stepsOk_mono_le s s' _ Ht1 ⟨Hpv, Hsd⟩ Hc Ha (tc_le_of_gh Hgh) Hstok
-  ihave #Hstr' := ackInv_keep (rs' := rs) γ rfl Hstok Ht1 Hpv Hsn Hsd (Hip4 (by msg_ne)) $$ Hstrecs
+  have Hstok' : StepsOk s' rs.steps := stepsOk_mono_le s s' _ Ht1 ⟨Hpv, (logStoreRec_stored Hsd)⟩ Hc Ha (tc_le_of_gh Hgh) Hstok
+  ihave #Hstr' := ackInv_keep (rs' := rs) γ rfl Hstok Ht1 Hpv Hsn (logStoreRec_stored Hsd) (Hip4 (by msg_ne)) $$ Hstrecs
   ihave #Hpost : iprop(∃ Lc, ⌜L0 <+: Lc⌝ ∗ readReq γ c Lc ∗ isRead γ c Qr) $$ []
   · iexists Lc
     iframe Hrq Hrd
@@ -166,8 +166,8 @@ theorem RawNode.ReadIndex.wp_proof
     Hstok' (by rw [Hterm]; exact Htrm) (by rw [Hsg]; exact Hstor) 
     (Hpvoff.step rfl rfl Hpre Hgh (by rw [Hterm]; exact Hpvoff.2.2.1) Hpcs (by msg_ne))
     (by rw [Hgh]; exact Hrs_out) (by rw [Hgh]; exact Hrs_unst) (Int.le_trans Hrs_clb Hc)
-        (RNFl.keep Hrnfl Hfl' Hap' Ha) (Hloan.keep Hgh Hsn Hfl' Hsd Hu Ha Hc)
-    $$ Hrn Hphys Hghost Hsdrf Hsoft Hhard Hsteps Hsteps_cap Hpend Hdeliv Hstr' Hloanc Hsloc'
+        (RNFl.keep Hrnfl Hfl' Hap' Ha) (Hloan.keep Hgh Hsn Hfl' (logStoreRec_stored Hsd) Hu Ha Hc)
+    (Hsdt.ofRec Hsn Hsd) $$ Hrn Hphys Hghost Hsdrf Hsoft Hhard Hsteps Hsteps_cap Hpend Hdeliv Hstr' Hloanc Hsloc'
 
 end proof
 

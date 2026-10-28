@@ -383,8 +383,8 @@ structure NodeNames [GooseExts] where
   /-- (2026-10-15) the configuration index of `cap`, as a monotone nat: `run` holds the
   authority, the driver lower bounds, by which `run` checks A1 at `Advance` -/
   cam : GName
-  /-- (D19i part 1) the driver's request on `advancec` when it arrives first: the length of the
-  committed log it was handed, whole with the driver between `Advance`s, a half in the channel
+  /-- (D19i part 1) the driver's request on `advancec` when it arrives first: (2026-10-28, stage
+  U4a; until then its length) the committed log it was handed, whole with the driver between `Advance`s, a half in the channel
   while its offer waits (`advInv`); (D22 S-d4) `none` after a snapshot `Ready`, which asks for
   no floor (`reqOf`) -/
   req : GName
@@ -735,7 +735,7 @@ def capAns (γ : NodeNames) : Option (Nat × CCState) → IProp GF
 
 /-- (2026-10-28, stage U3d) The driver's request on `advancec` (`NodeNames.req`): the floor's
 (`reqOf`) and the view it expects back (`loanReq`). -/
-abbrev AdvReq := Option Nat × Option (Nat × CCState)
+abbrev AdvReq := Option (List EntryM) × Option (Nat × CCState)
 
 /-- An `Advance` on `advancec`: a `dlv` half after the last `Ready`, `run`'s record back,
 and the receipt of the append of the `Ready`'s entries. (D22 S-d4, 2026-10-21) For the `Ready`'s
@@ -759,19 +759,21 @@ loan `L`: the committed log handed out after it (`dlvAfter`), and the receipt fo
 /-- (D22 S-d4) The driver's request at `advancec` (`NodeNames.req`): the floor at least the
 committed log it was handed (`some`), or after a snapshot `Ready` nothing (`none`): the storage was
 the application's, and `run` raises no floor. -/
-def reqOf (L : Option SnapLoan) (ds : List EntryM) : Option Nat :=
+def reqOf (L : Option SnapLoan) (ds : List EntryM) : Option (List EntryM) :=
   match L with
-  | none => some ds.length
+  | none => some ds
   | some _ => none
 
 /-- (D22 S-d4) What `run` answers the request with (`advInv`'s `RcvCommit`, `node.Advance`'s
 post): for `some k` the floor's witness at `k` (D22 S-d4 item 3: also when a snapshot was restored
 since the `Ready`, `StorExtOk`), for `none` nothing. -/
-def reqWit (γ : NodeNames) : Option Nat → IProp GF
+def reqWit (γ : NodeNames) : Option (List EntryM) → IProp GF
   | none => iprop(True)
-  | some k => iprop(∃ x : w64, storFloor γ.stor x ∗ ⌜(k : Int) ≤ uint.Z x⌝)
+  | some ds => iprop(∃ x : w64, storFloor γ.stor x ∗ ⌜(ds.length : Int) ≤ uint.Z x⌝ ∗
+      -- (2026-10-28, stage U4a) and the storage's terms of the log (`ownRawNode_raise_floor`)
+      storTermsAt γ.stor (ds.map (·.Term')))
 
-instance reqWit_persistent (γ : NodeNames) (q : Option Nat) :
+instance reqWit_persistent (γ : NodeNames) (q : Option (List EntryM)) :
     Persistent (reqWit (GF := GF) γ q) := by
   cases q <;> unfold reqWit <;> infer_instance
 
@@ -780,7 +782,8 @@ needed a client that cannot be handed a snapshot, `H`, now unused.) -/
 theorem reqWit_none (γ : NodeNames) (ds : List EntryM)
     (_H : γ.raft.reNoSnap = true ∨ γ.snapIn = false) :
     reqWit (GF := GF) γ (reqOf none ds) ⊢
-      ∃ x : w64, storFloor γ.stor x ∗ ⌜(ds.length : Int) ≤ uint.Z x⌝ := by
+      ∃ x : w64, storFloor γ.stor x ∗ ⌜(ds.length : Int) ≤ uint.Z x⌝ ∗
+        storTermsAt γ.stor (ds.map (·.Term')) := by
   iintro Hw
   unfold reqOf reqWit
   iexact Hw

@@ -94,7 +94,7 @@ def HandleAppResult (id : w64) (s : NState) (m : MessageM)
        plogCommitTo ls.committed
          (if uint.Z m.Commit' < uint.Z lastnewi then m.Commit' else lastnewi) ∧
      (ls'.applying = ls.applying ∧ ls'.snap = ls.snap ∧ ls'.unpersisted = ls.unpersisted ∧
-      ls'.prev = ls.prev ∧ ls'.stored = ls.stored ∧ ls'.storage = ls.storage ∧
+      ls'.prev = ls.prev ∧ logStoreRec ls' = logStoreRec ls ∧ ls'.storage = ls.storage ∧
       -- (D19i part 1) the floor
       ls'.fl = ls.fl) ∧
      -- (D22 S-d3b) `offsetInProgress` moved back only by a truncation (`TruncAt`)

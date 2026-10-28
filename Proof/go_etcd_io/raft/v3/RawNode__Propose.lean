@@ -158,7 +158,7 @@ theorem RawNode.Propose.wp_proof
   obtain ⟨Hfr, Hap, -⟩ := Hloc.1 (fun h => absurd h (by msg_ne)) (.inl rfl)
   have Hap' := Hap (fun Hc => absurd Hc (by msg_ne))
   ihave #Hstr' := ackInv_keep (rs' := rs) γ rfl Hstok (by rw [Hfr.1]; exact Int.le_refl _)
-    Hfr.2.2.2.2.1 Hfr.2.2.2.1 Hfr.2.2.2.2.2.1 Hfr.2.1 $$ Hstrecs
+    Hfr.2.2.2.2.1 Hfr.2.2.2.1 (logStoreRec_stored Hfr.2.2.2.2.2.1) Hfr.2.1 $$ Hstrecs
   iapply HΦ
   simp only [named]
   isplitl [Hrn Hphys Hghost Hsteps Hsteps_cap Hpend]
@@ -166,7 +166,7 @@ theorem RawNode.Propose.wp_proof
   · iapply ownRawNode_intro γ rn id rs s' cf fp rnv sv hprev steps Hwf' Hin Hal Hasync
       (by rw [Hap']; exact Hdlen) (by rw [Hfr.2.2.1]; exact Hunp)
       (by rw [Hfr.2.2.2.1]; exact Hsnap)
-      (stepsOk_mono s s' _ Hfr.1 ⟨Hfr.2.2.2.2.1, Hfr.2.2.2.2.2.1⟩ Hc Hap'
+      (stepsOk_mono s s' _ Hfr.1 ⟨Hfr.2.2.2.2.1, (logStoreRec_stored Hfr.2.2.2.2.2.1)⟩ Hc Hap'
         (tc_le_of_gh Hfr.2.2.2.2.2.2.2.2.1) Hstok)
       (by rw [Hfr.1]; exact Htrm) (by rw [Hfr.2.2.2.2.2.2.1]; exact Hstor)
       (Hpvoff.keep rfl rfl Hfr.2.2.2.2.2.2.2.1 Hfr.2.2.2.2.2.2.2.2.1 Hfr.1 Hfr.2.2.2.2.2.2.2.2.2.1 Hfr.2.2.2.1
@@ -174,8 +174,8 @@ theorem RawNode.Propose.wp_proof
       (by rw [Hfr.2.2.2.2.2.2.2.2.1]; exact Hrs_out) (by rw [Hfr.2.2.2.2.2.2.2.2.1]; exact Hrs_unst)
       (Int.le_trans Hrs_clb Hc)
       (RNFl.keep Hrnfl Hfr.2.2.2.2.2.2.2.2.2.2.1 Hfr.2.2.2.2.2.2.2.2.2.2.2 Hap')
-      (Hloan.keep Hfr.2.2.2.2.2.2.2.2.1 Hfr.2.2.2.1 Hfr.2.2.2.2.2.2.2.2.2.2.1 Hfr.2.2.2.2.2.1 Hfr.2.2.1 Hap' Hc)
-      $$ Hrn Hphys Hghost Hsdrf Hsoft Hhard Hsteps Hsteps_cap Hpend Hdeliv Hstr' Hloanc Hsloc'
+      (Hloan.keep Hfr.2.2.2.2.2.2.2.2.1 Hfr.2.2.2.1 Hfr.2.2.2.2.2.2.2.2.2.2.1 (logStoreRec_stored Hfr.2.2.2.2.2.1) Hfr.2.2.1 Hap' Hc)
+      (Hsdt.ofRec Hfr.2.2.2.1 Hfr.2.2.2.2.2.1) $$ Hrn Hphys Hghost Hsdrf Hsoft Hhard Hsteps Hsteps_cap Hpend Hdeliv Hstr' Hloanc Hsloc'
   icases Herr with (%Herr | ⟨-, #Hd⟩)
   · ileft; ipureintro; exact Herr
   · iright; iexact Hd

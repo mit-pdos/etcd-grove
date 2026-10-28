@@ -20,7 +20,7 @@ theorem raftLog.appliedTo.wp_proof [package_sem : Assumptions] : raftLog.applied
                             apsize := if uint.Z size < uint.Z ls.apsize then ls.apsize - size else W64 0,
                             apmax := ls.apmax, storage := ls.storage, ksn := ls.ksn, fl := ls.fl, sip := ls.sip,
                             lent := ls.lent, sapp := ls.sapp, aps := ls.aps && decide (uint.Z i < uint.Z ls.prev.index'),
-                            sat := ls.sat, sxt := ls.sxt } -∗
+                            sat := ls.sat, sxt := ls.sxt, stb := ls.stb, sdt := ls.sdt } -∗
                         Φ (intoVal ())) -∗
                     WP
                       (((intoVal

@@ -402,7 +402,8 @@ theorem ownRaftLog_handout (l : Loc) (ls : LogState) (Hunp0 : ls.unpersisted = [
     simp only [nextUnstable, logOffset, ← Hoffset]
     exact persist_handed ls.prev σ ls.sents ls.uents _ Hidx Hsp (by omega) ls.stored Hp0
   have HflN : FlOk { σ with pend := nextUnstable ls } (logHanded ls) := by
-    refine ⟨Hfl.1, Hfl.2.1, ?_, fun e0 He0 => ?_, fun h _ => (h Hs0).elim⟩
+    refine ⟨Hfl.1, Hfl.2.1, ?_, fun e0 He0 => ?_, fun h _ => (h Hs0).elim,
+      StorTermsOk.of_none Hs0⟩
     · have := Hfl.2.2.1
       have := Hipb
       simp only [logHanded]
@@ -519,7 +520,9 @@ between the `Ready` and its acknowledgement) it is shadowed again. -/
 def logAbsorbSnap (ls : LogState) (sid : entryID) : LogState :=
   { ls with lent := false, unpersisted := [],
             sat := @decide (ls.snap = some sid ∧ ls.sip = true) (Classical.propDecidable _),
-            sxt := sid.index' }
+            sxt := sid.index',
+            -- (2026-10-28, stage U4a) the storage at the snapshot: nothing after it to record
+            stb := sid.index', sdt := [] }
 
 theorem logAbsorbSnap_sat (ls : LogState) (sid : entryID) :
     (logAbsorbSnap ls sid).sat = true ↔ ls.snap = some sid ∧ ls.sip = true := by
@@ -580,7 +583,8 @@ theorem ownRaftLog_lend (l : Loc) (ls : LogState) (Hunp0 : ls.unpersisted = [])
   have Hpend' : PendLogOk { σ with pend := nextUnstable ls } (logHanded { ls with lent := true, sat := false }) :=
     ⟨rfl, fun h => absurd h Hs0⟩
   have Hfl' : FlOk { σ with pend := nextUnstable ls } (logHanded { ls with lent := true, sat := false }) := by
-    refine ⟨Hfl.1, Hfl.2.1, Hfl.2.2.1, fun e0 He0 => ?_, fun _ h => by simp [logHanded] at h⟩
+    refine ⟨Hfl.1, Hfl.2.1, Hfl.2.2.1, fun e0 He0 => ?_, fun _ h => by simp [logHanded] at h,
+      StorTermsOk.lent (by simp [logHanded])⟩
     have := Hhead e0 He0
     have := Hfl.2.2.1
     have := Hfl.2.1
@@ -682,7 +686,12 @@ theorem ownRaftLog_absorb_snap (l : Loc) (ls : LogState) (σr : StorState)
         uint.Z ls.applying ≤ uint.Z σr.ss.index'
       rw [← Hrp]
       exact ⟨by have := Happ; word, Happ⟩
-    ⟨Hrfl, Hfl.2.1, Hfl.2.2.1, (fun e0 He0 => by rw [Hrpend] at He0; cases He0), Hext⟩
+    have Hterms : StorTermsOk σr (logAbsorbSnap ls σr.ss) := fun _ _ =>
+      ⟨by show uint.Z σr.ss.index' ≤ uint.Z σr.prev.index'; rw [← Hrp]; omega,
+       by show uint.Z σr.ss.index' ≤ uint.Z σr.ss.index' + (([] : List w64).length : Int)
+          simp only [List.length_nil, Int.natCast_zero, Int.add_zero]; omega,
+       TermsFrom.nil _ _⟩
+    ⟨Hrfl, Hfl.2.1, Hfl.2.2.1, (fun e0 He0 => by rw [Hrpend] at He0; cases He0), Hext, Hterms⟩
   have Hstore' : LogStoreOk (logAbsorbSnap ls σr.ss).snap σr
       (logAbsorbSnap ls σr.ss).prev (logAbsorbSnap ls σr.ss).sents
       (logAbsorbSnap ls σr.ss).uents := by

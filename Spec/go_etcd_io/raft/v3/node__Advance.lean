@@ -72,7 +72,9 @@ abbrev node.Advance.dynamicSpec : Prop :=
 /-- **`node.Advance()` in a cluster with snapshots and reconfiguration** (2026-10-28, stage U4a;
 `isCluster`, `InvNodeRule.lean`): as `node.Advance.dynamicSpec`, with the snapshot path reachable.
 After a `Ready` with a snapshot (its loan `l`), the view is at the snapshot's index and the membership
-`m` after the committed log up to it (`confAt`), which its `ConfState` reports. Premises of the
+`m` after the committed log up to it (`confAt`), which its `ConfState` reports; after one without,
+the storage's floor and (2026-10-28) its terms of the committed log delivered (`storTermsAt`), also
+when a snapshot was restored since. Premises of the
 snapshot path, all of what the client has from the `Ready` (`readySnap`): the snapshot's
 certificate and its index the length of its committed log; and (as `RawNode.Advance`'s, until stage
 U5) its `ConfState` no auto-leave one. (As `node.Advance.dynamicSpec`, every conf entry of the
@@ -94,7 +96,10 @@ abbrev node.Advance.unifiedSpec : Prop :=
   {{ RET #(); nodeDriver n γ N { st with handling := none } ∗
       match L with
       | none => nodeConfig n γ N v ∗
-          ∃ x : w64, storFloor st.storage x ∗ ⌜(st.delivered.length : Int) ≤ uint.Z x⌝
+          ∃ x : w64, storFloor st.storage x ∗ ⌜(st.delivered.length : Int) ≤ uint.Z x⌝ ∗
+            -- (2026-10-28, stage U4a) and the storage's terms of the committed log delivered
+            -- (what `MemoryStorage.CreateSnapshot.unifiedSpec` takes, `memTermsAt`)
+            storTermsAt st.storage (st.delivered.map LogEntry.term)
       | some l => ∃ m : Membership,
           nodeConfig n γ N ⟨uint.nat l.snap.Metadata'.Index', m⟩ ∗
           confAt γ (uint.nat l.snap.Metadata'.Index') m ∗

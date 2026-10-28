@@ -76,10 +76,10 @@ theorem advance_complete (γ : NodeNames) (rn : Loc) (id : w64) (ds : List Entry
     ihave Hrcpt' : appendReceipt rs.storage rs.unpersisted $$ [Hrcpt]
     · rw [Hstor]; iexact Hrcpt
     imod ownRawNode_appended γ.raft rn id rs Hsl $$ Hrn Hrcpt' with Hrn
-    imod ownRawNode_raise_floor γ.raft rn id { rs with unpersisted := [] } rfl Hsl $$ Hrn
-      with ⟨Hrn, %x, %Hx, #Hfw⟩
+    imod ownRawNode_raise_floor γ.raft rn id { rs with unpersisted := [] } rfl Hsl ds Hpfx.2
+      $$ Hrn with ⟨Hrn, %x, %Hx, #Hfw, #Hts⟩
     imodintro
-    isplitr [Hfw]
+    isplitr [Hfw Hts]
     · iunfold advRet
       iexists { { rs with unpersisted := [] } with flw := true }, ca_d
       iframe Hrn Htlb Hcamlb
@@ -100,12 +100,14 @@ theorem advance_complete (γ : NodeNames) (rn : Loc) (id : w64) (ds : List Entry
       exact ⟨Hstor, Hunst, fun _ => rfl, fun h => by simp only; rw [Hdel]; exact HA h⟩
     isplitr
     · iexists x
-      isplitr
+      isplitr [Hts]
       · simp only; rw [← Hstor]; iexact Hfw
-      ipureintro
-      have := Hpfx.2.length_le
-      simp only at Hx
-      omega
+      isplitr [Hts]
+      · ipureintro
+        have := Hpfx.2.length_le
+        simp only at Hx
+        omega
+      simp only; rw [← Hstor]; iexact Hts
     itrivial
   | some l =>
     have Hsl : rs.slent = some l := HL

@@ -58,7 +58,7 @@ theorem raftLog.stableSnapTo.wp_proof
       | (intro _; rfl)
       | exact ⟨Hpend.1, fun _ e0 He0 => by simp [Hunp] at He0⟩
       | exact Hfl
-      | exact ⟨Hfl.1, Hfl.2.1, Hfl.2.2.1, Hfl.2.2.2.1, fun h => absurd rfl h⟩
+      | exact ⟨Hfl.1, Hfl.2.1, Hfl.2.2.1, Hfl.2.2.2.1, fun h => absurd rfl h, fun h => absurd rfl h⟩
       | exact Hsksn
       | (intro h; simp only at h; rw [Hlnt] at h; cases h; done)
       | (intro h; simp at h; done)
