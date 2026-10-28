@@ -130,7 +130,7 @@ theorem RInv_rboot (dec : CCDec) (c0 : CCState) (bootLog : List EntryM)
   · intro h; cases h
   · intro _; show uint.Z base0.index' ≤ uint.Z (W64 0); rw [h0]; decide
   · intro h; cases h
-  · show cfgFold dec c0 (([] ++ bootLog).take 0) = some c0; rfl
+  · intro _; show cfgFold dec c0 (([] ++ bootLog).take 0) = some c0; rfl
   · rw [hfull, hcn]
     intro k1 k2 e1 e2 hlt _ h2 _ _
     have := (List.getElem?_eq_some_iff.mp h2).1

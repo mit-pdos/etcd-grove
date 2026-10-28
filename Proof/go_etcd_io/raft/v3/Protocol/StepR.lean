@@ -35,18 +35,23 @@ four new rules:
   `StepRInv.lean`, "I1 needs the commit index").
 * `higherTerm`, `stepDown` clear `pci` (`reset`); the other rules that make a follower leave it
   (a non-leader's is `0` in Go, and nothing reads it).
-* `snapRestore` takes the snapshot's configuration (`restore`'s `ConfState`) as the node's, at
-  the snapshot's index, with the snapshot pending; the node's full prefix becomes `fp'`, ghost.
+* `snapRestore` restores the log to the snapshot, with the snapshot pending, and moves the
+  configuration index to the snapshot's index; the node's full prefix becomes `fp'`, ghost. The
+  configuration stays (2026-10-28, stage U0: the configuration switches to the snapshot's only
+  when it is applied, the fix of `issues/raft-snapshot-during-apply-stale-confchange.md`; until
+  then `snapRestore` took the snapshot's `cs'` as the node's); the rule still names the
+  snapshot's configuration state `cs'`, admissible after `fp'` and naming the node.
 * new: `advance` (`applied` moves up to at most `commit`, past no conf entry the configuration
   has not taken: A1, `ApplyConfChange` before `Advance`), `applySnap` (`appliedSnap`: the
-  pending snapshot applied), `applyConf` (the configuration takes the next conf entry, in
+  pending snapshot applied, the configuration now the snapshot's, a `cs'` admissible after the
+  full prefix below the boundary), `applyConf` (the configuration takes the next conf entry, in
   order, once per entry, decoded by `dec` from the entry and its prefix: the review's A1 gap),
   `stepDown` (a leader outside its configuration's voters becomes a follower at its term:
   `switchToConfig` with `StepDownOnRemoval`; without it the leader stays, which the model
   allows by not taking the rule).
 
 `Adm l cs`: the configurations a node may take on after the full-log prefix `l` (by
-`applyConf`, or as a snapshot's by `snapRestore`). The dynamic model takes the fold of the
+`applyConf`, or as a snapshot's by `applySnap`; a restore's `snapRestore` checks its snapshot's). The dynamic model takes the fold of the
 prefix (`AdmFold`: A3, a snapshot's `ConfState` is its prefix's configuration; for `applyConf`
 it is implied by the decoder); the static one (`StaticAdm V`) the voters `V` unchanged. (Until
 D19p, 2026-10-18, `StepR` projected to `StepC (CfgM.simple V ∅)` there, `stepR_static`, and so
@@ -302,7 +307,6 @@ inductive StepR : RState → List Msg → RState → Prop where
           [Msg.mk .appResp id m.src r.p.term false m.index (W64 0) (W64 0) (W64 0) []]
         snap := true
         cidx := uint.nat m.index
-        cfg := cs'
         fp := fp' }
   | snapFastfwd (m : Msg) (r : RState) :
       m.ty = .snap →
@@ -394,10 +398,12 @@ inductive StepR : RState → List Msg → RState → Prop where
       uint.Z a ≤ uint.Z r.p.commit →
       NoConfIn r.full r.cidx (uint.nat a) →
       StepR r [] { r with applied := a, cidx := max r.cidx (uint.nat a) }
-  /-- `appliedSnap`: the pending snapshot applied. -/
-  | applySnap (r : RState) :
+  /-- `appliedSnap`: the pending snapshot applied, the configuration switched to the snapshot's
+  (2026-10-28, stage U0: until then `snapRestore` switched it). -/
+  | applySnap (r : RState) (cs' : CCState) :
       r.snap = true →
-      StepR r [] { r with applied := r.p.base.index', snap := false }
+      Adm r.fp cs' →
+      StepR r [] { r with applied := r.p.base.index', snap := false, cfg := cs' }
   /-- `ApplyConfChange` of the next conf entry (at position `k`, log index `k + 1`), committed,
   in order: the configuration takes its change, decoded from the entry and its prefix. -/
   | applyConf (r : RState) (k : Nat) (e : EntryM) (op : CCOp) (cs' : CCState) :
@@ -436,6 +442,7 @@ theorem StepR.mono {Adm Adm' : List EntryM → CCState → Prop} {dec : CCDec} {
     exact .snapRestore m r fp' cs' h1 h2 h3 h4 h5 h6 h7 h8 h9 (hA _ _ h10)
   | applyConf r k e op cs' h1 h2 h3 h4 h5 h6 h7 h8 h9 =>
     exact .applyConf r k e op cs' h1 h2 h3 h4 h5 h6 h7 h8 (hA _ _ h9)
+  | applySnap r cs' h1 h2 => exact .applySnap r cs' h1 (hA _ _ h2)
   | _ =>
     first
     | (apply StepR.higherTerm <;> assumption)
@@ -473,7 +480,6 @@ theorem StepR.mono {Adm Adm' : List EntryM → CCState → Prop} {dec : CCDec} {
     | (apply StepR.zeroAck <;> assumption)
     | (apply StepR.reMatch <;> assumption)
     | (apply StepR.advance <;> assumption)
-    | (apply StepR.applySnap <;> assumption)
     | (apply StepR.stepDown <;> assumption)
 
 end mono

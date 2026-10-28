@@ -309,9 +309,10 @@ theorem ghostRest_nsLink (γ : RaftNames) (md : GMode) (c : CfgM) (id : w64) (s 
 /-- (2026-10-25, T-M M2c) The node's configuration has a voter, in either mode: statically the
 ghost state's voters (`RaftNames.reCfg_ne`), dynamically a fold of the changes from a good
 configuration (`cfgFold_ok`). What a leader that need not be a voter itself (removed without
-`StepDownOnRemoval`) needs for its quorums. -/
+`StepDownOnRemoval`) needs for its quorums: at a leader (2026-10-28, stage U0: dynamically, a
+node with a snapshot pending keeps the configuration of a log it no longer has, `RInv.cfg`). -/
 theorem ghostRest_voters_ne (γ : RaftNames) (md : GMode) (c : CfgM) (id : w64) (s : NState) :
-    ghostRest (GF := GF) γ md c id s ⊢ ⌜c.voters ≠ ∅⌝ ∗ ghostRest γ md c id s := by
+    ghostRest (GF := GF) γ md c id s ⊢ ⌜s.role = .leader → c.voters ≠ ∅⌝ ∗ ghostRest γ md c id s := by
   have Hne : ∀ c : CfgM, c.incoming ≠ ∅ → c.voters ≠ ∅ := by
     intro c hi hv
     apply hi
@@ -327,16 +328,20 @@ theorem ghostRest_voters_ne (γ : RaftNames) (md : GMode) (c : CfgM) (id : w64) 
     simp only [ghostRestM]
     iintro ⟨%Hn, %HC, #Hl⟩
     isplitr
-    · ipureintro; rw [CfgStatic.voters HC.1]; exact γ.reCfg_ne
+    · ipureintro; intro _; rw [CfgStatic.voters HC.1]; exact γ.reCfg_ne
     iframe Hl
     ipureintro; exact ⟨Hn, HC⟩
   | dyn dec c0 h0 g =>
     unfold ghostRest
     simp only [ghostRestM]
     iintro ⟨%Hn, ⟨%Hd, H1, H2⟩, #Hl⟩
-    have Hok := cfgFold_ok Hd.2.2.cfg h0
     isplitr
-    · ipureintro; rw [← Hd.2.1]; exact Hne _ Hok.2.1
+    · ipureintro
+      intro hl
+      have hs : (rOf s g).snap = false :=
+        Hd.2.2.lead_snap (by simp only [rOf, toPState_role, hl]; rfl)
+      have Hok := cfgFold_ok (Hd.2.2.cfg hs) h0
+      rw [← Hd.2.1]; exact Hne _ Hok.2.1
     iframe Hl H1 H2
     ipureintro; exact ⟨Hn, Hd⟩
 

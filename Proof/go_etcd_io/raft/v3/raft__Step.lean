@@ -343,7 +343,7 @@ private theorem dispatch_HeartbeatResp (P : raft.Step.Postulates (GF := GF) (hG 
         ihave %H2 := ghost_hbResp_ctx γ id s m ents ctx hl Hto ht $$ Hg Hm
         ipureintro
         intro _ _
-        exact ⟨H1, H2.1, H2.2, Hvne⟩
+        exact ⟨H1, H2.1, H2.2, Hvne hl⟩
       · ipureintro; exact fun _ h => absurd h ht
     · ipureintro; exact fun h => absurd h hl
   ihave %Hlrd := Hlrd_lem $$ Hghost Hm

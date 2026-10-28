@@ -213,10 +213,12 @@ def ownRaftGhostR (γ : RaftNames) (dec : CCDec) (c0 : CCState) (id : w64) (r : 
     (∀ (_ : r.p.role = .candidate), isCampK γ id r.p.term r.full r.p.commit))
 
 /-- The step environment, from `RInv`: the full prefix, I1, the configuration index (the
-commit index at a candidate, `RInv.cand_cfg`), I3 at a leader. -/
+commit index at a candidate, `RInv.cand_cfg`), I3 at a leader. With no snapshot pending (where
+the configuration is the fold of the full log's prefix, `RInv.cfg`; 2026-10-28, stage U0): every
+rule that reads the configuration is of a leader, a candidate or a campaign, which have none. -/
 theorem ownRaftGhostR_env (γ : RaftNames) (dec : CCDec) (c0 : CCState) (h0 : CfgOk c0)
     (HD : γ.dyn = some (DynCfg.ofFold dec c0 h0)) (id : w64) (r : RState)
-    (HI : RInv dec c0 r) :
+    (HI : RInv dec c0 r) (Hs : r.snap = false) :
     ⊢ logRecs (GF := GF) γ base0 r.fp -∗
       (∀ (_ : r.p.role = .candidate), isCampK γ id r.p.term r.full r.p.commit) -∗
       dynEnv γ id r.cfg.cfg r.p := by
@@ -247,7 +249,7 @@ theorem ownRaftGhostR_env (γ : RaftNames) (dec : CCDec) (c0 : CCState) (h0 : Cf
       · rw [toNat_uZ]; exact HI.i1
       · rw [uint_Z_W64 _ (by omega) (by omega)]
         have := HI.cidx_commit; have := rUnat_eq r.p.commit; omega
-      · rw [Hw]; exact cfgAt_of_fold HD HI.cfg
+      · rw [Hw]; exact cfgAt_of_fold HD (HI.cfg Hs)
       · intro hl; rw [Hw]; exact HI.leader_drop_cidx hl
     · iintro %h; exact absurd h hc
 
@@ -703,7 +705,7 @@ theorem ownRaftGhostR_stepR_in (γ : RaftNames) (dec : CCDec) (c0 : CCState) (h0
     iframe Hregs
     iunfold ownRaftGhostR at Hown
     icases Hown with ⟨Hg, %HI, #Hfr, #Hc⟩
-    ihave #Henv := ownRaftGhostR_env γ dec c0 h0 HD id r HI $$ Hfr Hc
+    ihave #Henv := ownRaftGhostR_env γ dec c0 h0 HD id r HI (HI.cand h1).1 $$ Hfr Hc
     imod ownRaftGhost_step_win γ r.cfg.cfg id r.p mt ms (B.toNat - γ.reBoot.length) h1 h2
       (by omega) h4 h5 (fun _ => h6)
       (fun _ _ _ T hT => by rw [RaftNames.reTracked_of_dyn (reDyn_of HD)] at hT; cases hT)
@@ -724,7 +726,7 @@ theorem ownRaftGhostR_stepR_in (γ : RaftNames) (dec : CCDec) (c0 : CCState) (h0
     iintro #Hrc Hregs #HS Hrecv Hcr Htk Hown
     iunfold ownRaftGhostR at Hown
     icases Hown with ⟨Hg, %HI, #Hfr, #Hc⟩
-    ihave #Henv := ownRaftGhostR_env γ dec c0 h0 HD id r HI $$ Hfr Hc
+    ihave #Henv := ownRaftGhostR_env γ dec c0 h0 HD id r HI (HI.lead_snap h1) $$ Hfr Hc
     imod ownRaftGhost_step_commit γ r.cfg.cfg id r.p n h1 h2 h3 h4 h5 $$ Henv Hregs Hg
       with ⟨Hregs, Hg⟩
     imodintro
@@ -746,7 +748,7 @@ theorem ownRaftGhostR_stepR_in (γ : RaftNames) (dec : CCDec) (c0 : CCState) (h0
     iframe Hregs
     iunfold ownRaftGhostR at Hown
     icases Hown with ⟨Hg, %HI, #Hfr, #Hc⟩
-    ihave #Henv := ownRaftGhostR_env γ dec c0 h0 HD id r HI $$ Hfr Hc
+    ihave #Henv := ownRaftGhostR_env γ dec c0 h0 HD id r HI (HI.lead_snap h1) $$ Hfr Hc
     imod ownRaftGhost_step_send_apps γ r.cfg.cfg id r.p ms h1 h2 (fun _ => h3)
       (fun _ _ _ T hT => by rw [RaftNames.reTracked_of_dyn (reDyn_of HD)] at hT; cases hT)
       $$ Henv Hg with Hg
@@ -764,7 +766,7 @@ theorem ownRaftGhostR_stepR_in (γ : RaftNames) (dec : CCDec) (c0 : CCState) (h0
     iunfold ownRaftGhostR at Hown
     icases Hown with ⟨Hg, %HI, #Hfr, #Hc⟩
     ihave #Hm := recv_one γ _ $$ Hrecv
-    ihave #Henv := ownRaftGhostR_env γ dec c0 h0 HD id r HI $$ Hfr Hc
+    ihave #Henv := ownRaftGhostR_env γ dec c0 h0 HD id r HI (HI.lead_snap h4) $$ Hfr Hc
     imod ownRaftGhost_step_read_ack γ r.cfg.cfg id r.p m N h1 h2 h3 h4 h5 h6 $$ Henv Hm Hg with Hg
     imodintro
     iunfold ownRaftGhostR
@@ -786,7 +788,7 @@ theorem ownRaftGhostR_stepR_in (γ : RaftNames) (dec : CCDec) (c0 : CCState) (h0
     icases Hown with ⟨Hg, %HI, #Hfr, #Hc⟩
     ihave #Hm := recv_one γ _ $$ Hrecv
     rw [show rdCount [m] = 1 by simp [rdCount_singleton, h1]]
-    ihave #Henv := ownRaftGhostR_env γ dec c0 h0 HD id r HI $$ Hfr Hc
+    ihave #Henv := ownRaftGhostR_env γ dec c0 h0 HD id r HI (HI.lead_snap h2) $$ Hfr Hc
     imod ownRaftGhost_step_read_single γ r.cfg.cfg id r.p m h1 h2 h3 h4 $$ Henv Hm Hcr Hg with Hg
     imodintro
     iunfold ownRaftGhostR
@@ -803,7 +805,7 @@ theorem ownRaftGhostR_stepR_in (γ : RaftNames) (dec : CCDec) (c0 : CCState) (h0
     iframe Hregs
     iunfold ownRaftGhostR at Hown
     icases Hown with ⟨Hg, %HI, #Hfr, #Hc⟩
-    ihave #Henv := ownRaftGhostR_env γ dec c0 h0 HD id r HI $$ Hfr Hc
+    ihave #Henv := ownRaftGhostR_env γ dec c0 h0 HD id r HI (HI.lead_snap h1) $$ Hfr Hc
     imod ownRaftGhost_step_read_release_single γ r.cfg.cfg id r.p h1 h2 h3 $$ Henv Hg with Hg
     imodintro
     iunfold ownRaftGhostR
@@ -820,7 +822,7 @@ theorem ownRaftGhostR_stepR_in (γ : RaftNames) (dec : CCDec) (c0 : CCState) (h0
     iframe Hregs
     iunfold ownRaftGhostR at Hown
     icases Hown with ⟨Hg, %HI, #Hfr, #Hc⟩
-    ihave #Henv := ownRaftGhostR_env γ dec c0 h0 HD id r HI $$ Hfr Hc
+    ihave #Henv := ownRaftGhostR_env γ dec c0 h0 HD id r HI h3 $$ Hfr Hc
     imod ownRaftGhost_step_campaign γ r.cfg.cfg id r.p peers cl h1 h2 h5 h6 $$ Henv Hrecv Hcr Hg
       with ⟨Hg, %fpc, %Hfpc, #Hfrc, #HcK⟩
     icases FullOk_unique γ r.p.base fpc r.fp Hfpc HI.full $$ Hfrc Hfr with %Heq
@@ -893,7 +895,7 @@ theorem ownRaftGhostR_stepR_in (γ : RaftNames) (dec : CCDec) (c0 : CCState) (h0
     · ipureintro; exact (RInv_stepR (Adm := AdmS dec c0 S) (id := id) (B := B) (fun _ _ h => h.1) (StepR.advance r a h1 h2 h3 h4) HB noApp0 HI)
     dsimp only [psendMsgs, RState.full, pappend]
     iexact Hc
-  | applySnap r h1 =>
+  | applySnap r cs' h1 h2 =>
     iintro #Hrc Hregs #HS Hrecv Hcr Htk Hown
     iapply fupd_frame_left
     iframe Hregs
@@ -903,7 +905,7 @@ theorem ownRaftGhostR_stepR_in (γ : RaftNames) (dec : CCDec) (c0 : CCState) (h0
     iunfold ownRaftGhostR
     iframe Hg Hfr
     isplitr
-    · ipureintro; exact (RInv_stepR (Adm := AdmS dec c0 S) (id := id) (B := B) (fun _ _ h => h.1) (StepR.applySnap r h1) HB noApp0 HI)
+    · ipureintro; exact (RInv_stepR (Adm := AdmS dec c0 S) (id := id) (B := B) (fun _ _ h => h.1) (StepR.applySnap r cs' h1 h2) HB noApp0 HI)
     dsimp only [psendMsgs, RState.full, pappend]
     iexact Hc
   | applyConf r k e op cs' h1 h2 h3 h4 h5 h6 h7 h8 h9 =>

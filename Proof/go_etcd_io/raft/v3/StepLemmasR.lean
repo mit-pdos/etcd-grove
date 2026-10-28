@@ -644,8 +644,9 @@ theorem StepCDS.trans_frame {c c' cn : CfgM} {id : w64} {sid : entryID} {s s1 s'
   exact h1.toR (rOf s g) rfl hc (rOf_pci_zero s g)
 
 /-- A restore (`handleSnapshot`'s third exit) as `StepR.snapRestore`: the node takes the
-snapshot's prefix `fp'` and configuration state `cs'`, at the snapshot's index, with the snapshot
-pending (`applied` unchanged, `raftLog.restore`'s unstable snapshot set). -/
+snapshot's prefix `fp'`, at the snapshot's index, with the snapshot pending (`applied` unchanged,
+`raftLog.restore`'s unstable snapshot set), and keeps its configuration (2026-10-28, stage U0:
+until then it took the snapshot's configuration state `cs'`, which the rule still checks). -/
 theorem stepR_snap_restore {Adm : List EntryM → CCState → Prop} {dec : CCDec} {id : w64}
     (s s' : NState) (g : RGh) (m : Msg) (fp' : List EntryM) (cs' : CCState)
     (h1 : m.ty = .snap) (h2 : m.dst = id) (h3 : m.src ≠ id) (h4 : m.term = (toPState s).term)
@@ -658,11 +659,11 @@ theorem stepR_snap_restore {Adm : List EntryM → CCState → Prop} {dec : CCDec
       [Msg.mk .appResp id m.src (toPState s).term false m.index (W64 0) (W64 0) (W64 0) []])
     (Ha : s'.logst.applied = s.logst.applied) (Hsn : s'.logst.snap.isSome = true)
     (Hl' : s'.role ≠ .leader) :
-    StepR Adm dec id B (rOf s g) [m] (rOf s' ⟨uint.nat m.index, cs', fp'⟩) := by
+    StepR Adm dec id B (rOf s g) [m] (rOf s' ⟨uint.nat m.index, g.cfg, fp'⟩) := by
   have Hnl : (rOf s g).p.role ≠ .leader := by
     simp only [rOf, toPState_role]; exact proleRole_not_leader _ h5
   have H := StepR.snapRestore (dec := dec) (B := B) m (rOf s g) fp' cs' h1 h2 h3 h4 Hnl h6 h7 h8 h9 h10
-  have e : rOf s' ⟨uint.nat m.index, cs', fp'⟩ =
+  have e : rOf s' ⟨uint.nat m.index, g.cfg, fp'⟩ =
       { rOf s g with
         p := psendMsgs
           { padoptLeader (rOf s g).p m.src with
@@ -670,7 +671,6 @@ theorem stepR_snap_restore {Adm : List EntryM → CCState → Prop} {dec : CCDec
           [Msg.mk .appResp id m.src (rOf s g).p.term false m.index (W64 0) (W64 0) (W64 0) []]
         snap := true
         cidx := uint.nat m.index
-        cfg := cs'
         fp := fp' } := by
     unfold rOf pciR
     simp [Hp, Ha, Hsn, h5, Hl']
