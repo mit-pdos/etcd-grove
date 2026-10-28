@@ -28,11 +28,15 @@ counterpart).
   only `.spec`s): `startServer` starts the member with auth on (`memberUpOn`), from
   `server_new_auth_on` (its named premises: `isValidSimpleToken`'s spec, D22's `authSchemaSrv`) and
   `server_Start_on`.
+* **`authkv_setup_auth_served`** (`SetupServed.lean`'s `setupAuthOk_of_served`; E3zb): `SetUp`'s
+  Auth premise `setupAuthOk` from the five Auth methods served at etcd's specs (as
+  `etcd_kv_auth_served_on` serves them), each call's `Q` what its reply carries (`setupQ`).
 -/
 module
 
 public import Proof.github_com.mit_pdos.etcd_grove.examples.authkv.Link
 public import Proof.github_com.mit_pdos.etcd_grove.examples.authkv.startServer
+public import Proof.github_com.mit_pdos.etcd_grove.examples.authkv.SetupServed
 public import Proof.github_com.mit_pdos.etcd_grove.examples.common.Link
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.Results
 
@@ -100,6 +104,19 @@ theorem authkv_startServer [EtcdGrove.Float64ToInt64Semantics] [EtcdGrove.ErrorS
   authkv.startServer.wp_proof common.features.wp_NewDefaultServerFeatureGate
     (server_new_auth_on hValid hD22) server_Start_on
 
+/-- **`SetUp`'s Auth premise from the served Auth methods** (`SetupServed.lean`; E3zb). -/
+theorem authkv_setup_auth_served (ep : GoString) (E : apply.AEnv GF) (ρ : ReqNames) :
+    isGrpcRpc ep go!"/etcdserverpb.Auth/UserAdd" (v3rpc.etcdUserAddSpec E ρ) ∗
+      isGrpcRpc ep go!"/etcdserverpb.Auth/UserGrantRole" (v3rpc.etcdUserGrantRoleSpec E ρ) ∗
+      isGrpcRpc ep go!"/etcdserverpb.Auth/RoleAdd" (v3rpc.etcdRoleAddSpec E ρ) ∗
+      isGrpcRpc ep go!"/etcdserverpb.Auth/RoleGrantPermission"
+        (v3rpc.etcdRoleGrantPermissionSpec E ρ) ∗
+      isGrpcRpc ep go!"/etcdserverpb.Auth/AuthEnable" (v3rpc.etcdAuthEnableSpec E ρ) ⊢
+    authkv.setupAuthOk ep (v3rpc.etcdUserAddSpec E ρ) (v3rpc.etcdUserGrantRoleSpec E ρ)
+      (v3rpc.etcdRoleAddSpec E ρ) (v3rpc.etcdRoleGrantPermissionSpec E ρ)
+      (v3rpc.etcdAuthEnableSpec E ρ) (authkv.setupQ E ρ) :=
+  authkv.setupAuthOk_of_served ep E ρ
+
 end results
 
 /-- **The program's verdict is the model's at the set-up's state**, for a point request of a
@@ -136,6 +153,7 @@ theorem authkv_token_one_user {GF : BundledGFunctors} [AllG GF] (γa : auth.Auth
 #print axioms authkv_SetUp
 #print axioms authkv_bad_unbound
 #print axioms authkv_startServer
+#print axioms authkv_setup_auth_served
 
 end EtcdGrove
 end Perennial

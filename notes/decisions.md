@@ -24861,3 +24861,11 @@ chain's auth layer on and `kvInvM true`). Three things it needed:
   saying the provider has a default; `ServerConfig` has none (`embed` sets `300`), and the simple
   provider's tokens with TTL `0` expire at its keeper's next tick. `NewServer.specM true` asks
   a positive TTL. `examples/authkv` now sets `300` (etcd's `--auth-token-ttl` default).
+
+**Done (5g): `setupAuthOk`.** `authkv/SetupServed.lean`'s `setupAuthOk_of_served`
+(`authkv_setup_auth_served`): at etcd's specs of the five Auth methods, which
+`etcd_kv_auth_served_on` serves, `SetUp`'s Auth premise needs only the five registrations: each
+call's precondition is its name's length bound and the caller's continuation from what the reply
+carries, so `Q` is that (`setupQ`: `userAddReplied` for the `UserAdd`s, `adminReplied` of the request
+otherwise). What `Main` then knows after `SetUp` is the eight replies' facts: each admin step done
+on the committed prefix (`adminDoneM`), the prefix in raft's log, its publication.
