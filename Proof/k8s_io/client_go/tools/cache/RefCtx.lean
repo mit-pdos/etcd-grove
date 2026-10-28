@@ -208,6 +208,20 @@ theorem wp_select_stable (ctx : GoInterfaceOk) (ch : GoChan) (γch : ChanNames) 
     icases Hh with ⟨-, Hh⟩
     iexact Hh
 
+/-- **A receive on a channel nothing is ever sent on and never closed** (its state `Buffered []`
+for good, in an invariant) never returns: any continuation. -/
+theorem never_recv_au {V : Type} [ZeroVal V] [TypedPointsto (GF := GF) V] [Pos.Countable V]
+    (N : Namespace) (γ : ChanNames) (Φ : V → Bool → IProp GF) :
+    ⊢ inv N (ownChan γ V (.Buffered [])) -∗ recvAu γ V Φ := by
+  iintro #Hinv
+  unfold recvAu
+  iinv Hinv with Hi Hclose
+  iapply fupd_mask_intro Std.LawfulSet.empty_subset
+  iintro -
+  inext
+  iexists .Buffered []
+  iframe Hi
+
 /-- **A blocking `select` between the `Done` channel and a timer's channel** (`select { case
 <-done: ...; case <-clock.After(d): ... }`): its first case once the `Done` channel is seen closed,
 or its second with some time. -/

@@ -13,6 +13,18 @@ public import Perennial.Proof.context.BackgroundCtx
 
 set_option linter.unusedSectionVars false
 
+set_option hygiene false in
+/-- Return the page function's error, with no list. -/
+local macro "ret_err" : tactic => `(tactic| (
+    wp_for_post
+    (try wp_auto)
+    iapply HΦ
+    iframe
+    unfold pageRes
+    ileft
+    iframe
+    ipureintro; exact ⟨hne, Or.inl rfl⟩))
+
 noncomputable section
 
 namespace Perennial
@@ -66,13 +78,51 @@ theorem ListPager.list.wp_proof
         (try wp_auto)
         wp_apply (wp_IsResourceExpired _) $$ [$Herrs] as %bexp -
         (try wp_auto)
-        sorry
+        cases bexp
+        · (try wp_auto)
+          ret_err
+        · (try wp_auto)
+          cases hfl : pg.FullListIfExpired'
+          · (try wp_auto)
+            ret_err
+          · (try wp_auto)
+            wp_if_destruct
+            · ret_err
+            · (try wp_auto)
+              wp_apply Hpf $$ [] as %obj2 %err2 Hlo2 Hres2
+              · iapply (lo_own_intro _ none (DFrac.own 1))
+                · exact hsie
+                simp only [ownPtrD]
+                ipureintro; exact hts
+              (try wp_auto)
+              wp_for_post
+              (try wp_auto)
+              iapply HΦ
+              iframe
     · subst he hobj
       (try wp_auto)
       wp_apply (wp_ListAccessor res q os rv) $$ [$Hmeta $Hl] as %m %merr ⟨%hmerr, Hl, #Hacc⟩
       subst hmerr
+      iunfold apimeta.listAccOk at Hacc
+      icases Hacc with ⟨%hm, #HrvM, #HcontM⟩
+      subst hm
       (try wp_auto)
-      sorry
+      wp_apply HcontM $$ Hl as Hl
+      (try wp_auto)
+      wp_func_call
+      wp_call
+      (try wp_auto)
+      wp_for_post
+      (try wp_auto)
+      iapply HΦ
+      iframe
+      unfold pageRes
+      iright
+      isplitr
+      · ipureintro; rfl
+      iexists q, os, rv
+      iframe
+      ipureintro; rfl
 
 end proof
 

@@ -36,8 +36,8 @@ variable [package_sem : k8s_io.apimachinery.pkg.api.«meta».Assumptions]
 
 /-- **The list accessor of the typed list `q`** (persistent): `GetResourceVersion()` and
 `GetContinue()` read its metadata (the list's ownership kept). -/
-def listAccOk (res : Res) (m : GoInterface) : IProp GF :=
-  iprop(∃ q : Loc, ⌜m = interface.mkOk (go.GoType.PointerType (resListTy res)) #q⌝ ∗
+def listAccOk (res : Res) (q : Loc) (m : GoInterface) : IProp GF :=
+  iprop(⌜m = interface.mkOk (go.GoType.PointerType (resListTy res)) #q⌝ ∗
     □ (∀ (os : List Obj) (rv : GoString) (Φ : val → IProp GF), typedListAt res q os rv -∗
       ▷ (typedListAt res q os rv -∗ Φ #rv) -∗
       WP (App (Val #(methods (go.GoType.PointerType (resListTy res)) go!"GetResourceVersion" #q))
@@ -47,8 +47,8 @@ def listAccOk (res : Res) (m : GoInterface) : IProp GF :=
       WP (App (Val #(methods (go.GoType.PointerType (resListTy res)) go!"GetContinue" #q))
         (Val #())) {{ Φ }}))
 
-instance listAccOk_persistent (res : Res) (m : GoInterface) :
-    Persistent (listAccOk (GF := GF) res m) := by
+instance listAccOk_persistent (res : Res) (q : Loc) (m : GoInterface) :
+    Persistent (listAccOk (GF := GF) res q m) := by
   unfold listAccOk; infer_instance
 
 /-- `meta.ListAccessor(obj)` of a typed list: the list itself, no error. -/
@@ -59,7 +59,7 @@ abbrev ListAccessor.spec : Prop :=
     (App (Val (@! k8s_io.apimachinery.pkg.api.«meta».ListAccessor))
       (Val #(interface.mkOk (go.GoType.PointerType (resListTy res)) #q)))
   {{ (m err : GoInterface), RET (PairV #m #err); ⌜err = interface.nil⌝ ∗
-      typedListAt res q os rv ∗ listAccOk res m }}
+      typedListAt res q os rv ∗ listAccOk res q m }}
 
 end spec
 
