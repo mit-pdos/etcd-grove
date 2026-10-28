@@ -34,15 +34,19 @@ Perennial pin at the start: `a39a3d14c` (Perennial's `lean` head on 2026-10-22).
   `perennial` is `/home/ubuntu/perennial-ext-names-at-pin` (the change cherry-picked onto the
   pin `f73703285`, branch `ext-names-at-pin`). Until the pin has it, a full build (CI) fails on
   them, so the branch waits for the pin bump before it merges.
-- **The change.** Perennial branch `ext-names` (`6fa3a85cc`, off `lean` `edcadb1e5`; every
+- **The change.** Perennial branch `ext-names` (`6fa3a85cc`..`25bd32450`, off `lean` `edcadb1e5`; every
   module builds, goose's tests pass): `GooseExt` has a `name` (the Go package's path) and no
   type of operations; an operation is named by two strings, `ExternalOp ext op e` (stepping
   with the program's first extension named `ext`, by its step of `op`), an opaque value by the
   extension's name and its encoding (`ExtCode`, `extVal E v`); `ElemExt E` and `HasExt E` are propositions (closing off a program proves them by
   `rfl`); goose knows nothing of extensions (its table, the binders and the extension preludes
   are gone). It supersedes branch `goose-ext-flag` (goose's `-ext`, the first attempt).
-- **Status.** Open: not landed (Perennial's trusted base: the `review-trusted` review and
-  `etc/land.sh`).
+- **Status.** Landed on Perennial's `lean` as `25bd32450` (2026-10-28), after the trusted-base
+  review (verdict OK; its adversarial pass found that Grove's stutter made an unknown operation
+  name safe instead of stuck, fixed in `25bd32450`: only Grove's operations, `groveOps`,
+  stutter). Waiting for the pin to reach it: the bump regenerates every translation with the
+  new goose and rebuilds; then `.lake/manifest-extnames.json` and the helper branch
+  `ext-names-at-pin` go, and this entry moves to "Landed".
 
 ### Translation: `sort.StringSlice`'s methods (2026-10-25, leases T3, branch `leases-t3`)
 
