@@ -1102,7 +1102,7 @@ theorem raftLog.wp_restore [StorageModel GF] :
 
 theorem raft.wp_restore [StorageModel GF] :
     raft.restore.spec (GF := GF) (hG := hG) :=
-  raft.restore.wp_proof raftLog.wp_matchTerm raftLog.wp_lastEntryID raftLog.wp_commitTo raftLog.wp_lastIndex raftLog.wp_restore tracker.wp_MakeProgressTracker confchange.wp_Restore raft.wp_switchToConfig wp_assertConfStatesEquivalent raftpb.wp_EnsureConfState
+  raft.restore.wp_proof raftLog.wp_matchTerm raftLog.wp_lastEntryID raftLog.wp_commitTo raftLog.wp_restore raftpb.wp_EnsureConfState
 
 theorem raftpb.Message.wp_GetSnapshot :
     raftpb.Message.GetSnapshot.spec (GF := GF) (hG := hG) :=
@@ -1278,7 +1278,7 @@ theorem raftLog.wp_stableSnapTo [StorageModel GF] :
 
 theorem raft.wp_appliedSnap [StorageModel GF] :
     raft.appliedSnap.spec (GF := GF) (hG := hG) :=
-  raft.appliedSnap.wp_proof raftLog.wp_stableSnapTo raft.wp_appliedTo raftpb.Snapshot.wp_GetMetadata raftpb.SnapshotMetadata.wp_GetIndex
+  raft.appliedSnap.wp_proof raftLog.wp_stableSnapTo raft.wp_appliedTo raftpb.Snapshot.wp_GetMetadata raftpb.SnapshotMetadata.wp_GetIndex raftLog.wp_lastIndex tracker.wp_MakeProgressTracker confchange.wp_Restore raft.wp_switchToConfig wp_assertConfStatesEquivalent raftpb.wp_EnsureConfState raftpb.SnapshotMetadata.wp_GetConfState
 
 theorem raft.wp_reduceUncommittedSize [StorageModel GF] :
     raft.reduceUncommittedSize.spec (GF := GF) (hG := hG) :=
