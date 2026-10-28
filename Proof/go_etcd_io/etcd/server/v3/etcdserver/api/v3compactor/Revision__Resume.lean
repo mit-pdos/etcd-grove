@@ -30,7 +30,7 @@ theorem v3compactor.Revision.Resume.wp_proof :
   intro rc E ret
   wp_start as #Hcp
   iunfold isRevision at Hcp
-  icases Hcp with ⟨%lg, %clk, %rt, %ctx, %cd, %γctx, %cancel, #Hlg, %Hlgnn, #Hclkf, #Hclk, #Hrt, %Hrt, #Hrg, #Hc, #Hctxf, #Hctx, #Hcancelf, #Hcs, #Hmu⟩
+  icases Hcp with ⟨%lg, %clk, %rt, %ctx, %cd, %γctx, %cancel, #Hlg, %Hlgnn, #Hclkf, #Hclk, #Hrt, %Hrt, #Hrg, #Hc, #Hctxf, #Hctx, #Htrc, #Hcancelf, #Hcs, #Hmu⟩
   wp_auto
   wp_apply sync.Mutex.wp_Lock $$ [$Hmu] as ⟨Hlocked, Hinv⟩
   iunfold revPausedInv at Hinv

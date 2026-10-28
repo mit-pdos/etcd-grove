@@ -11,7 +11,7 @@ public import Spec.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__KV
 public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.store__Rev
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__Term
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__Leader
-public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.FrozenSpecs
+public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.ReaderSpecs
 
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.txn.KVWrite
 @[expose] public section
@@ -42,7 +42,7 @@ theorem EtcdServer.newHeader.wp_proof
     (hTerm : EtcdServer.Term.spec (GF := GF) (hG := hG))
     (hLead : EtcdServer.Leader.spec (GF := GF) (hG := hG)) :
     EtcdServer.newHeader.spec (GF := GF) (hG := hG) := by
-  have hRev := mvcc.store.Rev.spec_frozen hRev
+  have hRev := mvcc.store.Rev.spec_R hRev
   intro s E γr cl mid cid
   wp_start as ⟨#Hrd, #Hcl, #Hcid, #Hmid, #Hlead, Hsr⟩
   iunfold isServerRead at Hrd
@@ -80,8 +80,8 @@ theorem EtcdServer.newHeader.wp_proof
   wp_apply hLead s $$ [] as %l -
   · iframe #
   try wp_auto
-  wp_alloc h as Hh
-  wp_auto
+  irename «$r0» => Hh
+  generalize «$r0_ptr» = h at *
   iapply HΦ
   iframe Hsr
   iexists _, log

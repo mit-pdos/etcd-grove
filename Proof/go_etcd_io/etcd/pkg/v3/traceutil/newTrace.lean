@@ -29,7 +29,8 @@ theorem traceutil.newTrace.wp_proof : traceutil.newTrace.spec (GF := GF) (hG := 
   wp_auto
   wp_apply time.wp_Now as %now -
   (try wp_auto)
-  wp_alloc t as Ht
+  irename «$r0» => Ht
+  generalize «$r0_ptr» = t at *
   ihave %Hnn := typedPointsto_not_null _ _ _ $$ Ht
   (try wp_auto)
   iapply HΦ

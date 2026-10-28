@@ -36,6 +36,7 @@ theorem backend.backend.Close.wp_proof
   unfold isStopChans isStopChansAt
   icases Hsc with ⟨%sc, %dc, %γsc, %γdc, #Hscf, #Hdcf, #Hscb, #Hdcb, #Hinv⟩
   ihave #Hdcc := ownBroadcastChan_is_chan _ _ _ _ $$ Hdcb
+  wp_auto
   wp_apply (lc := 1) wp_with_defer as %defer defer
   imod (stop_take γ sc γsc) $$ [$Hinv $Ho] with ⟨Hpend, #Hq⟩
   imod lc_fupd_elim_later (E := ⊤) $$ Hlc1 Hpend with Hpend

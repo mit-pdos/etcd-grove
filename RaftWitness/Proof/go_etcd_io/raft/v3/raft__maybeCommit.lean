@@ -103,6 +103,7 @@ theorem raft.maybeCommit.wp_proof
   intro c r id s Hlead
   wp_start as H
   iNamed H
+  wp_auto
   wp_apply wp_with_defer as %defer defer
   -- (2026-10-20, witness support) `OneLessThanQuorumInReplicationSet`, then to each witness it
   -- reports the entry at its index, if of the leader's term and subterm

@@ -27,6 +27,7 @@ theorem mvcc.newWatcherGroup.wp_proof
     (hNew : adt.NewIntervalTree.spec (GF := GF) (hG := hG)) :
     mvcc.newWatcherGroup.spec (GF := GF) (hG := hG) := by
   wp_start
+  wp_auto
   rw [go.make1_underlying, go.is_underlying (t := watcherSetByKey.ty)]
   wp_apply (wp_map_make1 (K := GoString) (V := GoMap)) as %km Hkm
   wp_apply hNew as %t Ht

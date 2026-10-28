@@ -206,12 +206,13 @@ theorem confchange.checkInvariants.wp_proof
           ownIdsetQ mref (DFrac.own 1) (c.incoming ∪ c.outgoing) ∗
           ownIdsetQ cfg.Learners' dqc c.learners ∗
           ownIdsetQ cfg.LearnersNext' dqc c.learnersNext) ∗
+        "«$res0»" ∷ «$res0_ptr» ↦ interface.nil ∗
         "HΦ" ∷ (∀ (err : GoInterface), ownCfgCC cfg dqc c ∗ trk ↦${dqm} prs ∗
           ([∗map] _k ↦ pr;pv ∈ prs;pvs, pr ↦{dqp} pv) ∗
           ⌜err = interface.nil ↔ CfgInv { cfg := c, prs := flagsOf pvs }⌝ -∗ Φ #err)))
       $$ Hx
     iintro %keys ⟨%Hkset, %Hklen, %Hknodup⟩
-    isplitl [id trk Htrk Hprs Hin Hout Hxback HΦ]
+    isplitl [id trk Htrk Hprs Hin Hout Hxback «$res0» HΦ]
     · iexists zero_val w64
       iframe
       ipureintro
@@ -299,12 +300,13 @@ theorem confchange.checkInvariants.wp_proof
       "Hin" ∷ ownIdsetQ vin dqc c.incoming ∗
       "Hout" ∷ ownIdsetQ vout dqc c.outgoing ∗
       "Hl" ∷ ownIdsetQ cfg.Learners' dqc c.learners ∗
+      "«$res0»" ∷ «$res0_ptr» ↦ interface.nil ∗
       "HΦ" ∷ (∀ (err : GoInterface), ownCfgCC cfg dqc c ∗ trk ↦${dqm} prs ∗
         ([∗map] _k ↦ pr;pv ∈ prs;pvs, pr ↦{dqp} pv) ∗
         ⌜err = interface.nil ↔ CfgInv { cfg := c, prs := flagsOf pvs }⌝ -∗ Φ #err)))
     $$ Hln
   iintro %keys ⟨%Hkset, %Hklen, %Hknodup⟩
-  isplitl [id trk cfg Htrk Hprs Hin Hout Hl HΦ]
+  isplitl [id trk cfg Htrk Hprs Hin Hout Hl «$res0» HΦ]
   · iexists zero_val w64
     iframe
     ipureintro
@@ -423,12 +425,13 @@ theorem confchange.checkInvariants.wp_proof
       "Hin" ∷ ownIdsetQ vin dqc c.incoming ∗
       "Hout" ∷ ownIdsetQ vout dqc c.outgoing ∗
       "Hln" ∷ ownIdsetQ cfg.LearnersNext' dqc c.learnersNext ∗
+      "«$res0»" ∷ «$res0_ptr» ↦ interface.nil ∗
       "HΦ" ∷ (∀ (err : GoInterface), ownCfgCC cfg dqc c ∗ trk ↦${dqm} prs ∗
         ([∗map] _k ↦ pr;pv ∈ prs;pvs, pr ↦{dqp} pv) ∗
         ⌜err = interface.nil ↔ CfgInv { cfg := c, prs := flagsOf pvs }⌝ -∗ Φ #err)))
     $$ Hl
   iintro %keys ⟨%Hkset, %Hklen, %Hknodup⟩
-  isplitl [id trk cfg Htrk Hprs Hin Hout Hln HΦ]
+  isplitl [id trk cfg Htrk Hprs Hin Hout Hln «$res0» HΦ]
   · iexists zero_val w64
     iframe
     ipureintro

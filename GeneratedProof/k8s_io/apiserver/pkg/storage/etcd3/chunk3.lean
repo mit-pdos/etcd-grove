@@ -15,7 +15,7 @@ public import GeneratedProof.go_opentelemetry_io.otel.«attribute»
 public import GeneratedProof.google_golang_org.grpc.codes
 public import GeneratedProof.google_golang_org.grpc.grpclog
 public import GeneratedProof.google_golang_org.grpc.status
-public import GeneratedProof.iter
+public import Perennial.GeneratedProof.iter
 public import GeneratedProof.k8s_io.apimachinery.pkg.api.errors
 public import GeneratedProof.k8s_io.apimachinery.pkg.api.«meta»
 public import GeneratedProof.k8s_io.apimachinery.pkg.apis.«meta».v1

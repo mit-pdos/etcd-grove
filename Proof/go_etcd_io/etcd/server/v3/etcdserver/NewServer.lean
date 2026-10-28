@@ -101,6 +101,8 @@ public import Spec.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__Leader
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__Term
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__ForceSnapshot
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__ClusterVersion
+public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.store__Rev
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.CompactEnv
 
 @[expose] public section
 
@@ -301,6 +303,7 @@ theorem NewServer.wp_proofM (on : Bool)
   ihave #Hwci : waitClosecInit (GF := GF) $$ []
   · iapply waitClosecInit_of_pkg
     iPkgInit
+  wp_auto
   wp_apply wp_with_defer as %defer defer
   ihave #Hzpkg : isPkgInit (PROP := IProp GF) pkg_id.go_uber_org.zap $$ []
   · iPkgInit
@@ -515,11 +518,14 @@ theorem NewServer.wp_proofM (on : Bool)
   wp_apply (h24 cfg.Logger' _ _ d (mvcc.lateW d.gx) (batchLockInv γA (metaTM d.γB d.P)) (1 : Qp).half
       (srvGrantGuard) (backend.rbData d.P D))
     $$ [Hopen Hwl Hrbo]
-    as %l ⟨Hopen, Hrbo, %lp, %γl, %Hl, #Hlinv, #Hlcfg, #Hlexp, -, Hlrd, Hlown, Hlrvk, Hro, #Hlck, HleOn, #Hlbe, #Hllk⟩
+    as %l ⟨Hopen, Hrbo, %lp, %γl, %Hl, #Hlinv, #Hlcfg, #Hlexp, -, Hlrd, Hlown, Hlrvk, Hro, #Hlck, HleOn, #Hlbe, #Hllk'⟩
   · iframe HB Hclok
     unfold backend.wbTok
     iframe Hopen Hwl Hrbo
     ipureintro; exact ⟨Hlgnn, Hckok, by simp, hDl go!"lease" (by decide)⟩
+  -- (the auth plan's E3zb) its `Lookup` at the guard `False`: no lease, and the weaker clause
+  ihave #Hlnil := lookupNil_of_guard lp $$ Hllk'
+  ihave #Hllk := lookupOk_of_guard lp srvGrantGuard $$ Hllk'
   (try wp_auto)
   -- `auth.NewTokenProvider`
   ihave #Hapkg : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.auth $$ []
@@ -644,7 +650,7 @@ theorem NewServer.wp_proofM (on : Bool)
   wp_apply HKt'
     $$ [HK Hopen Hhook Hwa Hrbo]
     as %ast ⟨Hopen, Hhook, Hrbo, %RD, %astl, %Hastl, HauthOn, HRDs, #HisReq, #HisAuth,
-      #HstL, #HstLb, #HstPub, HAres, #HauR⟩
+      #HstL, #HstLb, #HstPub, #HbBk, HAres, #HauR⟩
   · iframe Habbe Hablg HB
     iframe Hapkg HK Hopen Hhook Hwa Hrbo
     ipureintro
@@ -1353,7 +1359,13 @@ theorem NewServer.wp_proofM (on : Bool)
     · iapply rwLens_authBeOn
     -- (E3n) and so does the rest resource, at the same rest value
     iapply roLends_authBeOn
+  -- (the auth plan's E3zb) the lessor finds no lease
+  ihave #HLnil : srvLessorNil s $$ []
+  · iunfold srvLessorNil
+    iexists (lease.lessorIface lp)
+    iframe Hlnil lessor
   imodintro
+  wp_auto
   iapply HΦ
   iright
   isplitr
@@ -1364,8 +1376,9 @@ theorem NewServer.wp_proofM (on : Bool)
       go_etcd_io.etcd.server.v3.storage.backend.backend.ty) #d.be : GoInterface), γk,
     (⟨t, c⟩ : SrvTr GF)
   iframe Hgap Hserve HSV HMon Hrc Hnm HWR HtokP HServe
+  iframe HLnil
   isplitr
-  · icases HM with %HM; ipureintro; exact ⟨hγs, HM⟩
+  · icases HM with %HM; ipureintro; exact ⟨hγs, HM.1, HM.2⟩
   isplitr
   · unfold srvWatchBuilt
     iexists ws, γw
@@ -1424,7 +1437,12 @@ theorem NewServer.wp_proofM (on : Bool)
     iexists ⟨errc, null, null, func.nil, GoInterface.nil, sstats, null⟩
     unfold srvRunBuilt compactorOk
     iframe compactor errorc Hltg stats Herrb
-    ipureintro; rfl
+    ileft; ipureintro; rfl
+  isplitr
+  · -- `Hcrun` (M2, S4): the compactor off, nothing to run
+    iexists GoInterface.nil
+    iframe compactor
+    iunfold compactorRun; ileft; ipureintro; rfl
   isplitr
   · -- `#Hsab`: (D19p) `msgSnapC` never delivers
     unfold srvApplyAllBuilt
@@ -1761,7 +1779,8 @@ theorem NewServer.wp_proofM (on : Bool)
     -- (E3t) publication, from the construction
     isplitr
     · iexact HstPub
-    iexact HstL
+    iframe HstL
+    iexact HbBk
   isplitr
   · iunfold apply.applierFor
     iexists up, uopts
@@ -1776,7 +1795,7 @@ theorem NewServer.wp_proofM (on : Bool)
   -- (the chain's auth layer is the environment's mode: by `HM`, not by unfolding)
   · icases HM with %HM'
     iExactEq Huo
-    simp only [apply.AEnv.authOn, HM']
+    simp only [apply.AEnv.authOn, HM'.1]
   iunfold apply.kvOwn
   ihave HwoA : mvcc.writerOwn γw.st $$ [HrtA HtrA]
   · iunfold mvcc.writerOwn; iframe HrtA HtrA
@@ -1928,15 +1947,30 @@ theorem NewServer.wp_proof
   iintro !> %srv %err Hpost
   iapply HΦ
   icases Hpost with (Hl | ⟨%He, %γA, %ci, %TM, %E, %γrn, %b, %γk, %τ, %H1, H2, H3, H4, H5, H6, H7,
-    H8, H9, H10, H11, H12, H13, H14⟩)
+    H8, H9, H10, H11, H12, H13, H14, -⟩)
   · ileft; iexact Hl
   iright
   isplitr
   · ipureintro; exact He
   iexists γA, ci, TM, E, γrn, b, γk, τ
   isplitr
-  · ipureintro; exact H1
+  · ipureintro; exact ⟨H1.1, H1.2.1⟩
   iframe H2 H3 H4 H5 H6 H7 H8 H9 H10 H11 H12 H13 H14
+
+
+/-- **`NewServer` with the auto-compactor on** (M2, S4, `notes/m2-plan.md`): to prove, from
+`v3compactor.New.spec` and the compactor's environment built from the store's `Rev` (`E.rg`,
+`mvcc.store.Rev.spec`) and the server's `Compact` (`E.c`: `compactableOk_server`, `CompactEnv.lean`,
+over `EtcdServer.Compact.spec`, the revision permit over `srvRevLb`, `srvCompactR` borrowed), and
+the apply thread's compaction right (in place of the frozen store). The callees are hypotheses
+(review round 1, S4-2), so that the results over this proof rest on theirs. -/
+theorem NewServer.wp_proofCompact
+    (wp_New : v3compactor.New.spec (GF := GF) (hG := hG))
+    (wp_Compact : EtcdServer.Compact.spec (GF := GF) (hG := hG))
+    (wp_Rev : mvcc.store.Rev.spec (GF := GF) (hG := hG)) :
+    NewServer.specCompact (GF := GF) (hG := hG) := by
+  have _hC := compactableOk_server wp_Compact
+  sorry -- M2 S4: NewServer with the compactor (the compactor's environment over wp_New/wp_Rev/compactableOk_server, the apply thread's compaction right)
 
 end proof
 

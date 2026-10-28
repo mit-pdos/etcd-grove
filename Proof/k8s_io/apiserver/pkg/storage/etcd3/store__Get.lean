@@ -84,6 +84,7 @@ theorem store.Get.wp_proof
   iStructNamed Fgr'
   ihave Hkc' := Hkc
   iStructNamed Hkc'
+  wp_auto
   wp_bind (App (Val wrapDefer) _)
   wp_apply wp_with_defer as %defer defer
   (try wp_auto)

@@ -112,7 +112,8 @@ theorem lockServer.Lock.wp_proof
     (try wp_auto)
     wp_apply wp_string_to_bytes key as %ksl ⟨Hksl, -⟩
     (try wp_auto)
-    wp_alloc r as Hr
+    irename «$r0» => Hr
+    generalize «$r0_ptr» = r at *
     (try wp_auto)
     iapply HΦ
     ileft

@@ -8,6 +8,7 @@ public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.TxnRange
 public import Perennial.Proof.context
 public import Proof.go_etcd_io.etcd.pkg.v3.traceutil.Defs
 public import Code.go_etcd_io.etcd.client.v3
+public import Proof.google_golang_org.grpc.metadata.Incoming
 
 @[expose] public section
 
@@ -38,7 +39,10 @@ which needs `isContext`), a context (`context.isContext`) gives a context. Its t
 (`traceutil.ctxTraceIs`, unit P1b): `v`'s for the key `TraceKey{}` (`valueCtx.Value` returns `v`
 at an equal key), else its parent's (a key of another type is not equal to `TraceKey{}`, so
 `Value(TraceKey{})` asks the parent); the two descriptions at the same values (a descriptor's
-`Values` is read by no context predicate). -/
+`Values` is read by no context predicate). Its incoming gRPC metadata (`metadata.incomingOf`,
+2026-10-28, the auth plan's E3zb) is its parent's: `metadata.FromIncomingContext` reads
+`Value(mdIncomingKey{})`, which none of the keys above equals (grpc's key is a type of its own),
+so the `valueCtx` asks the parent. -/
 abbrev context.WithValue.spec : Prop :=
   ∀ (parent key : GoInterfaceOk) (v : GoInterface),
   {{ isPkgInit (PROP := IProp GF) pkg_id.context ∗
@@ -58,6 +62,7 @@ abbrev context.WithValue.spec : Prop :=
         ∃ (c' : GoInterfaceOk) (vs : GMap GoInterface GoInterface), ⌜c = GoInterface.ok c'⌝ ∗
           context.isContext c' { cd with Values := vs }) ∗
       ∃ (c' : GoInterfaceOk) (vs : GMap GoInterface GoInterface), ⌜c = GoInterface.ok c'⌝ ∗
+        ⌜metadata.incomingOf (GoInterface.ok c') = metadata.incomingOf (GoInterface.ok parent)⌝ ∗
         □ (∀ cd : context.ContextDesc (IProp GF), mvcc.txnCtx parent cd -∗
           mvcc.txnCtx c' { cd with Values := vs }) ∗
         □ (∀ cd : context.ContextDesc (IProp GF), context.isContext parent cd -∗

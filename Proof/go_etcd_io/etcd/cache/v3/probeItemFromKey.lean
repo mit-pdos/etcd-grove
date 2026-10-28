@@ -27,10 +27,13 @@ theorem probeItemFromKey.wp_proof : probeItemFromKey.spec (GF := GF) (hG := hG) 
   intro sl key dq
   simp only [kvItemIs]
   wp_start as Hsl
+  iapply wp_fupd
   wp_auto
   wp_apply wp_bytes_to_string sl key dq $$ Hsl as Hsl
-  wp_alloc p as Hp
+  irename «$r0» => Hp
+  generalize «$r0_ptr» = p at *
   ipersist Hp
+  imodintro
   wp_end
   iframe Hsl Hp
 

@@ -71,7 +71,9 @@ same post as `spec`'s writing case: a success is a transaction the auth state it
 granted (the apply thread's auth verdict is the model's, `authTie`), so its client's update fired
 there and its result `Q` holds at the log the entry met (`txnAppliedOk`); a refusal is an error
 (`txnErrOk`). A read-only transaction in the mode `on` (the read path, `doSerialize`'s check at
-the auth store) is not covered here. -/
+the auth store) is not covered here. (E3zb, 2026-10-28) A success names the grant at the committed
+log `L` before the entry (`grantedAt`); a success and an applied error, the header the server
+stamped, whose user is bound to the context (`hdrBoundM`; `txnErrOkOn`). -/
 abbrev EtcdServer.Txn.specOn : Prop :=
   ∀ (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (ctx : GoInterfaceOk)
     (cd : context.ContextDesc (IProp GF)) (r : Loc) (t : TxnModel) (Q : KVState → IProp GF)
@@ -88,8 +90,11 @@ abbrev EtcdServer.Txn.specOn : Prop :=
       srvLeadTimeReader s ∗ E.RD ∗ srvLgReader s ∗
       ((⌜err = GoInterface.nil ∧ resp ≠ null⌝ ∗ txnAppliedOk E ρ.rd F t Q resp ∗
           ∃ (tw : txn.TxnModelW) (hm : apply.HeaderModel) (L : List EntryModel),
-            ⌜tw.toModel = t⌝ ∗ pubAfterM true E ρ (apply.withHeader (irrTxn tw) hm) L) ∨
-       (⌜resp = null ∧ err ≠ GoInterface.nil⌝ ∗ applyErrIs err ∗ txnErrOk E ρ F t err)) }}
+            ⌜tw.toModel = t ∧ grantedAt ρ.kv srvAuthSt0 (apply.withHeader (irrTxn tw) hm) L⌝ ∗
+            hdrBoundM true s E (GoInterface.ok ctx) hm ∗
+            pubAfterM true E ρ (apply.withHeader (irrTxn tw) hm) L) ∨
+       (⌜resp = null ∧ err ≠ GoInterface.nil⌝ ∗ applyErrIs err ∗
+         txnErrOkOn s E ρ (GoInterface.ok ctx) F t err)) }}
 
 /-- **`spec` for a read-only transaction in the auth mode `on`** (the auth plan's E3v, 2026-10-27;
 `notes/decisions.md`, "E3v of the auth plan"; `Range.specOn`'s): in the mode `on γa`, a read-only
@@ -100,7 +105,8 @@ bounds (`srvAuthLb`). Success: every permission the transaction's checks see was
 no older than some `m ≥ n` (`txnClassFrom`, through `CheckTxnAuth`'s checks at the bound) and, for a
 linearizable `t`, no older than the auth state the committed log through the read index left
 (`authFloorAt`: `Txn` checks after waiting for the read index); the read as `spec`'s, at the
-mode-`on` model (`txnReadOkM true`). Failure: an error the gRPC layer can take. -/
+mode-`on` model (`txnReadOkM true`); the auth info checked is the caller's (`infoBoundM`, E3zb).
+Failure: an error the gRPC layer can take. -/
 abbrev EtcdServer.Txn.specOnR : Prop :=
   ∀ (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames) (c : w64)
     (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) (r : Loc) (t : TxnModel)
@@ -120,7 +126,7 @@ abbrev EtcdServer.Txn.specOnR : Prop :=
       srvLeadTimeReader s ∗ srvRdCall s E γr c ∗ idCred ρ.ids 1 ∗
       ((⌜err = GoInterface.nil ∧ resp ≠ null⌝ ∗
           (∃ (info : go_etcd_io.etcd.server.v3.auth.AuthInfo) (m : Nat), ⌜n ≤ m⌝ ∗
-            txnClassFrom E.authMode m info t ∗
+            txnClassFrom E.authMode m info t ∗ infoBoundM true s E (GoInterface.ok ctx) info ∗
             (if txn.txnSerializable t then iprop(True) else authFloorAt E.authMode γr c m)) ∗
           txnReadOkM true E γr c F t Qr resp) ∨
        (⌜err ≠ GoInterface.nil⌝ ∗ applyErrIs err)) }}

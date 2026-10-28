@@ -63,6 +63,7 @@ theorem store.getSnapshot.wp_proof
   wp_start as ⟨#HS, Hrd, #Hlb⟩
   ihave #Hfmt : isPkgInit (PROP := IProp GF) pkg_id.fmt $$ []
   · iPkgInit
+  wp_auto
   wp_apply wp_with_defer as %defer defer
   ihave #Hsync : isPkgInit (PROP := IProp GF) pkg_id.sync $$ []
   · iPkgInit

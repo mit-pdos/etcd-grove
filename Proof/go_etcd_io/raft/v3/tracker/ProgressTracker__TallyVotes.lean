@@ -35,9 +35,6 @@ theorem tracker.ProgressTracker.TallyVotes.wp_proof
   iunfold ownTrackerC at Hown
   iNamed Hown
   simp only at Hinv Hdom Hflags Hsize
-  -- the `var _ quorum.VoteResult` declaration Go emits for the named return
-  -- is an *anonymous* `GoAlloc`, which `wp_auto` will not step past.
-  wp_alloc res0 as Hres0
   wp_auto
   -- `pr` and `id` are the range's own loop variables: the body assigns them
   -- on every iteration, so they must be existentially quantified *inside*

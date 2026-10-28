@@ -70,6 +70,7 @@ theorem Model.wp_proof (wp_step : step.spec (GF := GF) (hG := hG))
     (wp_configEqual : configEqual.spec (GF := GF) (hG := hG)) :
     Model.spec (GF := GF) (hG := hG) := by
   wp_start
+  wp_auto
   wp_func_lits
   wp_auto
   iapply HΦ

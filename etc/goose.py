@@ -9,7 +9,7 @@ usage: etc/goose.py [--check] [--project NAME]... [--src NAME=DIR]... [--perenni
                produces from the pinned Go source.  Also exit 1 if the examples'
                go.mod files replace etcd or raft by another revision than the
                projects' pins (GO_MOD_PINS; without --check, only a warning).
-  --project    only this project (raft, etcd, kv, putget, putget3, linkvtxn, porcupine, bridge,
+  --project    only this project (raft, etcd, kv, durable, durablekv, putget, putgetc, putget3, linkvtxn, porcupine, bridge,
                lintest, raft-witness, kvwitness or k8s-apiserver; repeatable; default: all).
   --src        translate project NAME from the local checkout DIR instead of
                cloning its pinned revision (default: $<NAME>_SRC, e.g. $ETCD_SRC,
@@ -185,12 +185,16 @@ PROJECTS = [
         # on the range (acafa0317, issues/etcd-auth-grant-permission-same-key.md). Then (the
         # spec-first pilot, 2026-10-27) branch `goose-lean-grantfix-compactorstart` (on acafa0317):
         # the auto-compactor run by `start()`, not by `NewServer` (a20f6760f, the cherry-pick of
-        # 964dccdb4; issues/etcd-compactor-started-before-start.md).
+        # 964dccdb4; issues/etcd-compactor-started-before-start.md). Then (M2, 2026-10-28) branch
+        # `goose-lean-compactfix` (on a20f6760f): upstream's fixes of the compaction of a key deleted
+        # and put again in the compacted revision (etcd-io/etcd#22377, `keyIndex.doCompact`,
+        # e7bb9f2de; #22395, the gRPC txn overlap check, 249d76bea;
+        # issues/etcd-compaction-delete-then-put.md).
         # Branch
         # `goose` (upstream main of 2026-03) stays as it is: the Rocq translations
         # (etcd-grove `main`, Perennial `master`) are regenerated from it by name.
         repo="https://github.com/upamanyus/etcd",
-        rev="a20f6760ff4312d40cd6b1ff04f9b4dd58e827c6",
+        rev="249d76bea78d0c8980251d5fa7b26c35ef21263a",
         # go.etcd.io/raft/v3 (etcd's go.mod: v3.7.0) is the raft above (v3.7.0 plus the
         # read-index fix), translated by the raft project: not translated here.
         lean_roots=["go.etcd.io/etcd=", "k8s.io=", "google.golang.org=", "go.uber.org=",
@@ -450,6 +454,36 @@ PROJECTS = [
         owned=[os.path.join("github_com", "mit_pdos", "etcd_grove", "examples", "kv")],
     ),
     Project(
+        name="durable",
+        # A node's durable state, named files read and written whole (`examples/durable`): the
+        # Go side of the GooseLang extension durableExt (GooseLang/Ext/Durable), its functions
+        # trusted (TrustedCode/github_com/mit_pdos/etcd_grove/examples/durable.lean, which names
+        # the extension; goose needs to know nothing of it). A package of the examples' Go
+        # module (examples/go.mod).
+        repo=None,
+        rev=None,
+        local=os.path.join("examples", "durable"),
+        lean_roots=["github.com/mit-pdos/etcd-grove="],
+        packages=["."],
+        owned=[os.path.join("github_com", "mit_pdos", "etcd_grove", "examples", "durable")],
+    ),
+    Project(
+        name="durablekv",
+        # kv made durable (`examples/durablekv`): each replica's raft state in a file of the
+        # durable package, rewritten whole before the messages that depend on it are sent;
+        # replicas crash and restart from their files, and clients retry an operation with the
+        # same encoding, which takes effect once. A package of the examples' Go module
+        # (examples/go.mod), with kv's imports and the durable package's.
+        repo=None,
+        rev=None,
+        local=os.path.join("examples", "durablekv"),
+        lean_roots=["github.com/mit-pdos/etcd-grove=", "go.etcd.io/raft/v3=", "google.golang.org=",
+                    "github.com/anishathalye/porcupine="],
+        # the store; not its command (cmd/durablekv), which only runs it
+        packages=["."],
+        owned=[os.path.join("github_com", "mit_pdos", "etcd_grove", "examples", "durablekv")],
+    ),
+    Project(
         name="common",
         # The examples' shared start of etcd (`examples/common`): a member's configuration and
         # server (one member's, `StartServer`; a cluster's, `NewMember`, `StartMember`), its gRPC
@@ -479,6 +513,19 @@ PROJECTS = [
                     "go.uber.org=", "google.golang.org=", "net="],
         packages=["."],
         owned=[os.path.join("github_com", "mit_pdos", "etcd_grove", "examples", "putget")],
+    ),
+    Project(
+        name="putgetc",
+        # putget with the auto-compactor on (notes/m2-plan.md, M2's first result): one member
+        # started in-process with the compactor in revision mode (common.StartCompactingServer),
+        # a client's Put and Get of one key.
+        repo=None,
+        rev=None,
+        local=os.path.join("examples", "putgetc"),
+        lean_roots=["github.com/mit-pdos/etcd-grove=", "go.etcd.io/etcd=", "go.etcd.io/raft/v3=",
+                    "go.uber.org=", "google.golang.org=", "net="],
+        packages=["."],
+        owned=[os.path.join("github_com", "mit_pdos", "etcd_grove", "examples", "putgetc")],
     ),
     Project(
         name="linkvtxn",
@@ -661,7 +708,7 @@ PROJECTS = [
         local=os.path.join("examples", "k8setcd3"),
         lean_roots=["k8s.io=", "go.etcd.io/etcd=", "google.golang.org=", "go.uber.org=",
                     "go.opentelemetry.io=", "net=", "encoding/json=", "encoding/base64=",
-                    "iter=", "path=", "github.com/mit-pdos/etcd-grove=",
+                    "path=", "github.com/mit-pdos/etcd-grove=",
                     "github.com/anishathalye/porcupine="],
         packages=[
             ".",
@@ -711,14 +758,13 @@ PROJECTS = [
             "k8s.io/utils/clock",
             "encoding/json",
             "encoding/base64",
-            "iter",
             # (`path` is the etcd project's, with the bodies rafthttp needs: `Code/path.toml`)
         ],
         owned=[os.path.join("k8s_io", "apiserver"), os.path.join("k8s_io", "apimachinery"),
                os.path.join("k8s_io", "client_go"),
                os.path.join("k8s_io", "klog"), os.path.join("k8s_io", "component_base"),
                os.path.join("k8s_io", "utils", "clock"), os.path.join("encoding", "json"),
-               os.path.join("encoding", "base64"), "iter",
+               os.path.join("encoding", "base64"),
                os.path.join("github_com", "mit_pdos", "etcd_grove", "examples", "k8setcd3")],
         counted_modules=["k8s.io/apiserver"],
     ),

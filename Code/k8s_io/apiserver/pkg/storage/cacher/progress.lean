@@ -54,12 +54,9 @@ noncomputable def NewConditionalProgressRequester [GooseExts] [GoGlobalContext] 
 noncomputable def ConditionalProgressRequester.Add.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "pr"
   (Lam BAnon
-  (App (Val wrapDefer)
+  (Seq (App (Val wrapDefer)
   (Lam "$defer"
   (Let "pr" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType ConditionalProgressRequester.ty)))) (Var "pr"))
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (Val doReturn)
-  (Val #()))))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -74,18 +71,16 @@ noncomputable def ConditionalProgressRequester.Add.impl [GooseExts] [GoGlobalCon
   (Seq (App (Var "$f") (Val #()))
   (App (Var "$oldf") (Val #()))))))))))))
   (App (Val doExecute)
-  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.Mutex.ty) go!"Lock"))) (App (Val (GoInstruction (StructFieldRef ConditionalProgressRequester.ty go!"mux"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType ConditionalProgressRequester.ty)))) (Var "pr")))) (Val #()))))))))))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.Mutex.ty) go!"Lock"))) (App (Val (GoInstruction (StructFieldRef ConditionalProgressRequester.ty go!"mux"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType ConditionalProgressRequester.ty)))) (Var "pr")))) (Val #())))))))
+  (Val #()))))
 
 /-- go: watch_progress.go:129:41 -/
 noncomputable def ConditionalProgressRequester.Remove.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "pr"
   (Lam BAnon
-  (App (Val wrapDefer)
+  (Seq (App (Val wrapDefer)
   (Lam "$defer"
   (Let "pr" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType ConditionalProgressRequester.ty)))) (Var "pr"))
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (Val doReturn)
-  (Val #()))))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doExecute)
@@ -97,7 +92,8 @@ noncomputable def ConditionalProgressRequester.Remove.impl [GooseExts] [GoGlobal
   (Seq (App (Var "$f") (Val #()))
   (App (Var "$oldf") (Val #()))))))))))))
   (App (Val doExecute)
-  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.Mutex.ty) go!"Lock"))) (App (Val (GoInstruction (StructFieldRef ConditionalProgressRequester.ty go!"mux"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType ConditionalProgressRequester.ty)))) (Var "pr")))) (Val #()))))))))))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.Mutex.ty) go!"Lock"))) (App (Val (GoInstruction (StructFieldRef ConditionalProgressRequester.ty go!"mux"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType ConditionalProgressRequester.ty)))) (Var "pr")))) (Val #())))))))
+  (Val #()))))
 
 noncomputable instance info' : PkgInfo pkg_id.k8s_io.apiserver.pkg.storage.cacher.progress where
   pkgImportedPkgs := [pkg_id.context, pkg_id.sync, pkg_id.time, pkg_id.google_golang_org.grpc.metadata, pkg_id.k8s_io.apimachinery.pkg.util.runtime, pkg_id.k8s_io.apimachinery.pkg.util.wait, pkg_id.k8s_io.apiserver.pkg.storage, pkg_id.k8s_io.apiserver.pkg.storage.feature, pkg_id.k8s_io.klog.v2, pkg_id.k8s_io.utils.clock]

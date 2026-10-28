@@ -40,7 +40,8 @@ theorem v2stats.NewLeaderStats.wp_proof (wp_NewNop : zap.NewNop.spec (GF := GF) 
     (try wp_auto)
     wp_apply wp_map_make1 as %m _
     (try wp_auto)
-    wp_alloc p as Hp
+    irename «$r0» => Hp
+    generalize «$r0_ptr» = p at *
     (try wp_auto)
     ihave %Hnn := typedPointsto_not_null $$ Hp
     iStructNamed Hp

@@ -25,6 +25,7 @@ variable [package_sem : go_etcd_io.etcd.client.v3.Assumptions]
 theorem WithLastKey.wp_proof (wp_withTop : withTop.spec (GF := GF) (hG := hG)) :
     WithLastKey.spec (GF := GF) (hG := hG) := by
   wp_start
+  wp_auto
   wp_apply wp_withTop (W64 0) (W64 2) as %sl ⟨#Hsl, Hcap⟩
   · iframe #; ipureintro; decide
   iapply HΦ

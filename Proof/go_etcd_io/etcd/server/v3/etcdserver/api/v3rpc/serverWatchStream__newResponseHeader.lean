@@ -31,6 +31,7 @@ theorem v3rpc.serverWatchStream.newResponseHeader.wp_proof :
     v3rpc.serverWatchStream.newResponseHeader.spec (GF := GF) (hG := hG) := by
   intro sws r rev
   wp_start as #Hs
+  iapply wp_fupd
   iunfold v3rpc.swsIs at Hs
   icases Hs with ⟨%Hnn, -, #Hcid, #Hmid, -, #Hsg, -, -, -, -, -, -, -, -, -, #Hok, -⟩
   iunfold v3rpc.watchSrvOk at Hok
@@ -41,7 +42,8 @@ theorem v3rpc.serverWatchStream.newResponseHeader.wp_proof :
   wp_apply HT as %t _
   (try wp_auto)
   wp_apply HL as %l _
-  wp_alloc h as Hh
+  irename «$r0» => Hh
+  generalize «$r0_ptr» = h at *
   ihave %Hhn := typedPointsto_not_null _ _ _ $$ Hh
   iStructNamed Hh
   ipersist ClusterId
@@ -49,7 +51,7 @@ theorem v3rpc.serverWatchStream.newResponseHeader.wp_proof :
   ipersist Revision
   ipersist RaftTerm
   ipersist LeaderId
-  (try wp_auto)
+  imodintro
   iapply HΦ
   iexists t, l
   iunfold hdrFull

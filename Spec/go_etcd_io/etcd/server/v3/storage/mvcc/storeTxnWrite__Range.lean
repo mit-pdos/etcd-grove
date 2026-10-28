@@ -28,7 +28,7 @@ appended (`ilog ++ [pend]`; with no change the empty revision changes nothing), 
 index by the writer and from the bucket through the batch transaction, which sees its own
 puts. At `context.TODO()` (`todo`), no context error. At the compaction revision `crev` the
 transaction observed: `ErrCompacted` below it, the uncompacted outcome at or above it
-(`rangeOutcomeC`; 2026-10-13, unit 6a). The frozen statement is `specFrozen` (`spec_frozen`, `FrozenSpecs.lean`). -/
+(`rangeOutcomeC`; 2026-10-13, unit 6a). The readers' statement is `specR` (`spec_R`, `ReaderSpecs.lean`). -/
 abbrev mvcc.storeTxnWrite.Range.spec : Prop :=
   ∀ (trace : Loc) (tw s : Loc) (γ : mvcc.StoreNames) (ilog : mvcc.Log) (pend : List mvcc.Change)
     (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) (todo : Bool)

@@ -45,8 +45,10 @@ theorem apply.newAuthApplierV3.wp_proof
     apply.newAuthApplierV3.spec (GF := GF) (hG := hG) := by
   intro st base le RD
   wp_start as Hard
+  iapply wp_fupd
   wp_auto
-  wp_alloc p as Hp
+  irename «$r0» => Hp
+  generalize «$r0_ptr» = p at *
   iStructNamed Hp
   ipersist applierV3
   ipersist as'
@@ -56,7 +58,7 @@ theorem apply.newAuthApplierV3.wp_proof
   · iexact mu
   · inext; iframe Hard; iunfold apply.authInfoIdle
     first | iexact authInfo | (iExactEq authInfo; rfl)
-  wp_auto
+  imodintro
   iapply HΦ
   iframe applierV3 as' lessor
   isplitr

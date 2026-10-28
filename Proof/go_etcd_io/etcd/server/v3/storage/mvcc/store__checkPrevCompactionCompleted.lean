@@ -49,6 +49,7 @@ theorem mvcc.store.checkPrevCompactionCompleted.wp_proof
   ihave #HCmp' := HCmp $$ []
   · ipureintro; trivial
   icases HCmp' with ⟨-, -, #HRT⟩
+  wp_auto
   wp_apply wp_with_defer as %defer Hdefer
   (try wp_auto)
   wp_apply HRT as %rt #Hrt

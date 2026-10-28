@@ -32,7 +32,7 @@ theorem EtcdServer.getTerm.wp_proof : EtcdServer.getTerm.spec (GF := GF) (hG := 
   ihave #Hatomic : isPkgInit (PROP := IProp GF) pkg_id.sync.atomic $$ []
   · iPkgInit
   wp_auto
-  wp_apply_core sync.atomic.Uint64.wp_Load (srvTermAddr s) (DFrac.own 1) $$ [] [HΦ]
+  wp_apply_core sync.atomic.Uint64.wp_Load (srvTermAddr s) (DFrac.own 1) $$ [] [HΦ «$res0»]
   · iexact Hatomic
   iinv Hl with Hi Hclose
   iapply fupd_mask_intro (Std.LawfulSet.empty_subset)

@@ -31,7 +31,7 @@ theorem EtcdServer.getCommittedIndex.wp_proof : EtcdServer.getCommittedIndex.spe
   iunfold srvCommittedInv at Hl
   wp_auto
   wp_apply_core sync.atomic.Uint64.wp_Load (structFieldRef EtcdServer go!"committedIndex" s)
-    (DFrac.own 1) $$ [] [HΦ Ho]
+    (DFrac.own 1) $$ [] [HΦ Ho «$res0»]
   · iexact Hatomic
   iinv Hl with Hi Hclose
   iapply fupd_mask_intro (Std.LawfulSet.empty_subset)

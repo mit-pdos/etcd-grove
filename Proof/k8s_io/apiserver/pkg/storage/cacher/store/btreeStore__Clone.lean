@@ -38,7 +38,8 @@ theorem btreeStore.Clone.wp_proof
   icases Hs with ⟨%t, Htr, Hrv, Ht⟩
   wp_auto
   wp_apply (wp_Clone elemOrder t s) $$ [$Ht] as %t2 ⟨Ht, Ht2⟩
-  wp_alloc p2 as Hp2
+  irename «$r0» => Hp2
+  generalize «$r0_ptr» = p2 at *
   icases typedPointsto_split _ _ _ $$ Hp2 with Hp2
   try simp only [TypedPointsto.typedPointstoDef]
   icases Hp2 with ⟨Htr2, Hrv2, -⟩

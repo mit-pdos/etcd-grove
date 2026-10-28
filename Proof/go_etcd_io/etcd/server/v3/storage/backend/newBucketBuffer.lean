@@ -26,10 +26,11 @@ variable [package_sem : go_etcd_io.etcd.server.v3.storage.backend.Assumptions]
 
 theorem backend.newBucketBuffer.wp_proof : backend.newBucketBuffer.spec (GF := GF) (hG := hG) := by
   wp_start
+  wp_auto
   wp_apply (wp_slice_make2 (V := kv) (W64 512)) as %sl ⟨Hsl, Hcap⟩
   · ipureintro; decide
-  wp_alloc bb as Hbb
-  wp_auto
+  irename «$r0» => Hbb
+  generalize «$r0_ptr» = bb at *
   ihave #Hro := slotsRO_replicate_zero (GF := GF) 512
   ihave #Hin := entsIn_nil (GF := GF) (List.replicate 512 (zero_val kv))
   iapply HΦ

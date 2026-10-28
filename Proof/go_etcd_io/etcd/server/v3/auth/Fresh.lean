@@ -284,7 +284,7 @@ theorem authStore.Revision.wp_lb : authStore.Revision.specLb (GF := GF) := by
   iunfold authInv at Hinv
   icases Hinv with ⟨%Hst, #Hrev, -⟩
   wp_auto
-  wp_apply_core sync.atomic.wp_LoadUint64 $$ [] [HΦ]
+  wp_apply_core sync.atomic.wp_LoadUint64 $$ [] [HΦ «$res0»]
   · iexact Hatomic
   iinv Hrev with Hi Hclose
   iapply fupd_mask_intro Std.LawfulSet.empty_subset
@@ -322,6 +322,7 @@ theorem authStore.IsAuthEnabled.wp_lb : authStore.IsAuthEnabled.specLb (GF := GF
   iunfold authInv at Hinv'
   icases Hinv' with ⟨%Hst, -, -, -, -, -, -⟩
   iunfold enabledRd at Hrd
+  wp_auto
   wp_apply wp_with_defer as %defer defer
   (try wp_auto)
   wp_apply sync.RWMutex.wp_RLock $$ [$Hrd] as ⟨Hlk, HP⟩

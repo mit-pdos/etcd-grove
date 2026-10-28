@@ -118,7 +118,7 @@ local macro "exit_dep_q" : tactic => `(tactic| (
   iexists _, _
   isplitr
   · ipureintro; rfl
-  iframe start Hrd Hard
+  iframe «$res0» «$res1» start Hrd Hard
   iright
   isplitr
   · ipureintro; exact ⟨rfl, by first | assumption | simp⟩
@@ -265,11 +265,12 @@ local macro "piro_tail" : tactic => `(tactic| (
       -- the `select`, joined (`wp_join`): its three ways out return, and the deferred
       -- `proposalsPending.Dec()`, `cancel()` and metrics after them are verified once
       wp_join (Q := fun v => iprop(∃ (res : Loc) (e : GoInterface),
-          ⌜v = returnVal (PairV #res #e)⌝ ∗ start_ptr ↦ start ∗ srvLeadTimeReader s ∗ E.RD ∗
+          ⌜v = returnVal #()⌝ ∗ «$res0_ptr» ↦ res ∗ «$res1_ptr» ↦ e ∗
+          start_ptr ↦ start ∗ srvLeadTimeReader s ∗ E.RD ∗
           ((⌜e = GoInterface.nil⌝ ∗ ∃ hm rq',
               ⌜irrWireOf (apply.withHeader rq hm) rq'⌝ ∗ apply.resTrace res ∗
               ∃ L, srvRLogLb ρ.raft L ∗ resPostM on E ρ rq' F res L ∗ pubAfterM on E ρ rq' L ∗
-                □ Qh hm L) ∨
+                □ Qh hm L ∗ hdrBoundM on s E (GoInterface.ok ctx) hm) ∨
             ⌜res = null ∧ e ≠ GoInterface.nil⌝ ∗ applyErrIs e ∗ srvMaybeDeposited ρ rq)))
         at (let: "$ch1" := _ in _) with [-HΦ defer reqType err]
       · ihave #Hcctx' := Hcctx
@@ -337,7 +338,7 @@ local macro "piro_tail" : tactic => `(tactic| (
             iexists _, _
             isplitr
             · ipureintro; rfl
-            iframe start Hrd Hard
+            iframe «$res0» «$res1» start Hrd Hard
             ileft
             isplitr
             · ipureintro; rfl
@@ -346,7 +347,7 @@ local macro "piro_tail" : tactic => `(tactic| (
             isplitr
             · ipureintro; exact Hwire
             iexists Lw.take mw
-            iframe HLt HQr
+            iframe HLt HQr Hhb
             isplitl [Hri]
             rotate_left
             · unfold pubAfterM; itrivial
@@ -390,7 +391,7 @@ local macro "piro_tail" : tactic => `(tactic| (
             iexists _, _
             isplitr
             · ipureintro; rfl
-            iframe start Hrd Hard
+            iframe «$res0» «$res1» start Hrd Hard
             ileft
             isplitr
             · ipureintro; rfl
@@ -399,7 +400,7 @@ local macro "piro_tail" : tactic => `(tactic| (
             isplitr
             · ipureintro; exact Hwire
             iexists Lw.take mw
-            iframe HLt HQr
+            iframe HLt HQr Hhb
             isplitl [Hri]
             rotate_left
             · -- (E3t) the auth state after the entry, published
@@ -449,7 +450,7 @@ local macro "piro_tail" : tactic => `(tactic| (
           wp_apply hPE s E ρ cerr start Hcerr $$ [Hrd] as %perr ⟨Hrd, %Hperr, #HaE⟩
           · iframe Hrd
             isplitl
-            · iunfold isServerReqM; iexists v; iexact Hv
+            · iapply (isServerReqM_split _ _ _ _).2; iframe HsrvB; iexists v; iexact Hv
             iexact Hcerrv
           (try wp_auto)
           exit_dep_q
@@ -468,7 +469,7 @@ local macro "piro_tail" : tactic => `(tactic| (
           exit_dep_q
         iapply BigAndL.bigAndL_nil.2
         itrivial
-      iintro ⟨%res, %e, %Hv, start, Hrd, Hard, Hpost⟩
+      iintro ⟨%res, %e, %Hv, «$res0», «$res1», start, Hrd, Hard, Hpost⟩
       subst Hv
       (try wp_auto)
       wp_apply HGDec
@@ -491,6 +492,7 @@ theorem EtcdServer.processInternalRaftRequestOnce.wp_proofM (on : Bool)
     (hEx : exceedsRequestLimit.spec (GF := GF) (hG := hG))
     (hNext : idutil.Generator.Next.spec (GF := GF) (hG := hG))
     (hAuth : EtcdServer.AuthInfoFromCtx.spec (GF := GF) (hG := hG))
+    (hAuthB : on = true → EtcdServer.AuthInfoFromCtx.boundSpec (GF := GF) (hG := hG))
     (hRT : getRequestType.spec (GF := GF) (hG := hG))
     (hM : proto.MarshalIRR.spec (GF := GF) (hG := hG))
     (hTO : config.ServerConfig.ReqTimeout.spec (GF := GF) (hG := hG))
@@ -503,9 +505,9 @@ theorem EtcdServer.processInternalRaftRequestOnce.wp_proofM (on : Bool)
     EtcdServer.processInternalRaftRequestOnce.specM (GF := GF) (hG := hG) on := by
   intro s E ρ ctx cd p rq Qh F Hid0
   wp_start as ⟨#Hsrv, Hrd, Hard, Hcred, #Hctx, #Hirr, Hok, ⟨%h0, Hhdr⟩, #HF⟩
+  wp_auto
   wp_apply wp_with_defer as %defer defer
-  iunfold isServerReqM at Hsrv
-  icases Hsrv with ⟨%v, #Hv⟩
+  ihave ⟨⟨%v, #Hv⟩, #HsrvB⟩ := (isServerReqM_split _ _ _ _).1 $$ Hsrv
   ihave #Hv' := Hv
   iunfold srvReqFieldsAtM at Hv'
   icases Hv' with ⟨#Hgen, #HidGen, #Hw, #Hwi, #Hrn, #Hmrb, #Hfgf, #Hfg, #Hcca, #Het, #Htm,
@@ -563,10 +565,12 @@ theorem EtcdServer.processInternalRaftRequestOnce.wp_proofM (on : Bool)
     wp_join (Q := fun v => iprop(
         (⌜v = executeVal⌝ ∗ ∃ hv : etcdserverpb.RequestHeader, «$r0_ptr» ↦ hv ∗ ⌜hv.ID' = id⌝ ∗
           structFieldRef etcdserverpb.InternalRaftRequest go!"Header" p ↦ «$r0_ptr» ∗ r_ptr ↦ p ∗
-          E.RD) ∨
-        (∃ aei : GoInterfaceOk, ⌜v = returnVal (PairV #Loc.null #(GoInterface.ok aei))⌝ ∗ E.RD ∗
-          applyErrIs (GoInterface.ok aei))))
-      at next with [«$r0» Hhdr r Hard]
+          E.RD ∗ hdrBoundM on s E (GoInterface.ok ctx) ⟨id, hv.Username', hv.AuthRevision'⟩ ∗
+          «$res0_ptr» ↦ Loc.null ∗ «$res1_ptr» ↦ GoInterface.nil) ∨
+        (∃ aei : GoInterfaceOk, ⌜v = returnVal #()⌝ ∗ E.RD ∗
+          applyErrIs (GoInterface.ok aei) ∗ «$res0_ptr» ↦ Loc.null ∗
+          «$res1_ptr» ↦ (GoInterface.ok aei : GoInterface))))
+      at next with [«$r0» Hhdr r Hard «$res0» «$res1»]
     · cases hau : rq.authenticate with
       | some am =>
         have hla : la ≠ null := fun h => by rw [Hlan.1 h] at hau; cases hau
@@ -576,12 +580,16 @@ theorem EtcdServer.processInternalRaftRequestOnce.wp_proofM (on : Bool)
         ileft
         isplitr
         · ipureintro; rfl
-        iexists _; iframe «$r0» Hhdr r Hard; ipureintro; rfl
+        iexists _; iframe «$r0» Hhdr r Hard «$res0» «$res1»
+        isplitr
+        · ipureintro; rfl
+        iapply hdrBoundM_empty _ _ _ _ _ rfl
       | none =>
         have hla : la = null := Hlan.2 hau
         (try wp_auto)
         wp_if_destruct
-        · wp_apply hAuth s v.auth E.RD v.cca ctx cd $$ [Hard] as %au %aerr ⟨Hard, Hau, #HaE⟩
+        · wp_apply EtcdServer.AuthInfoFromCtx.wpM on hAuth hAuthB s E v.auth v.cca ctx cd $$ [Hard]
+            as %au %aerr ⟨Hard, Hau, #HaE, #Hab⟩
           · iframe Hard; iframe #
             iunfold mvcc.txnCtx; iright; iexact Hctx
           (try wp_auto)
@@ -592,27 +600,34 @@ theorem EtcdServer.processInternalRaftRequestOnce.wp_proofM (on : Bool)
             iexists aei
             isplitr
             · ipureintro; rfl
-            iframe Hard HaE
+            iframe Hard HaE «$res0» «$res1»
           | nil =>
             (try wp_auto)
             wp_join iprop(∃ hv : etcdserverpb.RequestHeader, «$r0_ptr» ↦ hv ∗ ⌜hv.ID' = id⌝ ∗
-                structFieldRef etcdserverpb.InternalRaftRequest go!"Header" p ↦ «$r0_ptr» ∗ r_ptr ↦ p)
-              with [«$r0» Hau authInfo Hhdr r] as ⟨%hv, Hhv, %Hhvid, Hhdr, r⟩
-            · iexists _; iframe «$r0» Hhdr r; ipureintro; rfl
+                structFieldRef etcdserverpb.InternalRaftRequest go!"Header" p ↦ «$r0_ptr» ∗ r_ptr ↦ p ∗
+                hdrBoundM on s E (GoInterface.ok ctx) ⟨id, hv.Username', hv.AuthRevision'⟩)
+              with [«$r0» Hau authInfo Hhdr r] as ⟨%hv, Hhv, %Hhvid, Hhdr, r, #Hhb⟩
+            · iexists _; iframe «$r0» Hhdr r
+              isplitr
+              · ipureintro; rfl
+              iapply hdrBoundM_empty _ _ _ _ _ rfl
             · iunfold authInfoOpt at Hau
-              icases Hau with (%Hn | ⟨%user, %rev, Hai⟩)
+              icases Hau with (%Hn | ⟨%user, %rev, #Hai⟩)
               · exfalso; simp_all
+              ihave #Hhb := hdrBoundM_of_ctxBound on s E (GoInterface.ok ctx) _ id user rev $$ [Hab Hai]
+              · iframe Hab Hai
               iunfold authInfoIs at Hai
               icases Hai with ⟨-, #HU, #HR⟩
               (try wp_auto)
               wp_join_done
-              iexists _; iframe «$r0» Hhdr r; ipureintro; rfl
+              iexists _; iframe «$r0» Hhdr r Hhb; ipureintro; rfl
             ileft
             isplitr
             · ipureintro; rfl
-            iexists hv; iframe Hhv Hhdr r Hard; ipureintro; exact Hhvid
+            iexists hv; iframe Hhv Hhdr r Hard Hhb «$res0» «$res1»; ipureintro; exact Hhvid
         · exact absurd hla Hif
-    iintro (⟨%Hv, %hv, Hhv, %Hhvid, Hhdr, r, Hard⟩ | ⟨%aei, %Hv, Hard, #HaE⟩)
+    iintro (⟨%Hv, %hv, Hhv, %Hhvid, Hhdr, r, Hard, #Hhb, «$res0», «$res1»⟩ |
+      ⟨%aei, %Hv, Hard, #HaE, «$res0», «$res1»⟩)
     · subst Hv
       (try wp_auto)
       piro_tail
@@ -662,7 +677,7 @@ theorem EtcdServer.processInternalRaftRequestOnce.wp_proof
     EtcdServer.processInternalRaftRequestOnce.spec (GF := GF) (hG := hG) := by
   intro s E ρ ctx cd p rq Qr F Hid0
   iintro %Φ Hpre HΦ
-  iapply (EtcdServer.processInternalRaftRequestOnce.wp_proofM false hAI hCI hFE hEx hNext hAuth
+  iapply (EtcdServer.processInternalRaftRequestOnce.wp_proofM false hAI hCI hFE hEx hNext hAuth (fun h => by cases h)
     hRT hM hTO hSp hPE hED hFB hSec hWL s E ρ ctx cd p rq (fun _ => Qr) F Hid0) $$ [Hpre] [HΦ]
   · icases Hpre with ⟨Ha, Hb, Hc, Hd, He, Hf, Hg, Hok, Hi, Hj⟩
     ihave Hok' := reqPropOkM_of_false ρ.kv rq Qr $$ Hok
@@ -671,7 +686,7 @@ theorem EtcdServer.processInternalRaftRequestOnce.wp_proof
   · iintro !> %res %err ⟨Hrd, Hard, Hpost⟩
     iapply HΦ
     iframe Hrd Hard
-    icases Hpost with (⟨%He, %hm, %rq', %Hw, HTr, %L, #HL, Hp, -, #HQ⟩ | Herr)
+    icases Hpost with (⟨%He, %hm, %rq', %Hw, HTr, %L, #HL, Hp, -, #HQ, -⟩ | Herr)
     · ileft
       isplitr
       · ipureintro; exact He
@@ -693,6 +708,13 @@ theorem EtcdServer.processInternalRaftRequestOnce.wp_proof
       iframe HL HQ
       ipureintro; exact Hst.2.2.2
     · iright; iexact Herr
+
+
+/-- **A compaction through the request path** (M2, S2): the skeleton's statement, no callee
+hypotheses yet. -/
+theorem EtcdServer.processInternalRaftRequestOnce.wp_proofCompact :
+    EtcdServer.processInternalRaftRequestOnce.specCompact (GF := GF) (hG := hG) := by
+  sorry -- M2 S2: the uber-applier's compaction arm (store.Compact, the apply thread's compaction right) in compaction mode
 
 end proof
 

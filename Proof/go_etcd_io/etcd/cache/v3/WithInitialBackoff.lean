@@ -28,7 +28,6 @@ theorem WithInitialBackoff.wp_proof : WithInitialBackoff.spec (GF := GF) (hG := 
   wp_auto
   ipersist d
   imodintro
-  simp only [recv_eq_func_mk]
   iapply HΦ
   unfold cfgOptSpec
   imodintro

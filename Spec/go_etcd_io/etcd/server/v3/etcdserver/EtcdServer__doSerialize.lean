@@ -54,7 +54,9 @@ abbrev EtcdServer.doSerialize.spec : Prop :=
 
 /-- **`spec` in the auth mode `on`** (the auth plan's E3s, 2026-10-27): over the request and read
 views in the mode (`isServerReqM on`, `isServerReadM on`; `spec` at `on = false`, by definition).
-`doSerialize` reads only fields both modes share. -/
+`doSerialize` reads only fields both modes share. With auth on (E3zb, 2026-10-28) the auth info
+`chk` passed on is the caller's (`infoBoundM`: the empty one, or bound to the context's token),
+given `AuthInfoFromCtx`'s binding (`AuthInfoFromCtx.boundSpec`, a premise of the proof). -/
 abbrev EtcdServer.doSerialize.specM (on : Bool) : Prop :=
   ∀ (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames) (ctx : GoInterfaceOk)
     (cd : context.ContextDesc (IProp GF)) (chk get : GoFunc) (G Q : IProp GF)
@@ -71,7 +73,7 @@ abbrev EtcdServer.doSerialize.specM (on : Bool) : Prop :=
     (App (App (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"doSerialize"))
       (Val #(GoInterface.ok ctx))) (Val #chk)) (Val #get))
   {{ (err : GoInterface), RET #err; E.RD ∗
-      ((⌜err = GoInterface.nil⌝ ∗ (∃ info, C info) ∗ Q) ∨ (⌜err ≠ GoInterface.nil⌝ ∗ applyErrIs err ∗
+      ((⌜err = GoInterface.nil⌝ ∗ (∃ info, C info ∗ infoBoundM on s E (GoInterface.ok ctx) info) ∗ Q) ∨ (⌜err ≠ GoInterface.nil⌝ ∗ applyErrIs err ∗
         ((G ∗ traceutil.ownTrace t e) ∨ Q))) }}
 
 end spec

@@ -33,6 +33,7 @@ public import Perennial.Code.errors
 public import Perennial.Code.fmt
 public import Perennial.Code.github_com.goose_lang.primitive
 public import Perennial.Code.io
+public import Perennial.Code.iter
 public import Perennial.Code.log
 public import Perennial.Code.math
 public import Perennial.Code.os
@@ -66,6 +67,7 @@ inductive ExternalInit [GooseExts] [GoGlobalContext] : GoString → val → Prop
   | go_etcd_io_raft_v3_raftpb : ExternalInit pkg_id.go_etcd_io.raft.v3.raftpb _root_.Perennial.go_etcd_io.raft.v3.raftpb.initialize'
   | google_golang_org_protobuf_proto : ExternalInit pkg_id.google_golang_org.protobuf.proto _root_.Perennial.google_golang_org.protobuf.proto.initialize'
   | io : ExternalInit pkg_id.io _root_.Perennial.io.initialize'
+  | iter : ExternalInit pkg_id.iter _root_.Perennial.iter.initialize'
   | k8s_io_utils_third_party_forked_golang_btree : ExternalInit pkg_id.k8s_io.utils.third_party.forked.golang.btree _root_.Perennial.k8s_io.utils.third_party.forked.golang.btree.initialize'
   | log : ExternalInit pkg_id.log _root_.Perennial.log.initialize'
   | math : ExternalInit pkg_id.math _root_.Perennial.math.initialize'

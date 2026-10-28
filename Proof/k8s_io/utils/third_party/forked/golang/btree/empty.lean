@@ -22,6 +22,7 @@ theorem empty.wp_proof : empty.spec (GF := GF) (hG := hG) := by
   intro V _ _ T _
   wp_start
   rw [show (zero_val (optionalItem V)) = optionalItem.mk (zero_val V) false from rfl]
+  wp_auto
   wp_end
 
 end proof

@@ -142,11 +142,11 @@ local macro "campaign_wait" lr:term:max wr:term:max hd:term:max Hr:ident : tacti
             structFieldRef Election go!"leaderKey" e ↦ key ∗
             structFieldRef Election go!"leaderRev" e ↦ ($lr) ∗
             structFieldRef Election go!"leaderSession" e ↦ s ∗
-            structFieldRef Election go!"hdr" e ↦ ($hd) ∗
+            structFieldRef Election go!"hdr" e ↦ ($hd) ∗ «$res0_ptr» ↦ interface.nil ∗
             (∀ st' : ElectionSt, electionState e s st' -∗ Φ #(GoInterface.ok e')))
-          $$ [] [e client err Hk Hrv Hls Hh HΦ'] []
+          $$ [] [e client err Hk Hrv Hls Hh «$res0» HΦ'] []
       · iapply BigSepL2.bigSepL2_singleton.2
-        iintro ⟨e, client, err, Hk, Hrv, Hls, Hh, HΦ'⟩
+        iintro ⟨e, client, err, Hk, Hrv, Hls, Hh, «$res0», HΦ'⟩
         simp only [chan.nonblockingAltClausePre]
         iexists Unit, inferInstance, inferInstance, inferInstance, inferInstance, dch, γd
         isplitr
@@ -167,7 +167,7 @@ local macro "campaign_wait" lr:term:max wr:term:max hd:term:max Hr:ident : tacti
           icases Hres with (⟨-, Hst'⟩ | ⟨-, %hdr'', Hst', -⟩ | ⟨-, Hst'⟩) <;> iapply HΦ' $$ Hst'
         · iframe
       · iframe
-      · iintro ⟨e, client, err, Hk, Hrv, Hls, Hh, HΦ'⟩ -
+      · iintro ⟨e, client, err, Hk, Hrv, Hls, Hh, «$res0», HΦ'⟩ -
         (try wp_auto)
         iapply HΦ' $$ %(⟨key, ($lr), null, ($hd)⟩ : ElectionSt)
         unfold electionState

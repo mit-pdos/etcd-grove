@@ -35,6 +35,7 @@ variable [package_sem : github_com.mit_pdos.etcd_grove.examples.lintest.counter.
 
 theorem Model.wp_proof : Model.spec (GF := GF) (hG := hG) := by
   wp_start
+  wp_auto
   wp_func_lits
   wp_auto
   iapply HΦ

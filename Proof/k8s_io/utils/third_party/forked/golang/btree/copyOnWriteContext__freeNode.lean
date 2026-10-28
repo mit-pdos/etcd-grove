@@ -45,7 +45,7 @@ theorem copyOnWriteContext.freeNode.wp_proof
       iexists isl', csl', null
       iframe
       ipureintro; exact Hnn
-    wp_if_destruct <;> wp_end
+    wp_if_destruct <;> (simp only [ftStored, ftFreelistFull, ftNotOwned]; wp_auto; wp_end)
   · cases t with
     | node is cs =>
       rw [frozen_node]
@@ -55,7 +55,7 @@ theorem copyOnWriteContext.freeNode.wp_proof
       wp_auto
       wp_if_destruct
       · exact absurd Hif Hne
-      · wp_end
+      · simp only [ftNotOwned]; wp_auto; wp_end
 
 end proof
 

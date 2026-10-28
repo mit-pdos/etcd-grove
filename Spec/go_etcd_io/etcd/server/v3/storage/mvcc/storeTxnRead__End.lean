@@ -24,8 +24,8 @@ variable [package_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
 /-- `tr.End()` ends the read transaction at `tr` (the `RUnlock` of its reader and of `s.mu`, held
 at the compaction revision `crev` the transaction observed): the transaction's tokens are the
 caller's again (`storeReaderC`, its reader's token gone), with the reader's tag `Z` (2026-10-13,
-unit 6a). The frozen statement (`crev = -1`, `Z = crevFrozen γ`: `storeReader`) is `specFrozen`,
-a corollary (`spec_frozen`, `FrozenSpecs.lean`). -/
+unit 6a). The readers' statement (`crev = -1`, `Z = crevFrozen γ`: `storeReader`) is `specR`,
+a corollary (`spec_R`, `ReaderSpecs.lean`). -/
 abbrev mvcc.storeTxnRead.End.spec : Prop :=
   ∀ (tr s trace ti : Loc) (rt : GoInterfaceOk) (γ : mvcc.StoreNames) (log : mvcc.Log) (rev : w64)
     (crev : Int) (Z : IProp GF),

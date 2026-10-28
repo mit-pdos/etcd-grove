@@ -29,14 +29,15 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.txn.Assumptions]
 /-- `executeRange(ctx, lg, txnRead, r, withTotalCount)` on a transaction of either kind behind a
 `*metricsTxnWrite`, or the read-only wrapper of a read transaction (`txnViewIs`): `rangeResult`
 at the log and revision the transaction reads (the response of the server's selection, or
-`ErrFutureRev`, or a context error); at a context never canceled (`nd`), no context error.
+`ErrFutureRev`, or a context error, or, below the transaction's compaction revision `crev`,
+`ErrCompacted`: M2, S1); at a context never canceled (`nd`), no context error.
 Premises: a valid sort target, and a small sorted selection (`sortSmall`, at the state read). -/
 abbrev txn.executeRange.spec : Prop :=
   ∀ (trace : Loc) (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) (nd : Bool) (lg s : Loc)
     (γ : mvcc.StoreNames) (tw : GoInterface) (kind : mvcc.TxnKind) (ro : Bool) (r : Loc)
-    (o : OpFull) (withTotal : Bool),
+    (o : OpFull) (withTotal : Bool) (crev : Int),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.txn ∗
-      txn.txnViewIs tw s γ trace kind ro ∗ mvcc.txnCtx ctx cd ∗
+      txn.txnViewIs tw s γ trace kind crev ro ∗ mvcc.txnCtx ctx cd ∗
       (if nd then mvcc.neverDone cd else iprop(True)) ∗ traceutil.ctxTraceIs ctx (some trace) ∗
       txn.rangeRequestIs r o ∗
       ⌜txn.validSortTarget o ∧ txn.sortSmall o (mvcc.stateAt kind.readLog
@@ -44,8 +45,10 @@ abbrev txn.executeRange.spec : Prop :=
     (App (App (App (App (App (Val (@! txn.executeRange)) (Val #(GoInterface.ok ctx))) (Val #lg))
       (Val #tw)) (Val #r)) (Val #withTotal))
   {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
-      txn.txnViewIs tw s γ trace kind ro ∗ txn.rangeResult resp err kind.readLog kind.readRev o withTotal ∗
-      txn.rangeHdr resp err ∗ ⌜nd = true → err = GoInterface.nil ∨ sint.Z kind.readRev < sint.Z o.base.rev⌝ }}
+      txn.txnViewIs tw s γ trace kind crev ro ∗
+      txn.rangeResult resp err kind.readLog kind.readRev crev o withTotal ∗ txn.rangeHdr resp err ∗
+      ⌜nd = true → err = GoInterface.nil ∨ sint.Z kind.readRev < sint.Z o.base.rev ∨
+        sint.Z (mvcc.rangeRev kind.readRev o.base.rev) < crev⌝ }}
 
 end spec
 

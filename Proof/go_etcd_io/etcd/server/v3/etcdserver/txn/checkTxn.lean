@@ -100,16 +100,16 @@ theorem txn.checkTxn_strong
     (hPut : txn.checkPut.spec (GF := GF) (hG := hG)) :
   ∀ (trace mw s : Loc) (γ : mvcc.StoreNames) (log : mvcc.Log) (rev : w64) (rt : Loc)
     (t : TxnModel) (le : GoInterface) (γl : GName) (pl : GoSlice) (rest : List Bool)
-    (Lv : List w64) (I : GMap go_etcd_io.etcd.server.v3.lease.LeaseItem w64) (lu : Bool),
+    (Lv : List w64) (I : GMap go_etcd_io.etcd.server.v3.lease.LeaseItem w64) (lu : Bool) (crev : Int),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.txn ∗ ⌜trace ≠ null⌝ ∗
-      mvcc.isTxnRead mw s γ trace log rev ∗ txn.txnRequestIs rt t ∗
+      mvcc.isTxnRead mw s γ trace log rev crev ∗ txn.txnRequestIs rt t ∗
       txn.isTxnLessor le γl ∗ (⌜lu = false⌝ ∨ lease.lessorUser γl Lv I) ∗
       pl ↦*□ (txn.txnPath (mvcc.stateAfter log) t ++ rest) ∗
       ⌜lu = false → txn.txnReadonly t = true⌝ }}
     (App (App (App (App (App (Val (@! txn.checkTxn)) (Val #trace))
       (Val #(interface.mkOk (go.GoType.PointerType metricsTxnWrite.ty) #mw : GoInterface)))
       (Val #rt)) (Val #le)) (Val #pl))
-  {{ (n : w64) (err : GoInterface), RET (PairV #n #err); mvcc.isTxnRead mw s γ trace log rev ∗
+  {{ (n : w64) (err : GoInterface), RET (PairV #n #err); mvcc.isTxnRead mw s γ trace log rev crev ∗
       (⌜lu = false⌝ ∨ lease.lessorUser γl Lv I) ∗
       ((⌜err = GoInterface.nil ∧ n = W64 (txn.nestedCount (mvcc.stateAfter log) t : Int) ∧
           txn.PathsIgnOk (mvcc.stateAfter log)
@@ -120,7 +120,7 @@ theorem txn.checkTxn_strong
           (txn.txnLeased t → ¬ (txn.PathsIgnOk (mvcc.stateAfter log)
             (t.branch (txn.txnOk (mvcc.stateAfter log) t)) ∧ txn.PathsLeaseOk (mvcc.stateAfter log) Lv
             (t.branch (txn.txnOk (mvcc.stateAfter log) t))))⌝ ∗ txn.checkErrIs err)) }} := by
-  intro trace mw s γ log rev rt t le γl pl rest Lv I lu
+  intro trace mw s γ log rev rt t le γl pl rest Lv I lu crev
   iloeb as IH generalizing %rt %t %pl %rest
   wp_start as ⟨%Htr, Htx, #Hrt, #Hle, Hu, #Hpl, %Hlu⟩
   iunfold txn.txnRequestIs at Hrt
@@ -209,7 +209,7 @@ theorem txn.checkTxn_strong
     · -- a range
       subst Hopk
       wp_auto
-      wp_apply (hRange trace mw s γ log rev r o) $$ [$Htx $Hr] as %err ⟨Htx, #Herr⟩
+      wp_apply (hRange trace mw s γ log rev r o crev) $$ [$Htx $Hr] as %err ⟨Htx, #Herr⟩
       iunfold txn.checkRangeErr at Herr
       icases Herr with (%He | ⟨%Hne, %ef, #Hef, %He⟩ | ⟨%Hne, %ec, #Hec, %He⟩)
       · obtain ⟨rfl, -⟩ := He
@@ -262,12 +262,12 @@ theorem txn.checkTxn_strong
       icases Hu with (%Hlu' | Hu)
       · cases Hlu'
       wp_auto
-      ihave Htx : mvcc.isTxn mw s γ trace (.read log rev) $$ [Htx]
+      ihave Htx : mvcc.isTxn mw s γ trace (.read log rev) crev $$ [Htx]
       · simp only [mvcc.isTxn]; iexact Htx
-      wp_apply (hPut trace mw s γ (.read log rev) le γl r o Lv I) $$ [$Htx $Hr $Hle $Hu]
+      wp_apply (hPut trace mw s γ (.read log rev) le γl r o Lv I crev) $$ [$Htx $Hr $Hle $Hu]
         as %err ⟨Htx, Hu, Herr⟩
       · ipureintro; exact Htr
-      ihave Htx : mvcc.isTxnRead mw s γ trace log rev $$ [Htx]
+      ihave Htx : mvcc.isTxnRead mw s γ trace log rev crev $$ [Htx]
       · simp only [mvcc.isTxn]; iexact Htx
       rw [hks]
       icases Herr with (⟨⟨%He, %Hnp⟩, #Hlok⟩ | ⟨%Hne, #He⟩ | ⟨%Hne, #He⟩)
@@ -475,9 +475,9 @@ theorem txn.checkTxn.wp_proof
     (hRange : txn.checkRange.spec (GF := GF) (hG := hG))
     (hPut : txn.checkPut.spec (GF := GF) (hG := hG)) :
     txn.checkTxn.spec (GF := GF) (hG := hG) := by
-  intro trace mw s γ log rev rt t le γl pl rest Lv I lu hlu
+  intro trace mw s γ log rev rt t le γl pl rest Lv I lu crev hlu
   iintro %Φ ⟨#Hpkg, %Htr, Htx, #Hrt, #Hle, Hu, #Hpl⟩ HΦ
-  iapply (txn.checkTxn_strong hRange hPut trace mw s γ log rev rt t le γl pl rest Lv I lu) $$
+  iapply (txn.checkTxn_strong hRange hPut trace mw s γ log rev rt t le γl pl rest Lv I lu crev) $$
     [Htx Hu] HΦ
   iframe Hpkg Htx Hrt Hle Hu Hpl
   isplitl []; · ipureintro; exact Htr

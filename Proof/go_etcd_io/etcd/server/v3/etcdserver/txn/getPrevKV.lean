@@ -7,7 +7,7 @@ public import Spec.go_etcd_io.etcd.server.v3.etcdserver.txn.getPrevKV
 public import Spec.go_etcd_io.etcd.pkg.v3.traceutil.Trace__StepWithFunction
 public import Spec.context.TODO
 public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.metricsTxnWrite__Range
-public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.FrozenSpecs
+public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.ReaderSpecs
 
 @[expose] public section
 
@@ -34,8 +34,8 @@ theorem txn.getPrevKV.wp_proof
     (hTODO : context.TODO.spec (GF := GF) (hG := hG))
     (hRange : mvcc.metricsTxnWrite.Range.spec (GF := GF) (hG := hG)) :
     txn.getPrevKV.spec (GF := GF) (hG := hG) := by
-  have hRange := mvcc.metricsTxnWrite.Range.spec_frozen hRange
-  intro trace mw s γ kind p o tyX vX
+  have hRange := mvcc.metricsTxnWrite.Range.spec_R hRange
+  intro trace mw s γ kind p o tyX vX crev
   wp_start as ⟨%Htr, Htx, #Hwrap, #Hp⟩
   iunfold txn.putRequestIs at Hp
   icases Hp with ⟨%Hpnn, %ksl, %vsl, %k, %v, %lease, %pk, %iv, %il, #Hk, #Hks, #Hv, #Hvs, #Hl,
@@ -66,12 +66,12 @@ theorem txn.getPrevKV.wp_proof
     cases iv <;> cases il <;> cases pk <;> simp only [Bool.or_false, Bool.false_or, Bool.or_true,
       Bool.true_or, Bool.false_eq_true] at hb <;> (try wp_auto)
     all_goals
-      icases mvcc.isTxn_trace_acc mw s γ trace kind $$ Htx with ⟨⟨%te, Htrc⟩, Hback⟩
+      icases mvcc.isTxn_trace_acc mw s γ trace kind crev $$ Htx with ⟨⟨%te, Htrc⟩, Hback⟩
       wp_apply (hStep trace te _ _ slice.nil
           (iprop(∃ rr : Loc, prevKV_ptr ↦ rr ∗ err_ptr ↦ (GoInterface.nil : GoInterface) ∗
             p_ptr ↦ p ∗
             txnWrite_ptr ↦ (interface.mkOk tyX vX : GoInterface) ∗
-            ((∃ te' : Bool, traceutil.ownTrace trace te') -∗ mvcc.isTxn mw s γ trace kind) ∗
+            ((∃ te' : Bool, traceutil.ownTrace trace te') -∗ mvcc.isTxn mw s γ trace kind crev) ∗
             txn.prevKvIs rr (txn.kindState kind) k)))
         $$ [Htrc Hback err prevKV p txnWrite] as ⟨⟨%rr, prevKV, err, p, txnWrite, Hback, Hprev⟩, Htrc⟩
       · iframe #
@@ -89,13 +89,18 @@ theorem txn.getPrevKV.wp_proof
         iapply mvcc.tw_wp4 tyX vX mw go!"Range" (by unfold mvcc.twMethod; simp)
         iframe Hwrap
         wp_apply (hRange trace mw s γ kind todoCtxVal txn.todoCd true ksl slice.nil k []
-            (zero_val RangeOptions)) $$ [$Htx $Hctx $Hks $Hnil] as %r %rerr ⟨%Hrn, Htx, Hout⟩
-        ihave ⟨%Hok, Htx⟩ := txn.isTxn_kindOk mw s γ kind $$ Htx
+            (zero_val RangeOptions) crev) $$ [$Htx $Hctx $Hks $Hnil] as %r %rerr ⟨%Hrn, Htx, Hout⟩
+        ihave ⟨%Hok, Htx⟩ := txn.isTxn_kindOk mw s γ kind crev $$ Htx
+        -- (M2, S1) a read at the transaction's revision is never compacted
+        ihave ⟨%Hcr, Htx⟩ := txn.isTxn_crev mw s γ kind crev $$ Htx
+        ihave Hout := mvcc.rangeOutcomeC_latest _ _ _ _ _ _ _ _ (zero_val RangeOptions)
+          (by rw [show (zero_val RangeOptions).Rev' = W64 0 from rfl]; decide) Hcr $$ Hout
+        clear Hcr
         icases txn.prevKvIs_of_outcome r rerr kind k [] (zero_val RangeOptions) Hok
           ⟨rfl, rfl, rfl, rfl⟩ (Hrn rfl) $$ Hout with ⟨%Herr, Hprev⟩
         subst Herr
         (try wp_auto)
-        icases mvcc.isTxn_trace_acc mw s γ trace kind $$ Htx with ⟨Htrc, Hback⟩
+        icases mvcc.isTxn_trace_acc mw s γ trace kind crev $$ Htx with ⟨Htrc, Hback⟩
         isplitl []
         · ipureintro; rfl
         iframe Htrc

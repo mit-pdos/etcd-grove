@@ -28,9 +28,11 @@ theorem wait.NewTimeList.wp_proof : wait.NewTimeList.spec (GF := GF) (hG := hG) 
   intro P
   wp_start as ⟨#HP0, #Hmono⟩
   ihave #Hcl := waitClosecInit_of_pkg $$ Hpkg
+  iapply wp_fupd
   (try wp_auto)
   wp_apply (wp_map_make1 (K := w64) (V := Loc)) as %mref Hm
-  wp_alloc tl as Htl
+  irename «$r0» => Htl
+  generalize «$r0_ptr» = tl at *
   iStructNamed Htl
   ipersist m
   imod sync.init_Mutex (timeListR tl mref P) ⊤ (tlLockAddr tl) $$ l [lastTriggerDeadline Hm] with #Hmu
@@ -42,7 +44,7 @@ theorem wait.NewTimeList.wp_proof : wait.NewTimeList.spec (GF := GF) (hG := hG) 
     · rw [show (0 : w64) = W64 0 from rfl]; iexact HP0
     iapply BigSepM.bigSepM_empty.2
     itrivial
-  (try wp_auto)
+  imodintro
   iapply HΦ
   iunfold isTimeList
   iexists mref

@@ -102,7 +102,7 @@ theorem v3compactor.Periodic.Run.wp_proof
   wp_start as ⟨#Hpc, Htok, Hpre⟩
   iunfold isPeriodic at Hpc
   icases Hpc with ⟨%lg, %clk, %pd, %ctx, %cd, %γctx, %cancel, #Hlg, %Hlgnn, #Hclkf, #Hclk, #Hpdf,
-    %Hpd, #Hrg, #Hc, #Hctxf, #Hctx, #Hcancelf, #Hcs, #Hguard⟩
+    %Hpd, #Hrg, #Hc, #Hctxf, #Hctx, #Htrc, #Hcancelf, #Hcs, #Hguard⟩
   obtain ⟨Hpd, H10⟩ := Hpd
   -- (one `word` in this declaration: several shared a cached proof the kernel rejected,
   -- `notes/perennial-changes.md`, "`word`'s caches")

@@ -29,7 +29,6 @@ theorem WithLimit.wp_proof : WithLimit.spec (GF := GF) (hG := hG) := by
   wp_auto
   ipersist n
   imodintro
-  simp only [recv_eq_func_mk]
   iapply HΦ
   unfold optSpec
   imodintro

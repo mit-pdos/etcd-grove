@@ -22,8 +22,8 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
 
 /-- `rv.Rev()`: a read transaction opened and closed; the last revision of a committed log. Of
-a store that may be compacted (`storeReaderC`; 2026-10-13, unit 6a); the frozen statement
-(`storeReader`) is `specFrozen` (`spec_frozen`, `FrozenSpecs.lean`). -/
+a store that may be compacted (`storeReaderC`; 2026-10-13, unit 6a); the readers' statement
+(`storeReader`) is `specR` (`spec_R`, `ReaderSpecs.lean`). -/
 abbrev mvcc.readView.Rev.spec : Prop :=
   ∀ (rv s : Loc) (γ : mvcc.StoreNames),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗

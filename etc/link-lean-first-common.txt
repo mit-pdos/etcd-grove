@@ -10,6 +10,8 @@ EtcdServer__Start: @
 features_NewDefaultServerFeatureGate:
 common_newServer: features_NewDefaultServerFeatureGate etcdserver_NewServer
 common_StartServer: common_newServer EtcdServer__Start
+# (M2, notes/m2-plan.md) `StartCompactingServer`, over `newServer`'s compacting variant
+# (`specCompact`), is linked by hand in putgetc's `MainLinked.lean`
 # `NewMember` and `StartMember`: a cluster's member, its raft handler served (`net.Listen`'s,
 # `RaftHandler`'s and `http.Serve`'s trust-boundary axioms), then started
 net_Listen:

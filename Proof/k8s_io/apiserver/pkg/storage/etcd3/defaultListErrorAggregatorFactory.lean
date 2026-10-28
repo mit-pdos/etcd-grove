@@ -29,7 +29,8 @@ variable [package_sem : k8s_io.apiserver.pkg.storage.etcd3.Assumptions]
 
 theorem defaultListErrorAggregatorFactory.wp_proof : defaultListErrorAggregatorFactory.spec (GF := GF) (hG := hG) := by
   wp_start
-  wp_alloc l as Hl
+  wp_auto
+  wp_alloc a as Ha
   wp_auto
   iapply HΦ
   itrivial

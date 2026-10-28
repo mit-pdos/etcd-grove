@@ -36,7 +36,7 @@ local macro "et_new" : tactic => `(tactic| (
   (try wp_auto)
   wp_apply hWV ctx ⟨go_etcd_io.etcd.pkg.v3.traceutil.TraceKey.ty,
       #(zero_val go_etcd_io.etcd.pkg.v3.traceutil.TraceKey)⟩ _ $$ []
-    as %c ⟨%Hcnn, -, -, %c', %vs, %Hc, #Htx, #Hic, #Htr, -⟩
+    as %c ⟨%Hcnn, -, -, %c', %vs, %Hc, %Hinc, #Htx, #Hic, #Htr, -⟩
   · iframe #; ipureintro; right; right; right; left; rfl
   subst Hc
   (try wp_auto)
@@ -50,6 +50,8 @@ local macro "et_new" : tactic => `(tactic| (
   isplitr
   · iapply Htr
     ipureintro; first | exact ⟨rfl, Ht1n, rfl⟩ | exact ⟨Ht1n, rfl⟩ | simp [Ht1n]
+  isplitr
+  · ipureintro; exact Hinc
   iexists vs
   isplitr
   · iapply Htx $$ Hctr
@@ -88,6 +90,8 @@ theorem traceutil.EnsureTrace.wp_proof
         cases h; rfl
       isplitr
       · iexact Hctx
+      isplitr
+      · ipureintro; rfl
       iexists cd.Values
       have hcd : ({ cd with Values := cd.Values } : context.ContextDesc (IProp GF)) = cd := by
         cases cd; rfl

@@ -48,8 +48,8 @@ abbrev txn.executeTxn.spec : Prop :=
   ∀ (trace : Loc) (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) (nd : Bool) (lg s : Loc)
     (γ : mvcc.StoreNames) (tw : GoInterface) (ro : Bool) (ilog : mvcc.Log) (pend : List mvcc.Change)
     (rt : Loc) (t : TxnModel) (pl : GoSlice) (rest : List Bool) (tresp : Loc) (skip : Bool)
-    (L : List w64),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.txn ∗ txn.txnWriteIs tw s γ trace ro ilog pend ∗ mvcc.txnCtx ctx cd ∗
+    (L : List w64) (crev : Int),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.txn ∗ txn.txnWriteIs tw s γ trace ro ilog pend crev ∗ mvcc.txnCtx ctx cd ∗
       traceutil.ctxTraceIs ctx (some trace) ∗ (if nd then mvcc.neverDone cd else iprop(True)) ∗
       txn.txnRequestIs rt t ∗ pl ↦*□ (txn.txnPath (mvcc.stateAfter ilog) t ++ rest) ∗
       txn.respsSkel (mvcc.stateAfter ilog) tresp (t.branch (txn.txnOk (mvcc.stateAfter ilog) t)) ∗
@@ -68,7 +68,7 @@ abbrev txn.executeTxn.spec : Prop :=
       (⌜err = GoInterface.nil ∧ n = W64 (txn.nestedCount (mvcc.stateAfter ilog) t : Int)⌝ ∗
         txn.txnWriteIs tw s γ trace ro ilog (pend ++ (txn.srvOps (mvcc.stateAfter ilog)
           (W64 (ilog.length : Int)) (txn.pendState ilog pend)
-          (t.branch (txn.txnOk (mvcc.stateAfter ilog) t))).1) ∗
+          (t.branch (txn.txnOk (mvcc.stateAfter ilog) t))).1) crev ∗
         txn.respsIs skip tresp (t.branch (txn.txnOk (mvcc.stateAfter ilog) t))
           (txn.srvOps (mvcc.stateAfter ilog) (W64 (ilog.length : Int)) (txn.pendState ilog pend)
             (t.branch (txn.txnOk (mvcc.stateAfter ilog) t))).2 ∗
@@ -80,7 +80,7 @@ abbrev txn.executeTxn.spec : Prop :=
           (mvcc.stateAfter ilog) (W64 (ilog.length : Int)) (txn.pendState ilog pend)
           (t.branch (txn.txnOk (mvcc.stateAfter ilog) t))).1)))) ∨
       (⌜nd = false⌝ ∗ mvcc.errorfIs err ∗
-        (∃ pend' : List mvcc.Change, txn.txnWriteIs tw s γ trace ro ilog pend') ∗
+        (∃ pend' : List mvcc.Change, txn.txnWriteIs tw s γ trace ro ilog pend' crev) ∗
         txn.roRespsRd tresp) }}
 
 end spec

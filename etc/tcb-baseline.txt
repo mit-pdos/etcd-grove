@@ -223,7 +223,6 @@ axiom Perennial.google_golang_org.grpc.metadata.opaqueInitsOk
 axiom Perennial.google_golang_org.grpc.opaqueInitsOk
 axiom Perennial.google_golang_org.grpc.reflection.opaqueInitsOk
 axiom Perennial.internal.bytealg.initFuncsOk
-axiom Perennial.iter.opaqueInitsOk
 axiom Perennial.k8s_io.apimachinery.pkg.api.errors.opaqueInitsOk
 axiom Perennial.k8s_io.apimachinery.pkg.api.meta.opaqueInitsOk
 axiom Perennial.k8s_io.apimachinery.pkg.api.validate.content.opaqueInitsOk
@@ -731,7 +730,8 @@ axiom zap.Uint.wp_proof
 axiom zap.Uint32.wp_proof
 axiom zap.Uint64.wp_proof
 axiom zapcore.CheckedEntry.Write.wp_proof
-sorry EtcdServer.Compact.wp_proof
+sorry EtcdServer.processInternalRaftRequestOnce.wp_proofCompact
+sorry NewServer.wp_proofCompact
 sorry authkv.Main.wp_proof
 sorry k8setcd3.client_ctx_field
 sorry k8setcd3.revRoom

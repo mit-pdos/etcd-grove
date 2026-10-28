@@ -88,10 +88,11 @@ theorem v3rpc.newUnaryInterceptor.wp_proof
   icases HeNoL with ⟨%eNoL, #HeNoL⟩
   wp_pures
   wp_alloc_auto
+  wp_pures
+  wp_alloc_auto
   irename : (s_ptr ↦ s : IProp GF) => Hs
   ipersist Hs
   wp_auto
-  rw [recv_eq_func_mk]
   iapply HΦ
   unfold srvInterceptorOk
   iintro !> %ci %cd %req %info %h %Ψ HR #Hctx #Hrc #Hinfo #HQ Hk
@@ -106,13 +107,14 @@ theorem v3rpc.newUnaryInterceptor.wp_proof
   wp_auto
   irename : (req_ptr ↦ req : IProp GF) => Hreqp
   ipersist Hreqp
-  wp_join (Q := fun v => iprop((⌜v = executeVal⌝ ∗
+  wp_join (Q := fun v => iprop((⌜v = executeVal⌝ ∗ «$res0_ptr» ↦ GoInterface.nil ∗
+      «$res1_ptr» ↦ GoInterface.nil ∗
       (WP (srvHandlerCall h #(GoInterface.ok ci) #req)
           {{ v, ∃ resp err : GoInterface, ⌜v = PairV #resp #err⌝ ∗ (True -∗ Ψ v) }} ∧
         (True -∗ ∀ err : GoInterface, ⌜err ≠ GoInterface.nil⌝ -∗
           Ψ (PairV #GoInterface.nil #err)))) ∨
-      ∃ e : GoInterface, ⌜v = returnVal (PairV #GoInterface.nil #e)⌝ ∗
-        Ψ (PairV #GoInterface.nil #e))) at next with [HR Hk]
+      ∃ e : GoInterface, ⌜v = returnVal #()⌝ ∗ «$res0_ptr» ↦ GoInterface.nil ∗
+        «$res1_ptr» ↦ e ∗ Ψ (PairV #GoInterface.nil #e))) at next with [HR Hk «$res0» «$res1»]
   · wp_apply wp_MemberID s mid $$ []
     · iframe #
     wp_apply wp_IsMemberExist s c mid $$ [] as %b1 -
@@ -133,6 +135,7 @@ theorem v3rpc.newUnaryInterceptor.wp_proof
     · wp_auto
       iright
       iexists (GoInterface.ok eNL)
+      iframe «$res0» «$res1»
       isplitr
       · ipureintro; rfl
       icases Hk with ⟨-, Hk⟩
@@ -141,7 +144,7 @@ theorem v3rpc.newUnaryInterceptor.wp_proof
     · wp_auto
       ileft; iframe; ipureintro; rfl
   rename_i v
-  iintro (⟨%Hv, Hk⟩ | ⟨%e, %Hv, HΨ⟩)
+  iintro (⟨%Hv, «$res0», «$res1», Hk⟩ | ⟨%e, %Hv, «$res0», «$res1», HΨ⟩)
   rotate_left
   · subst Hv
     wp_auto

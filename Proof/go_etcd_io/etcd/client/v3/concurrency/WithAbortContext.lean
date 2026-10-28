@@ -30,7 +30,6 @@ theorem WithAbortContext.wp_proof : WithAbortContext.spec (GF := GF) (hG := hG) 
   wp_auto
   ipersist ctx
   imodintro
-  simp only [recv_eq_func_mk]
   iapply HΦ
   unfold stmOptSpec
   imodintro

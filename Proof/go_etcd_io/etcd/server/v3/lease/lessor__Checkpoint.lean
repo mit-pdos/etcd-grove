@@ -45,6 +45,7 @@ theorem lease.lessor.Checkpoint.wp_proof
   ihave #Hbe' := Hbe
   iunfold lessorBackend at Hbe'
   icases Hbe' with ⟨%b, #Hbk, #Hlens⟩
+  wp_auto
   wp_apply wp_with_defer as %defer defer
   (try wp_auto)
   wp_apply sync.RWMutex.wp_Lock_guard $$ [$Hmu] as ⟨Hlk, HR⟩

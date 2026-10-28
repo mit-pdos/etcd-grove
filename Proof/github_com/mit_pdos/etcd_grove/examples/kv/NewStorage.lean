@@ -32,13 +32,15 @@ theorem NewStorage.wp_proof
     NewStorage.spec (GF := GF) (hG := hG) := by
   intro vsl voters
   wp_start as ⟨#Hreg, #Hv⟩
+  iapply wp_fupd
   wp_auto
   wp_apply wp_NewMemoryStorage (2 ^ 64) (by simp only [memStorEmpty]; word) as %ms %γs ⟨%Hcap, Hown, -, Htok, Hca⟩
-  wp_alloc s as Hs
+  irename «$r0» => Hs
+  generalize «$r0_ptr» = s at *
   iStructNamed Hs
   imod kvStor_register s ms γs ⊤ CoPset.subseteq_top $$ Hreg MemoryStorage with #Hrec
   ipersist voters
-  wp_auto
+  imodintro
   iapply HΦ
   iexists ms, γs
   iframe Hrec voters Hown Hca Htok

@@ -34,9 +34,9 @@ theorem NewBarrier.wp_proof (hTODO : EtcdGrove.context.TODO.spec (GF := GF) (hG 
   wp_auto
   wp_apply hTODO
   (try wp_auto)
-  wp_alloc b as Hb
+  irename «$r0» => Hb
+  generalize «$r0_ptr» = b at *
   iStructNamed Hb
-  wp_auto
   ipersist client
   ipersist ctx
   ipersist key

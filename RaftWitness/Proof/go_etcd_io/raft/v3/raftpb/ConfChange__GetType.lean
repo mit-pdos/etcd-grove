@@ -34,6 +34,7 @@ theorem raftpb.ConfChange.GetType.wp_proof :
     · subst Hp
       wp_auto
       rw [show raftpb.ConfChangeType_ConfChangeAddNode = #m.type by rw [Hv]; rfl]
+      wp_auto
       iapply HΦ
       iunfold ownCCV1
       iframe
@@ -51,6 +52,8 @@ theorem raftpb.ConfChange.GetType.wp_proof :
         · ipureintro; exact Hnn
         iframe cT cN cI Hcs Hpb
   · wp_start
+    wp_auto
+    rw [show raftpb.ConfChangeType_ConfChangeAddNode = #(W32 0) from rfl]
     wp_auto
     iapply HΦ; ipureintro; trivial
 
