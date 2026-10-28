@@ -1424,7 +1424,12 @@ theorem NewServer.wp_proofM (on : Bool)
     iexists ⟨errc, null, null, func.nil, GoInterface.nil, sstats, null⟩
     unfold srvRunBuilt compactorOk
     iframe compactor errorc Hltg stats Herrb
-    ipureintro; rfl
+    ileft; ipureintro; rfl
+  isplitr
+  · -- `Hcrun` (M2, S4): the compactor off, nothing to run
+    iexists GoInterface.nil
+    iframe compactor
+    iunfold compactorRun; ileft; ipureintro; rfl
   isplitr
   · -- `#Hsab`: (D19p) `msgSnapC` never delivers
     unfold srvApplyAllBuilt
@@ -1937,6 +1942,14 @@ theorem NewServer.wp_proof
   isplitr
   · ipureintro; exact H1
   iframe H2 H3 H4 H5 H6 H7 H8 H9 H10 H11 H12 H13 H14
+
+
+/-- **`NewServer` with the auto-compactor on** (M2, S4, `notes/m2-plan.md`): to prove, from
+`v3compactor.New.spec` (the compactor's environment: the store's `Rev`, the server's `Compact`, a
+store reader) and the apply thread's compaction right (in place of the frozen store). The
+skeleton's statement: no callee hypotheses yet. -/
+theorem NewServer.wp_proofCompact : NewServer.specCompact (GF := GF) (hG := hG) := by
+  sorry -- M2 S4: NewServer with the compactor (the compactor's environment, the apply thread's compaction right)
 
 end proof
 

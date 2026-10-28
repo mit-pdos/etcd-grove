@@ -308,6 +308,33 @@ instance compactorOk_persistent (cp : GoInterface) (RunTok RunPre : IProp GF) :
     Persistent (compactorOk (GF := GF) cp RunTok RunPre) := by
   unfold compactorOk; infer_instance
 
+/-! ### The compactor's laws (M2, S4: the server's `start` and `run` call its methods) -/
+
+/-- **A compactor's `Run`**: from its run token and run precondition. -/
+theorem compactorOk_Run (cp : GoInterface) (RunTok RunPre : IProp GF) :
+    compactorOk cp RunTok RunPre ⊢ ∃ ci : GoInterfaceOk, ⌜cp = GoInterface.ok ci⌝ ∗
+      □ ({{ RunTok ∗ RunPre }} (App (Val #(methods ci.ty go!"Run" ci.v)) (Val #()))
+        {{ RET #(); True }}) := by
+  iintro H; iunfold compactorOk at H
+  icases H with ⟨%ci, %Hci, #HRun, -, -, -⟩
+  iexists ci; iframe HRun; ipureintro; exact Hci
+
+/-- **A compactor's `Pause`**. -/
+theorem compactorOk_Pause (cp : GoInterface) (RunTok RunPre : IProp GF) :
+    compactorOk cp RunTok RunPre ⊢ ∃ ci : GoInterfaceOk, ⌜cp = GoInterface.ok ci⌝ ∗
+      □ ({{ True }} (App (Val #(methods ci.ty go!"Pause" ci.v)) (Val #())) {{ RET #(); True }}) := by
+  iintro H; iunfold compactorOk at H
+  icases H with ⟨%ci, %Hci, -, -, #HPause, -⟩
+  iexists ci; iframe HPause; ipureintro; exact Hci
+
+/-- **A compactor's `Resume`**. -/
+theorem compactorOk_Resume (cp : GoInterface) (RunTok RunPre : IProp GF) :
+    compactorOk cp RunTok RunPre ⊢ ∃ ci : GoInterfaceOk, ⌜cp = GoInterface.ok ci⌝ ∗
+      □ ({{ True }} (App (Val #(methods ci.ty go!"Resume" ci.v)) (Val #())) {{ RET #(); True }}) := by
+  iintro H; iunfold compactorOk at H
+  icases H with ⟨%ci, %Hci, -, -, -, #HResume⟩
+  iexists ci; iframe HResume; ipureintro; exact Hci
+
 end defs
 
 end v3compactor

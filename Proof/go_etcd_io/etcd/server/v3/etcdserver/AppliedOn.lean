@@ -251,7 +251,7 @@ theorem srvAtomicsM_of_builtOn (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : Meta
     isServerBuiltOn (GF := GF) s γ ci TM E ρ γr Er γn b ai₀ at₀ c₀ x₀ N ⊢
       srvAtomicsM true s E γr := by
   unfold isServerBuiltOn srvAtomicsM
-  iintro ⟨-, -, -, -, -, -, #Hai, #Hkvi, #Hti, -⟩
+  iintro ⟨-, -, -, -, -, -, -, #Hai, #Hkvi, #Hti, -⟩
   iframe Hai Hkvi Hti
 
 /-- **The apply thread's applier state with auth on** at `x` and the model's auth state `st`
