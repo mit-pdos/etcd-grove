@@ -387,7 +387,7 @@ theorem raft.restore.wp_proof
       iframe HD Hd HM HC HI HT
       iframe cI cT Hpb Hpbm Hcf
     wp_apply wp_raftLog_restore _ _ sp _ sv (by simp only [snapId]; omega)
-        (by simp only [snapId]; omega) $$ [$Hlog $HsA $Hcert] as ⟨HsA, Hlog⟩
+        (by simp only [snapId]; omega) ⟨id, Hidv⟩ $$ [$Hlog $HsA $Hcert] as ⟨HsA, Hlog⟩
     ihave HsA := ownSnapS_M _ _ _ $$ HsA
     icases ownSnapM_tie sp pm pc _ _ sv $$ [HsA HrB] with ⟨HrA, HcsA, HrB⟩
     · iframe

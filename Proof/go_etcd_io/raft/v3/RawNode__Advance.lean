@@ -845,7 +845,7 @@ theorem RawNode.Advance.wp_proof
       · rw [Htc0, Hs0f.2.2.2.2.2.2.2.2.2.2.1]; exact Hpvoff.2.2.1
       · intro h
         rw [Htc0, Hs0f.2.2.2.2.2.2.2.2.2.2.1]
-        exact Hpvoff.2.2.2 (by rw [← Hs0f.2.2.2.2.2.2.2.2.2.2.2.1]; exact h)
+        exact Hpvoff.2.2.2.1 (by rw [← Hs0f.2.2.2.2.2.2.2.2.2.2.2.1]; exact h)
     wp_for IH
     wp_if_destruct
     · have Hlt : sint.Z n < sint.Z rnv.stepsOnAdvance'.len := by

@@ -53,6 +53,8 @@ abbrev raftLog.restore.spec : Prop :=
   ∀ (l : Loc) (ls : LogState) (sp : Loc) (dq : DFrac) (sv : SnapshotM),
   uint.Z ls.committed < uint.Z (snapId sv).index' →
   uint.Z (snapId sv).index' < 2 ^ 61 →
+  -- (2026-10-28, stage U0) its `ConfState` names a node (`unstable.restore`'s)
+  (∃ x, sv.Metadata'.ConfState'.lists.Has x) →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ "Hlog" ∷ ownRaftLog l ls ∗
       -- (D22 S-d4 item 4) every pointer field set (`raft.restore`'s `EnsureSnapshot`)
       "Hsnap" ∷ ownSnapS sp dq sv ∗

@@ -256,7 +256,7 @@ theorem RawNode.Step.wp_proof
         by_cases hpr : m.Type' = MsgPreVoteResp
         · rcases (Hresp.2 hpr).1 with h | ⟨hp, h⟩
           · have := Int.max_le.2 ⟨Htc0, Hmtc'⟩; omega
-          · have := Hpvoff.2.2.2 hp; omega
+          · have := Hpvoff.2.2.2.1 hp; omega
         · have h1 := Ht3' hpr
           by_cases h : m.Type' = MsgTimeoutNow
           · rw [ite_eq_left h] at h1

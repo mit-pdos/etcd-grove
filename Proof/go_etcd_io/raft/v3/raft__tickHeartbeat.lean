@@ -169,9 +169,10 @@ theorem raft.tickHeartbeat.wp_proof
         have Hi := Hi (by msg_ne)
         have Hf := Hfr (by msg_ne) (by msg_ne) (fun h => absurd h (by msg_ne))
         have Heq : s0.term = s.term := by word
-        intro s' ⟨Hf', Hl', Hu', Hi', Hp', Hg'⟩
+        intro s' ⟨Hf', Hl', Hu', Hi', Hp', Hg', Hs'⟩
         exact ⟨Hf.trans Hf', by omega, by omega, by omega, fun h => (Hp' h).trans Heq,
-          fun fp hg => Hg' fp (PreGuardF.step (Htm (by msg_ne)) hg)⟩
+          fun fp hg => Hg' fp (PreGuardF.step (Htm (by msg_ne)) hg),
+          fun h1 h2 => (Htm (by msg_ne)).2.2.2.2.2.2 (Hs' h1 h2).1 (Hs' h1 h2).2⟩
       icases Herr with (%Herr | ⟨%Hc', -⟩)
       rotate_left
       · exfalso; revert Hc'; msg_ne
@@ -315,7 +316,8 @@ theorem raft.tickHeartbeat.wp_proof
       exact ⟨Hwf', Int.le_trans Hcm1 Hcm, Htr _ ⟨Hfr (by msg_ne) (by msg_ne) (fun h => absurd h (by msg_ne)), Ht1,
         by have h0 : 0 ≤ uint.Z s1.term := by word
            rw [Int.max_eq_left h0] at Ht3; omega,
-        Hi (by msg_ne), fun h => (Hpc' h).1, fun _ hg => PreGuardF.step (Htm (by msg_ne)) hg⟩⟩
+        Hi (by msg_ne), fun h => (Hpc'.1 h).1, fun _ hg => PreGuardF.step (Htm (by msg_ne)) hg,
+        Hpc'.2⟩⟩
     · exfalso; revert Hc'; msg_ne
   · rw [decide_eq_false Hhb]
     wp_auto

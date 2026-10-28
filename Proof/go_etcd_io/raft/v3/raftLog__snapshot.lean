@@ -44,7 +44,7 @@ theorem raftLog.snapshot.wp_proof
     -- the pending snapshot, read through `l.unstable.snapshot`
     ihave #Hp2 := Hpksn
     iunfold pendKsn at Hp2
-    icases Hp2 $$ %sid %rfl with ⟨%sv, #Hsv, %Hsid, %Hk⟩
+    icases Hp2 $$ %sid %rfl with ⟨%sv, #Hsv, %Hsid, %Hk, -⟩
     ihave #Hsv := ownSnapS_M _ _ _ $$ Hsv
     ihave %Hnn := (show ownSnapM (GF := GF) lv.unstable'.snapshot' DFrac.discard sv ⊢
       ⌜lv.unstable'.snapshot' ≠ null⌝ by iintro H; iNamed H; ipureintro; exact Hnn) $$ Hsv

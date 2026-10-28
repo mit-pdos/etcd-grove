@@ -299,7 +299,8 @@ theorem RawNode.readyWithoutAccept.wp_proof
       ownRaftLog s.log s.logst ∗ r_ptr ↦ rnv.raft' ∗ rnv.raft'.[raft, go!"raftLog"] ↦ s.log ∗
       (⌜bsn = false ∧ SN = null⌝ ∨ ∃ (sid : entryID) (sv : SnapshotM),
         ⌜s.logst.snap = some sid ∧ s.logst.sip = false ∧ snapId sv = sid ∧
-          snapTrip sv sv.Metadata'.ConfState'.lists ∈ s.logst.ksn ∧ 0 < uint.Z sid.index'⌝ ∗
+          snapTrip sv sv.Metadata'.ConfState'.lists ∈ s.logst.ksn ∧ 0 < uint.Z sid.index' ∧
+          ∃ x, sv.Metadata'.ConfState'.lists.Has x⌝ ∗
         ownSnapS SN (DFrac.own 1) sv))
     with [rd Hlog r Hf_raftLog] as ⟨%SN, rd, Hlog, r, Hf_raftLog, Hsnarm⟩
   · iexists null
@@ -574,7 +575,7 @@ theorem RawNode.readyWithoutAccept.wp_proof
       simp only [rdSnapRel, rdSnapOut]
       ipureintro
       exact ⟨⟨HSN, Hsn0⟩, HSN, fun _ => by trivial⟩
-    · obtain ⟨Hss, Hsp, Hsid, Hk, Hi0⟩ := Hsv
+    · obtain ⟨Hss, Hsp, Hsid, Hk, Hi0, Hhas⟩ := Hsv
       subst Hsid
       obtain ⟨Hpv, Hse, Hnx, -, Hlt61, Hapl⟩ := Hsnx _ Hss Hsp
       have Hce0 : ce = [] := Hcesn (by rw [Hss]; simp)
@@ -610,7 +611,7 @@ theorem RawNode.readyWithoutAccept.wp_proof
       have Hlen : fp0.length = (uint.Z svs.Metadata'.Index').toNat := by
         have : uint.Z (snapId svs).index' = uint.Z svs.Metadata'.Index' := rfl
         omega
-      refine ⟨⟨by trivial, Hss, Hsp, Hk, Hi0, rfl, Hce0, Hdpre, Hlen, Hapl, Hnx⟩,
+      refine ⟨⟨by trivial, Hss, Hsp, Hk, Hi0, rfl, Hce0, Hdpre, Hlen, Hapl, Hnx, Hhas⟩,
         ⟨rfl, Hce0, Hdpre, ?_, Hlen, Hi0, Hlt61, ?_, ?_⟩, fun h => ?_⟩
       · -- (D22 S-r) past the committed log handed out: `applying` is below the snapshot
         have : uint.Z (snapId svs).index' = uint.Z svs.Metadata'.Index' := rfl

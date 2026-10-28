@@ -36,7 +36,7 @@ theorem raftLog.restore.wp_proof
     (wp_SnapshotMetadata_GetIndex : raftpb.SnapshotMetadata.GetIndex.spec (GF := GF) (hG := hG))
     (wp_SnapshotMetadata_GetTerm : raftpb.SnapshotMetadata.GetTerm.spec (GF := GF) (hG := hG)) :
     raftLog.restore.spec (GF := GF) (hG := hG) := by
-  intro l ls sp dq sv Hcmlt Hlt
+  intro l ls sp dq sv Hcmlt Hlt Hhas
   wp_start as H
   iNamed H
   iNamed Hlog
@@ -60,7 +60,7 @@ theorem raftLog.restore.wp_proof
   try wp_auto
   icases raftLog_lend_unstable l { lv with committed' := sv.Metadata'.Index' } ls Hip Hsip
     $$ Hl Huents_cap Huents Husnap Hpksn Hu_logger with ⟨Hun, Hlback⟩
-  wp_apply wp_unstable_restore _ _ sp dq sv $$ [$Hun $Hback] as ⟨Hsnap, Hun⟩
+  wp_apply wp_unstable_restore _ _ sp dq sv Hhas $$ [$Hun $Hback] as ⟨Hsnap, Hun⟩
   iclear Hu_logger
   icases ownUnstable_reopen _ _ _ $$ Hlback Hun
     with ⟨%uv', Hl, Hents_cap, Hents, #Hsn, #Hpk, #Hu_logger, %Hoff', %Hoip', %Hsip'⟩

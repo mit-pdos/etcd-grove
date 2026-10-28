@@ -590,7 +590,7 @@ theorem wp_rn_raft_Step_net (wp_raft_Step : raft.Step.spec (GF := GF) (hG := hG)
     by_cases hpr : m.Type' = MsgPreVoteResp
     · rcases (Hresp.2 hpr).1 with h | ⟨hp, h⟩
       · have := Int.max_le.2 ⟨Htc0, Hmtc'⟩; omega
-      · have := Hpvoff.2.2.2 hp; omega
+      · have := Hpvoff.2.2.2.1 hp; omega
     · have h1 := Ht3' hpr
       by_cases h : m.Type' = MsgTimeoutNow
       · rw [ite_eq_left h] at h1
@@ -1198,7 +1198,7 @@ theorem wp_applyConf_dyn
       (stepsOk_mono s s' _ Ht' ⟨by rw [Hls'], by rw [Hls']⟩ Hc' (by rw [Hls']) (tc_le_of_gh Hgh') Hstok)
       (by rw [Ht']; exact Htrm) (by rw [Hls']; exact Hstor)
       ⟨fun _ _ hp => absurd (Hrl' hp) Hnpc, by rw [Hgh']; exact Hpvoff.2.1,
-        by rw [Hgh', Ht']; exact Hpvoff.2.2.1, fun h => by rw [Hgh', Ht']; exact Hpvoff.2.2.2 (Hrl' h)⟩
+        by rw [Hgh', Ht']; exact Hpvoff.2.2.1, fun h => by rw [Hgh', Ht']; exact Hpvoff.2.2.2.1 (Hrl' h)⟩
       (by rw [Hgh']; exact Hrs_out) (by rw [Hgh']; exact Hrs_unst) (Int.le_trans Hrs_clb Hc')
       (by unfold RNFl; rw [Hls']; exact Hrnfl)
       (Hloan.keep Hgh' (by rw [Hls']) (by rw [Hls']) (by rw [Hls']) (by rw [Hls']) (by rw [Hls']) Hc')

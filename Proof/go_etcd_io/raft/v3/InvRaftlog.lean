@@ -317,7 +317,10 @@ def pendKsn (p : Loc) (snap : Option entryID) (K : List SnapTrip) : IProp GF :=
     -- (D22 S-d4 item 4) every pointer field set: `raft.restore`'s `EnsureSnapshot`, kept by the
     -- clone (`proto.CloneSnapshot.spec`'s fourth clause)
     ownSnapS p DFrac.discard sv ∗ ⌜snapId sv = sid⌝ ∗
-    ⌜snapTrip sv sv.Metadata'.ConfState'.lists ∈ K⌝)
+    ⌜snapTrip sv sv.Metadata'.ConfState'.lists ∈ K⌝ ∗
+    -- (2026-10-28, stage U0) its `ConfState` names a node (`restore` found the node in it): what
+    -- makes its certificate's facts hold (`raftSnapCert`, under `Has`) when it is applied
+    ⌜∃ x, sv.Metadata'.ConfState'.lists.Has x⌝)
 
 instance pendKsn_pers (p : Loc) (snap : Option entryID) (K : List SnapTrip) :
     Persistent (pendKsn (GF := GF) p snap K) := by

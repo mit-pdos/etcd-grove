@@ -697,6 +697,14 @@ theorem RNFl.keep {rs rs' : RNState} {s s' : NState} (h : RNFl rs s)
   · have := h.1 (hw ▸ hf); rw [hfl]; omega
   · rw [hag] at hlt ⊢; rw [hst]; exact h.2 (by omega)
 
+/-- (2026-10-28, stage U0) A node with a snapshot pending is a follower. -/
+def SnapFol (s : NState) : Prop := s.logst.snap ≠ none → s.role = .follower
+
+/-- `SnapFol` across a step that, if it ends at a non-follower with a snapshot pending, started at
+one (`SnapRoleBack`). -/
+theorem SnapFol.step {s s' : NState} (H : SnapFol s) (h : SnapRoleBack s s') : SnapFol s' :=
+  fun hsn => Classical.byContradiction fun hr => (h hr hsn).1 (H (h hr hsn).2)
+
 /-- (2026-10-17) The pre-vote scope and the term ceiling, as `ownRawNode` keeps them: (2026-10-25,
 T-M M2b; from 2026-10-17 pre-vote off in the dynamic mode) in the dynamic mode a pre-candidate's
 campaign guard (`PreGuardF`, at the ghost part's full prefix `fp`); the ceiling `rs.tc` the
@@ -705,7 +713,10 @@ campaigns at `term + 1`: the pre-campaign's budget). -/
 def RNPv (rs : RNState) (fp : List EntryM) (s : NState) : Prop :=
   (rs.mode.isDyn = true → PreGuardF fp s) ∧ rs.tc = s.gh.tc ∧
   uint.Z s.term ≤ uint.Z s.gh.tc ∧
-  (s.role = .preCandidate → uint.Z s.term + 1 ≤ uint.Z s.gh.tc)
+  (s.role = .preCandidate → uint.Z s.term + 1 ≤ uint.Z s.gh.tc) ∧
+  -- (2026-10-28, stage U0) a node with a snapshot pending is a follower (`SnapFol`): `hup` checks
+  -- `promotable`, and a restore makes a follower (`SnapRoleBack`); `appliedSnap`'s rebuild needs it
+  SnapFol s
 
 /-- The guard as the mode's (`GMode.Guard`), at the ghost part over `fp`. -/
 theorem RNPv.guard {rs : RNState} {fp : List EntryM} {s : NState} (H : RNPv rs fp s) (ca : Nat)
@@ -800,7 +811,7 @@ theorem NetMsgOk.raftStep {id : w64} {rs : RNState} {s : NState} {c : CfgM} {md 
       fun hz => by exfalso; have := Hb1 h; rw [hz] at this; word,
       .inr (by rw [← Hpv.2.1]; exact Hmtc)⟩)
     (fun h => ⟨(Hnr h (by ty_ne)).1, (Hnr h (by ty_ne)).2.1, (Hnr h (by ty_ne)).2.2,
-      fun hp => by have := Hpv.2.2.2 hp; omega⟩)
+      fun hp => by have := Hpv.2.2.2.1 hp; omega⟩)
     (fun h => ⟨(Hnr h (by ty_ne)).1, (Hnr h (by ty_ne)).2.1, (Hnr h (by ty_ne)).2.2,
       Hself (.inl h)⟩)
     (fun h => ⟨(Hnr h (by ty_ne)).1, (Hnr h (by ty_ne)).2.1, (Hnr h (by ty_ne)).2.2,
@@ -844,10 +855,10 @@ theorem RNPv.step [GoGlobalContext] [GoSemanticsFunctions] {rs rs' : RNState} {f
     (hmd : rs'.mode = rs.mode) (htc : rs'.tc = rs.tc) (_hpv : s'.prevote = s.prevote)
     (hgh : s'.gh = s.gh) (ht : uint.Z s'.term ≤ uint.Z s.gh.tc) (hpc : PreCandStep m s s')
     (hhup : m.Type' = MsgHup → uint.Z s.term + 1 ≤ uint.Z s.gh.tc) : RNPv rs' fp s' := by
-  obtain ⟨H1, H2, -, H4⟩ := H
+  obtain ⟨H1, H2, -, H4, H5⟩ := H
   refine ⟨fun h => PreGuardF.pc hpc (H1 (hmd ▸ h)), by rw [htc, hgh]; exact H2,
-    by rw [hgh]; exact ht, fun h => ?_⟩
-  obtain ⟨Ht, Hor⟩ := hpc h
+    by rw [hgh]; exact ht, fun h => ?_, H5.step hpc.2⟩
+  obtain ⟨Ht, Hor⟩ := hpc.1 h
   rw [hgh, Ht]
   rcases Hor with ⟨Hr, -⟩ | ⟨Hh, -⟩
   · exact H4 Hr
@@ -858,19 +869,23 @@ theorem RNPv.step [GoGlobalContext] [GoSemanticsFunctions] {rs rs' : RNState} {f
 theorem RNPv.keep {rs rs' : RNState} {fp : List EntryM} {s s' : NState} (H : RNPv rs fp s)
     (hmd : rs'.mode = rs.mode) (htc : rs'.tc = rs.tc) (_hpv : s'.prevote = s.prevote)
     (hgh : s'.gh = s.gh) (ht : s'.term = s.term) (hr : s'.role = s.role)
+    (hsn : s'.logst.snap = s.logst.snap)
     (hg : PreGuardF fp s → PreGuardF fp s') : RNPv rs' fp s' := by
-  obtain ⟨H1, H2, H3, H4⟩ := H
+  obtain ⟨H1, H2, H3, H4, H5⟩ := H
   refine ⟨fun h => hg (H1 (hmd ▸ h)), by rw [htc, hgh]; exact H2,
-    by rw [hgh, ht]; exact H3, fun h => by rw [hgh, ht]; exact H4 (hr ▸ h)⟩
+    by rw [hgh, ht]; exact H3, fun h => by rw [hgh, ht]; exact H4 (hr ▸ h),
+    fun h => by rw [hr]; exact H5 (hsn ▸ h)⟩
 
 /-- `RNPv.keep` in the static mode, where the guard is not kept. -/
 theorem RNPv.keepS {rs rs' : RNState} {fp : List EntryM} {s s' : NState} (H : RNPv rs fp s)
     (hmd : rs'.mode = rs.mode) (htc : rs'.tc = rs.tc) (_hpv : s'.prevote = s.prevote)
     (hgh : s'.gh = s.gh) (ht : s'.term = s.term) (hr : s'.role = s.role)
+    (hsn : s'.logst.snap = s.logst.snap)
     (hm : rs.mode = .static) : RNPv rs' fp s' := by
-  obtain ⟨-, H2, H3, H4⟩ := H
+  obtain ⟨-, H2, H3, H4, H5⟩ := H
   refine ⟨fun h => (by rw [hmd, hm] at h; cases h), by rw [htc, hgh]; exact H2,
-    by rw [hgh, ht]; exact H3, fun h => by rw [hgh, ht]; exact H4 (hr ▸ h)⟩
+    by rw [hgh, ht]; exact H3, fun h => by rw [hgh, ht]; exact H4 (hr ▸ h),
+    fun h => by rw [hr]; exact H5 (hsn ▸ h)⟩
 
 /-- (D22 S-d3a, 2026-10-21) **A snapshot `Ready`'s loan, as the node keeps it** (`RNState.slent`):
 the ghost mirror of the lent storage (`NGhost.slent`, `SnpOk`) and of the snapshot handed out
@@ -1886,11 +1901,13 @@ abbrev lentPend (o : Option SnapLoan) (P : IProp GF) : IProp GF :=
   | some l => iprop(ownSnapM l.ptr (DFrac.own (1 : Qp).half) l.snap ∗
       (ownSnapM l.ptr (DFrac.own 1) l.snap -∗ P))
 
-/-- (D22 S-d3a) The committed log up to a lent snapshot (`SnapLoan.dlv`). -/
+/-- (D22 S-d3a) The committed log up to a lent snapshot (`SnapLoan.dlv`); (2026-10-28, stage U0)
+and the snapshot's `ConfState` naming a node (the pending one's, `pendKsn`): what makes its
+certificate's facts hold when `Advance` applies it (`raft.Step`'s `SnapAckOk`). -/
 abbrev loanCom (γ : RaftNames) (o : Option SnapLoan) : IProp GF :=
   match o with
   | none => iprop(True)
-  | some l => isCommitted γ l.dlv
+  | some l => iprop(isCommitted γ l.dlv ∗ ⌜∃ x, l.snap.Metadata'.ConfState'.lists.Has x⌝)
 
 instance loanCom_pers (γ : RaftNames) (o : Option SnapLoan) :
     Persistent (loanCom (GF := GF) γ o) := by
@@ -2310,11 +2327,11 @@ theorem ownRawNode_raise_tc (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNState
   ihave Hphys := ownRaftPhysC_raise_tc cf _ id s tc Hle' $$ Hphys
   ihave Hghost := ownStepGhost_congr γ _ cf id (s := s)
     (s' := { s with gh := { s.gh with tc := tc } }) rfl rfl rfl rfl $$ Hghost
-  obtain ⟨H1, -, H3, H4⟩ := Hpvoff
+  obtain ⟨H1, -, H3, H4, H5⟩ := Hpvoff
   iapply ownRawNode_intro γ rn id { rs with tc := tc } { s with gh := { s.gh with tc := tc } } cf fp
     rnv sv hprev steps Hwf Hin Hal Hasync Hdlen Hunp Hsnap
     (stepsOk_mono s _ _ rfl ⟨rfl, rfl⟩ (Int.le_refl _) rfl Hle' Hstok) Htrm Hstor
-    ⟨H1, rfl, Int.le_trans H3 Hle', fun h => Int.le_trans (H4 h) Hle'⟩ Hrs_out Hrs_unst Hrs_clb Hrnfl
+    ⟨H1, rfl, Int.le_trans H3 Hle', fun h => Int.le_trans (H4 h) Hle', H5⟩ Hrs_out Hrs_unst Hrs_clb Hrnfl
     ⟨Hloan.1, Hloan.2.1, Hloan.2.2⟩
     $$ Hrn Hphys Hghost Hsdrf Hsoft Hhard Hsteps Hsteps_cap Hpend Hdeliv Hstrecs Hloanc Hsloc
 

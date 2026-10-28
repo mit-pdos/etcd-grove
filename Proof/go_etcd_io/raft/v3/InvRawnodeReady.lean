@@ -324,7 +324,9 @@ def SnapRdy (rs : RNState) (ce : List EntryM) (l : SnapLoan) (s : NState) : Prop
   rs.delivered <+: l.dlv ∧ l.dlv.length = (uint.Z l.snap.Metadata'.Index').toNat ∧
   -- (D22 S-r, 2026-10-21) strictly: `applying` stays below a pending snapshot (`SipOk`)
   uint.Z s.logst.applying < uint.Z l.snap.Metadata'.Index' ∧
-  nextUnstable s.logst = s.logst.sents ++ s.logst.uents
+  nextUnstable s.logst = s.logst.sents ++ s.logst.uents ∧
+  -- (2026-10-28, stage U0) its `ConfState` naming a node (`pendKsn`)
+  ∃ x, l.snap.Metadata'.ConfState'.lists.Has x
 
 end pure
 

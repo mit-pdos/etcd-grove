@@ -100,6 +100,15 @@ theorem readyNstate_guard {fp : List EntryM} {s : NState} {L : Option SnapLoan} 
   refine ⟨by rw [h6]; exact hs, ?_⟩
   rw [h2, h3, h4, h5]; exact hn
 
+/-- (2026-10-28, stage U0) A `Ready` keeps the role and the pending snapshot (`SnapFol`). -/
+theorem readyNstate_snapFol {s : NState} {L : Option SnapLoan} {ce : List EntryM}
+    {sz : w64} (h : SnapFol s) : SnapFol (readyNstate s L ce sz) := by
+  have e : (readyNstate s L ce sz).logst.snap = s.logst.snap := by
+    unfold readyNstate logAcceptApplying logAcceptUnstable rdyLs
+    split <;> split <;> rfl
+  intro hs
+  exact h (e ▸ hs)
+
 /-- The local messages `acceptReady` queues for `Advance`: the self-addressed responses
 from `msgsAfterAppend` (`selfs`, each `selfPending`), an acknowledgement of the log up to
 its last entry if there were unstable entries, and an acknowledgement of the committed
@@ -291,6 +300,7 @@ theorem RawNode.acceptReady.wp_proof
       icases Hrdz with ⟨Hs, #Hc, %Hz⟩
       rw [← Hz.1]
       iframe Hs Hc
+      ipureintro; exact Hz.2.2.2.2.2.2.2.2.2.2.2
   icases Hsno with ⟨Hsno, #Hloanc⟩
   have Hsnne : ∀ sv, L.map SnapLoan.snap = some sv → sv.Metadata'.Index' ≠ W64 0 := by
     intro sv hsv
@@ -912,7 +922,7 @@ theorem RawNode.acceptReady.wp_proof
       · split at hm <;> simp at hm
     · have hl' : L = some l := hl
       subst hl'
-      obtain ⟨Hs1, -, -, -, Hfl1, Hce1, Hdp1, Hdl1, Hap1, Hnx1⟩ := (Hrdp.2 l rfl).2
+      obtain ⟨Hs1, -, -, -, Hfl1, Hce1, Hdp1, Hdl1, Hap1, Hnx1, -⟩ := (Hrdp.2 l rfl).2
       subst Hce1
       have Hpl : s.logst.prev = snapId l.snap := by
         have hp : ls0.prev = snapId l.snap :=
@@ -986,7 +996,8 @@ theorem RawNode.acceptReady.wp_proof
       · exact Hsnap (.inr h))
     Hstok' Htrm
     (by rw [Hlogst, Haf3, Hf_st]; exact Hstor)
-    ⟨fun h => readyNstate_guard (Hpvoff.1 h), Hpvoff.2⟩ rfl rfl
+    ⟨fun h => readyNstate_guard (Hpvoff.1 h), Hpvoff.2.1, Hpvoff.2.2.1, Hpvoff.2.2.2.1,
+      readyNstate_snapFol Hpvoff.2.2.2.2⟩ rfl rfl
     (by rw [Hlogst, Haf4, Hf_cm]; exact Hrs_clb) HrnflN HloanN
     $$ Hrn Hphys Hghost Hsdrf Hpsp Hph Hsteps Hsteps_cap Hpend Hcommitted Hstrecs' Hloanc Hsloc'
 
