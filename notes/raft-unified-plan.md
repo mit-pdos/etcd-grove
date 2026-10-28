@@ -37,8 +37,9 @@ Designed with the spec skill: candidate (scratch file, outside the repository) a
 - one-shot proposal updates, with a client-owned registry of proposals so the client can pay for each
   copy the network or a retry commits; raft's automatic leave told by its position (`RaftLeave`); the
   transfer choice; no credits in the API;
-- `CreateSnapshot` above the storage's snapshot index, before `Advance` (`storWriter`); a law for a
-  storage wrapper;
+- `CreateSnapshot` of any prefix the storage holds (`storHoldsLb`, from the append and from `Advance`),
+  before `Advance`; today's atomic storage specs otherwise; a law for a storage wrapper; importable
+  `confchange`/`tracker` specs (`ownTrackerM`);
 - new specs: `Campaign`, `ForgetLeader`, `Status`, `Stop`.
 
 ## Stages
@@ -77,16 +78,20 @@ commit per lemma.
   `msgCredits_intro` (a client-supplied update per copied `MsgProp` entry); `SentMsgShape` in every
   cluster (a re-forwarded `MsgTransferLeader` never reaches `send`'s `Panicf`); the transfer choice;
   raft's proofs take their own time receipts (no read or tick credits in the API).
-- **U8. Storage.** The writer's view `storWriter` and `storCommittedAt`; `CreateSnapshot` above the
-  storage's snapshot index, before `Advance`; the wrapper law.
+- **U8. Storage.** `storHoldsLb` (laws from the append receipt and `Advance`); `CreateSnapshot` over it,
+  its term fixed in the post; the wrapper law.
 - **U9. The node specs.** One spec per function over `isCluster`; `Campaign`, `ForgetLeader`, `Status`,
   `Stop`; the static family and `dynamicSpec`s deleted; `interface/` regenerated; the unfold list of the
   clients emptied (laws).
-- **U10. Clients.** kv (its Go may now snapshot after a conf change), etcd's server, the other examples
+- **U10. Clients.** etcd's server re-certifies its snapshots by `snapshotCert_make` (its free registry
+  was valid only in the no-snapshot mode, `SnapTake.lean`; `ep.confState` may be `nil` after a stopped
+  `ApplyConfChange`); kv (its Go may now snapshot after a conf change), the other examples
   over the unified API; `etc/tcb-report.py --check` unchanged but for approved changes.
-- **U11. kvreconf.** Go made provable (bounded ticks, campaigns and `MsgTimeoutNow` deliveries: the term
-  budget; bounded indices and sequence numbers, as kv's), a Goose project, its specs and proofs
-  (`validConf` over the `confchange` specs), its `Main`'s adequacy (`kvreconf_porcupine_safe`).
+- **U11. kvreconf.** Go made provable (the newcomer's `Storage` with `c0`'s `ConfState`, `Replica.cs`
+  starting at it; bounded indices and sequence numbers, as kv's; no bound on ticks or campaigns: raft
+  takes its own time receipts), a Goose project, the importable `confchange`/`tracker` specs over
+  `ownTrackerM` and `validConf` over them, its specs and proofs, its `Main`'s adequacy
+  (`kvreconf_porcupine_safe`).
 
 ## Machinery (the map of the two modes, 2026-10-28)
 
