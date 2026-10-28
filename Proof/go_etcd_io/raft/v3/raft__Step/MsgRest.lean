@@ -272,7 +272,7 @@ local macro "local_leader" : tactic => `(tactic| (
   ipureintro
   exact ⟨Hwf', ⟨[], fun _ h => absurd h List.not_mem_nil, Hst⟩, rfl, NetFrame.of_logst Hl Hpv Hg,
     TermStep.of_term Ht (fun _ => by rw [Hl]; exact Int.le_refl _)
-      (fun h => absurd h (LeaderStepResultC.not_precand Hrole Hres))⟩))
+      (.mk' fun h => absurd h (LeaderStepResultC.not_precand Hrole Hres))⟩))
 
 set_option hygiene false in
 /-- A leader-transfer request at a follower (at the state `s`): forwarded, or dropped. -/
@@ -317,7 +317,7 @@ local macro "timeout_follower" : tactic => `(tactic| (
     iexact Hm
   obtain ⟨rfl, rfl, Hok, Hrl⟩ := followerStepResult_timeout _ _ _ _ _ _ _ _ _ Hty Hres
   have HCD := stepCD_hup (B := B) (m := m) Hok Hnw Hlogf
-  obtain ⟨Hwf1, -, ⟨Hl1, Ht1, Ht2, Hpv1, Hg1⟩, -⟩ := Hok
+  obtain ⟨Hwf1, -, ⟨Hl1, Ht1, Ht2, Hpv1, Hg1⟩, -, Hhg⟩ := Hok
   simp only [Bool.false_eq_true, ↓reduceIte]
   icases Herrn with %Herrn
   subst Herrn
@@ -329,7 +329,7 @@ local macro "timeout_follower" : tactic => `(tactic| (
     ⟨Ht1, fun h => absurd h (by rw [Hty]; w32_ne), fun _ _ h => absurd Hty h,
      fun _ => by rw [Hl1]; exact Int.le_refl _,
      fun _ => by have := Int.le_max_left (uint.Z s.term) (uint.Z m.Term'); omega,
-     fun h => absurd ((Hrl h).symm.trans h) (by rw [Hrole]; decide)⟩⟩))
+     ⟨fun h => absurd ((Hrl h).symm.trans h) (by rw [Hrole]; decide), Hhg.snapRoleBack Hl1⟩⟩⟩))
 
 set_option hygiene false in
 /-- `Step`'s stale-term test `(r.checkQuorum || r.preVote) && (m.Type == MsgHeartbeat ||
@@ -690,7 +690,7 @@ theorem wp_Step_MsgTimeoutNow (_P : raft.Step.Postulates (GF := GF) (hG := hG))
       iexact Hm
     obtain ⟨rfl, rfl, Hok, Hrl⟩ := followerStepResult_timeout _ _ _ _ _ _ _ _ _ Hty Hres
     have HCD := stepCD_hup (B := B) (m := m) Hok Hnwm Hlogf
-    obtain ⟨Hwf1, -, ⟨Hl1, Ht1, Ht2, Hpv1, Hg1⟩, -⟩ := Hok
+    obtain ⟨Hwf1, -, ⟨Hl1, Ht1, Ht2, Hpv1, Hg1⟩, -, Hhg⟩ := Hok
     simp only [Bool.false_eq_true, ↓reduceIte]
     icases Herrn with %Herrn
     subst Herrn
@@ -709,12 +709,14 @@ theorem wp_Step_MsgTimeoutNow (_P : raft.Step.Postulates (GF := GF) (hG := hG))
       Hfr.1.trans (NetFrame.of_logst Hl1 Hpv1 Hg1), ?_⟩
     refine ⟨Int.le_trans (Int.le_of_lt Hgt) Ht1, fun h => absurd h (by rw [Hty]; w32_ne),
       fun _ _ h => absurd Hty h, fun _ => ?_, fun _ => ?_,
-      fun h => absurd ((Hrl h).symm.trans h) (by simp [becomeFollower])⟩
+      ⟨fun h => absurd ((Hrl h).symm.trans h) (by simp [becomeFollower]), ?_⟩⟩
     · rw [Hl1]; exact Int.le_refl _
     · have := Int.le_max_right (uint.Z s.term) (uint.Z m.Term')
       have h2 : uint.Z ({ becomeFollower s m.Term' (W64 0) with prvals := pvs } : NState).term
           = uint.Z m.Term' := rfl
       omega
+    · -- (U0) the campaign was of the stepped-down follower: no snapshot pending
+      exact fun h1 h2 => absurd (Hhg.snapRoleBack Hl1 h1 h2).1 (by simp [becomeFollower])
   wp_gets
   rw [decide_eq_false Hgt]
   wp_auto

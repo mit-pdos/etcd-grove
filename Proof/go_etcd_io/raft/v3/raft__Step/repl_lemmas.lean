@@ -238,13 +238,22 @@ theorem app_frame {id : w64} {m : MessageM} {ents : List EntryM}
     {s t s' : NState} (Happ : m.Type' = MsgApp) (Hres : HandleAppResult id t m ents s')
     (Hft : NetFrame s t) (H1 : uint.Z s.term ≤ uint.Z t.term)
     (H2 : uint.Z t.term ≤ max (uint.Z s.term) (uint.Z m.Term'))
-    (Htr : t.role ≠ .preCandidate := by first | (intro h; cases h) | (intro h; simp_all)) :
+    (Htr : t.role ≠ .preCandidate := by first | (intro h; cases h) | (intro h; simp_all))
+    (Hrt : t.role = .follower ∨ t.role = s.role := by
+      first | exact .inl rfl | exact .inr rfl | (left; simp_all; done) | (right; simp_all; done)) :
     NetFrame s s' ∧ TermStep m s s' := by
   obtain ⟨Hf, Ht⟩ := frame_handle_app id t m ents s' Hres
   refine ⟨Hft.trans Hf, by rw [Ht]; exact H1, fun h => ?_, fun _ _ _ => by rw [Ht]; exact H2,
-    fun h => absurd Happ h, fun h => ?_, fun h => absurd ((handle_app_role Hres).symm.trans h) Htr⟩
+    fun h => absurd Happ h, fun h => ?_,
+    fun h => absurd ((handle_app_role Hres).symm.trans h) Htr, fun h1 h2 => ?_⟩
   · rw [Happ] at h; exact absurd h (by w32_ne)
   · rw [Happ] at h; exact absurd h (by w32_ne)
+  · -- (U0) the role is the handler's state's, the pending snapshot kept
+    have Hr' := handle_app_role Hres
+    have Hs' : s'.logst.snap = s.logst.snap := (Hft.trans Hf).2.1
+    rcases Hrt with h | h
+    · exact absurd (Hr'.trans h) h1
+    · exact ⟨by rw [← h, ← Hr']; exact h1, by rw [← Hs']; exact h2⟩
 
 theorem nstateWf_heartbeatResult (id : w64) (t : NState) (m : MessageM)
     (cl : List w8 := []) :
@@ -517,10 +526,11 @@ theorem SnapStep.of_handle {id : w64} {m : MessageM} {s t s' : NState} {sv : Sna
     (Hr : t.role = .follower) (H : HandleSnapResult id t m sv cl s') : SnapStep m s s' := by
   unfold HandleSnapResult at H
   rcases H with ⟨-, rfl⟩ | ⟨-, -, -, rfl⟩ | ⟨-, -, -, rfl⟩ <;>
-    refine ⟨?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, fun h => ?_⟩ <;>
+    refine ⟨?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ⟨fun h => ?_, fun h _ => ?_⟩⟩ <;>
     simp only [sendMsgs, logRestore] at * <;>
     first
     | (rw [Hr] at h; cases h)
+    | (rw [Hr] at h; exact absurd rfl h)
     | (rw [Hl])
     | exact Hpv
     | exact Hgh

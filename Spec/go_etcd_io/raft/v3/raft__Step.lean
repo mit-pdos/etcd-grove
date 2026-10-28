@@ -266,22 +266,58 @@ def HupFact [GooseExts] (s s' : NState) : Prop :=
   uint.Z s.logst.prev.index' ≤ uint.Z s.logst.applied ∧
   uint.Z s.logst.applied ≤ uint.Z s.logst.committed ∧ uint.Z s.logst.committed + 1 < 2 ^ 64
 
+/-- (2026-10-28, stage U0) **A node that is no follower with a snapshot pending was one before**:
+a step makes a follower a candidate or a pre-candidate only through `hup`, which checks that no
+snapshot is pending (`promotable`), and keeps a non-follower's pending snapshot or clears it. What
+keeps `SnapFol` (`InvRawnode.lean`: a pending snapshot is a follower's), which `appliedSnap`'s
+rebuild of the tracker needs (`raft.Step`'s snapshot acknowledgement). -/
+def SnapRoleBack [GooseExts] (s s' : NState) : Prop :=
+  s'.role ≠ .follower → s'.logst.snap ≠ none → s.role ≠ .follower ∧ s.logst.snap ≠ none
+
 /-- (2026-10-25, T-M M2b) and a pre-candidate that stays one keeps its log, commit and pending
 snapshot (`PreKeep`: nothing of its term reached it, which would have made it a follower), and
 one that a `MsgHup` made one has `hup`'s check (`HupFact`): what keeps `StepR.campaign`'s guard
 from the pre-campaign to the campaign a won pre-vote runs (`PreGuard`). -/
 def PreCandStep [GooseExts] (m : MessageM) (s s' : NState) : Prop :=
-  s'.role = .preCandidate → s'.term = s.term ∧
-    ((s.role = .preCandidate ∧ PreKeep s s') ∨ (m.Type' = MsgHup ∧ HupFact s s'))
+  (s'.role = .preCandidate → s'.term = s.term ∧
+    ((s.role = .preCandidate ∧ PreKeep s s') ∨ (m.Type' = MsgHup ∧ HupFact s s'))) ∧
+  SnapRoleBack s s'
+
+/-- (2026-10-28, stage U0) The snapshot/role clause of `PreCandStep` for a concrete end state:
+a follower's, or the role and the pending snapshot kept. -/
+macro "srb_tac" : tactic => `(tactic| first
+  | (intro h1 h2; exact ⟨h1, h2⟩)
+  | (intro h1 _; exact absurd rfl h1)
+  | (intro h1 h2; simp only at h1 h2 ⊢; exact ⟨h1, h2⟩)
+  | (intro h1; exfalso; apply h1; simp_all; done)
+  | (intro h1 h2; simp_all))
 
 /-- `PreCandStep` for a concrete end state: the role, term and log kept, or a role that is no
-pre-candidate's (2026-10-17). -/
-macro "pc_tac" : tactic => `(tactic| first
+pre-candidate's (2026-10-17); and (stage U0) `srb_tac`. -/
+macro "pc1_tac" : tactic => `(tactic| first
   | (intro h; exact ⟨rfl, .inl ⟨h, rfl, rfl, rfl, fun h => h, Int.le_refl _⟩⟩)
   | (intro h; cases h)
   | (intro h; exact absurd h (by decide))
   | (intro h; simp_all)
   | (intro h; exact ⟨rfl, .inl ⟨h, by simp_all [PreKeep]⟩⟩))
+
+macro "pc_tac" : tactic => `(tactic| (refine ⟨?_, ?_⟩; pc1_tac; srb_tac))
+
+/-- `PreCandStep` from its pre-candidate clause, the snapshot/role one by `srb_tac` (2026-10-28,
+stage U0). -/
+theorem PreCandStep.mk' [GooseExts] {m : MessageM} {s s' : NState}
+    (h1 : s'.role = .preCandidate → s'.term = s.term ∧
+      ((s.role = .preCandidate ∧ PreKeep s s') ∨ (m.Type' = MsgHup ∧ HupFact s s')))
+    (h2 : SnapRoleBack s s' := by srb_tac) : PreCandStep m s s' := ⟨h1, h2⟩
+
+/-- (2026-10-28, stage U0) What `hup` leaves (`HupGuard`), its log kept: a campaign checked that no
+snapshot is pending. -/
+theorem HupGuard.snapRoleBack [GooseExts] [GoGlobalContext] [GoSemanticsFunctions] {c : CfgM}
+    {id : w64} {s s' : NState} (h : HupGuard c id s s') (hl : s'.logst = s.logst) :
+    SnapRoleBack s s' := fun h1 h2 => by
+  rcases h with rfl | ⟨-, -, Hsn, -⟩
+  · exact ⟨h1, h2⟩
+  · exact absurd (by rw [hl]; exact Hsn) h2
 
 def TermStep [GooseExts] (m : MessageM) (s s' : NState) : Prop :=
   uint.Z s.term ≤ uint.Z s'.term ∧
@@ -303,7 +339,8 @@ theorem TermStep.of_term [GooseExts] {m : MessageM} {s s' : NState}
     fun _ => by have := Int.le_max_left (uint.Z s.term) (uint.Z m.Term'); omega, hpc⟩
 
 theorem TermStep.refl [GooseExts] (m : MessageM) (s : NState) : TermStep m s s :=
-  TermStep.of_term rfl (fun _ => Int.le_refl _) (fun h => ⟨rfl, .inl ⟨h, rfl, rfl, rfl, fun h => h, Int.le_refl _⟩⟩)
+  TermStep.of_term rfl (fun _ => Int.le_refl _)
+    ⟨fun h => ⟨rfl, .inl ⟨h, rfl, rfl, rfl, fun h => h, Int.le_refl _⟩⟩, fun h1 h2 => ⟨h1, h2⟩⟩
 
 /-- A step to a term between the start's and the message's, for a message other than
 `MsgHup` (a step-down to `m.Term`, then a handler that keeps it). -/
@@ -320,9 +357,10 @@ theorem TermStep.of_le [GooseExts] {m : MessageM} {s s' : NState}
 T-M M2b) at a pre-candidate it keeps the log and the commit index (`PreKeep`). -/
 theorem TermStep.of_local [GooseExts] {m : MessageM} {s s' : NState}
     (h : LocalFrame s s') (hk : s.role = .preCandidate → PreKeep s s') : TermStep m s s' :=
-  TermStep.of_term h.1 (fun _ => h.2.1) (fun hp =>
+  TermStep.of_term h.1 (fun _ => h.2.1) ⟨fun hp =>
     have hr : s.role = .preCandidate := h.2.2.2.2.2.2.2.2.2.1 ▸ hp
-    ⟨h.1, .inl ⟨hr, hk hr⟩⟩)
+    ⟨h.1, .inl ⟨hr, hk hr⟩⟩,
+    fun h1 h2 => ⟨h.2.2.2.2.2.2.2.2.2.1 ▸ h1, h.2.2.2.1 ▸ h2⟩⟩
 
 /-- (2026-10-25, T-M M2b) **A step keeps a pre-candidate's campaign guard** (`PreGuardF`: over a
 full prefix of the log's boundary's length): a pre-candidate that stays one kept its boundary, log,
@@ -332,7 +370,7 @@ theorem PreGuardF.pc [GooseExts] [GoGlobalContext] [GoSemanticsFunctions] {m : M
     {s s' : NState} (h : PreCandStep m s s') {fp : List EntryM} (hg : PreGuardF fp s) :
     PreGuardF fp s' := by
   intro hl hp
-  obtain ⟨-, ⟨hr, hpr, hlog, hc, hsn, ha⟩ | ⟨-, hls, hsn, hno, h1, h2, h3⟩⟩ := h hp
+  obtain ⟨-, ⟨hr, hpr, hlog, hc, hsn, ha⟩ | ⟨-, hls, hsn, hno, h1, h2, h3⟩⟩ := h.1 hp
   · obtain ⟨hsn0, hno0⟩ := hg (by rw [← hpr]; exact hl) hr
     refine ⟨hsn hsn0, ?_⟩
     rw [hlog, hc]
@@ -415,7 +453,7 @@ theorem AppTrunc.of_ip [GooseExts] {m : MessageM} {ents : List EntryM} {s s' : N
 /-- A dropped snapshot's step. -/
 theorem SnapStep.refl [GooseExts] (m : MessageM) (s : NState) : SnapStep m s s :=
   ⟨rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, Int.le_refl _, Int.le_max_left _ _,
-    fun h => ⟨rfl, .inl ⟨h, rfl, rfl, rfl, fun h => h, Int.le_refl _⟩⟩⟩
+    ⟨fun h => ⟨rfl, .inl ⟨h, rfl, rfl, rfl, fun h => h, Int.le_refl _⟩⟩, fun h1 h2 => ⟨h1, h2⟩⟩⟩
 
 /-- (D22 S-d3b, 2026-10-21) **What a `MsgSnap`'s step does to the log**, for its snapshot `sv`: the
 log's boundary, entries, pending snapshot and `offsetInProgress` kept (a stale snapshot, or one the

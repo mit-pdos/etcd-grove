@@ -858,7 +858,7 @@ theorem raft.Step.wp_proof
       · ipureintro
         obtain ⟨Hk1, Hk2⟩ := ackSnapLog_keep s.logst m s.term sv
         exact fun _ => TermStep.of_term rfl (fun _ => Hp5)
-          (fun h => ⟨rfl, .inl ⟨h, Hp1, Hp2, Hp3, Hk1, Hk2⟩⟩)
+          ⟨fun h => ⟨rfl, .inl ⟨h, Hp1, Hp2, Hp3, Hk1, Hk2⟩⟩, fun h1 h2 => ⟨h1, fun hn => h2 (Hk1 hn)⟩⟩
       isplitr
       · ipureintro; exact RespStep.of_type (by rw [HtyA]; w32_ne) (by rw [HtyA]; w32_ne)
           (by rw [HtyA]; w32_ne)

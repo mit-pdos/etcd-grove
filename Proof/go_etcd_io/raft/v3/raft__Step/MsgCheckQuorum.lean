@@ -198,7 +198,7 @@ theorem wp_Step_MsgCheckQuorum (_P : raft.Step.Postulates (GF := GF) (hG := hG))
     iapply HΦ $$ %interface.nil %s'
     iframe Hphys
     ipureintro
-    exact ⟨Hwf', Hstep, rfl, keep_frame_logst Ht Hl Hpv Hg (fun h => absurd h (LeaderStepResultC.not_precand Hrole Hres))⟩
+    exact ⟨Hwf', Hstep, rfl, keep_frame_logst Ht Hl Hpv Hg (.mk' fun h => absurd h (LeaderStepResultC.not_precand Hrole Hres))⟩
   · -- PreCandidate, as a candidate: no `MsgCheckQuorum` arm either
     simp only [stepFuncOf]
     ihave #Hsrc0 : tsSrc (GF := GF) s.logst.storage m.Type' sn $$ []
