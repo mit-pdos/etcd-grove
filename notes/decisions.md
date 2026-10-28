@@ -24869,3 +24869,35 @@ call's precondition is its name's length bound and the caller's continuation fro
 carries, so `Q` is that (`setupQ`: `userAddReplied` for the `UserAdd`s, `adminReplied` of the request
 otherwise). What `Main` then knows after `SetUp` is the eight replies' facts: each admin step done
 on the committed prefix (`adminDoneM`), the prefix in raft's log, its publication.
+
+**What is left, in order** (2026-10-28, while the user was away; each a stage of its own):
+1. *The client's KV stack at the metadata-indexed specs.* `SetUp` and `Work` call the client's
+   `Put`/`Get`/`Delete`/`Txn`, whose specs take `kvRegsAt` (the plain `etcdPutSpec`, ...). The
+   member with auth on registers the On specs; `Put`'s converts to the plain one by weakening
+   (`isGrpcRpcMd_mono`, the grant dropped), but `DeleteRange`'s and `Txn`'s add shape premises,
+   so `kvRegsAt` is not derivable. Plan: the client's calls over a member's four md specs as a
+   family (`kvRegsAtMd`), each call's reply at the attempt's metadata (`grpcAttemptMd`); the
+   plain specs the family's instance at `GrpcSpec.md` (as the server side did), so the auth-off
+   clients' proofs do not change. About 80 files name `kvRegsAt`/`isKV`.
+2. *The client's auth contract C1-C4 over `grpcAttemptMd`* (E2b): no user name, the attempt's
+   metadata is its context's outgoing metadata (C2, C4); a user client's attempts carry no token
+   or one issued to its user (C1), which needs `Authenticate` served with auth on (its handler
+   and `etcdAuthenticateSpec`, the reply's token `tokIssued` to the request's name, S5's) and
+   `Client.getToken`'s axiom to say what the token bundle then holds.
+3. *Watch with auth on.* A created watch's response carries the check's class (`watchAuthed`, A4)
+   on the server's stream, but neither a lower bound on the state checked (`IsRangePermitted`
+   has `specLb`; `isWatchPermitted` does not use it) nor the info's binding to the stream's
+   token reaches the client's channel (`WatchRun`). `Work`'s refused watch needs both: an event
+   on it means a created response whose check passed at a state no older than the set-up's,
+   for the principal's token, which `setupSt` refuses. `u`'s watch of `[a, b)` needs nothing of
+   auth (its events are in its range).
+4. *The history.* `CheckHistory` needs every committed write after the set-up up to `z/end` to
+   be one its key's principal was permitted. The grant (`writeGrantOn`) is at the stamped
+   header's user, bound to the request's token; a write by root's token is permitted anywhere,
+   so the proof must also know root's client writes only `z/end`. Plan: an `authkv` invariant on
+   the KV log through the clients' updates (`kvOpAu1`), each fired only when granted
+   (`kv_prop_au_on`); the update then needs the grant at the commit to refute an ungranted
+   write. To be designed against `kv_prop_au_on`'s statement.
+5. `Work` (per principal, at its client's specs), then `Main` (the cluster's allocation with auth
+   on, `server_member_alloc_on`; `startServer`, `Serve.specOn`, `SetUp`, the user clients, the
+   goroutines, root's write and watch, the checks).
