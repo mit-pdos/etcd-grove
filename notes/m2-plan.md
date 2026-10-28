@@ -234,3 +234,22 @@ persistent (the time-receipt bound), so the compactor's `R` can hold it across c
 **The glue to prove before the review**: `newServer` (both cases), `start`'s `Run` call, `run`'s
 `Pause`/`Resume` calls, `NewServer`'s construction of `E` and the `New` call (the compactor case),
 `EtcdServer.Compact`, `putgetc.Main` (done).
+
+## Phase 1, S1 steps 4-5: two scope revisions (2026-10-28, the user's)
+
+Writing the statements of drafts 4 and 5 found both understated (phase 1, before any review or
+proof):
+- **The watchable store** (draft 4): stating its compaction case needs the watch response model
+  (`RespM`, `mvcc/InvWatchStore.lean`, in 173 files) to carry a compaction revision, and every
+  consumer (v3rpc's watch stream, the client's watch proofs, the cache, the examples' watch models)
+  to drop `compactRev = 0`: a watch stage of its own. **Taken: no watchers in compaction mode.** The
+  watchable store's invariant admits a compacted store only while no watcher is registered (phase
+  0's "no watches"), so `syncWatchers`' compaction case is vacuous and `RespM` is unchanged; the
+  watch stage is a later widening.
+- **Restore** (draft 5): `store.Restore` installs a backend never compacted (the compaction
+  revision back to `-1`), while the compaction right is a monotone counter: a restore needs the
+  compaction ghost state redesigned (the D22 snapshot track, the collaborator's). **Taken: no
+  restore in compaction mode.** Only the server configuration that never installs a snapshot (one
+  member, D21 M3's no-snapshot bound) gets the compactor; `Restore` keeps its frozen premise for
+  compaction-off servers.
+Counted as the stage's phase-1 scope revisions (found by drafting, not by proof).
