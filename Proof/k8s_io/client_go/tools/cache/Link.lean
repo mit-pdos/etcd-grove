@@ -93,6 +93,7 @@ public import Proof.k8s_io.client_go.tools.cache.processorListener__run
 public import Proof.k8s_io.client_go.tools.cache.reconcileReplacement
 public import Proof.k8s_io.client_go.tools.cache.retryWithDeadlineImpl__ShouldRetry
 public import Proof.k8s_io.client_go.tools.cache.retryWithDeadlineImpl__reset
+public import Proof.k8s_io.apimachinery.pkg.util.runtime.HandleCrashWithLogger
 public import Proof.k8s_io.client_go.tools.cache.rvFromObject
 public import Proof.k8s_io.apimachinery.pkg.runtime.schema.GroupVersionResource__Empty_ptr
 public import Proof.k8s_io.apimachinery.pkg.util.sets.List
@@ -596,9 +597,13 @@ theorem cache.processorListener.wp_add :
     EtcdGrove.cache.processorListener.add.spec (GF := GF) (hG := hG) :=
   EtcdGrove.cache.processorListener.add.wp_proof synctrack.SingleFileTracker.wp_Start
 
+theorem utilruntime.wp_HandleCrashWithLogger :
+    EtcdGrove.utilruntime.HandleCrashWithLogger.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.utilruntime.HandleCrashWithLogger.wp_proof
+
 theorem cache.processorListener.wp_run :
     EtcdGrove.cache.processorListener.run.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.cache.processorListener.run.wp_proof synctrack.SingleFileTracker.wp_Finished trace.wp_New trace.Trace.wp_LogIfLong
+  EtcdGrove.cache.processorListener.run.wp_proof synctrack.SingleFileTracker.wp_Finished trace.wp_New trace.Trace.wp_LogIfLong utilruntime.wp_HandleCrashWithLogger
 
 theorem cache.sharedProcessor.wp_distribute :
     EtcdGrove.cache.sharedProcessor.distribute.spec (GF := GF) (hG := hG) :=
@@ -717,7 +722,7 @@ theorem cache.wp_processDeltasInBatch :
 
 theorem cache.processorListener.wp_pop :
     EtcdGrove.cache.processorListener.pop.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.cache.processorListener.pop.wp_proof h_TypedRingGrowing__ReadOne h_TypedRingGrowing__WriteOne
+  EtcdGrove.cache.processorListener.pop.wp_proof h_TypedRingGrowing__ReadOne h_TypedRingGrowing__WriteOne utilruntime.wp_HandleCrashWithLogger
 
 theorem cache.sharedIndexInformer.wp_handleBatchDeltas :
     EtcdGrove.cache.sharedIndexInformer.handleBatchDeltas.spec (GF := GF) (hG := hG) :=

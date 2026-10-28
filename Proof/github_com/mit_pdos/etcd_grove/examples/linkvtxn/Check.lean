@@ -99,7 +99,7 @@ theorem Check.wp_proof
       unfold lintest.applySpec
       iintro %i
       imodintro
-      iintro %Φ' Hin HAU
+      iintro %Φ' ⟨Hin, Htt⟩ HAU
       wp_auto
       wp_bind (App (App (Val _) (Val _)) (Val _))
       iapply HA $$ %i Hin
@@ -112,7 +112,7 @@ theorem Check.wp_proof
       imod Hc $$ Hb with HQ
       imodintro
       iintro Hio
-      ihave HQ := HQ $$ Hio
+      ihave HQ := HQ $$ [$Hio $Htt]
       wp_auto
       iexact HQ
     isplitr

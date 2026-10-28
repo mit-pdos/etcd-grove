@@ -843,7 +843,7 @@ noncomputable def DaemonSetsController.Run.impl [GooseExts] [GoGlobalContext] : 
   (Let "$f" (App (Val (GoInstruction (FuncResolve _root_.Perennial.k8s_io.apimachinery.pkg.util.runtime.HandleCrashWithContext []))) (Val #()))
   (App (Val (GoInstruction (GoStore deferType))) (Pair (Var "$defer") (Let "$oldf" (App (Val (GoInstruction (GoLoad deferType))) (Var "$defer"))
   (Lam BAnon
-  (Seq (App (Var "$f") (Var "$a0"))
+  (Seq (App (App (Var "$f") (Var "$a0")) (Var "$a1"))
   (App (Var "$oldf") (Val #())))))))))))))))))
   (Val #())))))
 

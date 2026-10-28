@@ -93,19 +93,6 @@ theorem notifP_nonnil (Q : Nat → Ev → IProp GF) (γt : GName) (i : Int) (v :
   subst he
   cases e <;> simp [notifOf, interface.mkOk]
 
-open Iris.ProofMode in
-/-- **Gap G-defer-variadic** (`notes/perennial-changes.md`): a deferred
-`utilruntime.HandleCrashWithLogger(logger)` returns. In Go, with no panic in flight (the proofs show
-none), it recovers nothing and returns; in the pinned translation Goose drops its variadic argument
-and only applies the function to the logger. Stated once, as a `sorry`, for the listeners' deferred
-calls (`pop`'s and `run`'s), as the work queue's `waitingLoop` leaves its returns. It states
-Go's behavior (it returns, `()`), which the model's partial application is not. -/
-theorem deferred_HandleCrashWithLogger (lg : github_com.go_logr.logr.Logger) (Ψ : val → IProp GF) :
-    ▷ Ψ #() ⊢
-      WP (App (Val #(functions k8s_io.apimachinery.pkg.util.runtime.HandleCrashWithLogger []))
-        (Val #lg)) {{ Ψ }} := by
-  sorry -- gap G-defer-variadic (notes/perennial-changes.md)
-
 /-- The listener's invariant's namespace (the length counter's). -/
 def lenN : Namespace := nroot.@"cache.processorListener.len"
 

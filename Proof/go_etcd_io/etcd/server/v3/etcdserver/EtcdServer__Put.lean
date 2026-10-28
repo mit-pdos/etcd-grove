@@ -75,7 +75,7 @@ theorem EtcdServer.Put.wp_proof
   · ipureintro; rfl
   iintro %osl ⟨-, -⟩
   (try wp_auto)
-  wp_apply hTS tr ctx cd _ _ $$ [] as %ctx1 %sp ⟨⟨%vs1, #Hctx1t, Hctx1w⟩, #Hctr1, #Hsp⟩
+  wp_apply hTS tr ctx cd _ _ $$ [] as %ctx1 %sp ⟨⟨%vs1, #Hctx1t, Hctx1w⟩, #Hctr1, %Hinc1, #Hsp⟩
   · iframe #; iunfold mvcc.txnCtx; iright; iexact Hctx
   ihave #Hctx1 := Hctx1w $$ Hctx
   iunfold trace.isSpan at Hsp
@@ -248,7 +248,7 @@ theorem EtcdServer.Put.wp_proofOn
   · ipureintro; rfl
   iintro %osl ⟨-, -⟩
   (try wp_auto)
-  wp_apply hTS tr ctx cd _ _ $$ [] as %ctx1 %sp ⟨⟨%vs1, #Hctx1t, Hctx1w⟩, #Hctr1, #Hsp⟩
+  wp_apply hTS tr ctx cd _ _ $$ [] as %ctx1 %sp ⟨⟨%vs1, #Hctx1t, Hctx1w⟩, #Hctr1, %Hinc1, #Hsp⟩
   · iframe #; iunfold mvcc.txnCtx; iright; iexact Hctx
   ihave #Hctx1 := Hctx1w $$ Hctx
   iunfold trace.isSpan at Hsp
@@ -257,10 +257,13 @@ theorem EtcdServer.Put.wp_proofOn
   (try wp_auto)
   wp_apply time.wp_Now as %now -
   (try wp_auto)
-  wp_apply hWV ctx1 ⟨go_etcd_io.etcd.pkg.v3.traceutil.StartTimeKey.ty, _⟩ _ $$ [] as %c2 ⟨%Hc2, -, #Hc2w, -⟩
+  wp_apply hWV ctx1 ⟨go_etcd_io.etcd.pkg.v3.traceutil.StartTimeKey.ty, _⟩ _ $$ [] as %c2 ⟨%Hc2, -, #Hc2w, %c2', %vs2', %Hc2e', %Hinc2, -⟩
   · iframe #; ipureintro; right; right; left; rfl
   ihave ⟨%ctx2, %vs2, %Hc2e, #Hctx2⟩ := Hc2w $$ %_ Hctx1
   subst Hc2e
+  -- (E3zb) the context `raftRequest` sees carries the request's metadata
+  have Hinc : metadata.incomingOf (GoInterface.ok ctx2) = metadata.incomingOf (GoInterface.ok ctx) := by
+    have h := GoInterface.ok.inj Hc2e'; subst h; rw [Hinc2, Hinc1]
   (try wp_auto)
   ihave ⟨Hirr, %Hirrn⟩ := typedPointsto_not_null_dup _ _ _ $$ «$a1»
   iStructNamed Hirr
@@ -316,7 +319,7 @@ theorem EtcdServer.Put.wp_proofOn
     · iapply putPermitOn_reqPropOk ρ.kv op Q γc $$ Hperm
     iexists _; iexact Header
   (try wp_auto)
-  icases Hres with (⟨%Herr, %hm, %rq', %Lq, %Hwire, #HLq, Hok, #HpAf, #HQq⟩ | ⟨%Hre, #HaE, Hfail⟩)
+  icases Hres with (⟨%Herr, %hm, %rq', %Lq, %Hwire, #HLq, Hok, #HpAf, #HQq, #Hhb⟩ | ⟨%Hre, #HaE, Hfail⟩)
   · subst Herr
     have Hrq : rq' = apply.withHeader (irrPut op) hm := by
       refine (Hwire.2.2.2 ?_)
@@ -355,7 +358,12 @@ theorem EtcdServer.Put.wp_proofOn
     isplitr
     · ipureintro; exact ⟨Hstep, ⟨log', rfl⟩, Hfl' log' false rfl⟩
     iframe HQ
-    iexists Lq; iexact HpAf
+    isplitr
+    · iapply hdrBoundM_ctx true s E _ _ hm Hinc $$ Hhb
+    iexists Lq; iframe HpAf
+    ipureintro
+    exact grantedAt_of_applied ρ.kv _ Lq x.log log' skip
+      (by rw [dispatchKind_withHeader, irrPut_kind]; rfl) Hmo
   · obtain ⟨rfl, Hne⟩ := Hre
     (try wp_auto)
     rcases err with ei | _
@@ -369,14 +377,15 @@ theorem EtcdServer.Put.wp_proofOn
       · ipureintro; exact ⟨rfl, Hne⟩
       isplitr
       · iexact HaE
-      icases Hfail with (⟨%hm, %rq', %Hwire, Herr⟩ | Hdep)
+      icases Hfail with (⟨%hm, %rq', %Hwire, Herr, #Hhb⟩ | Hdep)
       · ileft
         iexists hm
         have Hrq : rq' = apply.withHeader (irrPut op) hm := by
           refine (Hwire.2.2.2 ?_)
           simp [irrNoZeroEnd, apply.withHeader, irrPut, apply.irrEmpty]
         subst Hrq
-        iexact Herr
+        iframe Herr
+        iapply hdrBoundM_ctx true s E _ _ hm Hinc $$ Hhb
       · iright; iexact Hdep
     · exact absurd rfl Hne
 

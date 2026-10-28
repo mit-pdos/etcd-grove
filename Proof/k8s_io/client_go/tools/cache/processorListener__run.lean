@@ -10,6 +10,7 @@ public import Spec.k8s_io.client_go.tools.cache.processorListener__run
 public import Spec.k8s_io.client_go.tools.cache.synctrack.SingleFileTracker__Finished
 public import Spec.k8s_io.utils.trace.New
 public import Spec.k8s_io.utils.trace.Trace__LogIfLong
+public import Spec.k8s_io.apimachinery.pkg.util.runtime.HandleCrashWithLogger
 
 @[expose] public section
 
@@ -33,7 +34,8 @@ variable [package_sem : k8s_io.client_go.tools.cache.Assumptions]
 theorem processorListener.run.wp_proof
     (wp_Finished : synctrack.SingleFileTracker.Finished.spec (GF := GF) (hG := hG))
     (wp_tnew : EtcdGrove.trace.New.spec (GF := GF) (hG := hG))
-    (wp_tlog : EtcdGrove.trace.Trace.LogIfLong.spec (GF := GF) (hG := hG)) :
+    (wp_tlog : EtcdGrove.trace.Trace.LogIfLong.spec (GF := GF) (hG := hG))
+    (wp_HandleCrash : utilruntime.HandleCrashWithLogger.spec (GF := GF) (hG := hG)) :
     processorListener.run.spec (GF := GF) (hG := hG) := by
   intro l γ Q h H runFin
   wp_start as ⟨#Hl, #Hh', #Hhok, #Hrf, Hcons, HH, Hbc⟩
@@ -110,21 +112,13 @@ theorem processorListener.run.wp_proof
       wp_auto
       wp_apply wp_tlog
       (try wp_auto)
-      wp_bind (App (Val #(functions k8s_io.apimachinery.pkg.util.runtime.HandleCrashWithLogger []))
-        (Val #lg))
-      iapply deferred_HandleCrashWithLogger
-      inext
-      wp_auto
+      wp_apply wp_HandleCrash
       iexact HΨ
     · iframe
       imodintro
       iintro %Ψ HΨ
       wp_auto
-      wp_bind (App (Val #(functions k8s_io.apimachinery.pkg.util.runtime.HandleCrashWithLogger []))
-        (Val #lg))
-      iapply deferred_HandleCrashWithLogger
-      inext
-      wp_auto
+      wp_apply wp_HandleCrash
       iexact HΨ
   iintro %v ⟨%hv, p, %df, defer2, #Hdf⟩
   subst hv

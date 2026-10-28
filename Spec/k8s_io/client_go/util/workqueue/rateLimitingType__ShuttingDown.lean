@@ -3,11 +3,7 @@
 `TypedDelayingInterface[T]` field (Go's method set of `*rateLimitingType[T]`, a wrapper
 that calls `q.TypedDelayingInterface.ShuttingDown`). Lean-first.
 
-**Not translated (gap C2, `notes/k8s-clientgo-goose.md`)**: the pinned Goose writes the
-pointer receiver's unfolding of a promoted method of a generic struct ill-typed, so the
-translation's configuration excludes it (`Code/k8s_io/client_go/util/workqueue.toml`): there is no
-`MethodUnfold` for it, and its proof is `sorry` until the Perennial fix and a pin bump. The spec
-is what follows from the embedded `delayingType.ShuttingDown`'s.
+The spec is what follows from the embedded `delayingType.ShuttingDown`'s.
 -/
 module
 

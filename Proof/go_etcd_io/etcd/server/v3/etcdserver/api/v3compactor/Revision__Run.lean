@@ -83,7 +83,7 @@ theorem v3compactor.Revision.Run.wp_proof
   wp_start as ⟨#Hrc, Hpre⟩
   iunfold isRevision at Hrc
   icases Hrc with ⟨%lg, %clk, %rt, %ctx, %cd, %γctx, %cancel, #Hlg, %Hlgnn, #Hclkf, #Hclk, #Hrt, %Hrt,
-    #Hrg, #Hc, #Hctxf, #Hctx, #Hcancelf, #Hcs, #Hmu⟩
+    #Hrg, #Hc, #Hctxf, #Hctx, #Htrc, #Hcancelf, #Hcs, #Hmu⟩
   iunfold runPre at Hpre
   icases Hpre with ⟨#HRev, #HCompact, HR, #HLb0⟩
   wp_auto

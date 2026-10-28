@@ -243,10 +243,10 @@ in such runs. The controller is left unfixed until the S1 proof genuinely gets s
    metrics. The rate limiters proved (`When`'s bound: exponential `≤ maxDelay`, fast-slow `fast ∨
    slow`, bucket and max-of `≥ 0`; `DefaultTypedControllerRateLimiter`). The delaying and
    rate-limiting queues proved (`waitingLoop`, `AddAfter`, `AddRateLimited`, `Forget`,
-   `NumRequeues`, `NewTypedRateLimitingQueueWithConfig` for an unconfigured or named queue) up to
-   gap C2 (the promoted methods' specs are hypotheses, `notes/k8s-clientgo-goose.md`) and the
-   waiting loop's deferred `HandleCrashWithLogger` (`sorry`, a Goose bug dropping a deferred call's
-   variadic argument, `notes/perennial-changes.md`). Two bugs filed:
+   `NumRequeues`, `NewTypedRateLimitingQueueWithConfig` for an unconfigured or named queue), and since
+   the pin `ad74ee4f6` (2026-10-28) the 14 promoted methods (gap C2 closed) and the waiting loop's
+   deferred `HandleCrashWithLogger` (the deferred-variadic `sorry`s gone): no `sorry`, no pending
+   hypothesis. Two bugs filed:
    `issues/k8s-workqueue-done-without-get-duplicates.md`,
    `issues/k8s-workqueue-exponential-backoff-2to63.md`. Not done: `TypedWithMaxWaitRateLimiter`,
    metrics other than the no-op ones, `SetProvider`, `parallelizer.go`.
@@ -287,12 +287,9 @@ in such runs. The controller is left unfixed until the S1 proof genuinely gets s
    (the DS controller's node-name index; changes `fnIds`), `Transaction` (C4; the AtomicFIFO
    informer's write path), `IndexKeys`, `ListIndexFuncValues`, `GetIndexers` (unlocked read),
    `LastStoreSyncResourceVersion` (feature gates, C7), options/metrics providers.
-   **C2 follow-up waits on the Perennial bump** (2026-10-27): the Goose fix for C2 is on
-   Perennial's `lean` (`ddb0a1239`, Case 18 of its `fix-semantics` examples); the user does the
-   pin bump elsewhere (`f73703285` on etcd-grove's `lean` -> a commit with `ddb0a1239`). After it
-   lands on `lean`: merge `lean` into the DaemonSet branches, drop the promoted-method exclusions
-   in `Code/k8s_io/client_go/util/workqueue.toml`, regenerate, and prove the 14 promoted methods
-   (forwards to the proved ones; now hypotheses in the workqueue's `Link.lean`).
+   **C2 follow-up done** (2026-10-28, the pin `ad74ee4f6`): the promoted-method exclusions dropped
+   from `Code/k8s_io/client_go/util/workqueue.toml`, the 14 promoted methods proved (forwards to
+   the proved ones) and linked.
 3. **The model API server's spec and proof.** Logically atomic triples over an abstract state of
    resources and its change log (compare D44-D48's KV state and its watches: a watch is repeated
    reads of the log). The specs are an internal layer of the controller's proof: the Go model
@@ -315,9 +312,8 @@ in such runs. The controller is left unfixed until the S1 proof genuinely gets s
    passed on, `au_mono`), the clientsets. **Not proved yet** (specified; `links_pending`
    hypotheses): the watcher's goroutine `watcher.run` (its precondition `runPre` is what `watch`
    proves it hands it; `send` needs a `select` over two SPSC channels), `preparePod`,
-   `prepareDaemonSet` (C5), `updateDaemonSetStatus`, `daemonSetStatusEqual`. `copyObject` is a
-   `sorry` (gap C8, the pinned translation's interface assertion: fixed by the Perennial bump, or by
-   the proposed type switch, a TCB change not applied). No infidelity found in the model.
+   `prepareDaemonSet` (C5), `updateDaemonSetStatus`, `daemonSetStatusEqual`. `copyObject` is proved
+   since the pin `ad74ee4f6` (gap C8 closed, 2026-10-28). No infidelity found in the model.
 4. **The informers.** The reflector (list, watch, relist, bookmarks; watch-list off), the FIFO, the
    shared informer's processor and listeners, `WaitForNamedCacheSyncWithContext`: the informer
    contract above, plus the handlers' delivery (in order, with the objects' concrete types, which

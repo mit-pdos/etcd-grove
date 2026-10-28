@@ -68,10 +68,10 @@ theorem StartServer.wp_proof
     isplitr; · iexact Hq
     iapply BigSepM.bigSepM_empty.2; itrivial
   -- `newServer(name, peer, clientAddr, {name: peer}, name, lg)`
-  wp_apply (wp_newServer N name peerAddr client name (slice.mk peer (W64 1) (W64 1)) pm lg
+  wp_apply (wp_newServer N name peerAddr client name (W64 0) (slice.mk peer (W64 1) (W64 1)) pm lg
       (GMap.insert name (slice.mk peer (W64 1) (W64 1)) ∅) (fun _ => [httpURL peerAddr])
       (urls1 name peerAddr client) [id] bootLog ctxs dir id γ ρ E₀ Φs γn Htb Hrb48 HrbN
-      hvs hdyn hboot hblen Hγn1 Hγn2 Hdirok Hdir ⟨rfl, rfl, ⟨_, rfl⟩, rfl⟩ Hlg Hck Haf Hbuq
+      hvs hdyn hboot hblen Hγn1 Hγn2 Hdirok Hdir ⟨rfl, rfl, ⟨_, rfl⟩, rfl⟩ Hlg (by decide) Hck Haf Hbuq
       Hdbo) $$ [Hmb] as %s %err Hres
   · iframe; iframe #
   icases Hres with (%Herr | ⟨%Herr, Hmb⟩)

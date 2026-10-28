@@ -30,7 +30,7 @@ theorem txn.checkPut.wp_proof
     (hLease : txn.checkLease.spec (GF := GF) (hG := hG))
     (hCheck : txn.checkAndGetPrevKV.spec (GF := GF) (hG := hG)) :
     txn.checkPut.spec (GF := GF) (hG := hG) := by
-  intro trace mw s γ kind le γl p o L I
+  intro trace mw s γ kind le γl p o L I crev
   wp_start as ⟨%Htr, Htx, #Hp, #Hle, Hu⟩
   (try wp_auto)
   wp_apply (hLease le γl p o L I) $$ [$Hle $Hp $Hu] as %err ⟨Hu, Herr⟩

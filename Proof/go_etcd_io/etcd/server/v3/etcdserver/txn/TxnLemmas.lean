@@ -264,10 +264,10 @@ transaction's by its time receipts (`mvcc.isTxnWrite_small`: its changes, commit
 are fewer than `receiptBound GF ≤ 2 ^ 48`), the read-only wrapper's by the caller's premise. So
 the gets' sorts meet their premise (`sortSmall`) without one on the run. -/
 theorem txnViewIs_small (tw : GoInterface) (s : Loc) (γ : mvcc.StoreNames) (kind : mvcc.TxnKind)
-    (ro : Bool) (ilog : mvcc.Log) (pend : List mvcc.Change) (hk : KindIs ro ilog pend kind)
+    (ro : Bool) (ilog : mvcc.Log) (pend : List mvcc.Change) (crev : Int) (hk : KindIs ro ilog pend kind)
     (hro : ro = true → LogSmall ilog) :
-    txnViewIs (GF := GF) tw s γ trace kind ro ⊢
-      ⌜LogSmall kind.readLog⌝ ∗ txnViewIs tw s γ trace kind ro := by
+    txnViewIs (GF := GF) tw s γ trace kind crev ro ⊢
+      ⌜LogSmall kind.readLog⌝ ∗ txnViewIs tw s γ trace kind crev ro := by
   apply persistent_entails_right
   cases ro
   · unfold KindIs at hk
@@ -276,9 +276,9 @@ theorem txnViewIs_small (tw : GoInterface) (s : Loc) (γ : mvcc.StoreNames) (kin
     unfold txnViewIs
     simp only [Bool.false_eq_true, ↓reduceIte]
     iintro ⟨%mw, %tyX, %vX, %h, #Hw, Htx⟩
-    ihave Htx : mvcc.isTxnWrite mw s γ trace ilog pend puts deletes putSize $$ [Htx]
+    ihave Htx : mvcc.isTxnWrite mw s γ trace ilog pend puts deletes putSize crev $$ [Htx]
     · simp only [mvcc.isTxn]; iexact Htx
-    icases mvcc.isTxnWrite_small mw s γ trace ilog pend puts deletes putSize _ _ $$ Htx
+    icases mvcc.isTxnWrite_small mw s γ trace ilog pend puts deletes putSize crev _ $$ Htx
       with ⟨%h1, -⟩
     ipureintro
     unfold LogSmall logChanges
@@ -294,11 +294,33 @@ theorem txnViewIs_small (tw : GoInterface) (s : Loc) (γ : mvcc.StoreNames) (kin
     ipureintro
     exact hro rfl
 
+/-- **A transaction's compaction revision is at most the revision it reads at** (M2, S1;
+`isTxn_crev`, `isTxnRead_crev`). -/
+theorem txnViewIs_crev (tw : GoInterface) (s : Loc) (γ : mvcc.StoreNames) (kind : mvcc.TxnKind)
+    (crev : Int) (ro : Bool) :
+    txnViewIs (GF := GF) tw s γ trace kind crev ro ⊢
+      ⌜crev ≤ sint.Z kind.readRev⌝ ∗ txnViewIs tw s γ trace kind crev ro := by
+  apply persistent_entails_right
+  cases ro
+  · unfold txnViewIs
+    simp only [Bool.false_eq_true, ↓reduceIte]
+    iintro ⟨%mw, %tyX, %vX, %h, #Hw, Htx⟩
+    icases isTxn_crev mw s γ kind crev $$ Htx with ⟨%Hc, -⟩
+    ipureintro; exact Hc
+  · unfold txnViewIs
+    simp only [↓reduceIte]
+    iintro ⟨%trw, %log, %rev, %h, Hro⟩
+    obtain ⟨-, rfl⟩ := h
+    iunfold mvcc.isRoTxnWrite at Hro
+    icases Hro with ⟨%mw, -, Htx⟩
+    ihave %Hc := mvcc.isTxnRead_crev mw s γ trace log rev crev iprop(True) $$ Htx
+    ipureintro; exact Hc.2
+
 /-- **`executeTxn`'s transaction, by kind**: the kind's facts, its read state the pending one
 (for the read-only wrapper, the committed one). -/
 theorem txnWriteIs_kind (tw : GoInterface) (s : Loc) (γ : mvcc.StoreNames) (ro : Bool)
-    (ilog : mvcc.Log) (pend : List mvcc.Change) :
-    txnWriteIs (GF := GF) tw s γ trace ro ilog pend ⊢ ∃ kind : mvcc.TxnKind, txnViewIs tw s γ trace kind ro ∗
+    (ilog : mvcc.Log) (pend : List mvcc.Change) (crev : Int) :
+    txnWriteIs (GF := GF) tw s γ trace ro ilog pend crev ⊢ ∃ kind : mvcc.TxnKind, txnViewIs tw s γ trace kind crev ro ∗
       ⌜KindIs ro ilog pend kind ∧ KindOk kind ∧ kindState kind = pendState ilog pend ∧
         ilog ≠ [] ∧ ilog.length < 2 ^ 63⌝ := by
   unfold txnWriteIs
@@ -311,9 +333,9 @@ theorem txnWriteIs_kind (tw : GoInterface) (s : Loc) (γ : mvcc.StoreNames) (ro 
     unfold txnViewIs
     simp only [Bool.false_eq_true, ↓reduceIte]
     icases Hv with ⟨%mw, %tyX, %vX, %h, #Hw, Htx⟩
-    icases isTxn_kindOk mw s γ _ $$ Htx with ⟨%Hok, Htx⟩
+    icases isTxn_kindOk mw s γ _ crev $$ Htx with ⟨%Hok, Htx⟩
     simp only [mvcc.isTxn]
-    icases isTxnWrite_facts mw s γ ilog pend puts deletes putSize $$ Htx with ⟨%Hf, Htx⟩
+    icases isTxnWrite_facts mw s γ ilog pend puts deletes putSize crev $$ Htx with ⟨%Hf, Htx⟩
     isplitl
     · iexists mw, tyX, vX; iframe Htx Hw; ipureintro; exact h
     ipureintro
@@ -327,7 +349,7 @@ theorem txnWriteIs_kind (tw : GoInterface) (s : Loc) (γ : mvcc.StoreNames) (ro 
     icases Hv with ⟨%trw, %log, %rev', %h, Hro⟩
     obtain ⟨h1, h2⟩ := h
     cases h2
-    icases isRoTxnWrite_pure trw s γ ilog rev $$ Hro with ⟨Hro, %Hp⟩
+    icases isRoTxnWrite_pure trw s γ ilog rev crev $$ Hro with ⟨Hro, %Hp⟩
     isplitl
     · iexists trw, ilog, rev; iframe Hro; ipureintro; exact ⟨h1, rfl⟩
     ipureintro
@@ -341,8 +363,8 @@ theorem txnWriteIs_kind (tw : GoInterface) (s : Loc) (γ : mvcc.StoreNames) (ro 
 
 /-- A transaction of a kind and the kind's facts make `executeTxn`'s. -/
 theorem txnWriteIs_of_view (tw : GoInterface) (s : Loc) (γ : mvcc.StoreNames) (ro : Bool)
-    (ilog : mvcc.Log) (pend : List mvcc.Change) (kind : mvcc.TxnKind) (h : KindIs ro ilog pend kind) :
-    txnViewIs (GF := GF) tw s γ trace kind ro ⊢ txnWriteIs tw s γ trace ro ilog pend := by
+    (ilog : mvcc.Log) (pend : List mvcc.Change) (crev : Int) (kind : mvcc.TxnKind) (h : KindIs ro ilog pend kind) :
+    txnViewIs (GF := GF) tw s γ trace kind crev ro ⊢ txnWriteIs tw s γ trace ro ilog pend crev := by
   unfold txnWriteIs
   iintro Hv
   iexists kind
@@ -352,11 +374,12 @@ theorem txnWriteIs_of_view (tw : GoInterface) (s : Loc) (γ : mvcc.StoreNames) (
 /-- **A range of a transaction at its own revision** (revision `0`) at a context never canceled:
 no error, the response the client's `rangeKvsOk` of the selection (up to `leaseZ`), the count
 the range's. -/
-theorem rangeResult_txn (resp : Loc) (err : GoInterface) (log : mvcc.Log) (rev : w64) (o : OpFull)
+theorem rangeResult_txn (resp : Loc) (err : GoInterface) (log : mvcc.Log) (rev : w64) (crev : Int)
+    (o : OpFull)
     (hrev0 : o.base.rev = W64 0) (h0 : 0 ≤ sint.Z rev)
     (hset : o.base.sortSet = decide (o.sortOrder ≠ W64 0 ∨ o.sortTarget ≠ W64 0))
     (hcut : ¬ cutEarly o) (herr : err = GoInterface.nil ∨ sint.Z rev < sint.Z o.base.rev) :
-    rangeResult (GF := GF) resp err log rev o true ⊢ ⌜err = GoInterface.nil⌝ ∗
+    rangeResult (GF := GF) resp err log rev crev o true ⊢ ⌜err = GoInterface.nil⌝ ∗
       ∃ (kvs : List EtcdKv) (more : Bool),
         rangeResponseIs resp rev kvs more
           (W64 ((rangeIn (mvcc.stateAt log (sint.nat rev)) o).length : Int)) ∗
@@ -370,7 +393,7 @@ theorem rangeResult_txn (resp : Loc) (err : GoInterface) (log : mvcc.Log) (rev :
     · exact h
     · rw [hrev0, h00] at h; omega
   unfold rangeResult
-  iintro (⟨%H, -⟩ | ⟨%H, #He⟩ | ⟨%H, %kvs, %more, #Hresp, %Hok⟩)
+  iintro (⟨%H, -⟩ | ⟨%H, #He⟩ | ⟨%H, %kvs, %more, #Hresp, %Hok⟩ | ⟨%H, %ec, -, %He⟩)
   · rw [hrev0, h00] at H; omega
   · ihave %Hne := mvcc.errorfIs_ne_nil err $$ He
     exact absurd herr' Hne
@@ -385,6 +408,7 @@ theorem rangeResult_txn (resp : Loc) (err : GoInterface) (log : mvcc.Log) (rev :
     rw [hc]
     iframe Hresp
     ipureintro; exact ⟨kvs', h1, h2⟩
+  · rw [herr'] at He; cases He
 
 end iris
 
@@ -399,8 +423,8 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.txn.Assumptions]
 
 /-- `executeTxn`'s transaction is an interface value with a dynamic type. -/
 theorem txnWriteIs_ok (tw : GoInterface) (s : Loc) (γ : mvcc.StoreNames) (ro : Bool)
-    (ilog : mvcc.Log) (pend : List mvcc.Change) :
-    txnWriteIs (GF := GF) tw s γ trace ro ilog pend ⊢ ⌜∃ twi : GoInterfaceOk, tw = GoInterface.ok twi⌝ := by
+    (ilog : mvcc.Log) (pend : List mvcc.Change) (crev : Int) :
+    txnWriteIs (GF := GF) tw s γ trace ro ilog pend crev ⊢ ⌜∃ twi : GoInterfaceOk, tw = GoInterface.ok twi⌝ := by
   unfold txnWriteIs txnViewIs
   iintro ⟨%kind, H, -⟩
   cases ro
@@ -415,11 +439,11 @@ theorem txnWriteIs_ok (tw : GoInterface) (s : Loc) (γ : mvcc.StoreNames) (ro : 
 theorem wp_txnWrite_Rev (hRev : mvcc.metricsTxnWrite.Rev.spec (GF := GF) (hG := hG))
     (hRoRev : mvcc.txnReadWrite.Rev.spec (GF := GF) (hG := hG))
     (twi : GoInterfaceOk) (s : Loc) (γ : mvcc.StoreNames) (ro : Bool) (ilog : mvcc.Log)
-    (pend : List mvcc.Change) :
+    (pend : List mvcc.Change) (crev : Int) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
-        txnWriteIs (GoInterface.ok twi) s γ trace ro ilog pend }}
+        txnWriteIs (GoInterface.ok twi) s γ trace ro ilog pend crev }}
       (App (Val #(methods twi.ty go!"Rev" twi.v)) (Val #()))
-    {{ RET #(W64 ((ilog.length : Int) - 1)); txnWriteIs (GoInterface.ok twi) s γ trace ro ilog pend }} := by
+    {{ RET #(W64 ((ilog.length : Int) - 1)); txnWriteIs (GoInterface.ok twi) s γ trace ro ilog pend crev }} := by
   wp_start_folded as ⟨Htw⟩
   iunfold txnWriteIs at Htw
   icases Htw with ⟨%kind, Hv, %Hk⟩
@@ -445,7 +469,7 @@ theorem wp_txnWrite_Rev (hRev : mvcc.metricsTxnWrite.Rev.spec (GF := GF) (hG := 
     iunfold txnWriteIs
     iexists _
     isplitl
-    · icases txnViewIs_wrap ty v mw s γ (.write ilog pend puts deletes putSize) $$ Hw with ⟨-, Hb⟩
+    · icases txnViewIs_wrap ty v mw s γ (.write ilog pend puts deletes putSize) crev $$ Hw with ⟨-, Hb⟩
       iapply Hb $$ Htx
     · ipureintro; exact ⟨puts, deletes, putSize, rfl⟩
   · unfold KindIs at Hk
@@ -469,19 +493,19 @@ theorem wp_txnWrite_Rev (hRev : mvcc.metricsTxnWrite.Rev.spec (GF := GF) (hG := 
     iunfold txnWriteIs
     iexists _
     isplitl
-    · iapply (txnViewIs_ro trw s γ ilog rev').2 $$ Hro
+    · iapply (txnViewIs_ro trw s γ ilog rev' crev).2 $$ Hro
     · ipureintro; exact ⟨rfl, rev', rfl⟩
 
 /-- **`Changes()` of `executeTxn`'s transaction**: as many as the pending changes. -/
 theorem wp_txnWrite_Changes (hCh : mvcc.metricsTxnWrite.Changes.spec (GF := GF) (hG := hG))
     (hRoCh : mvcc.txnReadWrite.Changes.spec (GF := GF) (hG := hG))
     (twi : GoInterfaceOk) (s : Loc) (γ : mvcc.StoreNames) (ro : Bool) (ilog : mvcc.Log)
-    (pend : List mvcc.Change) :
+    (pend : List mvcc.Change) (crev : Int) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
-        txnWriteIs (GoInterface.ok twi) s γ trace ro ilog pend }}
+        txnWriteIs (GoInterface.ok twi) s γ trace ro ilog pend crev }}
       (App (Val #(methods twi.ty go!"Changes" twi.v)) (Val #()))
     {{ (chs : GoSlice), RET #chs; ⌜sint.nat chs.len = pend.length ∧ 0 ≤ sint.Z chs.len⌝ ∗
-        txnWriteIs (GoInterface.ok twi) s γ trace ro ilog pend }} := by
+        txnWriteIs (GoInterface.ok twi) s γ trace ro ilog pend crev }} := by
   wp_start_folded as ⟨Htw⟩
   iunfold txnWriteIs at Htw
   icases Htw with ⟨%kind, Hv, %Hk⟩
@@ -503,14 +527,14 @@ theorem wp_txnWrite_Changes (hCh : mvcc.metricsTxnWrite.Changes.spec (GF := GF) 
     inext
     iintro %chs %ps ⟨Hchs, Hkvs, %Hps, Htx⟩
     ihave %Hl := ownSlice_len _ _ _ $$ Hchs
-    ihave Htx := mvcc.isTxnWrite_join mw s γ ilog pend puts deletes putSize chs ps $$ [$Htx $Hchs $Hkvs]
+    ihave Htx := mvcc.isTxnWrite_join mw s γ ilog pend puts deletes putSize chs ps crev $$ [$Htx $Hchs $Hkvs]
     iapply HΦ
     isplitl []
     · ipureintro; rw [← Hps]; exact ⟨Hl.1.symm, Hl.2⟩
     iunfold txnWriteIs
     iexists _
     isplitl
-    · icases txnViewIs_wrap ty v mw s γ (.write ilog pend puts deletes putSize) $$ Hw with ⟨-, Hb⟩
+    · icases txnViewIs_wrap ty v mw s γ (.write ilog pend puts deletes putSize) crev $$ Hw with ⟨-, Hb⟩
       iapply Hb
       simp only [mvcc.isTxn]; iexact Htx
     · ipureintro; exact ⟨puts, deletes, putSize, rfl⟩
@@ -536,7 +560,7 @@ theorem wp_txnWrite_Changes (hCh : mvcc.metricsTxnWrite.Changes.spec (GF := GF) 
     iunfold txnWriteIs
     iexists _
     isplitl
-    · iapply (txnViewIs_ro trw s γ ilog rev').2 $$ Hro
+    · iapply (txnViewIs_ro trw s γ ilog rev' crev).2 $$ Hro
     · ipureintro; exact ⟨rfl, rev', rfl⟩
 
 end wp

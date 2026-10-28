@@ -1,7 +1,8 @@
 /- Lean-first (no Rocq counterpart).
 
 `(*Counter).Apply` (counter.go): the method value `c.Apply` is logically atomic against the
-counter's model (`applySpec`, `Proof/.../lintest/Defs.lean`), over the counter's abstract state
+counter's model (`applySpec`, `Proof/.../lintest/Defs.lean`; the caller's thread token is lent and given
+back untouched), over the counter's abstract state
 (`counterState γ`), with no invariant of its own (`Eapp = ∅`: its linearization point is in
 the critical section, which the mutex guards), for a boxed `bool` input (`counterInOk`).
 -/

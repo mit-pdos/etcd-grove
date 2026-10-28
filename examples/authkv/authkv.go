@@ -86,7 +86,9 @@ func Principals() []string {
 }
 
 // startServer starts the one member of a new cluster, as common.StartServer does, with the simple
-// token provider (etcd's default, --auth-token simple; its tokens' TTL the provider's default).
+// token provider (etcd's default, --auth-token simple) and etcd's default token TTL (300 seconds,
+// --auth-token-ttl: embed's default; ServerConfig has none, and the simple provider's tokens with
+// TTL 0 expire at its keeper's next tick).
 func startServer(lg *zap.Logger) (*etcdserver.EtcdServer, error) {
 	peer := types.URLs{{Scheme: "http", Host: peerAddr}}
 	cfg := config.ServerConfig{
@@ -104,6 +106,7 @@ func startServer(lg *zap.Logger) (*etcdserver.EtcdServer, error) {
 		MaxTxnOps:              128,
 		MaxRequestBytes:        1536 * 1024,
 		AuthToken:              "simple",
+		TokenTTL:               300,
 		Logger:                 lg,
 		ServerFeatureGate:      features.NewDefaultServerFeatureGate("authkv", lg),
 	}

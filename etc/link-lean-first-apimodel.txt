@@ -47,7 +47,11 @@ apimodel_NewServer: newTable emptyPod emptyNode emptyDaemonSet emptyRevision =_r
 apimodel_watcher__Stop: =_root_.Perennial.sync.Mutex.wp_Lock =_root_.Perennial.sync.Mutex.wp_Unlock =_root_.Perennial.sync.Cond.wp_Broadcast
 appsV1__ControllerRevisions:
 appsV1__DaemonSets:
-copyObject:
+Pod__DeepCopyObject:
+Node__DeepCopyObject:
+DaemonSet__DeepCopyObject:
+ControllerRevision__DeepCopyObject:
+copyObject: Pod__DeepCopyObject Node__DeepCopyObject DaemonSet__DeepCopyObject ControllerRevision__DeepCopyObject
 coreV1__Events:
 coreV1__Nodes:
 coreV1__Pods:

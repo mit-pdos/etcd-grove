@@ -34,7 +34,10 @@ import glob, json, os, re, sys
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 os.chdir(ROOT)
-PERENNIAL_CODE = '.lake/packages/perennial/Perennial/Code'
+# Perennial's checkout: the shared package's, or `$PERENNIAL_DIR` (a checkout at the manifest's pin, as
+# `lake build --packages=<file>` builds against, when the shared one lags behind it)
+PERENNIAL_CODE = os.path.join(os.environ.get('PERENNIAL_DIR', '.lake/packages/perennial'),
+                              'Perennial', 'Code')
 
 ROOTS = ['go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc',
          # the auth plan's A3c (2026-10-24): the Lock and Election services' servers
@@ -42,8 +45,16 @@ ROOTS = ['go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc',
          'go_etcd_io.etcd.server.v3.etcdserver.api.v3election', 'go_etcd_io.etcd.server.v3.etcdserver',
          'go_etcd_io.etcd.client.v3', 'go_etcd_io.etcd.server.v3.etcdserver.read',
          'github_com.mit_pdos.etcd_grove.examples.putget',
+         # M2 (2026-10-27, notes/m2-plan.md): putget with the auto-compactor on
+         'github_com.mit_pdos.etcd_grove.examples.putgetc',
          'github_com.mit_pdos.etcd_grove.examples.putget3',
          'github_com.mit_pdos.etcd_grove.examples.lintest.counter',
+         # the scalable-proof experiment's log-applied register and its variants
+         'github_com.mit_pdos.etcd_grove.examples.lintest.logkv',
+         'github_com.mit_pdos.etcd_grove.examples.lintest.logkvcompact',
+         'github_com.mit_pdos.etcd_grove.examples.lintest.logkvsnap',
+         'github_com.mit_pdos.etcd_grove.examples.lintest.logkvrw',
+         'github_com.mit_pdos.etcd_grove.examples.lintest.logkvappend',
          'github_com.mit_pdos.etcd_grove.examples.kv',
          'github_com.mit_pdos.etcd_grove.examples.linkv3p',
          'github_com.mit_pdos.etcd_grove.examples.linkvtxn',
@@ -90,7 +101,7 @@ def inventory():
         i = t.find("noncomputable def initialize'")
         body = t[i:t.find("\n\n", i)]
         out[m.group(1)] = dict(
-            file=f, perennial=f.startswith('.lake'),
+            file=f, perennial=f.startswith(PERENNIAL_CODE),
             imports=re.findall(r"\(Val _root_\.Perennial\.(\S+)\.initialize'\)", body))
     return out
 
@@ -1459,12 +1470,11 @@ names) and the four
              'icases HDescs with ⟨#HK, ⟨%wm, %ws, #HW, %HWp⟩, #HL, #HC, #HA, #HM, -⟩',
              'obtain ⟨rfl, HWp, -⟩ := HWp',
              'ihave #HSD : (EtcdGrove.v3rpc.svcDescsOk : IProp GF) $$ []',
-             '· unfold EtcdGrove.v3rpc.svcDescsOk EtcdGrove.v3rpc.descOk EtcdGrove.descNames EtcdGrove.v3rpc.handlerTy EtcdGrove.v3rpc.kvDescMethods',
+             '· unfold EtcdGrove.v3rpc.svcDescsOk EtcdGrove.v3rpc.descOk EtcdGrove.descNames EtcdGrove.v3rpc.handlerTy EtcdGrove.v3rpc.kvDescMethods EtcdGrove.v3rpc.authDescMethods',
             
             
              '  iunfold go_etcd_io.etcd.cache.v3.pbDescOk at HL',
              '  iunfold go_etcd_io.etcd.cache.v3.pbDescOk at HC',
-             '  iunfold go_etcd_io.etcd.cache.v3.pbDescOk at HA',
              '  iunfold go_etcd_io.etcd.cache.v3.pbDescOk at HM',
              '  iframe HK HL HC HA HM',
              '  iexists ws',
@@ -1986,8 +1996,9 @@ def packages():
 
 def code_module(q):
     f = inv[q]['file']
-    if f.startswith('.lake/packages/perennial/'):
-        f = f[len('.lake/packages/perennial/'):]
+    root = os.path.dirname(os.path.dirname(PERENNIAL_CODE)) + '/'
+    if f.startswith(root):
+        f = f[len(root):]
     return f[:-len('.lean')].replace('/', '.')
 
 
@@ -2056,6 +2067,8 @@ def gen_ext():
 # D19r, 2026-10-18): the root package and the module of the generated table.
 PROGRAMS = {'github_com.mit_pdos.etcd_grove.examples.putget':
             'Proof/github_com/mit_pdos/etcd_grove/examples/putget/PkgTable.lean',
+            'github_com.mit_pdos.etcd_grove.examples.putgetc':
+            'Proof/github_com/mit_pdos/etcd_grove/examples/putgetc/PkgTable.lean',
             'github_com.mit_pdos.etcd_grove.examples.putget3':
             'Proof/github_com/mit_pdos/etcd_grove/examples/putget3/PkgTable.lean',
             'github_com.mit_pdos.etcd_grove.examples.linkv3p':
@@ -2070,6 +2083,16 @@ PROGRAMS = {'github_com.mit_pdos.etcd_grove.examples.putget':
             'Proof/github_com/mit_pdos/etcd_grove/examples/authkv/PkgTable.lean',
             'github_com.mit_pdos.etcd_grove.examples.lintest.counter':
             'Proof/github_com/mit_pdos/etcd_grove/examples/lintest/counter/PkgTable.lean',
+            'github_com.mit_pdos.etcd_grove.examples.lintest.logkv':
+            'Proof/github_com/mit_pdos/etcd_grove/examples/lintest/logkv/PkgTable.lean',
+            'github_com.mit_pdos.etcd_grove.examples.lintest.logkvcompact':
+            'Proof/github_com/mit_pdos/etcd_grove/examples/lintest/logkvcompact/PkgTable.lean',
+            'github_com.mit_pdos.etcd_grove.examples.lintest.logkvsnap':
+            'Proof/github_com/mit_pdos/etcd_grove/examples/lintest/logkvsnap/PkgTable.lean',
+            'github_com.mit_pdos.etcd_grove.examples.lintest.logkvrw':
+            'Proof/github_com/mit_pdos/etcd_grove/examples/lintest/logkvrw/PkgTable.lean',
+            'github_com.mit_pdos.etcd_grove.examples.lintest.logkvappend':
+            'Proof/github_com/mit_pdos/etcd_grove/examples/lintest/logkvappend/PkgTable.lean',
             'github_com.mit_pdos.etcd_grove.examples.kv':
             'Proof/github_com/mit_pdos/etcd_grove/examples/kv/PkgTable.lean',
             'github_com.mit_pdos.etcd_grove.examples.k8setcd3':

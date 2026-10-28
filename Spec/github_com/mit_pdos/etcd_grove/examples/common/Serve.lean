@@ -65,6 +65,34 @@ abbrev Serve.spec : Prop :=
       ⌜err ≠ GoInterface.nil⌝ ∨
       (⌜err = GoInterface.nil⌝ ∗ ∃ (cid mid : w64) (R : v3rpc.WSrv GF), Q cid mid R) }}
 
+/-- **`Serve` with auth on** (the auth plan's E3zb, 2026-10-28): `Serve.spec`'s, from a member
+started with auth on (`Start.specOn`'s views: `isServerReqM true`, `isServerReadM true`,
+`srvAuthLb`; in the environment's mode `on γa`), the caller's ghost step from `grpcUpOn` (the KV
+answers with auth on and the Auth service's registrations). -/
+abbrev Serve.specOn : Prop :=
+  ∀ [go_etcd_io.etcd.cache.v3.Assumptions]
+    (s : Loc) (addr : GoString)
+    (E : apply.AEnv GF)
+    (ρ : ReqNames) (γr : ReadNames) (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig)
+    (γa : auth.AuthNames) (Q : w64 → w64 → v3rpc.WSrv GF → IProp GF),
+  E.authMode = .on γa →
+  cfg.Logger' ≠ null → cfg.TracerOptions' = slice.nil → cfg.WatchProgressNotifyInterval' = 0 →
+  v3rpc.ServerMethodSets → apply.backendUnderQuota →
+  {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.common ∗
+      netAddrFree (GF := GF) addr ∗
+      isServerReqM true s E ρ ∗ isServerReadM true s E γr ∗ srvAuthLb s E ∗
+      srvServeFacts s E cfg ∗ srvWatchReaders s E 64 ∗
+      v3rpc.runsNoRequireLeader ∗
+      srvLgReader s ∗ srvBemuReader s ∗ srvGoRes s ∗
+      srvCfgFieldAddr s go!"WatchProgressNotifyInterval" ↦ cfg.WatchProgressNotifyInterval' ∗
+      (∀ (gs : Loc) (lis : GoInterface) (cid mid : w64) (R : v3rpc.WSrv GF),
+        grpcUpOn s E ρ γr gs lis addr cid mid R ={⊤}=∗ grpcServeTok gs lis ∗ Q cid mid R) }}
+    (App (App (Val (@! github_com.mit_pdos.etcd_grove.examples.common.Serve))
+      (Val #s)) (Val #addr))
+  {{ (err : GoInterface), RET #err;
+      ⌜err ≠ GoInterface.nil⌝ ∨
+      (⌜err = GoInterface.nil⌝ ∗ ∃ (cid mid : w64) (R : v3rpc.WSrv GF), Q cid mid R) }}
+
 end spec
 
 end common

@@ -235,9 +235,9 @@ theorem delayingType.waitingLoop.wp_proof
       iintro -
       wp_auto
       wp_for_post
-      -- the deferred `utilruntime.HandleCrashWithLogger(logger)`: goose's translation drops the
-      -- (empty) variadic argument of a deferred call, applying the function to `logger` alone
-      sorry -- gap G-defer-variadic (notes/perennial-changes.md)
+      -- the deferred `utilruntime.HandleCrashWithLogger(logger)`
+      wp_apply wp_HandleCrash
+      iapply HΦ; itrivial
     iapply BigAndL.bigAndL_cons.2
     isplit
     · -- `<-q.heartbeat.C()`: again
@@ -395,7 +395,8 @@ theorem delayingType.waitingLoop.wp_proof
   · -- shutting down: return (the deferred `HandleCrashWithLogger` runs)
     wp_auto
     wp_for_post
-    sorry -- gap G-defer-variadic (as above)
+    wp_apply wp_HandleCrash
+    iapply HΦ; itrivial
 
 end proof
 

@@ -248,7 +248,11 @@ non-empty separator that is no infix of a field and does not overlap them) in Pe
 - **Proposed.** Import the Lean module of every package whose types a translated body names, and
   make `pkgRef` an error, never a substitution, when the package is not imported under its own
   name.
-- **Status.** Not started. The substitution is worth fixing first: it is wrong, not missing.
+- **Status.** The substitution is fixed in the pin `ad74ee4f6` (`e5e31069a`: `pkgRef` names a package by
+  its own path). The workarounds here remain: the DaemonSet's D2 exclusions (their bodies are named
+  hypotheses, `Spec/**/*_body.lean`, of the unlinked phase-5 proofs), `util/feature.toml`,
+  `cacher.toml`. Next: drop the D2 exclusions and discharge the body hypotheses by the generated
+  unfolds; the missing imports (the first half) are not checked yet.
 - **Also the watch cache (2026-10-26, branch `kep-6404`, `notes/kep-6404-plan.md`).** The cacher's
   `processEvent`, `UpdateResourceVersion` and `waitUntilFreshLocked` use the cacher's `metrics`
   variables, of component-base's `metrics` types (`CounterVec`, `HistogramVec`), which the cacher
@@ -296,23 +300,6 @@ non-empty separator that is no infix of a field and does not overlap them) in Pe
   (axiomatizing) such an interface under `translate_types`, as it does other unsupported types.
 - **Status.** Not started.
 
-### Goose: a promoted method of a generic struct, through a pointer (2026-10-26, client-go survey C2)
-
-- **Missing.** For a generic struct `S[T]` with an embedded field, the pointer receiver's unfolding
-  of a promoted method (`ptr_M_unfold` in `S.TypeAssumptions`, `goose/lean_types.go:338`) names the
-  struct as `ctx.glangType(t.Obj(), t)`, the generic type without its type argument
-  (`StructFieldRef delayingType.ty ...`, ill-typed); the value receiver's case uses `ty`.
-- **Needed by.** client-go's workqueue (`delayingType[T]`, `rateLimitingType[T]`,
-  `TypedBucketRateLimiter[T]`): every call through `TypedRateLimitingInterface[T]` (the DaemonSet
-  controller's `Get`, `Done`, `AddRateLimited`) resolves through these unfolds.
-- **Workaround here.** The promoted methods excluded in `Code/k8s_io/client_go/util/workqueue.toml`
-  (no `MethodUnfold` for them); their specs are hypotheses of the work queue's results that reach
-  them (2026-10-27, `notes/k8s-clientgo-goose.md`, "What C2 leaves unlinked").
-- **Proposed.** `glang.VerbatimExpr(ty)` for the struct there (one line; tried in a scratch copy of
-  the pinned translator: workqueue's translation then elaborates, nothing else changes), with a
-  Goose test of a generic struct embedding an interface.
-- **Status.** Not started.
-
 ### Goose: an axiomatized type alias is declared under another name than its uses (2026-10-26, client-go survey C3)
 
 - **Missing.** An axiomatized alias is declared `axiom X : go.GoType` (`goose/types.go:65`) but
@@ -334,7 +321,8 @@ non-empty separator that is no infix of a field and does not overlap them) in Pe
   underlying type (type choices are the Lean semantics', Perennial's `AGENTS.md`); joining the
   underlying types in Goose also works (tried in a scratch copy: both translate and elaborate) but
   makes that choice in Goose.
-- **Status.** Not started.
+- **Status.** Fixed in the pin `ad74ee4f6` (`0227e444b`: `min`/`max` take the type `go/types` reports);
+  the two functions are still names only here.
 
 ### Goose: a struct field named like a type of its package (2026-10-26, client-go survey C5)
 
@@ -356,28 +344,8 @@ non-empty separator that is no infix of a field and does not overlap them) in Pe
   byte loop, which computes the same result).
 - **Proposed.** Range over a string, stepping by `utf8` decoding (needs a model of
   `utf8.DecodeRuneInString`).
-- **Status.** Not started.
-
-### Goose: a deferred call drops its variadic argument (2026-10-27, client-go workqueue)
-
-- **Missing.** `deferStmt` (`goose/goose.go:2128`) calls the deferred function `$f` with
-  `$a0 .. $a(n-1)` for the call's `n` syntactic arguments, but `callExprPrelude` binds the
-  arguments as the callee's parameters: for a variadic callee, the variadic slice is one more name
-  (`$a1`, `slice.nil` when no variadic argument is passed). So `defer
-  utilruntime.HandleCrashWithLogger(logger)` (`HandleCrashWithLogger(logger, handlers ...)`)
-  becomes `$f $a0`, a partial application: the deferred function never runs. (With variadic
-  arguments passed, presumably the converse: more names applied than bound.)
-- **Soundness.** The model is not Go's: a deferred variadic call does nothing in it, so a proof says
-  nothing about that call's effects (a trust-base bug, not a missing feature).
-- **Needed by.** client-go's workqueue: `delayingType.waitingLoop` (`defer
-  utilruntime.HandleCrashWithLogger(logger)`) and `Typed.updateUnfinishedWorkLoop`
-  (`HandleCrashWithContext`); client-go's informers: `processorListener.pop` and `run`
-  (`HandleCrashWithLogger`, one `sorry`, `ListenerDefs.lean`'s `deferred_HandleCrashWithLogger`).
-- **Workaround here.** None: `delayingType.waitingLoop`'s proof leaves its two returns (where the
-  deferred call runs) `sorry` (gap G-defer-variadic) rather than prove the model's no-op.
-- **Proposed.** In `deferStmt`, apply `$f` to the names the prelude binds (the callee signature's
-  parameter count for a variadic call); a Goose test of `defer f(x)` with `f(x int, ys ...int)`.
-- **Status.** Not started.
+- **Status.** Fixed on Perennial's `lean` (`474911152`, with `wp_string_for_range`; in the pin since
+  `edcadb1e5`); `isWellFormed` is still names only here.
 
 ### Tactics: `wp_apply` after an atomic spec applied with `iapply` (2026-10-27, client-go consistency)
 
@@ -600,47 +568,6 @@ non-empty separator that is no infix of a field and does not overlap them) in Pe
   `unfold_to_underlying_eq`, terminating since `<u` is directed), or the docstring corrected.
 - **Status.** Not started.
 
-### Goose rejects a store of `*new(T)` (2026-10-28, merge of `lean` into `k8s-daemonset-proof`)
-
-- **Limitation.** Goose at `edcadb1e5` refuses `(*q)[0] = *new(T)` (client-go's
-  `util/workqueue/queue.go`, `queue[T].Pop`): its check R4 (`docs/design/unsafe-memory.md`,
-  `modelcheck.Assign`) flags a copy of a `T` between two memory places, which gc does not copy by
-  value when they partially overlap. `*new(T)` is a fresh allocation: it overlaps nothing, so the
-  statement is safe and the semantics' by-value copy is exact.
-- **Needed by.** The work queue's `Typed.Get` (every worker's `processNextWorkItem`); `queue.Pop`
-  was translated and proved before the bump (`queue__Pop.lean`).
-- **Workaround here.** `queue[T].Pop` translated names only (`!queue[T].Pop` in
-  `Code/k8s_io/client_go/util/workqueue.toml`); its spec a named hypothesis in the work queue's
-  `Link.lean`; no axiom. (Goose's `trusted` applies to functions and variables, not methods.)
-- **Proposed change.** In `modelcheck.Assign`, treat a dereference of a fresh allocation
-  (`*new(T)`, and a composite literal's address) as a value, not a memory place.
-- **Status.** Not started.
-
-### Goose: an excluded method keeps its unfold; a method set in the receiver's type-parameter names (2026-10-28)
-
-Two bugs of the method sets Goose emits since Perennial `8ef540a62` (pin `6b58510f9`), found
-translating client-go's `util/workqueue` (nothing on `lean` translates it, so `lean`'s build does
-not see them). Each makes the generated `Code/k8s_io/client_go/util/workqueue.lean` fail to
-elaborate:
-
-- **An excluded declared method.** With `!queue[T].Pop` in the package's `translate` list (the
-  workaround above), Goose emits no `queue.Pop.impl` but still lists `Pop` in the pointer type's
-  method set with `ptr_Pop_unfold : MethodUnfold ... (queue.Pop.impl T)`: an unknown constant. A
-  names-only function gets no `impl` and no unfold; an excluded method should get the same (or an
-  `axiom` impl, as an axiomatized declaration does).
-- **The type parameter's name.** `type Typed[t comparable] struct {...}` with methods on
-  `*Typed[T]` (`queue.go`): `ptr_method_set : ∀ (t : go.GoType), go.MethodSetIs (go.GoType.PointerType
-  (Typed.ty t)) [(go!"Add", some (Signature [T] ...)), ...]` binds `t` but writes the signatures
-  with the methods' receiver parameter `T`: unknown identifier. The signatures must be substituted
-  into the type declaration's parameter names (Go lets each method rename them).
-- **Workaround here.** None that keeps the pinned translation (`etc/goose.py --check`): the
-  committed `workqueue.lean` is patched by hand (an `axiom queue.Pop.impl`, `T` renamed `t` in
-  `Typed`'s method set) until a Goose fix lands and the pin moves. **Blocks the merge into
-  `lean`**: CI's `goose.py --check` rejects the patched file.
-- **Proposed change.** Both in Goose's method-set emission (`goose/`): skip a method the filter
-  does not translate (or emit its axiom), and rename the receiver's type parameters to the type's.
-- **Status.** Not started; needs the user's sign-off (Perennial's `fix-semantics` workflow).
-
 ### `time.Time.IsZero` has no model
 
 - **Missing.** Perennial's `time` translation at the pin has no `(*Time).IsZero` method, so a
@@ -821,17 +748,6 @@ elaborate:
   turn `StdEncoding_init`'s method clause and `selectPassword`'s decode clause into theorems, and
   serve the k8s etcd3 store's continue tokens.
 
-### An interface embedding interfaces is an exact type set (2026-10-27, DaemonSet plan phase 3, gap C8)
-
-- **Missing (at the pin).** Goose writes an interface that embeds interfaces with the embedded
-  ones as type terms (`TypeElem [TypeTerm Object.ty]`), and `typeSetContains` reads a type term
-  as that exact type: an assertion of a concrete type to such an interface panics in the
-  semantics where Go's succeeds. The model API server's `copyObject`
-  (`o.DeepCopyObject().(object)`, `object` embedding `runtime.Object` and `metav1.Object`) is a
-  `sorry` (`notes/k8s-apimodel-goose.md`).
-- **Status.** Fixed on Perennial's `lean` after the pin (`8ef540a62`, `d30f71f36`: an interface
-  written as all its methods, method sets emitted); here with the pin bump.
-
 ### `wp_load` of a struct field through a fractional points-to (2026-10-27, DaemonSet plan phase 3)
 
 - **Missing.** Loading a field (`![t] (StructFieldRef T f l)`) needs `l`'s struct points-to at
@@ -844,6 +760,130 @@ elaborate:
 
 ## Landed
 
+### An interface embedding interfaces is an exact type set (2026-10-27, DaemonSet plan phase 3, gap C8)
+
+- **Missing (at the pin).** Goose writes an interface that embeds interfaces with the embedded
+  ones as type terms (`TypeElem [TypeTerm Object.ty]`), and `typeSetContains` reads a type term
+  as that exact type: an assertion of a concrete type to such an interface panics in the
+  semantics where Go's succeeds. The model API server's `copyObject`
+  (`o.DeepCopyObject().(object)`, `object` embedding `runtime.Object` and `metav1.Object`) is a
+  `sorry` (`notes/k8s-apimodel-goose.md`).
+- **Landed** (in the pin since `6b58510f9`: `8ef540a62`, `d30f71f36`, an interface written as all its
+  methods, method sets emitted). `copyObject` proved (2026-10-28, pin `ad74ee4f6`): `DeepCopyObject`'s
+  spec per type and each pointer type's membership in `object` by `go_type_set`.
+
+### Goose: a promoted method of a generic struct, through a pointer (2026-10-26, client-go survey C2)
+
+- **Missing.** For a generic struct `S[T]` with an embedded field, the pointer receiver's unfolding
+  of a promoted method (`ptr_M_unfold` in `S.TypeAssumptions`, `goose/lean_types.go:338`) names the
+  struct as `ctx.glangType(t.Obj(), t)`, the generic type without its type argument
+  (`StructFieldRef delayingType.ty ...`, ill-typed); the value receiver's case uses `ty`.
+- **Needed by.** client-go's workqueue (`delayingType[T]`, `rateLimitingType[T]`,
+  `TypedBucketRateLimiter[T]`): every call through `TypedRateLimitingInterface[T]` (the DaemonSet
+  controller's `Get`, `Done`, `AddRateLimited`) resolves through these unfolds.
+- **Workaround here.** The promoted methods excluded in `Code/k8s_io/client_go/util/workqueue.toml`
+  (no `MethodUnfold` for them); their specs are hypotheses of the work queue's results that reach
+  them (2026-10-27, `notes/k8s-clientgo-goose.md`, "What C2 leaves unlinked").
+- **Proposed.** `glang.VerbatimExpr(ty)` for the struct there (one line; tried in a scratch copy of
+  the pinned translator: workqueue's translation then elaborates, nothing else changes), with a
+  Goose test of a generic struct embedding an interface.
+- **Landed** (2026-10-28) in the pin `ad74ee4f6` (`21c6ea377`, `02109a551`: the unfolding names the
+  instantiated struct; Case 18 of `fix-semantics`). The exclusions in `workqueue.toml` are gone and
+  the 14 promoted methods proved (each the embedded queue's): the work queue's `Link.lean` has no
+  pending hypotheses.
+
+### Goose: a deferred call drops its variadic argument (2026-10-27, client-go workqueue)
+
+- **Missing.** `deferStmt` (`goose/goose.go:2128`) calls the deferred function `$f` with
+  `$a0 .. $a(n-1)` for the call's `n` syntactic arguments, but `callExprPrelude` binds the
+  arguments as the callee's parameters: for a variadic callee, the variadic slice is one more name
+  (`$a1`, `slice.nil` when no variadic argument is passed). So `defer
+  utilruntime.HandleCrashWithLogger(logger)` (`HandleCrashWithLogger(logger, handlers ...)`)
+  becomes `$f $a0`, a partial application: the deferred function never runs. (With variadic
+  arguments passed, presumably the converse: more names applied than bound.)
+- **Soundness.** The model is not Go's: a deferred variadic call does nothing in it, so a proof says
+  nothing about that call's effects (a trust-base bug, not a missing feature).
+- **Needed by.** client-go's workqueue: `delayingType.waitingLoop` (`defer
+  utilruntime.HandleCrashWithLogger(logger)`) and `Typed.updateUnfinishedWorkLoop`
+  (`HandleCrashWithContext`); client-go's informers: `processorListener.pop` and `run`
+  (`HandleCrashWithLogger`, one `sorry`, `ListenerDefs.lean`'s `deferred_HandleCrashWithLogger`).
+- **Workaround here.** None: `delayingType.waitingLoop`'s proof leaves its two returns (where the
+  deferred call runs) `sorry` (gap G-defer-variadic) rather than prove the model's no-op.
+- **Proposed.** In `deferStmt`, apply `$f` to the names the prelude binds (the callee signature's
+  parameter count for a variadic call); a Goose test of `defer f(x)` with `f(x int, ys ...int)`.
+- **Landed** (2026-10-28) in the pin `ad74ee4f6` (`87c564ff5`, Case 20 of `fix-semantics`: `defer` and
+  `go` pass a call's arguments by parameter, the variadic slice included). The `sorry`s are gone:
+  `waitingLoop`'s two returns and `cache.deferred_HandleCrashWithLogger` (the listeners' `pop` and
+  `run` take `HandleCrashWithLogger`'s boundary spec, as `waitingLoop` does).
+
+### Goose rejects a store of `*new(T)` (2026-10-28, merge of `lean` into `k8s-daemonset-proof`)
+
+- **Limitation.** Goose at `edcadb1e5` refuses `(*q)[0] = *new(T)` (client-go's
+  `util/workqueue/queue.go`, `queue[T].Pop`): its check R4 (`docs/design/unsafe-memory.md`,
+  `modelcheck.Assign`) flags a copy of a `T` between two memory places, which gc does not copy by
+  value when they partially overlap. `*new(T)` is a fresh allocation: it overlaps nothing, so the
+  statement is safe and the semantics' by-value copy is exact.
+- **Needed by.** The work queue's `Typed.Get` (every worker's `processNextWorkItem`); `queue.Pop`
+  was translated and proved before the bump (`queue__Pop.lean`).
+- **Workaround here.** `queue[T].Pop` translated names only (`!queue[T].Pop` in
+  `Code/k8s_io/client_go/util/workqueue.toml`); its spec a named hypothesis in the work queue's
+  `Link.lean`; no axiom. (Goose's `trusted` applies to functions and variables, not methods.)
+- **Proposed change.** In `modelcheck.Assign`, treat a dereference of a fresh allocation
+  (`*new(T)`, and a composite literal's address) as a value, not a memory place.
+- **Landed** (2026-10-28) in the pin `ad74ee4f6` (`a56246e8a`: a place whose base is a fresh object is
+  not reported). `queue[T].Pop` is translated again, its proof restored (`queue__Pop.lean`).
+
+### Goose: an excluded method keeps its unfold; a method set in the receiver's type-parameter names (2026-10-28)
+
+Two bugs of the method sets Goose emits since Perennial `8ef540a62` (pin `6b58510f9`), found
+translating client-go's `util/workqueue` (nothing on `lean` translates it, so `lean`'s build does
+not see them). Each makes the generated `Code/k8s_io/client_go/util/workqueue.lean` fail to
+elaborate:
+
+- **An excluded declared method.** With `!queue[T].Pop` in the package's `translate` list (the
+  workaround above), Goose emits no `queue.Pop.impl` but still lists `Pop` in the pointer type's
+  method set with `ptr_Pop_unfold : MethodUnfold ... (queue.Pop.impl T)`: an unknown constant. A
+  names-only function gets no `impl` and no unfold; an excluded method should get the same (or an
+  `axiom` impl, as an axiomatized declaration does).
+- **The type parameter's name.** `type Typed[t comparable] struct {...}` with methods on
+  `*Typed[T]` (`queue.go`): `ptr_method_set : ∀ (t : go.GoType), go.MethodSetIs (go.GoType.PointerType
+  (Typed.ty t)) [(go!"Add", some (Signature [T] ...)), ...]` binds `t` but writes the signatures
+  with the methods' receiver parameter `T`: unknown identifier. The signatures must be substituted
+  into the type declaration's parameter names (Go lets each method rename them).
+- **Workaround here.** None that keeps the pinned translation (`etc/goose.py --check`): the
+  committed `workqueue.lean` is patched by hand (an `axiom queue.Pop.impl`, `T` renamed `t` in
+  `Typed`'s method set) until a Goose fix lands and the pin moves. **Blocks the merge into
+  `lean`**: CI's `goose.py --check` rejects the patched file.
+- **Proposed change.** Both in Goose's method-set emission (`goose/`): skip a method the filter
+  does not translate (or emit its axiom), and rename the receiver's type parameters to the type's.
+- **Landed** (2026-10-28) in the pin `ad74ee4f6` (`e549a845a`: a method's filter name is `T.m`;
+  `ad74ee4f6`: a generic type's method set in its own type parameters). The hand patch of
+  `Code/k8s_io/client_go/util/workqueue.lean` is gone; `etc/goose.py --check` passes.
+
+### GooseLang: extensions outside Perennial, named in the syntax (2026-10-27, branch `worktree-durable-kv`)
+
+- **Missing.** An extension's operations were positions in the program's list of extensions
+  (`ExtsOp exts`), so the trusted model of a Go function implemented with one needed
+  `[ElemExt E]` (data: the position), which goose had to add to the generated `Assumptions` of
+  the package and of every importer, from a closed table of extension packages in goose
+  (`extMapping`), with prelude imports under `Perennial.`: a project could not define an
+  extension of its own.
+- **Needed by.** The durable-state extension `durableExt` (`GooseLang/Ext/Durable/`, the Go
+  package `examples/durable`) and `examples/durablekv`.
+- **Workaround here.** None (goose treats `examples/durable` as any package); until the pin
+  reached the change, the extension's Lean modules built only against it, so the branch waited.
+- **The change.** Perennial branch `ext-names` (`6fa3a85cc`..`25bd32450`, off `lean` `edcadb1e5`; every
+  module builds, goose's tests pass): `GooseExt` has a `name` (the Go package's path) and no
+  type of operations; an operation is named by two strings, `ExternalOp ext op e` (stepping
+  with the program's first extension named `ext`, by its step of `op`), an opaque value by the
+  extension's name and its encoding (`ExtCode`, `extVal E v`); `ElemExt E` and `HasExt E` are propositions (closing off a program proves them by
+  `rfl`); goose knows nothing of extensions (its table, the binders and the extension preludes
+  are gone). It supersedes branch `goose-ext-flag` (goose's `-ext`, the first attempt).
+- **Status.** Landed on Perennial's `lean` as `25bd32450` (2026-10-28), after the trusted-base
+  review (verdict OK; its adversarial pass found that Grove's stutter made an unknown operation
+  name safe instead of stuck, fixed in `25bd32450`: only Grove's operations, `groveOps`,
+  stutter). In the pin since 2026-10-28 (the bump from `edcadb1e5`; no translation but
+  `examples/durablekv`'s changed).
 ### Goose: range over a function (`iter.Seq`/`iter.Seq2`)
 
 - **Missing.** Goose rejects `for k, v := range f` when `f` is a function (`[unsupported]: range
@@ -1169,3 +1209,13 @@ Three of the watch client's local workarounds (D25, `notes/decisions.md`, "S1c's
   trivial⟩`.
 - **Proposed change.** Instances for the basic types (`uint64`, `int64`, `string`, `bool`, ...) in
   `PostLifting.lean`, beside the composite ones.
+
+## `WithCancel`'s `Value` delegates to its parent (2026-10-28, M2)
+
+Perennial's `context.WithCancel` spec gives `isContext` of the child, whose `Value` is specified only
+for `cancelCtxKey`. etcd's server reads `ctx.Value(TraceKey{})` (`traceutil.EnsureTrace`) on the
+auto-compactor's context, `WithCancel(Background())`; proving that it carries no trace needs: for a
+key other than `cancelCtxKey`, the child's `Value(k)` is the parent's (Go's `cancelCtx.Value`,
+`value(c.Context, key)`). General (every derived context: `WithCancel`, `WithTimeout`,
+`WithDeadline`). Meanwhile: a local lemma over Perennial's context, justified in
+`notes/m2-plan.md` (the compactor's freeze repair).

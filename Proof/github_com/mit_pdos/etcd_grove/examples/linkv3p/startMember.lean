@@ -156,8 +156,8 @@ theorem startMember.wp_proof
   (try wp_auto)
   imod ownSlice_persist _ _ _ $$ Hgsl with #Hgsl
   wp_apply (wp_Server Hms srv C _ _ [kv] Hbuq) $$ [Hlg3 Hbemu Hgo Hwpi]
-    as %gs ⟨%q, %p, %pw, %il, %im, %iu, %ims, %is, %svcs, %regs, %sregs, %cid, %mid, %R, %d',
-      Hgsn, %Hregs, #Hq, #Hkvs, #Hws, %HR, #Hil, #Him, #Hiu, #Hims, #His, Hlg4, Hbemu2, Hgo2,
+    as %gs ⟨%q, %p, %pw, %pa, %il, %im, %iu, %ims, %is, %svcs, %regs, %sregs, %cid, %mid, %R, %d',
+      Hgsn, %Hregs, -, #Hq, #Hkvs, #Hws, %HR, #Hil, #Him, #Hiu, #Hims, #His, Hlg4, Hbemu2, Hgo2,
       Hwpi2⟩
   · iframe; iframe #
     isplitr
@@ -208,7 +208,7 @@ theorem startMember.wp_proof
   -- (W2) the `Watch` stream served at the client address
   ihave #Ppb : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.api.v3.etcdserverpb $$ []
   · iPkgInit
-  imod (EtcdGrove.v3rpc.etcd_watch_served_chain client pw R ims is sregs 1 Hms.watch_impl Hregs.2)
+  imod (EtcdGrove.v3rpc.etcd_watch_served_chain client pw R ims is sregs 1 Hms.watch_impl Hregs.2.1)
     $$ [Hss Hwslots] with #Hwst
   · iframe; iframe #
   -- `go gs.Serve(l)`

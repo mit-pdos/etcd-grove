@@ -23,8 +23,8 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
 
 /-- `trw.End()`: the read transaction ended (`metricsTxnWrite.End`): its tokens back
-(`storeReaderC`, with the reader's tag `Z`; 2026-10-13, unit 6a). The frozen statement
-(`storeReader`) is `specFrozen` (`spec_frozen`, `FrozenSpecs.lean`). -/
+(`storeReaderC`, with the reader's tag `Z`; 2026-10-13, unit 6a). The readers' statement
+(`storeReader`) is `specR` (`spec_R`, `ReaderSpecs.lean`). -/
 abbrev mvcc.txnReadWrite.End.spec : Prop :=
   ∀ (trace : Loc) (trw s : Loc) (γ : mvcc.StoreNames) (log : mvcc.Log) (rev : w64) (crev : Int)
     (Z : IProp GF),

@@ -276,6 +276,8 @@ axiom addrsUnclaimed
 axiom api.IsCapabilityEnabled.wp_proof
 axiom apierrors.NewConflict.wp_proof
 axiom apierrors.NewInternalError.wp_proof
+axiom appsv1.ControllerRevision.DeepCopyObject.wp_proof
+axiom appsv1.DaemonSet.DeepCopyObject.wp_proof
 axiom appsv1.Resource.wp_proof
 axiom attribute.Bool.wp_proof
 axiom attribute.Int.wp_proof
@@ -400,6 +402,8 @@ axiom context.WithCancelTodo.wp_proof
 axiom context.WithCancelValCtx.wp_proof
 axiom context.WithValue.wp_proof
 axiom conversion.EnforcePtr.wp_proof
+axiom corev1.Node.DeepCopyObject.wp_proof
+axiom corev1.Pod.DeepCopyObject.wp_proof
 axiom corev1.Resource.wp_proof
 axiom encoding.json.Unmarshal.wp_proof
 axiom endpoint.RequiresCredentials.wp_proof
@@ -759,13 +763,11 @@ axiom zap.Uint.wp_proof
 axiom zap.Uint32.wp_proof
 axiom zap.Uint64.wp_proof
 axiom zapcore.CheckedEntry.Write.wp_proof
-sorry EtcdServer.Compact.wp_proof
+sorry EtcdServer.processInternalRaftRequestOnce.wp_proofCompact
+sorry NewServer.wp_proofCompact
 sorry Perennial.reflect.Type'.Type'_into_val_typed
 sorry Perennial.reflect.Type'.Type'_typed_pointsto
-sorry apimodel.copyObject.wp_proof
 sorry authkv.Main.wp_proof
-sorry cache.deferred_HandleCrashWithLogger
 sorry k8setcd3.client_ctx_field
 sorry k8setcd3.revRoom
 sorry kubernetes.kvIs_ne_null
-sorry workqueue.delayingType.waitingLoop.wp_proof

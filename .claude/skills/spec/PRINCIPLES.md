@@ -23,7 +23,12 @@ A spec that breaks one of these is wrong, whatever else it does well, and is not
   trust-boundary axiom true of the library's code or documented behavior.
 - **Complete: sufficient for every caller**: each caller can establish the precondition and gets from
   the postcondition what its proof needs. All callers, not the one in mind; when the vocabulary
-  changes, the callers as restated.
+  changes, the callers as restated. A contract an implementation must meet (an environment's
+  interface, a callback) is complete only against the implementation's Go body when its own spec is
+  unproved: every value the body reads from an argument (a context's `Value(key)`, a field) needs a
+  premise. (The compactor's `compactableOk` passed five reviews checked against
+  `EtcdServer.Compact.spec`, a `sorry`, and failed at the first glue: `Compact` reads
+  `ctx.Value(TraceKey{})`; M2, `notes/m2-plan.md`, 2026-10-28.)
 - **Local**: a spec is about its function's footprint, the state that function touches, and nothing
   else, so that a change elsewhere (a new feature, a conjunct added to some other component's
   predicate) leaves the spec and every proof that uses it untouched. Take the footprint, not an

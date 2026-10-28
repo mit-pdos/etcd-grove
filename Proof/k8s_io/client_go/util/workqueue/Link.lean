@@ -50,8 +50,14 @@ public import Proof.k8s_io.utils.clock.realTicker__Stop
 public import Proof.k8s_io.utils.clock.realTimer__C
 public import Proof.k8s_io.utils.clock.realTimer__Stop
 public import Proof.k8s_io.client_go.util.workqueue.defaultRetryMetrics__retry
+public import Proof.k8s_io.client_go.util.workqueue.delayingType__Add
 public import Proof.k8s_io.client_go.util.workqueue.delayingType__AddAfter
+public import Proof.k8s_io.client_go.util.workqueue.delayingType__Done
+public import Proof.k8s_io.client_go.util.workqueue.delayingType__Get
+public import Proof.k8s_io.client_go.util.workqueue.delayingType__Len
 public import Proof.k8s_io.client_go.util.workqueue.delayingType__ShutDown
+public import Proof.k8s_io.client_go.util.workqueue.delayingType__ShutDownWithDrain
+public import Proof.k8s_io.client_go.util.workqueue.delayingType__ShuttingDown
 public import Proof.k8s_io.client_go.util.workqueue.delayingType__waitingLoop
 public import Proof.container.heap.Fix
 public import Proof.container.heap.Init_
@@ -73,11 +79,20 @@ public import Proof.k8s_io.client_go.util.workqueue.noMetrics__updateUnfinishedW
 public import Proof.k8s_io.client_go.util.workqueue.noopMetric__Inc
 public import Proof.k8s_io.client_go.util.workqueue.noopMetricsProvider__NewRetriesMetric
 public import Proof.k8s_io.client_go.util.workqueue.queue__Len
+public import Proof.k8s_io.client_go.util.workqueue.queue__Pop
 public import Proof.k8s_io.client_go.util.workqueue.queue__Push
 public import Proof.k8s_io.client_go.util.workqueue.queue__Touch
+public import Proof.k8s_io.client_go.util.workqueue.rateLimitingType__Add
+public import Proof.k8s_io.client_go.util.workqueue.rateLimitingType__AddAfter
 public import Proof.k8s_io.client_go.util.workqueue.rateLimitingType__AddRateLimited
+public import Proof.k8s_io.client_go.util.workqueue.rateLimitingType__Done
 public import Proof.k8s_io.client_go.util.workqueue.rateLimitingType__Forget
+public import Proof.k8s_io.client_go.util.workqueue.rateLimitingType__Get
+public import Proof.k8s_io.client_go.util.workqueue.rateLimitingType__Len
 public import Proof.k8s_io.client_go.util.workqueue.rateLimitingType__NumRequeues
+public import Proof.k8s_io.client_go.util.workqueue.rateLimitingType__ShutDown
+public import Proof.k8s_io.client_go.util.workqueue.rateLimitingType__ShutDownWithDrain
+public import Proof.k8s_io.client_go.util.workqueue.rateLimitingType__ShuttingDown
 public import Proof.golang_org.x.time.rate.Limiter__Reserve
 public import Proof.golang_org.x.time.rate.NewLimiter
 public import Proof.golang_org.x.time.rate.Reservation__Delay
@@ -89,21 +104,6 @@ public import Proof.k8s_io.client_go.util.workqueue.waitForPriorityQueue__Peek
 public import Proof.k8s_io.client_go.util.workqueue.waitForPriorityQueue__Pop
 public import Proof.k8s_io.client_go.util.workqueue.waitForPriorityQueue__Push
 public import Proof.k8s_io.client_go.util.workqueue.waitForPriorityQueue__Swap
-public import Spec.k8s_io.client_go.util.workqueue.delayingType__Add
-public import Spec.k8s_io.client_go.util.workqueue.delayingType__Done
-public import Spec.k8s_io.client_go.util.workqueue.delayingType__Get
-public import Spec.k8s_io.client_go.util.workqueue.delayingType__Len
-public import Spec.k8s_io.client_go.util.workqueue.delayingType__ShutDownWithDrain
-public import Spec.k8s_io.client_go.util.workqueue.delayingType__ShuttingDown
-public import Spec.k8s_io.client_go.util.workqueue.queue__Pop
-public import Spec.k8s_io.client_go.util.workqueue.rateLimitingType__Add
-public import Spec.k8s_io.client_go.util.workqueue.rateLimitingType__AddAfter
-public import Spec.k8s_io.client_go.util.workqueue.rateLimitingType__Done
-public import Spec.k8s_io.client_go.util.workqueue.rateLimitingType__Get
-public import Spec.k8s_io.client_go.util.workqueue.rateLimitingType__Len
-public import Spec.k8s_io.client_go.util.workqueue.rateLimitingType__ShutDown
-public import Spec.k8s_io.client_go.util.workqueue.rateLimitingType__ShutDownWithDrain
-public import Spec.k8s_io.client_go.util.workqueue.rateLimitingType__ShuttingDown
 
 @[expose] public section
 
@@ -265,6 +265,34 @@ theorem wp_newRetryMetrics :
     EtcdGrove.workqueue.newRetryMetrics.spec (GF := GF) (hG := hG) :=
   EtcdGrove.workqueue.newRetryMetrics.wp_proof defaultRetryMetrics.wp_retry noopMetricsProvider.wp_NewRetriesMetric
 
+theorem sets.Set.wp_Has :
+    EtcdGrove.sets.Set.Has.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.sets.Set.Has.wp_proof
+
+theorem sets.Set.wp_Insert :
+    EtcdGrove.sets.Set.Insert.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.sets.Set.Insert.wp_proof
+
+theorem queue.wp_Push :
+    EtcdGrove.workqueue.queue.Push.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.workqueue.queue.Push.wp_proof
+
+theorem queue.wp_Touch :
+    EtcdGrove.workqueue.queue.Touch.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.workqueue.queue.Touch.wp_proof
+
+theorem noMetrics.wp_add :
+    EtcdGrove.workqueue.noMetrics.add.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.workqueue.noMetrics.add.wp_proof
+
+theorem Typed.wp_Add :
+    EtcdGrove.workqueue.Typed.Add.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.workqueue.Typed.Add.wp_proof sets.Set.wp_Has sets.Set.wp_Insert queue.wp_Push queue.wp_Touch noMetrics.wp_add
+
+theorem delayingType.wp_Add :
+    EtcdGrove.workqueue.delayingType.Add.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.workqueue.delayingType.Add.wp_proof Typed.wp_Add
+
 theorem Typed.wp_ShuttingDown :
     EtcdGrove.workqueue.Typed.ShuttingDown.spec (GF := GF) (hG := hG) :=
   EtcdGrove.workqueue.Typed.ShuttingDown.wp_proof
@@ -309,6 +337,14 @@ theorem waitForPriorityQueue.wp_Peek :
     EtcdGrove.workqueue.waitForPriorityQueue.Peek.spec (GF := GF) (hG := hG) :=
   EtcdGrove.workqueue.waitForPriorityQueue.Peek.wp_proof
 
+theorem delayingType.wp_waitingLoop :
+    EtcdGrove.workqueue.delayingType.waitingLoop.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.workqueue.delayingType.waitingLoop.wp_proof delayingType.wp_Add Typed.wp_ShuttingDown wp_insert heap.wp_Init_ heap.wp_Pop utilruntime.wp_HandleCrashWithLogger waitForPriorityQueue.wp_Len waitForPriorityQueue.wp_Less waitForPriorityQueue.wp_Swap waitForPriorityQueue.wp_Push waitForPriorityQueue.wp_Pop waitForPriorityQueue.wp_Peek
+
+theorem wp_newDelayingQueue :
+    EtcdGrove.workqueue.newDelayingQueue.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.workqueue.newDelayingQueue.wp_proof wp_newRetryMetrics delayingType.wp_waitingLoop
+
 theorem clock.RealClock.wp_Now :
     EtcdGrove.clock.RealClock.Now.spec (GF := GF) (hG := hG) :=
   EtcdGrove.clock.RealClock.Now.wp_proof
@@ -337,6 +373,10 @@ theorem clock.realTicker.wp_Stop :
     EtcdGrove.clock.realTicker.Stop.spec (GF := GF) (hG := hG) :=
   EtcdGrove.clock.realTicker.Stop.wp_proof
 
+theorem wp_NewTypedDelayingQueueWithConfig [EtcdGrove.MutexLitSemantics] :
+    EtcdGrove.workqueue.NewTypedDelayingQueueWithConfig.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.workqueue.NewTypedDelayingQueueWithConfig.wp_proof klog.wp_Background wp_NewTypedWithConfig wp_newDelayingQueue clock.RealClock.wp_Now clock.RealClock.wp_NewTimer clock.RealClock.wp_NewTicker clock.realTimer.wp_C clock.realTimer.wp_Stop clock.realTicker.wp_C clock.realTicker.wp_Stop
+
 theorem TypedItemFastSlowRateLimiter.wp_When :
     EtcdGrove.workqueue.TypedItemFastSlowRateLimiter.When.spec (GF := GF) (hG := hG) :=
   EtcdGrove.workqueue.TypedItemFastSlowRateLimiter.When.wp_proof
@@ -353,37 +393,17 @@ theorem wp_NewTypedItemFastSlowRateLimiter :
     EtcdGrove.workqueue.NewTypedItemFastSlowRateLimiter.spec (GF := GF) (hG := hG) :=
   EtcdGrove.workqueue.NewTypedItemFastSlowRateLimiter.wp_proof TypedItemFastSlowRateLimiter.wp_When TypedItemFastSlowRateLimiter.wp_Forget TypedItemFastSlowRateLimiter.wp_NumRequeues
 
+theorem wp_NewTypedRateLimitingQueueWithConfig [EtcdGrove.MutexLitSemantics] :
+    EtcdGrove.workqueue.NewTypedRateLimitingQueueWithConfig.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.workqueue.NewTypedRateLimitingQueueWithConfig.wp_proof wp_NewTypedDelayingQueueWithConfig
+
 theorem sets.Set.wp_Delete :
     EtcdGrove.sets.Set.Delete.spec (GF := GF) (hG := hG) :=
   EtcdGrove.sets.Set.Delete.wp_proof
 
-theorem sets.Set.wp_Has :
-    EtcdGrove.sets.Set.Has.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.sets.Set.Has.wp_proof
-
-theorem sets.Set.wp_Insert :
-    EtcdGrove.sets.Set.Insert.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.sets.Set.Insert.wp_proof
-
 theorem sets.Set.wp_Len :
     EtcdGrove.sets.Set.Len.spec (GF := GF) (hG := hG) :=
   EtcdGrove.sets.Set.Len.wp_proof
-
-theorem queue.wp_Push :
-    EtcdGrove.workqueue.queue.Push.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.workqueue.queue.Push.wp_proof
-
-theorem queue.wp_Touch :
-    EtcdGrove.workqueue.queue.Touch.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.workqueue.queue.Touch.wp_proof
-
-theorem noMetrics.wp_add :
-    EtcdGrove.workqueue.noMetrics.add.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.workqueue.noMetrics.add.wp_proof
-
-theorem Typed.wp_Add :
-    EtcdGrove.workqueue.Typed.Add.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.workqueue.Typed.Add.wp_proof sets.Set.wp_Has sets.Set.wp_Insert queue.wp_Push queue.wp_Touch noMetrics.wp_add
 
 theorem noMetrics.wp_done :
     EtcdGrove.workqueue.noMetrics.done.spec (GF := GF) (hG := hG) :=
@@ -397,9 +417,17 @@ theorem queue.wp_Len :
     EtcdGrove.workqueue.queue.Len.spec (GF := GF) (hG := hG) :=
   EtcdGrove.workqueue.queue.Len.wp_proof
 
+theorem queue.wp_Pop :
+    EtcdGrove.workqueue.queue.Pop.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.workqueue.queue.Pop.wp_proof
+
 theorem noMetrics.wp_get :
     EtcdGrove.workqueue.noMetrics.get.spec (GF := GF) (hG := hG) :=
   EtcdGrove.workqueue.noMetrics.get.wp_proof
+
+theorem Typed.wp_Get :
+    EtcdGrove.workqueue.Typed.Get.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.workqueue.Typed.Get.wp_proof sets.Set.wp_Insert sets.Set.wp_Delete queue.wp_Len queue.wp_Pop noMetrics.wp_get
 
 theorem Typed.wp_Len :
     EtcdGrove.workqueue.Typed.Len.spec (GF := GF) (hG := hG) :=
@@ -413,78 +441,83 @@ theorem Typed.wp_ShutDownWithDrain :
     EtcdGrove.workqueue.Typed.ShutDownWithDrain.spec (GF := GF) (hG := hG) :=
   EtcdGrove.workqueue.Typed.ShutDownWithDrain.wp_proof sets.Set.wp_Len
 
+theorem delayingType.wp_ShuttingDown :
+    EtcdGrove.workqueue.delayingType.ShuttingDown.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.workqueue.delayingType.ShuttingDown.wp_proof Typed.wp_ShuttingDown
+
+theorem delayingType.wp_AddAfter :
+    EtcdGrove.workqueue.delayingType.AddAfter.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.workqueue.delayingType.AddAfter.wp_proof delayingType.wp_ShuttingDown delayingType.wp_Add
+
+theorem delayingType.wp_Done :
+    EtcdGrove.workqueue.delayingType.Done.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.workqueue.delayingType.Done.wp_proof Typed.wp_Done
+
+theorem delayingType.wp_Get :
+    EtcdGrove.workqueue.delayingType.Get.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.workqueue.delayingType.Get.wp_proof Typed.wp_Get
+
+theorem delayingType.wp_Len :
+    EtcdGrove.workqueue.delayingType.Len.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.workqueue.delayingType.Len.wp_proof Typed.wp_Len
+
 theorem delayingType.wp_ShutDown :
     EtcdGrove.workqueue.delayingType.ShutDown.spec (GF := GF) (hG := hG) :=
   EtcdGrove.workqueue.delayingType.ShutDown.wp_proof Typed.wp_ShutDown
+
+theorem delayingType.wp_ShutDownWithDrain :
+    EtcdGrove.workqueue.delayingType.ShutDownWithDrain.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.workqueue.delayingType.ShutDownWithDrain.wp_proof Typed.wp_ShutDownWithDrain
 
 theorem noMetrics.wp_updateUnfinishedWork :
     EtcdGrove.workqueue.noMetrics.updateUnfinishedWork.spec (GF := GF) (hG := hG) :=
   EtcdGrove.workqueue.noMetrics.updateUnfinishedWork.wp_proof
 
+theorem rateLimitingType.wp_Add :
+    EtcdGrove.workqueue.rateLimitingType.Add.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.workqueue.rateLimitingType.Add.wp_proof delayingType.wp_Add
+
+theorem rateLimitingType.wp_AddAfter :
+    EtcdGrove.workqueue.rateLimitingType.AddAfter.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.workqueue.rateLimitingType.AddAfter.wp_proof delayingType.wp_AddAfter
+
+theorem rateLimitingType.wp_AddRateLimited :
+    EtcdGrove.workqueue.rateLimitingType.AddRateLimited.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.workqueue.rateLimitingType.AddRateLimited.wp_proof delayingType.wp_AddAfter
+
+theorem rateLimitingType.wp_Done :
+    EtcdGrove.workqueue.rateLimitingType.Done.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.workqueue.rateLimitingType.Done.wp_proof delayingType.wp_Done
+
 theorem rateLimitingType.wp_Forget :
     EtcdGrove.workqueue.rateLimitingType.Forget.spec (GF := GF) (hG := hG) :=
   EtcdGrove.workqueue.rateLimitingType.Forget.wp_proof
+
+theorem rateLimitingType.wp_Get :
+    EtcdGrove.workqueue.rateLimitingType.Get.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.workqueue.rateLimitingType.Get.wp_proof delayingType.wp_Get
+
+theorem rateLimitingType.wp_Len :
+    EtcdGrove.workqueue.rateLimitingType.Len.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.workqueue.rateLimitingType.Len.wp_proof delayingType.wp_Len
 
 theorem rateLimitingType.wp_NumRequeues :
     EtcdGrove.workqueue.rateLimitingType.NumRequeues.spec (GF := GF) (hG := hG) :=
   EtcdGrove.workqueue.rateLimitingType.NumRequeues.wp_proof
 
+theorem rateLimitingType.wp_ShutDown :
+    EtcdGrove.workqueue.rateLimitingType.ShutDown.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.workqueue.rateLimitingType.ShutDown.wp_proof delayingType.wp_ShutDown
+
+theorem rateLimitingType.wp_ShutDownWithDrain :
+    EtcdGrove.workqueue.rateLimitingType.ShutDownWithDrain.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.workqueue.rateLimitingType.ShutDownWithDrain.wp_proof delayingType.wp_ShutDownWithDrain
+
+theorem rateLimitingType.wp_ShuttingDown :
+    EtcdGrove.workqueue.rateLimitingType.ShuttingDown.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.workqueue.rateLimitingType.ShuttingDown.wp_proof delayingType.wp_ShuttingDown
+
 end links_hasLC
-
-/-! The results that reach a function specified but not proved yet (a later unit's):
-its spec is a hypothesis (`h_<fn>`) of each of them. -/
-section links_pending
-variable [GooseExts] [GooseSemantics] [GooseInterp]
-variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
-variable [sem : go.Semantics]
-variable [package_sem : k8s_io.client_go.util.workqueue.Assumptions]
-variable (h_delayingType__Add : EtcdGrove.workqueue.delayingType.Add.spec (GF := GF) (hG := hG))
-variable (h_delayingType__Done : EtcdGrove.workqueue.delayingType.Done.spec (GF := GF) (hG := hG))
-variable (h_delayingType__Get : EtcdGrove.workqueue.delayingType.Get.spec (GF := GF) (hG := hG))
-variable (h_delayingType__Len : EtcdGrove.workqueue.delayingType.Len.spec (GF := GF) (hG := hG))
-variable (h_delayingType__ShutDownWithDrain : EtcdGrove.workqueue.delayingType.ShutDownWithDrain.spec (GF := GF) (hG := hG))
-variable (h_delayingType__ShuttingDown : EtcdGrove.workqueue.delayingType.ShuttingDown.spec (GF := GF) (hG := hG))
-variable (h_queue__Pop : EtcdGrove.workqueue.queue.Pop.spec (GF := GF) (hG := hG))
-variable (h_rateLimitingType__Add : EtcdGrove.workqueue.rateLimitingType.Add.spec (GF := GF) (hG := hG))
-variable (h_rateLimitingType__AddAfter : EtcdGrove.workqueue.rateLimitingType.AddAfter.spec (GF := GF) (hG := hG))
-variable (h_rateLimitingType__Done : EtcdGrove.workqueue.rateLimitingType.Done.spec (GF := GF) (hG := hG))
-variable (h_rateLimitingType__Get : EtcdGrove.workqueue.rateLimitingType.Get.spec (GF := GF) (hG := hG))
-variable (h_rateLimitingType__Len : EtcdGrove.workqueue.rateLimitingType.Len.spec (GF := GF) (hG := hG))
-variable (h_rateLimitingType__ShutDown : EtcdGrove.workqueue.rateLimitingType.ShutDown.spec (GF := GF) (hG := hG))
-variable (h_rateLimitingType__ShutDownWithDrain : EtcdGrove.workqueue.rateLimitingType.ShutDownWithDrain.spec (GF := GF) (hG := hG))
-variable (h_rateLimitingType__ShuttingDown : EtcdGrove.workqueue.rateLimitingType.ShuttingDown.spec (GF := GF) (hG := hG))
-include h_delayingType__Add h_delayingType__Done h_delayingType__Get h_delayingType__Len h_delayingType__ShutDownWithDrain h_delayingType__ShuttingDown h_queue__Pop h_rateLimitingType__Add h_rateLimitingType__AddAfter h_rateLimitingType__Done h_rateLimitingType__Get h_rateLimitingType__Len h_rateLimitingType__ShutDown h_rateLimitingType__ShutDownWithDrain h_rateLimitingType__ShuttingDown
-
-theorem delayingType.wp_waitingLoop :
-    EtcdGrove.workqueue.delayingType.waitingLoop.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.workqueue.delayingType.waitingLoop.wp_proof h_delayingType__Add Typed.wp_ShuttingDown wp_insert heap.wp_Init_ heap.wp_Pop utilruntime.wp_HandleCrashWithLogger waitForPriorityQueue.wp_Len waitForPriorityQueue.wp_Less waitForPriorityQueue.wp_Swap waitForPriorityQueue.wp_Push waitForPriorityQueue.wp_Pop waitForPriorityQueue.wp_Peek
-
-theorem wp_newDelayingQueue :
-    EtcdGrove.workqueue.newDelayingQueue.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.workqueue.newDelayingQueue.wp_proof wp_newRetryMetrics (delayingType.wp_waitingLoop h_delayingType__Add h_delayingType__Done h_delayingType__Get h_delayingType__Len h_delayingType__ShutDownWithDrain h_delayingType__ShuttingDown h_queue__Pop h_rateLimitingType__Add h_rateLimitingType__AddAfter h_rateLimitingType__Done h_rateLimitingType__Get h_rateLimitingType__Len h_rateLimitingType__ShutDown h_rateLimitingType__ShutDownWithDrain h_rateLimitingType__ShuttingDown)
-
-theorem wp_NewTypedDelayingQueueWithConfig [EtcdGrove.MutexLitSemantics] :
-    EtcdGrove.workqueue.NewTypedDelayingQueueWithConfig.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.workqueue.NewTypedDelayingQueueWithConfig.wp_proof klog.wp_Background wp_NewTypedWithConfig (wp_newDelayingQueue h_delayingType__Add h_delayingType__Done h_delayingType__Get h_delayingType__Len h_delayingType__ShutDownWithDrain h_delayingType__ShuttingDown h_queue__Pop h_rateLimitingType__Add h_rateLimitingType__AddAfter h_rateLimitingType__Done h_rateLimitingType__Get h_rateLimitingType__Len h_rateLimitingType__ShutDown h_rateLimitingType__ShutDownWithDrain h_rateLimitingType__ShuttingDown) clock.RealClock.wp_Now clock.RealClock.wp_NewTimer clock.RealClock.wp_NewTicker clock.realTimer.wp_C clock.realTimer.wp_Stop clock.realTicker.wp_C clock.realTicker.wp_Stop
-
-theorem wp_NewTypedRateLimitingQueueWithConfig [EtcdGrove.MutexLitSemantics] :
-    EtcdGrove.workqueue.NewTypedRateLimitingQueueWithConfig.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.workqueue.NewTypedRateLimitingQueueWithConfig.wp_proof (wp_NewTypedDelayingQueueWithConfig h_delayingType__Add h_delayingType__Done h_delayingType__Get h_delayingType__Len h_delayingType__ShutDownWithDrain h_delayingType__ShuttingDown h_queue__Pop h_rateLimitingType__Add h_rateLimitingType__AddAfter h_rateLimitingType__Done h_rateLimitingType__Get h_rateLimitingType__Len h_rateLimitingType__ShutDown h_rateLimitingType__ShutDownWithDrain h_rateLimitingType__ShuttingDown)
-
-theorem Typed.wp_Get :
-    EtcdGrove.workqueue.Typed.Get.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.workqueue.Typed.Get.wp_proof sets.Set.wp_Insert sets.Set.wp_Delete queue.wp_Len h_queue__Pop noMetrics.wp_get
-
-theorem delayingType.wp_AddAfter :
-    EtcdGrove.workqueue.delayingType.AddAfter.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.workqueue.delayingType.AddAfter.wp_proof h_delayingType__ShuttingDown h_delayingType__Add
-
-theorem rateLimitingType.wp_AddRateLimited :
-    EtcdGrove.workqueue.rateLimitingType.AddRateLimited.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.workqueue.rateLimitingType.AddRateLimited.wp_proof (delayingType.wp_AddAfter h_delayingType__Add h_delayingType__Done h_delayingType__Get h_delayingType__Len h_delayingType__ShutDownWithDrain h_delayingType__ShuttingDown h_queue__Pop h_rateLimitingType__Add h_rateLimitingType__AddAfter h_rateLimitingType__Done h_rateLimitingType__Get h_rateLimitingType__Len h_rateLimitingType__ShutDown h_rateLimitingType__ShutDownWithDrain h_rateLimitingType__ShuttingDown)
-
-end links_pending
 
 end workqueue
 end EtcdGrove

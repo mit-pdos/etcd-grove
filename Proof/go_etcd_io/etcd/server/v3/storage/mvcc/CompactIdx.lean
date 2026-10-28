@@ -103,7 +103,7 @@ theorem kiKeep_kiPut {ki : KeyIndex} (hwf : KiWf ki) (c : w64) (rev : Rev)
     (hc : sint.Z c < sint.Z rev.main) : kiKeep c (kiPut ki rev) = kiKeep c ki := by
   have hne := hwf.ne
   have hlt := compactGenIdx_lt c ki.gens hne
-  rw [kiKeep_keepOf, kiKeep_keepOf, kiPut_gens_of_ne hne, compactGenIdx_put hwf,
+  rw [kiKeep_keepOf, kiKeep_keepOf, kiPut_gens_of_ne hne, compactGenIdx_put hwf c rev hc,
     length_dropLast_append _ _ hne]
   by_cases hl : compactGenIdx c ki.gens + 1 = ki.gens.length
   · rw [show compactGenIdx c ki.gens = ki.gens.length - 1 by omega, getD_dropLast_append_last _ _ _ hne,

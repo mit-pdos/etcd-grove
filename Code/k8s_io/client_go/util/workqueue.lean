@@ -1669,7 +1669,7 @@ noncomputable def delayingType.waitingLoop.impl [GooseExts] [GoGlobalContext] (T
   (Let "$f" (App (Val (GoInstruction (FuncResolve _root_.Perennial.k8s_io.apimachinery.pkg.util.runtime.HandleCrashWithLogger []))) (Val #()))
   (App (Val (GoInstruction (GoStore deferType))) (Pair (Var "$defer") (Let "$oldf" (App (Val (GoInstruction (GoLoad deferType))) (Var "$defer"))
   (Lam BAnon
-  (Seq (App (Var "$f") (Var "$a0"))
+  (Seq (App (App (Var "$f") (Var "$a0")) (Var "$a1"))
   (App (Var "$oldf") (Val #()))))))))))))))))
   (Val #()))))
 
@@ -2342,7 +2342,7 @@ noncomputable def ParallelizeUntil.impl [GooseExts] [GoGlobalContext] : val :=
   (Let "$f" (App (Val (GoInstruction (FuncResolve _root_.Perennial.k8s_io.apimachinery.pkg.util.runtime.HandleCrashWithContext []))) (Val #()))
   (App (Val (GoInstruction (GoStore deferType))) (Pair (Var "$defer") (Let "$oldf" (App (Val (GoInstruction (GoLoad deferType))) (Var "$defer"))
   (Lam BAnon
-  (Seq (App (Var "$f") (Var "$a0"))
+  (Seq (App (App (Var "$f") (Var "$a0")) (Var "$a1"))
   (App (Var "$oldf") (Val #()))))))))))))))
   (Val #())))
   (App (Val doExecute)
@@ -2480,9 +2480,6 @@ noncomputable def queue.Push.impl [GooseExts] [GoGlobalContext] (T : go.GoType) 
   (Val #()))))
 
 /-- go: queue.go:68:20 -/
--- LOCAL PATCH (not Goose output): names-only `queue[T].Pop`
-axiom queue.Pop.impl [GooseExts] [GoGlobalContext] (T : go.GoType) : val
-
 noncomputable def queue.Len.impl [GooseExts] [GoGlobalContext] (T : go.GoType) : val :=
   (LamV "q"
   (Lam BAnon
@@ -2497,6 +2494,35 @@ noncomputable def queue.Len.impl [GooseExts] [GoGlobalContext] (T : go.GoType) :
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "$res0") (Var "$r0"))))))))
   (App (Val (GoInstruction (GoLoad go.int))) (Var "$res0"))))))
+
+/-- go: queue.go:72:20 -/
+noncomputable def queue.Pop.impl [GooseExts] [GoGlobalContext] (T : go.GoType) : val :=
+  (LamV "q"
+  (Lam BAnon
+  (Let "item" (App (Val (GoInstruction (GoAlloc T))) (App (Val (GoInstruction (GoZeroVal T))) (Val #())))
+  (Let "$res0" (Var "item")
+  (Seq (App (Val exceptionDo)
+  (Let "q" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType (queue.ty T))))) (Var "q"))
+  (Let "$r0" (App (Val (GoInstruction (GoLoad T))) (App (Val (GoInstruction (IndexRef (queue.ty T)))) (Pair (App (Val (GoInstruction (GoLoad (queue.ty T)))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (queue.ty T))))) (Var "q"))) (Val #(W64 0)))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoLoad T))) (App (Val (GoInstruction (GoAlloc T))) (App (Val (GoInstruction (GoZeroVal T))) (Val #()))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$s" (App (Val (GoInstruction (GoLoad (queue.ty T)))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (queue.ty T))))) (Var "q")))
+  (App (Val (GoInstruction (Slice (queue.ty T)))) (Pair (Pair (Var "$s") (Val #(W64 1))) (App (App (Val (GoInstruction (FuncResolve go.len [(queue.ty T)]))) (Val #())) (Var "$s")))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoLoad T))) (Var "item"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore T))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (queue.ty T)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (queue.ty T))))) (Var "q")) (Var "$r0"))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore T))) (Pair (App (Val (GoInstruction (IndexRef (queue.ty T)))) (Pair (App (Val (GoInstruction (GoLoad (queue.ty T)))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (queue.ty T))))) (Var "q"))) (Val #(W64 0)))) (Var "$r0"))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore T))) (Pair (Var "item") (Var "$r0"))))))))
+  (App (Val (GoInstruction (GoLoad T))) (Var "$res0")))))))
 
 /-- New constructs a new work queue (see the package comment).
 
@@ -3848,8 +3874,32 @@ class delayingType.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext
   set_metrics : ∀ (T : go.GoType) (T' : Type) (x : (delayingType T')) (y : retryMetrics), go.IsGoStepPureDetTagged under (StructFieldSet (delayingType.underlying T) go!"metrics") (PairV #x #y) (Val #(({ x with metrics' := y } : (delayingType T'))))
   method_set : ∀ (T : go.GoType), go.MethodSetIs (delayingType.ty T) [(go!"Add", (some (go.signature.Signature [T] false []))), (go!"Done", (some (go.signature.Signature [T] false []))), (go!"Get", (some (go.signature.Signature [] false [T, go.bool]))), (go!"Len", (some (go.signature.Signature [] false [go.int]))), (go!"ShutDownWithDrain", (some (go.signature.Signature [] false []))), (go!"ShuttingDown", (some (go.signature.Signature [] false [go.bool])))]
   ptr_method_set : ∀ (T : go.GoType), go.MethodSetIs (go.GoType.PointerType (delayingType.ty T)) [(go!"Add", (some (go.signature.Signature [T] false []))), (go!"AddAfter", (some (go.signature.Signature [T, _root_.Perennial.time.Duration.ty] false []))), (go!"Done", (some (go.signature.Signature [T] false []))), (go!"Get", (some (go.signature.Signature [] false [T, go.bool]))), (go!"Len", (some (go.signature.Signature [] false [go.int]))), (go!"ShutDown", (some (go.signature.Signature [] false []))), (go!"ShutDownWithDrain", (some (go.signature.Signature [] false []))), (go!"ShuttingDown", (some (go.signature.Signature [] false [go.bool]))), (go!"k8s.io/client-go/util/workqueue.waitingLoop", (some (go.signature.Signature [(go.GoType.Named go!"github.com/go-logr/logr.Logger" [])] false [])))]
+  Add_unfold : ∀ (T : go.GoType), MethodUnfold (delayingType.ty T) go!"Add" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (TypedInterface.ty T) go!"Add"))) (App (Val (GoInstruction (StructFieldGet (delayingType.ty T) go!"TypedInterface"))) (Var "$r"))))
+  Done_unfold : ∀ (T : go.GoType), MethodUnfold (delayingType.ty T) go!"Done" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (TypedInterface.ty T) go!"Done"))) (App (Val (GoInstruction (StructFieldGet (delayingType.ty T) go!"TypedInterface"))) (Var "$r"))))
+  Get_unfold : ∀ (T : go.GoType), MethodUnfold (delayingType.ty T) go!"Get" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (TypedInterface.ty T) go!"Get"))) (App (Val (GoInstruction (StructFieldGet (delayingType.ty T) go!"TypedInterface"))) (Var "$r"))))
+  Len_unfold : ∀ (T : go.GoType), MethodUnfold (delayingType.ty T) go!"Len" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (TypedInterface.ty T) go!"Len"))) (App (Val (GoInstruction (StructFieldGet (delayingType.ty T) go!"TypedInterface"))) (Var "$r"))))
+  ShutDownWithDrain_unfold : ∀ (T : go.GoType), MethodUnfold (delayingType.ty T) go!"ShutDownWithDrain" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (TypedInterface.ty T) go!"ShutDownWithDrain"))) (App (Val (GoInstruction (StructFieldGet (delayingType.ty T) go!"TypedInterface"))) (Var "$r"))))
+  ShuttingDown_unfold : ∀ (T : go.GoType), MethodUnfold (delayingType.ty T) go!"ShuttingDown" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (TypedInterface.ty T) go!"ShuttingDown"))) (App (Val (GoInstruction (StructFieldGet (delayingType.ty T) go!"TypedInterface"))) (Var "$r"))))
+  ptr_Add_unfold : ∀ (T : go.GoType), MethodUnfold (go.GoType.PointerType (delayingType.ty T)) go!"Add" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (TypedInterface.ty T) go!"Add"))) (App (Val (GoInstruction (GoLoad (TypedInterface.ty T)))) (App (Val (GoInstruction (StructFieldRef (delayingType.ty T) go!"TypedInterface"))) (Var "$r")))))
   ptr_AddAfter_unfold : ∀ (T : go.GoType), MethodUnfold (go.GoType.PointerType (delayingType.ty T)) go!"AddAfter" (delayingType.AddAfter.impl T)
+  ptr_Done_unfold : ∀ (T : go.GoType), MethodUnfold (go.GoType.PointerType (delayingType.ty T)) go!"Done" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (TypedInterface.ty T) go!"Done"))) (App (Val (GoInstruction (GoLoad (TypedInterface.ty T)))) (App (Val (GoInstruction (StructFieldRef (delayingType.ty T) go!"TypedInterface"))) (Var "$r")))))
+  ptr_Get_unfold : ∀ (T : go.GoType), MethodUnfold (go.GoType.PointerType (delayingType.ty T)) go!"Get" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (TypedInterface.ty T) go!"Get"))) (App (Val (GoInstruction (GoLoad (TypedInterface.ty T)))) (App (Val (GoInstruction (StructFieldRef (delayingType.ty T) go!"TypedInterface"))) (Var "$r")))))
+  ptr_Len_unfold : ∀ (T : go.GoType), MethodUnfold (go.GoType.PointerType (delayingType.ty T)) go!"Len" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (TypedInterface.ty T) go!"Len"))) (App (Val (GoInstruction (GoLoad (TypedInterface.ty T)))) (App (Val (GoInstruction (StructFieldRef (delayingType.ty T) go!"TypedInterface"))) (Var "$r")))))
   ptr_ShutDown_unfold : ∀ (T : go.GoType), MethodUnfold (go.GoType.PointerType (delayingType.ty T)) go!"ShutDown" (delayingType.ShutDown.impl T)
+  ptr_ShutDownWithDrain_unfold : ∀ (T : go.GoType), MethodUnfold (go.GoType.PointerType (delayingType.ty T)) go!"ShutDownWithDrain" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (TypedInterface.ty T) go!"ShutDownWithDrain"))) (App (Val (GoInstruction (GoLoad (TypedInterface.ty T)))) (App (Val (GoInstruction (StructFieldRef (delayingType.ty T) go!"TypedInterface"))) (Var "$r")))))
+  ptr_ShuttingDown_unfold : ∀ (T : go.GoType), MethodUnfold (go.GoType.PointerType (delayingType.ty T)) go!"ShuttingDown" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (TypedInterface.ty T) go!"ShuttingDown"))) (App (Val (GoInstruction (GoLoad (TypedInterface.ty T)))) (App (Val (GoInstruction (StructFieldRef (delayingType.ty T) go!"TypedInterface"))) (Var "$r")))))
   ptr_waitingLoop_unfold : ∀ (T : go.GoType), MethodUnfold (go.GoType.PointerType (delayingType.ty T)) go!"waitingLoop" (delayingType.waitingLoop.impl T)
 
 attribute [instance] delayingType.TypeAssumptions.type_repr
@@ -3870,8 +3920,20 @@ attribute [instance] delayingType.TypeAssumptions.type_repr
   delayingType.TypeAssumptions.set_metrics
   delayingType.TypeAssumptions.method_set
   delayingType.TypeAssumptions.ptr_method_set
+  delayingType.TypeAssumptions.Add_unfold
+  delayingType.TypeAssumptions.Done_unfold
+  delayingType.TypeAssumptions.Get_unfold
+  delayingType.TypeAssumptions.Len_unfold
+  delayingType.TypeAssumptions.ShutDownWithDrain_unfold
+  delayingType.TypeAssumptions.ShuttingDown_unfold
+  delayingType.TypeAssumptions.ptr_Add_unfold
   delayingType.TypeAssumptions.ptr_AddAfter_unfold
+  delayingType.TypeAssumptions.ptr_Done_unfold
+  delayingType.TypeAssumptions.ptr_Get_unfold
+  delayingType.TypeAssumptions.ptr_Len_unfold
   delayingType.TypeAssumptions.ptr_ShutDown_unfold
+  delayingType.TypeAssumptions.ptr_ShutDownWithDrain_unfold
+  delayingType.TypeAssumptions.ptr_ShuttingDown_unfold
   delayingType.TypeAssumptions.ptr_waitingLoop_unfold
 
 structure waitFor [GooseExts] (T : Type) where
@@ -4741,9 +4803,41 @@ class rateLimitingType.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalCon
   set_rateLimiter : ∀ (T : go.GoType) (T' : Type) (x : (rateLimitingType T')) (y : (TypedRateLimiter T')), go.IsGoStepPureDetTagged under (StructFieldSet (rateLimitingType.underlying T) go!"rateLimiter") (PairV #x #y) (Val #(({ x with rateLimiter' := y } : (rateLimitingType T'))))
   method_set : ∀ (T : go.GoType), go.MethodSetIs (rateLimitingType.ty T) [(go!"Add", (some (go.signature.Signature [T] false []))), (go!"AddAfter", (some (go.signature.Signature [T, _root_.Perennial.time.Duration.ty] false []))), (go!"Done", (some (go.signature.Signature [T] false []))), (go!"Get", (some (go.signature.Signature [] false [T, go.bool]))), (go!"Len", (some (go.signature.Signature [] false [go.int]))), (go!"ShutDown", (some (go.signature.Signature [] false []))), (go!"ShutDownWithDrain", (some (go.signature.Signature [] false []))), (go!"ShuttingDown", (some (go.signature.Signature [] false [go.bool])))]
   ptr_method_set : ∀ (T : go.GoType), go.MethodSetIs (go.GoType.PointerType (rateLimitingType.ty T)) [(go!"Add", (some (go.signature.Signature [T] false []))), (go!"AddAfter", (some (go.signature.Signature [T, _root_.Perennial.time.Duration.ty] false []))), (go!"AddRateLimited", (some (go.signature.Signature [T] false []))), (go!"Done", (some (go.signature.Signature [T] false []))), (go!"Forget", (some (go.signature.Signature [T] false []))), (go!"Get", (some (go.signature.Signature [] false [T, go.bool]))), (go!"Len", (some (go.signature.Signature [] false [go.int]))), (go!"NumRequeues", (some (go.signature.Signature [T] false [go.int]))), (go!"ShutDown", (some (go.signature.Signature [] false []))), (go!"ShutDownWithDrain", (some (go.signature.Signature [] false []))), (go!"ShuttingDown", (some (go.signature.Signature [] false [go.bool])))]
+  Add_unfold : ∀ (T : go.GoType), MethodUnfold (rateLimitingType.ty T) go!"Add" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (TypedDelayingInterface.ty T) go!"Add"))) (App (Val (GoInstruction (StructFieldGet (rateLimitingType.ty T) go!"TypedDelayingInterface"))) (Var "$r"))))
+  AddAfter_unfold : ∀ (T : go.GoType), MethodUnfold (rateLimitingType.ty T) go!"AddAfter" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (TypedDelayingInterface.ty T) go!"AddAfter"))) (App (Val (GoInstruction (StructFieldGet (rateLimitingType.ty T) go!"TypedDelayingInterface"))) (Var "$r"))))
+  Done_unfold : ∀ (T : go.GoType), MethodUnfold (rateLimitingType.ty T) go!"Done" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (TypedDelayingInterface.ty T) go!"Done"))) (App (Val (GoInstruction (StructFieldGet (rateLimitingType.ty T) go!"TypedDelayingInterface"))) (Var "$r"))))
+  Get_unfold : ∀ (T : go.GoType), MethodUnfold (rateLimitingType.ty T) go!"Get" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (TypedDelayingInterface.ty T) go!"Get"))) (App (Val (GoInstruction (StructFieldGet (rateLimitingType.ty T) go!"TypedDelayingInterface"))) (Var "$r"))))
+  Len_unfold : ∀ (T : go.GoType), MethodUnfold (rateLimitingType.ty T) go!"Len" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (TypedDelayingInterface.ty T) go!"Len"))) (App (Val (GoInstruction (StructFieldGet (rateLimitingType.ty T) go!"TypedDelayingInterface"))) (Var "$r"))))
+  ShutDown_unfold : ∀ (T : go.GoType), MethodUnfold (rateLimitingType.ty T) go!"ShutDown" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (TypedDelayingInterface.ty T) go!"ShutDown"))) (App (Val (GoInstruction (StructFieldGet (rateLimitingType.ty T) go!"TypedDelayingInterface"))) (Var "$r"))))
+  ShutDownWithDrain_unfold : ∀ (T : go.GoType), MethodUnfold (rateLimitingType.ty T) go!"ShutDownWithDrain" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (TypedDelayingInterface.ty T) go!"ShutDownWithDrain"))) (App (Val (GoInstruction (StructFieldGet (rateLimitingType.ty T) go!"TypedDelayingInterface"))) (Var "$r"))))
+  ShuttingDown_unfold : ∀ (T : go.GoType), MethodUnfold (rateLimitingType.ty T) go!"ShuttingDown" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (TypedDelayingInterface.ty T) go!"ShuttingDown"))) (App (Val (GoInstruction (StructFieldGet (rateLimitingType.ty T) go!"TypedDelayingInterface"))) (Var "$r"))))
+  ptr_Add_unfold : ∀ (T : go.GoType), MethodUnfold (go.GoType.PointerType (rateLimitingType.ty T)) go!"Add" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (TypedDelayingInterface.ty T) go!"Add"))) (App (Val (GoInstruction (GoLoad (TypedDelayingInterface.ty T)))) (App (Val (GoInstruction (StructFieldRef (rateLimitingType.ty T) go!"TypedDelayingInterface"))) (Var "$r")))))
+  ptr_AddAfter_unfold : ∀ (T : go.GoType), MethodUnfold (go.GoType.PointerType (rateLimitingType.ty T)) go!"AddAfter" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (TypedDelayingInterface.ty T) go!"AddAfter"))) (App (Val (GoInstruction (GoLoad (TypedDelayingInterface.ty T)))) (App (Val (GoInstruction (StructFieldRef (rateLimitingType.ty T) go!"TypedDelayingInterface"))) (Var "$r")))))
   ptr_AddRateLimited_unfold : ∀ (T : go.GoType), MethodUnfold (go.GoType.PointerType (rateLimitingType.ty T)) go!"AddRateLimited" (rateLimitingType.AddRateLimited.impl T)
+  ptr_Done_unfold : ∀ (T : go.GoType), MethodUnfold (go.GoType.PointerType (rateLimitingType.ty T)) go!"Done" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (TypedDelayingInterface.ty T) go!"Done"))) (App (Val (GoInstruction (GoLoad (TypedDelayingInterface.ty T)))) (App (Val (GoInstruction (StructFieldRef (rateLimitingType.ty T) go!"TypedDelayingInterface"))) (Var "$r")))))
   ptr_Forget_unfold : ∀ (T : go.GoType), MethodUnfold (go.GoType.PointerType (rateLimitingType.ty T)) go!"Forget" (rateLimitingType.Forget.impl T)
+  ptr_Get_unfold : ∀ (T : go.GoType), MethodUnfold (go.GoType.PointerType (rateLimitingType.ty T)) go!"Get" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (TypedDelayingInterface.ty T) go!"Get"))) (App (Val (GoInstruction (GoLoad (TypedDelayingInterface.ty T)))) (App (Val (GoInstruction (StructFieldRef (rateLimitingType.ty T) go!"TypedDelayingInterface"))) (Var "$r")))))
+  ptr_Len_unfold : ∀ (T : go.GoType), MethodUnfold (go.GoType.PointerType (rateLimitingType.ty T)) go!"Len" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (TypedDelayingInterface.ty T) go!"Len"))) (App (Val (GoInstruction (GoLoad (TypedDelayingInterface.ty T)))) (App (Val (GoInstruction (StructFieldRef (rateLimitingType.ty T) go!"TypedDelayingInterface"))) (Var "$r")))))
   ptr_NumRequeues_unfold : ∀ (T : go.GoType), MethodUnfold (go.GoType.PointerType (rateLimitingType.ty T)) go!"NumRequeues" (rateLimitingType.NumRequeues.impl T)
+  ptr_ShutDown_unfold : ∀ (T : go.GoType), MethodUnfold (go.GoType.PointerType (rateLimitingType.ty T)) go!"ShutDown" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (TypedDelayingInterface.ty T) go!"ShutDown"))) (App (Val (GoInstruction (GoLoad (TypedDelayingInterface.ty T)))) (App (Val (GoInstruction (StructFieldRef (rateLimitingType.ty T) go!"TypedDelayingInterface"))) (Var "$r")))))
+  ptr_ShutDownWithDrain_unfold : ∀ (T : go.GoType), MethodUnfold (go.GoType.PointerType (rateLimitingType.ty T)) go!"ShutDownWithDrain" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (TypedDelayingInterface.ty T) go!"ShutDownWithDrain"))) (App (Val (GoInstruction (GoLoad (TypedDelayingInterface.ty T)))) (App (Val (GoInstruction (StructFieldRef (rateLimitingType.ty T) go!"TypedDelayingInterface"))) (Var "$r")))))
+  ptr_ShuttingDown_unfold : ∀ (T : go.GoType), MethodUnfold (go.GoType.PointerType (rateLimitingType.ty T)) go!"ShuttingDown" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (TypedDelayingInterface.ty T) go!"ShuttingDown"))) (App (Val (GoInstruction (GoLoad (TypedDelayingInterface.ty T)))) (App (Val (GoInstruction (StructFieldRef (rateLimitingType.ty T) go!"TypedDelayingInterface"))) (Var "$r")))))
 
 attribute [instance] rateLimitingType.TypeAssumptions.type_repr
   rateLimitingType.TypeAssumptions.underlying
@@ -4753,9 +4847,25 @@ attribute [instance] rateLimitingType.TypeAssumptions.type_repr
   rateLimitingType.TypeAssumptions.set_rateLimiter
   rateLimitingType.TypeAssumptions.method_set
   rateLimitingType.TypeAssumptions.ptr_method_set
+  rateLimitingType.TypeAssumptions.Add_unfold
+  rateLimitingType.TypeAssumptions.AddAfter_unfold
+  rateLimitingType.TypeAssumptions.Done_unfold
+  rateLimitingType.TypeAssumptions.Get_unfold
+  rateLimitingType.TypeAssumptions.Len_unfold
+  rateLimitingType.TypeAssumptions.ShutDown_unfold
+  rateLimitingType.TypeAssumptions.ShutDownWithDrain_unfold
+  rateLimitingType.TypeAssumptions.ShuttingDown_unfold
+  rateLimitingType.TypeAssumptions.ptr_Add_unfold
+  rateLimitingType.TypeAssumptions.ptr_AddAfter_unfold
   rateLimitingType.TypeAssumptions.ptr_AddRateLimited_unfold
+  rateLimitingType.TypeAssumptions.ptr_Done_unfold
   rateLimitingType.TypeAssumptions.ptr_Forget_unfold
+  rateLimitingType.TypeAssumptions.ptr_Get_unfold
+  rateLimitingType.TypeAssumptions.ptr_Len_unfold
   rateLimitingType.TypeAssumptions.ptr_NumRequeues_unfold
+  rateLimitingType.TypeAssumptions.ptr_ShutDown_unfold
+  rateLimitingType.TypeAssumptions.ptr_ShutDownWithDrain_unfold
+  rateLimitingType.TypeAssumptions.ptr_ShuttingDown_unfold
 
 class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   RateLimiter_instance : RateLimiter.TypeAssumptions

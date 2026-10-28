@@ -6,7 +6,7 @@ module
 public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.watchableStore__progressIfSync
 public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.watchableStore__rev
 public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.watcher__send
-public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.FrozenSpecs
+public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.ReaderSpecs
 
 @[expose] public section
 
@@ -277,7 +277,7 @@ theorem mvcc.watchableStore.progressIfSync.wp_proof
     (hrev : mvcc.watchableStore.rev.spec (GF := GF) (hG := hG))
     (hsend : mvcc.watcher.send.spec (GF := GF) (hG := hG)) :
     mvcc.watchableStore.progressIfSync.spec (GF := GF) (hG := hG) := by
-  have hrev := mvcc.watchableStore.rev.spec_frozen hrev
+  have hrev := mvcc.watchableStore.rev.spec_R hrev
   intro s st γ m dq M rid γc CS
   wp_start as ⟨#Hws, Hm, #HM, HCS, #Hcw, HR⟩
   iunfold mvcc.watchReader at HR

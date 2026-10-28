@@ -597,13 +597,16 @@ def deleteOutcomeIs (log : mvcc.Log) (o : OpFull) (resp : Loc) (err : GoInterfac
       noSpaceErrIs ns err)
 
 /-- **A range's answer** (`txn.Range` at the sole writer): `rangeResult` at `log`'s last
-revision (with the total count), without the context error (at `context.TODO()`, never done:
-`txn.Range`'s `nd`): no error, or `ErrFutureRev`. -/
+revision (with the total count) and the compaction revision `crev` the read observed, without the
+context error (at `context.TODO()`, never done: `txn.Range`'s `nd`): no error, or `ErrFutureRev`,
+or (M2, `notes/m2-plan.md`, S1) `ErrCompacted` below `crev`. -/
 def rangeOutcomeIs (log : mvcc.Log) (o : OpFull) (resp : Loc) (err : GoInterface) :
     Outcome → IProp GF
   | .rejected k => iprop(⌜resp = null⌝ ∗ rejErrIs (fun _ => iprop(False)) k err)
-  | .applied _ _ => iprop(txn.rangeResult resp err log (W64 ((log.length : Int) - 1)) o true ∗
-      ⌜err = GoInterface.nil ∨ sint.Z (W64 ((log.length : Int) - 1)) < sint.Z o.base.rev⌝)
+  | .applied _ _ => iprop(∃ crev : Int,
+      txn.rangeResult resp err log (W64 ((log.length : Int) - 1)) crev o true ∗
+      ⌜err = GoInterface.nil ∨ sint.Z (W64 ((log.length : Int) - 1)) < sint.Z o.base.rev ∨
+        sint.Z (mvcc.rangeRev (W64 ((log.length : Int) - 1)) o.base.rev) < crev⌝)
 
 /-- **A transaction's answer** (`txn.Txn` at the sole writer): `checkTxn`'s error, or the
 response of the server's run `srvRunTxn` at the revision `writeRev` (`skip`: ranges header-only). -/

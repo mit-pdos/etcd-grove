@@ -28,14 +28,14 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.txn.Assumptions]
 theorem txn.applyCompares.wp_proof
     (hCmp : txn.applyCompare.spec (GF := GF) (hG := hG)) :
     txn.applyCompares.spec (GF := GF) (hG := hG) := by
-  intro trace mw s γ log rev sl cps cms
+  intro trace mw s γ log rev sl cps cms crev
   wp_start as ⟨Htx, #Hsl, #Hcs⟩
   iunfold txn.comparesIs at Hcs
   icases Hcs with ⟨%Hlen, #Hcs⟩
   ihave %Hsll := ownSlice_len _ _ _ $$ Hsl
   wp_auto
   ihave IH : (∃ (n : w64) (cv : Loc), "i" ∷ i_ptr ↦ n ∗ "c" ∷ c_ptr ↦ cv ∗
-      "Htx" ∷ mvcc.isTxnRead mw s γ trace log rev ∗
+      "Htx" ∷ mvcc.isTxnRead mw s γ trace log rev crev ∗
       "%Hn" ∷ ⌜0 ≤ sint.Z n ∧ sint.Z n ≤ sint.Z sl.len ∧
         ∀ j < sint.nat n, ∀ cm, cms[j]? = some cm → cmpHolds (mvcc.stateAfter log) cm = true⌝ :
       IProp GF) $$ [i c Htx]

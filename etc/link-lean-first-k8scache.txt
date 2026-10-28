@@ -9,6 +9,7 @@ time_Duration__Seconds:
 trace_New:
 trace_Trace__LogIfLong:
 schema_GroupVersionResource__Empty_ptr:
+runtime_HandleCrashWithLogger:
 #
 # k8s.io/apimachinery/pkg/util/sets (`Set[T]`'s methods the indices use)
 Set__Insert:
@@ -131,8 +132,8 @@ SingleFileTracker__Finished:
 TypedRingGrowing__ReadOne: ?
 TypedRingGrowing__WriteOne: ?
 processorListener__add: SingleFileTracker__Start
-processorListener__pop: TypedRingGrowing__ReadOne TypedRingGrowing__WriteOne
-processorListener__run: SingleFileTracker__Finished trace_New trace_Trace__LogIfLong
+processorListener__pop: TypedRingGrowing__ReadOne TypedRingGrowing__WriteOne runtime_HandleCrashWithLogger
+processorListener__run: SingleFileTracker__Finished trace_New trace_Trace__LogIfLong runtime_HandleCrashWithLogger
 # the processor and the informer as its own handler (shared_informer.go; DaemonSet plan phase 4,
 # third round): handleDeltas' premise handlerOk discharged in Results.lean
 sharedProcessor__distribute: processorListener__add

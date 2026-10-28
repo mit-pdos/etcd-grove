@@ -9,7 +9,10 @@
 roots ^Proof/github_com/mit_pdos/etcd_grove/examples/k8sdaemonset/apimodel/Link\.lean$
 axiom apierrors.NewConflict.wp_proof
 axiom apierrors.NewInternalError.wp_proof
+axiom appsv1.ControllerRevision.DeepCopyObject.wp_proof
+axiom appsv1.DaemonSet.DeepCopyObject.wp_proof
+axiom corev1.Node.DeepCopyObject.wp_proof
+axiom corev1.Pod.DeepCopyObject.wp_proof
 axiom rand.Int63n.wp_proof
 axiom schema.GroupResource.String_ptr.wp_proof
 axiom strconv.FormatUint.wp_proof
-sorry apimodel.copyObject.wp_proof

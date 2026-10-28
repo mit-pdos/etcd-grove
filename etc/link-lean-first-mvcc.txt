@@ -15,6 +15,9 @@ BytesToBucketKey: binary_bigEndian__Uint64 isTombstone
 BytesToRev: BytesToBucketKey
 # The key index and its generations (key_index.go), see Model.lean, Defs.lean.
 generation__isEmpty:
+# (M2, 2026-10-28) the fork's fix of etcd-io/etcd#22377: doCompact asks whether the next generation
+# was re-created in the compacted revision
+generation__isRecreatedAt: generation__isEmpty
 generation__walk:
 # zap's field constructors and `Logger.Panic` (the key index's panics) are the trust boundary
 # (axioms; `Logger.Fatal` has one too, which no verified function reaches).
@@ -253,7 +256,7 @@ newKVHasher:
 kvHasher__WriteKeyValue:
 kvHasher__Hash:
 hashStorage__Store:
-keyIndex__doCompact: generation__walk
+keyIndex__doCompact: generation__walk generation__isRecreatedAt
 keyIndex__compact: keyIndex__isEmpty zap_String zap_Logger__Panic keyIndex__doCompact generation__isEmpty
 keyIndex__keep: keyIndex__isEmpty keyIndex__doCompact generation__isEmpty
 treeIndex__Compact: zap_Int64 zap_Logger__Info BTree__Clone BTree__Ascend keyIndex__compact keyIndex__isEmpty BTree__Delete zap_Logger__Panic

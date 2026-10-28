@@ -167,10 +167,14 @@ theorem Client.unaryClientInterceptor.wp_proof
     · cases once
       · simp only [Bool.false_eq_true, ↓reduceIte, laterHid]; icases Hpre with #Hpre; iexact Hpre
       · simp only [↓reduceIte, laterHid]; iexact Hpre
-    wp_apply Hinv $$ %method %Req %Rep %Spec %m %Φ' %ci
+    ihave #Hrpc' := (isGrpcRpcs_md addr method Spec).1 $$ Hrpc
+    ihave Hsp : ▷ (∀ md, ⌜grpcAttemptMd conn (GoInterface.ok ci) md⌝ -∗ GrpcSpec.md Spec md m Φ')
+      $$ [Hsp]
+    · inext; iintro %md -; iexact Hsp
+    wp_apply Hinv $$ %method %Req %Rep %(GrpcSpec.md Spec) %m %Φ' %ci
         %{ cd with Values := vsv } %inp %out %g' %(gs ++ [pv]) %([p_ptr] : List Loc) [Hsend Hout Hpb Hsp]
       as %err ⟨Hsend, -, Hres⟩
-    · iframe Hg' Hctx' Hrpc
+    · iframe Hg' Hctx' Hrpc'
       iframe
       isplitl []
       · ipureintro; exact Hopt
@@ -256,10 +260,14 @@ theorem Client.unaryClientInterceptor.wp_proof
           isplitl [Hp]
           · iapply Hp; ipureintro; exact Ha0
           · iintro %h; exfalso; rw [Ha0] at h; revert h; decide
-      wp_apply Hinv $$ %method %Req %Rep %Spec %m %Φ' %ci
+      ihave #Hrpc' := (isGrpcRpcs_md addr method Spec).1 $$ Hrpc
+      ihave Hsp : ▷ (∀ md, ⌜grpcAttemptMd conn (GoInterface.ok ci) md⌝ -∗ GrpcSpec.md Spec md m Φ')
+        $$ [Hsp]
+      · inext; iintro %md -; iexact Hsp
+      wp_apply Hinv $$ %method %Req %Rep %(GrpcSpec.md Spec) %m %Φ' %ci
           %{ cd with Values := vsv } %inp %out %g' %(gs ++ [pv]) %([p_ptr] : List Loc) [Hsend Hout Hpb Hsp]
         as %err ⟨Hsend, Hpbs, Hres⟩
-      · iframe Hg' Hctx' Hrpc
+      · iframe Hg' Hctx' Hrpc'
         iframe
         isplitl []
         · ipureintro; exact Hopt

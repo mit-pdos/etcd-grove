@@ -85,7 +85,7 @@ theorem EtcdServer.DeleteRange.wp_proof
   · ipureintro; rfl
   iintro %osl ⟨-, -⟩
   (try wp_auto)
-  wp_apply hTS tr ctx cd _ _ $$ [] as %ctx1 %sp ⟨⟨%vs1, #Hctx1t, Hctx1w⟩, #Hctr1, #Hsp⟩
+  wp_apply hTS tr ctx cd _ _ $$ [] as %ctx1 %sp ⟨⟨%vs1, #Hctx1t, Hctx1w⟩, #Hctr1, %Hinc1, #Hsp⟩
   · iframe #; iunfold mvcc.txnCtx; iright; iexact Hctx
   ihave #Hctx1 := Hctx1w $$ Hctx
   iunfold trace.isSpan at Hsp
@@ -254,7 +254,7 @@ theorem EtcdServer.DeleteRange.wp_proofOn
   · ipureintro; rfl
   iintro %osl ⟨-, -⟩
   (try wp_auto)
-  wp_apply hTS tr ctx cd _ _ $$ [] as %ctx1 %sp ⟨⟨%vs1, #Hctx1t, Hctx1w⟩, #Hctr1, #Hsp⟩
+  wp_apply hTS tr ctx cd _ _ $$ [] as %ctx1 %sp ⟨⟨%vs1, #Hctx1t, Hctx1w⟩, #Hctr1, %Hinc1, #Hsp⟩
   · iframe #; iunfold mvcc.txnCtx; iright; iexact Hctx
   ihave #Hctx1 := Hctx1w $$ Hctx
   iunfold trace.isSpan at Hsp
@@ -321,7 +321,7 @@ theorem EtcdServer.DeleteRange.wp_proofOn
     · iapply deletePermitOn_reqPropOk ρ.kv op Q γc $$ Hnp
     iexists _; iexact Header
   (try wp_auto)
-  icases Hres with (⟨%Herr, %hm, %rq', %Lq, %Hwire, #HLq, Hok, #HpAf, #HQq⟩ | ⟨%Hre, #HaE, Hfail⟩)
+  icases Hres with (⟨%Herr, %hm, %rq', %Lq, %Hwire, #HLq, Hok, #HpAf, #HQq, #Hhb⟩ | ⟨%Hre, #HaE, Hfail⟩)
   · subst Herr
     iunfold appliedOkM at Hok
     icases Hok with ⟨%x, %x', %o, %skip, %Hstep0, Hans, #Hcert, HMint, #Hwit, #Hcok⟩
@@ -345,6 +345,9 @@ theorem EtcdServer.DeleteRange.wp_proofOn
     iunfold deleteQhOn at HQq
     ihave #HQr := grantedRes_applied ρ.kv _ γc Q Lq x.log log' skip
       (by rw [dispatchKind_withHeader, irrDeleteRange_kind]; rfl) Hmo $$ HQq
+    have Hga := grantedAt_of_applied ρ.kv _ Lq x.log log' skip
+      (by rw [dispatchKind_withHeader, irrDeleteRange_kind]; rfl) Hmo
+    rw [← Hrq] at Hga
     imod kvRes_take γc Q _ ⊤ CoPset.subseteq_top $$ HQr Htok Hlc1 with HQ
     (try wp_auto)
     wp_apply HEnd
@@ -358,7 +361,10 @@ theorem EtcdServer.DeleteRange.wp_proofOn
     iframe Hpo Hhdr Hcert HMint Hwit Hcok
     isplitr
     rotate_left
-    · iframe HQ; iexists Lq; iexact HpAf
+    · iframe HQ
+      isplitr
+      · iapply hdrBoundM_ctx true s E _ _ hm Hinc1 $$ Hhb
+      iexists Lq; iframe HpAf; ipureintro; exact Hga
     ipureintro
     refine ⟨Hwire, Hop', ?_, Hstep, ⟨log', rfl⟩,
       Hfl' log' false rfl⟩
@@ -380,7 +386,13 @@ theorem EtcdServer.DeleteRange.wp_proofOn
       iright
       isplitr
       · ipureintro; exact ⟨rfl, Hne⟩
-      iframe HaE Hfail
+      iframe HaE
+      icases Hfail with (⟨%hm, %rq', %Hwire, Herr, #Hhb⟩ | Hdep)
+      · ileft; iexists hm, rq'; iframe Herr
+        isplitr
+        · ipureintro; exact Hwire
+        iapply hdrBoundM_ctx true s E _ _ hm Hinc1 $$ Hhb
+      · iright; iexact Hdep
     · exact absurd rfl Hne
 
 end proof

@@ -29,13 +29,14 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.txn.Assumptions]
 `*metricsTxnWrite`, of the committed log `log` at revision `rev`; its first revision is `-1`):
 `checkRangeErr`. -/
 abbrev txn.checkRange.spec : Prop :=
-  ∀ (trace : Loc) (mw s : Loc) (γ : mvcc.StoreNames) (log : mvcc.Log) (rev : w64) (req : Loc) (o : OpFull),
+  ∀ (trace : Loc) (mw s : Loc) (γ : mvcc.StoreNames) (log : mvcc.Log) (rev : w64) (req : Loc) (o : OpFull)
+    (crev : Int),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.txn ∗
-      mvcc.isTxnRead mw s γ trace log rev ∗ txn.rangeRequestIs req o }}
+      mvcc.isTxnRead mw s γ trace log rev crev ∗ txn.rangeRequestIs req o }}
     (App (App (Val (@! txn.checkRange))
       (Val #(interface.mkOk (go.GoType.PointerType metricsTxnWrite.ty) #mw : GoInterface)))
       (Val #req))
-  {{ (err : GoInterface), RET #err; mvcc.isTxnRead mw s γ trace log rev ∗ txn.checkRangeErr rev o err }}
+  {{ (err : GoInterface), RET #err; mvcc.isTxnRead mw s γ trace log rev crev ∗ txn.checkRangeErr rev crev o err }}
 
 end spec
 

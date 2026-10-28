@@ -1,0 +1,17 @@
+# The functions linked in `Proof/github_com/mit_pdos/etcd_grove/examples/lintest/logkv/Link.lean`
+# (all Lean-first), read by `etc/gen-link.py --lintest-logkv`:
+# `<fn>: <callees in the order of <fn>.wp_proof's hypotheses>`.
+#
+# the driver, linked in lintest's `Link.lean`.
+Run: @
+# the instance (examples/lintest/logkv/logkv.go)
+logkv_Model:
+logkv_Server__applyLoop:
+logkv_New: logkv_Server__applyLoop
+logkv_Server__Put:
+logkv_Server__Get:
+logkv_Server__Apply: logkv_Server__Put logkv_Server__Get
+logkv_Check: Run logkv_Model logkv_New logkv_Server__Apply
+# the program (Main), over the driver's clock (linked in lintest's `Link.lean`)
+CounterClock: @
+logkv_Main: CounterClock logkv_Check

@@ -145,7 +145,7 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.api.v3.etcdserverpb.Assumptions]
 
 /-- **A generated unary handler `h` (body `unaryHandlerImpl srvTy reqTy repTy meth fullMethod`)
-meets the handler spec, for a method that may write its request** (`grpcHandlerOwnOk`; the auth
+meets the metadata-indexed handler spec (`grpcHandlerOwnOkMd`; the auth plan's E3zb), for a method that may write its request** (`grpcHandlerOwnOk`; the auth
 plan's E3za) (the statement of `_KV_Put_Handler.spec`, at any method): for a service
 value whose type implements `srvTy` and whose method `meth` meets `Spec` with `S`, it decodes a
 new `*Req` (`V`, Go type `reqTy`; a zero one is the request's blank) and runs `srv.meth`, directly
@@ -156,11 +156,11 @@ The proof: `dec` gives the decoded request or an error (returned). With no inter
 (`ui = nil`, so `ics = []`), the call of `srv.meth` is the result. Otherwise the chain
 (`grpcSrvChain`) runs over the generated closure (`srvChainWP_of_ok`): it calls `srv.meth` and
 returns its result, or the chain returns an error without calling it. -/
-theorem wp_unaryHandlerOwn (h : GoString) (srvTy reqTy repTy : go.GoType) (meth fullMethod : GoString)
+theorem wp_unaryHandlerOwnMd (h : GoString) (srvTy reqTy repTy : go.GoType) (meth fullMethod : GoString)
     {elems : List go.InterfaceElem} [go.UnderlyingDirectedEq srvTy (go.InterfaceType elems)]
     {V : Type} [ZeroVal V] [TypedPointsto (GF := GF) V] [IntoValTyped (GF := GF) V reqTy]
     [FuncUnfold h [] (unaryHandlerImpl srvTy reqTy repTy meth fullMethod)] :
-  ∀ (Req Rep : ProtoMsg GF) (Spec : GrpcSpec Req Rep) (srv : GoInterfaceOk) (S : IProp GF)
+  ∀ (Req Rep : ProtoMsg GF) (Spec : GrpcSpecMd Req Rep) (srv : GoInterfaceOk) (S : IProp GF)
     (ics : List GoFunc) (Rs : List (IProp GF)) (Q : GoInterface → IProp GF) (m : Req.M)
     (Φ : Rep.M → IProp GF)
     (ci : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) (dec ui : GoFunc),
@@ -168,11 +168,11 @@ theorem wp_unaryHandlerOwn (h : GoString) (srvTy reqTy repTy : go.GoType) (meth 
   go.typeSetContains srv.ty srvTy = true →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.api.v3.etcdserverpb ∗
       (□ ∀ l : Loc, l ↦ (zero_val V) -∗ Req.blank l) ∗
-      grpcHandlerOwnOk #(methods srv.ty meth srv.v) S Spec ∗ srvInterceptorsOk Q ics Rs ∗
+      grpcHandlerOwnOkMd #(methods srv.ty meth srv.v) S Spec ∗ srvInterceptorsOk Q ics Rs ∗
       (□ ∀ l : Loc, Req.recv l m -∗
         Q (interface.mkOk (go.GoType.PointerType reqTy) #l)) ∗
       S ∗ ([∗list] R ∈ Rs, R) ∗ context.isContext ci cd ∗ grpcRunCtx ci ∗ grpcDecOk dec Req m ∗
-      grpcSrvChain ics ui ∗ Spec m Φ }}
+      grpcSrvChain ics ui ∗ Spec (metadata.incomingOf (GoInterface.ok ci)) m Φ }}
     (methodHandlerCall (@! h) #(GoInterface.ok srv) #(GoInterface.ok ci) dec ui)
   {{ (resp err : GoInterface), RET (PairV #resp #err); S ∗ ([∗list] R ∈ Rs, R) ∗
       (⌜err = GoInterface.nil⌝ -∗ ∃ (l : Loc) (m' : Rep.M),
@@ -193,7 +193,7 @@ theorem wp_unaryHandlerOwn (h : GoString) (srvTy reqTy repTy : go.GoType) (meth 
     wp_if_destruct
     · simp only [hsrv]
       wp_auto
-      iunfold grpcHandlerOwnOk at Hh
+      iunfold grpcHandlerOwnOkMd at Hh
       wp_bind (App (App (Val _) (Val #(GoInterface.ok ci))) (Val #«$r0_ptr»))
       iapply Hh $$ %m %Φ' %ci %cd %«$r0_ptr» [HS HSpec Ho]
       · iframe; iframe #
@@ -233,7 +233,7 @@ theorem wp_unaryHandlerOwn (h : GoString) (srvTy reqTy repTy : go.GoType) (meth 
           wp_auto
           simp only [hsrv]
           wp_auto
-          iunfold grpcHandlerOwnOk at Hh
+          iunfold grpcHandlerOwnOkMd at Hh
           wp_bind (App (App (Val _) (Val #(GoInterface.ok ci))) (Val _))
           iapply Hh $$ %m %Φ' %ci %cd %_ [HS HSpec Ho]
           · iframe; iframe #
@@ -268,6 +268,76 @@ theorem wp_unaryHandlerOwn (h : GoString) (srvTy reqTy repTy : go.GoType) (meth 
       cases Hc
 
 /-- **A generated unary handler `h` (body `unaryHandlerImpl srvTy reqTy repTy meth fullMethod`)
+meets the metadata-indexed handler spec** (from `wp_unaryHandlerOwnMd`) (the statement of `_KV_Put_Handler.spec`, at any method): for a service
+value whose type implements `srvTy` and whose method `meth` meets `Spec` with `S`, it decodes a
+new `*Req` (`V`, Go type `reqTy`; a zero one is the request's blank) and runs `srv.meth`, directly
+or through the chain `ics` of transparent interceptors (with `info` naming its `FullMethod`); the
+resources come back, and on success the response is at some `m'` with `Φ m'`. -/
+theorem wp_unaryHandlerMd (h : GoString) (srvTy reqTy repTy : go.GoType) (meth fullMethod : GoString)
+    {elems : List go.InterfaceElem} [go.UnderlyingDirectedEq srvTy (go.InterfaceType elems)]
+    {V : Type} [ZeroVal V] [TypedPointsto (GF := GF) V] [IntoValTyped (GF := GF) V reqTy]
+    [FuncUnfold h [] (unaryHandlerImpl srvTy reqTy repTy meth fullMethod)] :
+  ∀ (Req Rep : ProtoMsg GF) (Spec : GrpcSpecMd Req Rep) (srv : GoInterfaceOk) (S : IProp GF)
+    (ics : List GoFunc) (Rs : List (IProp GF)) (Q : GoInterface → IProp GF) (m : Req.M)
+    (Φ : Rep.M → IProp GF)
+    (ci : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) (dec ui : GoFunc),
+  Req.ty = reqTy → Rep.ty = repTy →
+  go.typeSetContains srv.ty srvTy = true →
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.api.v3.etcdserverpb ∗
+      (□ ∀ l : Loc, l ↦ (zero_val V) -∗ Req.blank l) ∗
+      grpcHandlerOkMd #(methods srv.ty meth srv.v) S Spec ∗ srvInterceptorsOk Q ics Rs ∗
+      (□ ∀ l : Loc, Req.recv l m -∗
+        Q (interface.mkOk (go.GoType.PointerType reqTy) #l)) ∗
+      S ∗ ([∗list] R ∈ Rs, R) ∗ context.isContext ci cd ∗ grpcRunCtx ci ∗ grpcDecOk dec Req m ∗
+      grpcSrvChain ics ui ∗ Spec (metadata.incomingOf (GoInterface.ok ci)) m Φ }}
+    (methodHandlerCall (@! h) #(GoInterface.ok srv) #(GoInterface.ok ci) dec ui)
+  {{ (resp err : GoInterface), RET (PairV #resp #err); S ∗ ([∗list] R ∈ Rs, R) ∗
+      (⌜err = GoInterface.nil⌝ -∗ ∃ (l : Loc) (m' : Rep.M),
+        ⌜resp = interface.mkOk (go.GoType.PointerType Rep.ty) #l⌝ ∗ Rep.send l m' ∗ Φ m') }} := by
+  intro Req Rep Spec srv S ics Rs Q m Φ' ci cd dec ui hReq hRep hsrv
+  iintro %Φ ⟨#Pk, #Hb, #Hh, #Hics, #HQ, HS, HRs, #Hctx, #Hrc, #Hdec, #Hch, HSpec⟩ HΦ
+  ihave #Hh' := grpcHandlerOkMd_own _ S Spec $$ Hh
+  iapply (wp_unaryHandlerOwnMd (V := V) h srvTy reqTy repTy meth fullMethod Req Rep Spec srv S ics Rs Q
+    m Φ' ci cd dec ui hReq hRep hsrv) $$ [HS HRs HSpec] HΦ
+  iframe; iframe #
+
+/-- **A generated unary handler `h` (body `unaryHandlerImpl srvTy reqTy repTy meth fullMethod`)
+meets the handler spec, for a method that may write its request** (`grpcHandlerOwnOk`; the auth
+plan's E3za) (the statement of `_KV_Put_Handler.spec`, at any method): for a service
+value whose type implements `srvTy` and whose method `meth` meets `Spec` with `S`, it decodes a
+new `*Req` (`V`, Go type `reqTy`; a zero one is the request's blank) and runs `srv.meth`, directly
+or through the chain `ics` of transparent interceptors (with `info` naming its `FullMethod`); the
+resources come back, and on success the response is at some `m'` with `Φ m'`.
+
+The proof: `dec` gives the decoded request or an error (returned). With no interceptor
+(`ui = nil`, so `ics = []`), the call of `srv.meth` is the result. Otherwise the chain
+(`grpcSrvChain`) runs over the generated closure (`srvChainWP_of_ok`): it calls `srv.meth` and
+returns its result, or the chain returns an error without calling it. -/
+theorem wp_unaryHandlerOwn (h : GoString) (srvTy reqTy repTy : go.GoType) (meth fullMethod : GoString)
+    {elems : List go.InterfaceElem} [go.UnderlyingDirectedEq srvTy (go.InterfaceType elems)]
+    {V : Type} [ZeroVal V] [TypedPointsto (GF := GF) V] [IntoValTyped (GF := GF) V reqTy]
+    [FuncUnfold h [] (unaryHandlerImpl srvTy reqTy repTy meth fullMethod)] :
+  ∀ (Req Rep : ProtoMsg GF) (Spec : GrpcSpec Req Rep) (srv : GoInterfaceOk) (S : IProp GF)
+    (ics : List GoFunc) (Rs : List (IProp GF)) (Q : GoInterface → IProp GF) (m : Req.M)
+    (Φ : Rep.M → IProp GF)
+    (ci : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) (dec ui : GoFunc),
+  Req.ty = reqTy → Rep.ty = repTy →
+  go.typeSetContains srv.ty srvTy = true →
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.api.v3.etcdserverpb ∗
+      (□ ∀ l : Loc, l ↦ (zero_val V) -∗ Req.blank l) ∗
+      grpcHandlerOwnOk #(methods srv.ty meth srv.v) S Spec ∗ srvInterceptorsOk Q ics Rs ∗
+      (□ ∀ l : Loc, Req.recv l m -∗
+        Q (interface.mkOk (go.GoType.PointerType reqTy) #l)) ∗
+      S ∗ ([∗list] R ∈ Rs, R) ∗ context.isContext ci cd ∗ grpcRunCtx ci ∗ grpcDecOk dec Req m ∗
+      grpcSrvChain ics ui ∗ Spec m Φ }}
+    (methodHandlerCall (@! h) #(GoInterface.ok srv) #(GoInterface.ok ci) dec ui)
+  {{ (resp err : GoInterface), RET (PairV #resp #err); S ∗ ([∗list] R ∈ Rs, R) ∗
+      (⌜err = GoInterface.nil⌝ -∗ ∃ (l : Loc) (m' : Rep.M),
+        ⌜resp = interface.mkOk (go.GoType.PointerType Rep.ty) #l⌝ ∗ Rep.send l m' ∗ Φ m') }} :=
+  fun Req Rep Spec => wp_unaryHandlerOwnMd (V := V) h srvTy reqTy repTy meth fullMethod Req Rep
+    (GrpcSpec.md Spec)
+
+/-- **A generated unary handler `h` (body `unaryHandlerImpl srvTy reqTy repTy meth fullMethod`)
 meets the handler spec** (from `wp_unaryHandlerOwn`) (the statement of `_KV_Put_Handler.spec`, at any method): for a service
 value whose type implements `srvTy` and whose method `meth` meets `Spec` with `S`, it decodes a
 new `*Req` (`V`, Go type `reqTy`; a zero one is the request's blank) and runs `srv.meth`, directly
@@ -293,13 +363,9 @@ theorem wp_unaryHandler (h : GoString) (srvTy reqTy repTy : go.GoType) (meth ful
     (methodHandlerCall (@! h) #(GoInterface.ok srv) #(GoInterface.ok ci) dec ui)
   {{ (resp err : GoInterface), RET (PairV #resp #err); S ∗ ([∗list] R ∈ Rs, R) ∗
       (⌜err = GoInterface.nil⌝ -∗ ∃ (l : Loc) (m' : Rep.M),
-        ⌜resp = interface.mkOk (go.GoType.PointerType Rep.ty) #l⌝ ∗ Rep.send l m' ∗ Φ m') }} := by
-  intro Req Rep Spec srv S ics Rs Q m Φ' ci cd dec ui hReq hRep hsrv
-  iintro %Φ ⟨#Pk, #Hb, #Hh, #Hics, #HQ, HS, HRs, #Hctx, #Hrc, #Hdec, #Hch, HSpec⟩ HΦ
-  ihave #Hh' := grpcHandlerOk_own _ S Spec $$ Hh
-  iapply (wp_unaryHandlerOwn (V := V) h srvTy reqTy repTy meth fullMethod Req Rep Spec srv S ics Rs Q
-    m Φ' ci cd dec ui hReq hRep hsrv) $$ [HS HRs HSpec] HΦ
-  iframe; iframe #
+        ⌜resp = interface.mkOk (go.GoType.PointerType Rep.ty) #l⌝ ∗ Rep.send l m' ∗ Φ m') }} :=
+  fun Req Rep Spec => wp_unaryHandlerMd (V := V) h srvTy reqTy repTy meth fullMethod Req Rep
+    (GrpcSpec.md Spec)
 
 end proof
 

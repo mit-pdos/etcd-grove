@@ -11,6 +11,7 @@ module
 public import Spec.k8s_io.client_go.tools.cache.processorListener__pop
 public import Spec.k8s_io.utils.buffer.TypedRingGrowing__ReadOne
 public import Spec.k8s_io.utils.buffer.TypedRingGrowing__WriteOne
+public import Spec.k8s_io.apimachinery.pkg.util.runtime.HandleCrashWithLogger
 
 @[expose] public section
 
@@ -33,7 +34,8 @@ variable [package_sem : k8s_io.client_go.tools.cache.Assumptions]
 
 theorem processorListener.pop.wp_proof
     (wp_ReadOne : buffer.TypedRingGrowing.ReadOne.spec (GF := GF) (hG := hG))
-    (wp_WriteOne : buffer.TypedRingGrowing.WriteOne.spec (GF := GF) (hG := hG)) :
+    (wp_WriteOne : buffer.TypedRingGrowing.WriteOne.spec (GF := GF) (hG := hG))
+    (wp_HandleCrash : utilruntime.HandleCrashWithLogger.spec (GF := GF) (hG := hG)) :
     processorListener.pop.spec (GF := GF) (hG := hG) := by
   intro l γ Q done Hbound
   wp_start as ⟨#Hl, #Hdone', Hcons, Hprod, Hring, Hbc⟩
@@ -158,12 +160,8 @@ theorem processorListener.pop.wp_proof
       wp_apply (wp_broadcast_chan_close done γ.done iprop(True)) $$ [$Hbc] as -
       · imodintro; itrivial
       wp_apply (wp_spsc_close (t := go.InterfaceType []) γ.next nextCh _ _ sn) $$ [$Hsn $Hprod]
-      -- the deferred `utilruntime.HandleCrashWithLogger(p.logger)` (gap G-defer-variadic)
-      wp_bind (App (Val #(functions k8s_io.apimachinery.pkg.util.runtime.HandleCrashWithLogger []))
-        (Val #lg))
-      iapply deferred_HandleCrashWithLogger
-      inext
-      wp_auto
+      -- the deferred `utilruntime.HandleCrashWithLogger(p.logger)`
+      wp_apply wp_HandleCrash
       iapply HΦ; itrivial
     simp only [↓reduceIte]
     icases Hv with ⟨HPv, Hcons⟩

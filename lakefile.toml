@@ -7,7 +7,7 @@ defaultTargets = ["EtcdGrove", "RaftWitness"]
 [[require]]
 name = "perennial"
 git = "https://github.com/mit-pdos/perennial"
-rev = "edcadb1e57010cc7a0b6f91d078f293f106f9769"
+rev = "ad74ee4f60a72b32c6bf209e5416d0eb675b1786"
 
 # Everything here, laid out by kind and then by Go package path:
 #   Code/<pkg>, GeneratedProof/<pkg>  the Goose translations of raft and of etcd's
@@ -21,9 +21,12 @@ rev = "edcadb1e57010cc7a0b6f91d078f293f106f9769"
 #                                     Proof/go_etcd_io/etcd/cache/v3/ the cache's and
 #                                     Proof/go_etcd_io/etcd/server/v3/etcdserver/ the
 #                                     server's
+#   GooseLang/Ext/<Name>, Proof/<Name>Prelude  this repository's GooseLang extensions
+#                                     (trusted), as Perennial's
 [[lean_lib]]
 name = "EtcdGrove"
-globs = ["Code.+", "TrustedCode.+", "GeneratedProof.+", "ManualProof.+", "Spec.+", "Proof.+"]
+globs = ["Code.+", "TrustedCode.+", "GeneratedProof.+", "ManualProof.+", "Spec.+", "Proof.+",
+         "GooseLang.+"]
 
 # The witness experiment (notes/raft-witness.md): raft with witness support (a candidate for
 # etcd-io/raft#133) and the key-value store on it, in a parallel tree with the same layout

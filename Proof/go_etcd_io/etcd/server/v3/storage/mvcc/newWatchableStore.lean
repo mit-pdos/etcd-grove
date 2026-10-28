@@ -56,7 +56,7 @@ theorem mvcc.newWatchableStore.wp_proof
   -- half of the revision's authority given up, the readers those of a never-compacted store (the
   -- closer, with the scheduler's stop token, goes to the caller: D19m (C))
   imod mvcc.crevFrozen_alloc γs ⊤ $$ Hright with #Hfrz
-  ihave Hreaders := mvcc.storeReaders_of st γs _ $$ [$Hfrz $Hreaders]
+  ihave Hreaders := mvcc.storeReaders_of st γs _ $$ Hreaders
   wp_apply chan.wp_make2 (V := Unit) $$ [] as %vc %γv ⟨#Hvc, %Hvcap, Hvown⟩
   · ipureintro; decide
   wp_apply hNewWG as %gu Hgu
@@ -152,7 +152,7 @@ theorem mvcc.newWatchableStore.wp_proof
   · iunfold mvcc.isWatchableStore
     iexists vc, stc, rv, γv
     simp only [named]
-    iframe store Hst HRV kv Hmug victimc Hvcb stopc
+    iframe store Hst HRV kv Hmug victimc Hvcb stopc Hfrz
     isplitr
     · iunfold mvcc.isStopChan
       iexists γstc; iexact Hstop0
@@ -182,11 +182,13 @@ theorem mvcc.newWatchableStore.wp_proof
     wp_auto
     wp_apply hTODO as %tr ⟨%Htrnn, Htr⟩
     wp_apply (hWrite «$r0_ptr» st γ tr L Pw Pre Q fw true)
-      $$ [$Hrd $Hwt $Hww $Hh $Hpre $Htr] as %tw ⟨Htw, HQ, Hh'⟩
+      $$ [$Hrd $Hwt $Hww $Hh $Hpre $Htr] as %tw %crev ⟨Htw, HQ, Hh'⟩
     · iframe #
       ipureintro; exact ⟨Hlen, Htrnn⟩
     iapply HΦ'
-    iframe Htw HQ Hh'
+    iframe HQ Hh'
+    iexists crev
+    iexact Htw
   iframe HhookP Hsclose wg Hfrag Hret
   isplitr [Hmus Hreaders Hstop Htw Hok]
   · iunfold mvcc.watchWriter

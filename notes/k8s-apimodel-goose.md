@@ -26,19 +26,15 @@ last paragraph): the Go model stays the trust base. Status: `notes/k8s-daemonset
 
 ## Gaps
 
-- **C8 (new; blocks `copyObject`).** At the pinned Perennial, Goose writes an interface that embeds
+- **C8 (closed 2026-10-28).** At Perennial `24bef275e`, Goose wrote an interface that embeds
   interfaces (`object`: `runtime.Object` and `metav1.Object`) with the embedded ones as type terms
-  (`TypeElem [TypeTerm Object.ty]`), and the semantics' `typeSetContains` reads a type term as that
-  exact type. So `o.DeepCopyObject().(object)` (`copyObject`) panics in the model's semantics where
-  Go's assertion succeeds: `copyObject.wp_proof` is a `sorry`, and every result that copies an
-  object rests on it (`etc/tcb-collections/k8s-apimodel.txt`). Fixed on Perennial's `lean` after
-  the pin (an interface written as all its methods; method sets emitted: `8ef540a62`, `d30f71f36`);
-  with the pin bump `copyObject` is `DeepCopyObject`'s spec per type
-  (`Spec/k8s_io/api/{core,apps}/v1/*__DeepCopyObject.lean`) and the method-set fact. **Proposed
-  model change** (a TCB change: proposed, not applied), if the bump is far: a type switch on the
-  four concrete types instead of the interface assertion,
-  `switch x := o.(type) { case *corev1.Pod: return x.DeepCopy(); ... }`, which the pinned
-  semantics handles (concrete assertions).
+  (`TypeElem [TypeTerm Object.ty]`), and the semantics' `typeSetContains` read a type term as that
+  exact type, so `o.DeepCopyObject().(object)` (`copyObject`) panicked in the model where Go's
+  assertion succeeds, and `copyObject.wp_proof` was a `sorry`. Fixed by `8ef540a62`, `d30f71f36`
+  (an interface written as all its methods; method sets emitted): since the pin `ad74ee4f6`
+  `copyObject` is proved, over `DeepCopyObject`'s spec per type
+  (`Spec/k8s_io/api/{core,apps}/v1/*__DeepCopyObject.lean`) and each pointer type's membership in
+  `object` (`go_type_set`).
 - **C5 (from phase 1) reaches `prepareDaemonSet`.** `intstr.IntOrString` is axiomatized, so the
   create strategy's `intstr.FromInt32(1)` (an axiom, `Proof/k8s_io/apimachinery/pkg/util/intstr/
   FromInt32.lean`) and the allocation of an `IntOrString` have no spec; the deep values keep an
@@ -86,5 +82,5 @@ last paragraph): the Go model stays the trust base. Status: `notes/k8s-daemonset
   clientsets. **Not proved yet** (specified; the results over them take them as hypotheses,
   `links_pending`): the watcher's goroutine `run` (`send` has no spec: a `select` over the result
   and stop channels, both SPSC), `preparePod`, `prepareDaemonSet` (C5), `updateDaemonSetStatus`,
-  `daemonSetStatusEqual`; `copyObject` is a `sorry` (C8).
+  `daemonSetStatusEqual`; `copyObject` is proved (C8, closed).
 - **No infidelity found** in the model's Go code while proving it (the operations match `doc.go`).

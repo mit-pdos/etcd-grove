@@ -10,6 +10,8 @@ module
 
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8sdaemonset.apimodel.Clientset__AppsV1
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8sdaemonset.apimodel.Clientset__CoreV1
+public import Proof.k8s_io.api.apps.v1.ControllerRevision__DeepCopyObject
+public import Proof.k8s_io.api.apps.v1.DaemonSet__DeepCopyObject
 public import Proof.strconv.FormatUint
 public import Proof.k8s_io.apimachinery.pkg.runtime.schema.GroupResource__String_ptr
 public import Proof.math.rand.Int63n
@@ -19,6 +21,7 @@ public import Proof.k8s_io.apimachinery.pkg.api.errors.NewConflict
 public import Proof.k8s_io.apimachinery.pkg.api.errors.NewNotFound
 public import Proof.k8s_io.apimachinery.pkg.api.errors.NewResourceExpired
 public import Proof.k8s_io.apimachinery.pkg.api.errors.NewTimeoutError
+public import Proof.k8s_io.api.core.v1.Node__DeepCopyObject
 public import Proof.k8s_io.apimachinery.pkg.apis.meta.v1.Now
 public import Proof.k8s_io.apimachinery.pkg.apis.meta.v1.ObjectMeta__GetCreationTimestamp
 public import Proof.k8s_io.apimachinery.pkg.apis.meta.v1.ObjectMeta__GetDeletionTimestamp
@@ -35,6 +38,7 @@ public import Proof.k8s_io.apimachinery.pkg.apis.meta.v1.ObjectMeta__SetName
 public import Proof.k8s_io.apimachinery.pkg.apis.meta.v1.ObjectMeta__SetNamespace
 public import Proof.k8s_io.apimachinery.pkg.apis.meta.v1.ObjectMeta__SetResourceVersion
 public import Proof.k8s_io.apimachinery.pkg.apis.meta.v1.ObjectMeta__SetUID
+public import Proof.k8s_io.api.core.v1.Pod__DeepCopyObject
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8sdaemonset.apimodel.Server__AdminClientset
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8sdaemonset.apimodel.Server__Clientset
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8sdaemonset.apimodel.Server__chance
@@ -147,6 +151,14 @@ theorem Clientset.wp_CoreV1 :
     EtcdGrove.apimodel.Clientset.CoreV1.spec (GF := GF) (hG := hG) :=
   EtcdGrove.apimodel.Clientset.CoreV1.wp_proof
 
+theorem appsv1.ControllerRevision.wp_DeepCopyObject :
+    EtcdGrove.appsv1.ControllerRevision.DeepCopyObject.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.appsv1.ControllerRevision.DeepCopyObject.wp_proof
+
+theorem appsv1.DaemonSet.wp_DeepCopyObject :
+    EtcdGrove.appsv1.DaemonSet.DeepCopyObject.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.appsv1.DaemonSet.DeepCopyObject.wp_proof
+
 theorem schema.GroupResource.wp_String_ptr :
     EtcdGrove.schema.GroupResource.String_ptr.spec (GF := GF) (hG := hG) :=
   EtcdGrove.schema.GroupResource.String_ptr.wp_proof
@@ -174,6 +186,10 @@ theorem apierrors.wp_NewResourceExpired :
 theorem apierrors.wp_NewTimeoutError :
     EtcdGrove.apierrors.NewTimeoutError.spec (GF := GF) (hG := hG) :=
   EtcdGrove.apierrors.NewTimeoutError.wp_proof
+
+theorem corev1.Node.wp_DeepCopyObject :
+    EtcdGrove.corev1.Node.DeepCopyObject.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.corev1.Node.DeepCopyObject.wp_proof
 
 theorem metav1.wp_Now :
     EtcdGrove.metav1.Now.spec (GF := GF) (hG := hG) :=
@@ -239,6 +255,10 @@ theorem metav1.ObjectMeta.wp_SetUID :
     EtcdGrove.metav1.ObjectMeta.SetUID.spec (GF := GF) (hG := hG) :=
   EtcdGrove.metav1.ObjectMeta.SetUID.wp_proof
 
+theorem corev1.Pod.wp_DeepCopyObject :
+    EtcdGrove.corev1.Pod.DeepCopyObject.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.corev1.Pod.DeepCopyObject.wp_proof
+
 theorem Server.wp_AdminClientset :
     EtcdGrove.apimodel.Server.AdminClientset.spec (GF := GF) (hG := hG) :=
   EtcdGrove.apimodel.Server.AdminClientset.wp_proof
@@ -253,7 +273,7 @@ theorem Server.wp_chance :
 
 theorem wp_copyObject :
     EtcdGrove.apimodel.copyObject.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.apimodel.copyObject.wp_proof
+  EtcdGrove.apimodel.copyObject.wp_proof corev1.Pod.wp_DeepCopyObject corev1.Node.wp_DeepCopyObject appsv1.DaemonSet.wp_DeepCopyObject appsv1.ControllerRevision.wp_DeepCopyObject
 
 theorem wp_rvString :
     EtcdGrove.apimodel.rvString.spec (GF := GF) (hG := hG) :=

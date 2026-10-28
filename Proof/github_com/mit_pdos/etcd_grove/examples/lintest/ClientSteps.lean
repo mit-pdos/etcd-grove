@@ -12,7 +12,8 @@ timeless) and takes the step of `InvLemmas.lean`.
 - `wp_clock_read`: a reading `t'` is recorded as the client's last reading, and it is at
   least every `τ` of the client's records and its previous reading.
 - `wp_apply_commit`: the operation is linearized when the clock reads `t`, appended to the log
-  and to the client's records with `τ = t`, and `t` is at least the client's last reading.
+  and to the client's records with `τ = t`, and `t` is at least the client's last reading; the
+  client's thread token is lent to the library and given back.
 -/
 module
 
@@ -81,14 +82,15 @@ theorem wp_apply_commit (S : ModelSpec GF σ) (inOk : GoInterface → IProp GF)
     (libState : σ → IProp GF)
     (clockVal : w64 → IProp GF) (Eapp : CoPset) (n : Nat) (γ : GName) (apply : GoFunc)
     (c : Nat) (v : ClientV) (i : GoInterface) (HE : (↑lintestN : CoPset) ⊆ ⊤ \ Eapp) :
-    {{ applySpec S inOk libState Eapp apply ∗ inOk i ∗
+    {{ applySpec S inOk libState Eapp apply ∗ inOk i ∗ threadTok ∗
         inv lintestN (linInv S.M libState clockVal n γ) ∗ £ 1 ∗ clientTok γ c v }}
       (App (Val #apply) (Val #i))
     {{ (o : GoInterface) (t : w64), RET #o; clientTok γ c (v.1 ++ [((i, o), t)], v.2) ∗
-        ⌜sint.Z v.2 ≤ sint.Z t⌝ ∗ S.ioOk i o }} := by
-  iintro %Φ ⟨#Happ, Hin, #Hinv, Hlc, Htok⟩ HΦ
+        ⌜sint.Z v.2 ≤ sint.Z t⌝ ∗ S.ioOk i o ∗ threadTok }} := by
+  iintro %Φ ⟨#Happ, Hin, Htt, #Hinv, Hlc, Htok⟩ HΦ
   iunfold applySpec at Happ
-  iapply Happ $$ %i Hin
+  iapply Happ $$ %i [Hin Htt]
+  · iframe
   inext
   iinv Hinv with Hi Hclose
   imod lc_fupd_elim_later $$ Hlc Hi with Hi
@@ -108,7 +110,7 @@ theorem wp_apply_commit (S : ModelSpec GF σ) (inOk : GoInterface → IProp GF)
     ipureintro
     exact Hok.commit Hlook Hstep
   imodintro
-  iintro Hio
+  iintro ⟨Hio, Htt⟩
   iapply HΦ
   iframe
   ipureintro

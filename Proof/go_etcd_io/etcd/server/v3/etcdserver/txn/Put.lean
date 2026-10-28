@@ -11,7 +11,7 @@ public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.store__Write
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.txn.checkAndGetPrevKV
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.txn.put
 public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.metricsTxnWrite__End
-public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.FrozenSpecs
+public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.ReaderSpecs
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.txn.KVWrite
 
 @[expose] public section
@@ -71,7 +71,7 @@ theorem txn.Put.wp_proof
   iintro %fsl ⟨Hfsl, Hfslc⟩
   (try wp_auto)
   wp_apply (hEnsure ctx cd ot te lg _ _) $$ [$Hctx $Hct $Hto Hfsl Hfslc]
-    as %ctx' %trace ⟨⟨%Ht, %Hteq⟩, Htrc, #Hct', %vs, #Hctx', -⟩
+    as %ctx' %trace ⟨⟨%Ht, %Hteq⟩, Htrc, #Hct', -, %vs, #Hctx', -⟩
   · iunfold traceutil.ownFields
     iexists _
     iframe Hfsl Hfslc
@@ -109,7 +109,7 @@ theorem txn.Put.wp_proof
   (try wp_auto)
   wp_apply (txn.kv_Write hWrite hWWrite kty kvv s γ trace P Pre Q f false m Lw)
     $$ [$Hkv $Hrd $Htok $Hwt $Htoks $Hwl $Hhook $Hpre $Htr $Htrc]
-    as %tyX %vX ⟨%ilog, %mw, Htx, Hte, Htoks, %Hil, HQ, Hhook⟩
+    as %tyX %vX ⟨%ilog, %mw, %crev, Htx, Hte, Htoks, %Hil, HQ, Hhook⟩
   · ipureintro; exact ⟨fun h => Hsole h, Ht⟩
   ihave ⟨Hte, #Hw⟩ := txn.twEnd_wrap s γ tyX vX mw ilog $$ Hte
   have hsole : γ.watchQ = true → m + 1 = txn.soleBudget ilog := by
@@ -118,15 +118,15 @@ theorem txn.Put.wp_proof
   imod Hupd $$ HQ with ⟨HP, HPost⟩
   (try wp_auto)
   -- the pin of the transaction's committed log
-  ihave ⟨%Hpin, Htoks, -, Htx⟩ := txn.isTxnWrite_pinned γ log₀ ilog [] mw s (W64 0) (W64 0) (W64 0) m
+  ihave ⟨%Hpin, Htoks, -, Htx⟩ := txn.isTxnWrite_pinned γ log₀ ilog [] mw s (W64 0) (W64 0) (W64 0) m crev
     $$ [$Htoks $Hc0 $Htx]
-  ihave ⟨%Hfx, Htx⟩ := txn.isTxnWrite_facts mw s γ ilog [] (W64 0) (W64 0) (W64 0) $$ Htx
+  ihave ⟨%Hfx, Htx⟩ := txn.isTxnWrite_facts mw s γ ilog [] (W64 0) (W64 0) (W64 0) crev $$ Htx
   have hks := txn.kindState_write ilog [] (W64 0) (W64 0) (W64 0) Hfx.1 Hfx.2
   rw [txn.pendState_nil] at hks
-  ihave Htx : mvcc.isTxn mw s γ trace (.write ilog [] (W64 0) (W64 0) (W64 0)) $$ [Htx]
+  ihave Htx : mvcc.isTxn mw s γ trace (.write ilog [] (W64 0) (W64 0) (W64 0)) crev $$ [Htx]
   · simp only [mvcc.isTxn]; iexact Htx
   -- `checkAndGetPrevKV(trace, txnWrite, p)`
-  wp_apply (hCheck trace mw s γ (.write ilog [] (W64 0) (W64 0) (W64 0)) p o tyX vX) $$ [$Htx $Hw $Hp]
+  wp_apply (hCheck trace mw s γ (.write ilog [] (W64 0) (W64 0) (W64 0)) p o tyX vX crev) $$ [$Htx $Hw $Hp]
     as %prev %err ⟨Htx, Hout⟩
   · ipureintro; exact Ht
   rw [hks]
@@ -138,9 +138,9 @@ theorem txn.Put.wp_proof
     icases He' with ⟨%e, -, %Hee⟩
     subst Hee
     (try wp_auto)
-    ihave Htx : mvcc.isTxnWrite mw s γ trace ilog [] (W64 0) (W64 0) (W64 0) $$ [Htx]
+    ihave Htx : mvcc.isTxnWrite mw s γ trace ilog [] (W64 0) (W64 0) (W64 0) crev $$ [Htx]
     · simp only [mvcc.isTxn]; iexact Htx
-    wp_apply (txn.tw_End hEnd hWEnd tyX vX s γ trace mw ilog [] (W64 0) (W64 0) (W64 0) m P f)
+    wp_apply (txn.tw_End hEnd hWEnd tyX vX s γ trace mw ilog [] (W64 0) (W64 0) (W64 0) crev m P f)
       $$ [$Htx $Hte $Htoks HP Hhook] as ⟨Hrd, ⟨%te', Htrc⟩, #Hc, Htok, Htoks, Hwl, Hhook⟩
     · iframe HP Hhook
       isplitl []
@@ -173,10 +173,10 @@ theorem txn.Put.wp_proof
     · unfold txn.putLeaseOf; rw [hil]; simp only [Bool.false_eq_true, ↓reduceIte]; iexact Hlok
     · iapply Hlprem
       ipureintro; exact ⟨Hpin, rfl⟩
-  ihave Htx : mvcc.isTxnWrite mw s γ trace ilog [] (W64 0) (W64 0) (W64 0) $$ [Htx]
+  ihave Htx : mvcc.isTxnWrite mw s γ trace ilog [] (W64 0) (W64 0) (W64 0) crev $$ [Htx]
   · simp only [mvcc.isTxn]; iexact Htx
   have hp := hput trace ctx' { cd with Values := vs } mw s γ ilog [] (W64 0) (W64 0) (W64 0) p o prev L
-    tyX vX
+    tyX vX crev
   simp only [txn.pendState_nil, List.nil_append, List.length_nil] at hp
   iunfold EtcdGrove.lease.lessorUser at Hu
   icases Hu with ⟨Hown, Hrdo, Hrvk⟩
@@ -190,7 +190,7 @@ theorem txn.Put.wp_proof
   (try wp_auto)
   -- the deferred `txnWrite.End()`: the put committed
   wp_apply (txn.tw_End hEnd hWEnd tyX vX s γ trace mw ilog
-      [txn.putChangeOf o (mvcc.findKey o.key (mvcc.stateAfter ilog))] puts' (W64 0) putSize' m P f)
+      [txn.putChangeOf o (mvcc.findKey o.key (mvcc.stateAfter ilog))] puts' (W64 0) putSize' crev m P f)
     $$ [$Htx $Hte $Htoks HP Hhook] as ⟨Hrd, ⟨%te', Htrc⟩, #Hc, -, Htoks, Hwl, Hhook⟩
   · iframe HP Hhook
     isplitl []

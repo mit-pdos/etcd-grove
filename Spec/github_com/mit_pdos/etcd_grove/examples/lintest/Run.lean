@@ -12,10 +12,11 @@ tests trace etcd (a `porcupine.Operation` per call, its call and return timestam
 - `model` is porcupine's model `S` (`isModel`), with sequential specification `S.M`;
 - `apply` is logically atomic against `S.M` over the library's abstract state `libState`
   (`applySpec`), which starts at `S.M.init`, on the inputs `i` with `inOk i` (the library's
-  well-formed inputs: e.g. of the dynamic type it asserts);
+  well-formed inputs: e.g. of the dynamic type it asserts), lent the calling client's thread
+  token (each client is a goroutine `Run` forks);
 - `clock` is logically atomic and monotone over its abstract value `clockVal`
   (`clockSpec`), e.g. `CounterClock`'s;
-- `gen` returns an input `i` with `inOk i` (`genSpec`), any such input, so randomized
+- `gen`, called with a client's index `id ≥ 0`, returns an input `i` with `inOk i` (`genSpec`), any such input, so randomized
   traffic is covered;
 - the invariants of the library and the clock (`Eapp`, `Eclk`) are not `Run`'s
   (`lintestN`);

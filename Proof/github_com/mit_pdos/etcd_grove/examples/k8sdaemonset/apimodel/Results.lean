@@ -8,9 +8,8 @@ each linearizing at the server's operation.
 The model is trusted Go (D50): these specs are an internal layer of the DaemonSet controller's
 proof, not part of its spec boundary. `#print axioms` on a result is its trust base: the trust
 boundary's names-only functions (the API types' `DeepCopyObject`, apimachinery's
-`NewInternalError`, `NewConflict`, `schema.GroupResource.String`), Perennial's, and `sorryAx`
-through `copyObject` (gap C8: the pinned translation's interface assertion,
-`notes/k8s-apimodel-goose.md`). The results in `links_pending` take as hypotheses the specs not
+`NewInternalError`, `NewConflict`, `schema.GroupResource.String`) and Perennial's; no `sorry`
+(`copyObject`'s assertion to `object`, gap C8, is proved since the Perennial pin `ad74ee4f6`). The results in `links_pending` take as hypotheses the specs not
 proved yet: the watcher's goroutine (`watcher.run`, whose precondition `runPre` is what `watch`
 hands it), the pod and DaemonSet create strategies, the status strategy
 (`updateDaemonSetStatus`, `daemonSetStatusEqual`).

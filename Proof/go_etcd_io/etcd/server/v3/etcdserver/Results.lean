@@ -621,7 +621,8 @@ theorem range_linearizable (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : 
             ⌜2 ≤ log.length ∧ log.length + 3 ≤ 2 ^ 63 ∧ F <+: log⌝ ∗ readIndexOk γr c ∗
             (∃ (ci₀ : w64) (L₀ : mvcc.Log), ⌜uint.Z c ≤ uint.Z ci₀⌝ ∗ appliedLogAt γr ci₀ L₀ ∗
               ⌜L₀ <+: log⌝) ∗
-            txn.rangeResult resp GoInterface.nil log (W64 ((log.length : Int) - 1)) o true ∗
+            (∃ crev : Int,
+              txn.rangeResult resp GoInterface.nil log (W64 ((log.length : Int) - 1)) crev o true) ∗
             txn.respHdrOwn (structFieldRef etcdserverpb.RangeResponse go!"Header" resp)) ∨
          (⌜resp = null ∧ err ≠ GoInterface.nil⌝ ∗ applyErrIs err)) }} := by
   iintro %Φ ⟨#Hp, #Hq, #Hd, Hrc, #Hctx, Hct, Hot, #Hr, %Hv, #HF⟩ HΦ
@@ -664,7 +665,8 @@ theorem range_serializable (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : 
     {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); srvRdCall s E γr c ∗
         ((⌜err = GoInterface.nil ∧ resp ≠ null⌝ ∗ ∃ log : mvcc.Log, mvcc.idxCert E.γ.idx log ∗
             ⌜2 ≤ log.length ∧ log.length + 3 ≤ 2 ^ 63⌝ ∗
-            txn.rangeResultClient resp GoInterface.nil log (W64 ((log.length : Int) - 1)) o true ∗
+            (∃ crev : Int,
+              txn.rangeResultClient resp GoInterface.nil log (W64 ((log.length : Int) - 1)) crev o true) ∗
             txn.respHdrOwn (structFieldRef etcdserverpb.RangeResponse go!"Header" resp)) ∨
          (⌜resp = null ∧ err ≠ GoInterface.nil⌝ ∗ applyErrIs err)) }} := by
   iintro %Φ ⟨#Hp, #Hq, #Hd, Hrc, #Hctx, Hct, Hot, #Hr, %Hv, #HF⟩ HΦ
@@ -688,7 +690,9 @@ theorem range_serializable (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : 
     iframe Hcert Hown
     isplitr
     · ipureintro; exact ⟨Hlen.1, Hlen.2.1⟩
-    iapply txn.rangeResult_client _ _ _ _ o true Hset hcut $$ Hres
+    icases Hres with ⟨%crev, #Hres⟩
+    iexists crev
+    iapply txn.rangeResult_client _ _ _ _ crev o true Hset hcut $$ Hres
   · iright; iexact H
 
 /-- **`txn_readonly`** (see the section header). -/
@@ -845,7 +849,7 @@ theorem server_kv_backend (lg : Loc) (le : GoInterface)
   -- the compaction right's half given up, the readers those of a never-compacted store (as the
   -- watchable store's `newWatchableStore` does)
   imod mvcc.crevFrozen_alloc γ ⊤ $$ Hright with #Hfrz
-  ihave Hrds := mvcc.storeReaders_of s γ _ $$ [$Hfrz $Hrds]
+  ihave Hrds := mvcc.storeReaders_of s γ _ $$ Hrds
   imodintro
   iapply HΦ
   iexists γ
@@ -1815,6 +1819,18 @@ theorem server_start_on [EtcdGrove.ErrorStringLeaf] :
     EtcdServer.wp_RequestTimeout (EtcdServer.AppliedIndex.wp_proofM true
       (EtcdServer.getAppliedIndex.wp_proofM true)) raftNode.wp_ReadState raftNode.wp_ReadIndex
 
+/-- **`Start` with auth on** (the auth plan's E3zb, 2026-10-28; `EtcdServer.Start.specOn`): `start`
+with auth on (`server_start_on`), then the goroutines `Start` attaches, the monitors' proposals with
+the permission in the mode (`srvMonitorPermitM true`) and the read loop at the mode-`on` model's
+state. -/
+theorem server_Start_on [EtcdGrove.ErrorStringLeaf] :
+    EtcdServer.Start.specOn (GF := GF) (hG := hG) :=
+  EtcdServer.Start.wp_proofOn server_start_on EtcdServer.wp_GoAttach EtcdServer.wp_Logger
+    EtcdServer.wp_adjustTicks EtcdServer.wp_publishV3 config.ServerConfig.wp_ReqTimeout
+    EtcdServer.wp_purgeFile wp_monitorFileDescriptor EtcdServer.wp_monitorClusterVersions
+    EtcdServer.wp_monitorStorageVersion read.Read.wp_LinearizableReadLoop EtcdServer.wp_monitorKVHash
+    EtcdServer.wp_monitorCompactHash EtcdServer.wp_monitorDowngrade
+
 /-- **`Range` with auth on** (the auth plan's E3s, 2026-10-27; `EtcdServer.Range.specOn`,
 `Proof/go_etcd_io/etcd/server/v3/etcdserver/EtcdServer__Range.lean`): over the request and read
 views with auth on and the read deposit at the mode-`on` model's state, for a reader holding a
@@ -1833,7 +1849,7 @@ theorem server_range_on [go_etcd_io.etcd.cache.v3.Assumptions] :
     strconv.wp_FormatBool time.Duration.wp_Seconds prometheus.HistogramVec.wp_WithLabelValues
     traceutil.Trace.wp_Step EtcdServer.wp_KV txn.wp_Range
     (EtcdServer.doSerialize.wp_proofM true traceutil.wp_Get EtcdServer.wp_AuthInfoFromCtx
-      traceutil.Trace.wp_Step)
+      (fun _ => EtcdServer.AuthInfoFromCtx_bound EtcdServer.wp_AuthStore) traceutil.Trace.wp_Step)
     RangeRequest.wp_String proto.wp_Size
 
 /-- **A read-only `Txn` with auth on** (the auth plan's E3v, 2026-10-27; `EtcdServer.Txn.specOnR`,
@@ -1853,7 +1869,7 @@ theorem server_txn_ro_on [go_etcd_io.etcd.cache.v3.Assumptions] :
     txn.wp_WarnOfExpensiveReadOnlyTxnRequest traceutil.Trace.wp_LogIfLong strconv.wp_FormatBool
     time.Duration.wp_Seconds prometheus.HistogramVec.wp_WithLabelValues EtcdServer.wp_KV txn.wp_Txn
     (EtcdServer.doSerialize.wp_proofM true traceutil.wp_Get EtcdServer.wp_AuthInfoFromCtx
-      traceutil.Trace.wp_Step)
+      (fun _ => EtcdServer.AuthInfoFromCtx_bound EtcdServer.wp_AuthStore) traceutil.Trace.wp_Step)
     proto.wp_Size
 
 end adminLatest
@@ -2109,6 +2125,7 @@ end serverAuth
 #print axioms Perennial.EtcdGrove.srv_auth_tp_on
 #print axioms Perennial.EtcdGrove.srv_auth_tp_off
 #print axioms Perennial.EtcdGrove.server_new_auth_on
+#print axioms Perennial.EtcdGrove.server_Start_on
 
 section serverAuthAlloc
 variable [GooseExts] [GooseSemantics] [GooseInterp]
@@ -2278,13 +2295,15 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 
 /-- **The proposer's handoff in the auth mode `on`** (the auth plan's E3b, `ReqOn.lean`): the
 result at the header the server stamps, the applied result's auth verdict the model's grant at the
-committed prefix before the entry (`resPostM true`, `authTie`). Every callee linked. -/
+committed prefix before the entry (`resPostM true`, `authTie`), and (E3zb) the stamped header's
+user bound to the context (`hdrBoundM`). Every callee linked. -/
 theorem server_process_irr_on :
     EtcdServer.processInternalRaftRequestOnce.specM (GF := GF) (hG := hG) true :=
   EtcdServer.processInternalRaftRequestOnce.wp_proofM true (EtcdServer.getAppliedIndex.wp_proofM true)
     EtcdServer.wp_getCommittedIndex EtcdServer.wp_FeatureEnabled wp_exceedsRequestLimit
-    idutil.Generator.wp_Next EtcdServer.wp_AuthInfoFromCtx wp_getRequestType proto.wp_MarshalIRR
-    config.ServerConfig.wp_ReqTimeout trace.wp_SpanFromContext
+    idutil.Generator.wp_Next EtcdServer.wp_AuthInfoFromCtx
+    (fun _ => EtcdServer.AuthInfoFromCtx_bound EtcdServer.wp_AuthStore)
+    wp_getRequestType proto.wp_MarshalIRR config.ServerConfig.wp_ReqTimeout trace.wp_SpanFromContext
     (EtcdServer.parseProposeCtxErr.wp_proofM true errors.wp_IsCtxErr time.Time.wp_After
       EtcdServer.wp_getLead EtcdServer.wp_MemberID membership.RaftCluster.wp_Members
       wp_isConnectedToQuorumSince wp_isConnectedSince)

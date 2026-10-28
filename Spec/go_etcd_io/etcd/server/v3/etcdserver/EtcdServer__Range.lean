@@ -63,7 +63,8 @@ through the read index left (`authFloorAt`, E3u: the applied index's invariant h
 published, and `Range` checks after waiting for the read index, so the reader needs no bound of its
 own beyond `n`, which `auth.authPubLb γa 0` always gives), and the read
 as `spec`'s, a linearizable one at the mode-`on` model of a committed raft log `L` at which the
-deposit gave `□ Q L` (`rangeReadOkM true`). -/
+deposit gave `□ Q L` (`rangeReadOkM true`); the auth info checked is the caller's
+(`infoBoundM`, E3zb, 2026-10-28). -/
 abbrev EtcdServer.Range.specOn : Prop :=
   ∀ (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames) (c : w64)
     (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) (r : Loc) (o : OpFull)
@@ -80,6 +81,7 @@ abbrev EtcdServer.Range.specOn : Prop :=
   {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); srvRdCall s E γr c ∗
       ((⌜err = GoInterface.nil ∧ resp ≠ null⌝ ∗
           (∃ (info : go_etcd_io.etcd.server.v3.auth.AuthInfo) (m : Nat), ⌜n ≤ m⌝ ∗ apply.rangeClassFrom E.authMode m info o ∗
+            infoBoundM true s E (GoInterface.ok ctx) info ∗
             (if o.base.serializable then iprop(True) else authFloorAt E.authMode γr c m)) ∗
           rangeReadOkM true E γr c F o resp Q) ∨
        (⌜resp = null ∧ err ≠ GoInterface.nil⌝ ∗ applyErrIs err)) }}

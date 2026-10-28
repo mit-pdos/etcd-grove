@@ -5,11 +5,9 @@ the delaying and rate-limiting queues.
 
 `#print axioms` on a result is its trust base: the trust boundary's names-only functions (their
 `wp_proof` axioms: `k8s.io/utils/clock`, `klog`, `x/time/rate`, `container/heap`, `math.Pow`,
-`time.Duration.Nanoseconds`, `utilruntime.HandleCrashWithLogger`), Perennial's, and the
-`sorryAx` of the waiting loop's deferred `HandleCrashWithLogger` (gap G-defer-variadic,
-`notes/perennial-changes.md`). The results of `section links_pending` (the waiting loop,
-`AddAfter`, `AddRateLimited`, the delaying and rate-limiting queues' constructors) take the specs of
-the promoted methods (gap C2, `notes/k8s-clientgo-goose.md`) as hypotheses: they are not linked.
+`time.Duration.Nanoseconds`, `utilruntime.HandleCrashWithLogger`) and Perennial's; no `sorry`. The
+methods the delaying and rate-limiting queues promote from their embedded interfaces are proved
+(each the embedded queue's), so every result is linked.
 -/
 module
 
@@ -32,8 +30,10 @@ namespace workqueue
 #print axioms wp_NewTypedWithConfig
 -- the rate limiters
 #print axioms wp_DefaultTypedControllerRateLimiter
--- the delaying and rate-limiting queues (C2's specs as hypotheses)
+-- the delaying and rate-limiting queues
 #print axioms delayingType.wp_waitingLoop
+#print axioms rateLimitingType.wp_Get
+#print axioms rateLimitingType.wp_Done
 #print axioms rateLimitingType.wp_AddRateLimited
 #print axioms wp_NewTypedRateLimitingQueueWithConfig
 

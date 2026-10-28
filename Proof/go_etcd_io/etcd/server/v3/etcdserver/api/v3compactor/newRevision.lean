@@ -6,7 +6,7 @@ the proof is phase 1's glue.
 module
 
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.api.v3compactor.newRevision
-public import Spec.context.WithCancelBackground
+public import Proof.go_etcd_io.etcd.pkg.v3.traceutil.CtxLaws
 
 @[expose] public section
 
@@ -26,8 +26,7 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3compactor.Assumptions]
 
-theorem v3compactor.newRevision.wp_proof
-    (hWithCancelBackground : context.WithCancelBackground.spec (GF := GF) (hG := hG)) :
+theorem v3compactor.newRevision.wp_proof :
     v3compactor.newRevision.spec (GF := GF) (hG := hG) := by
   intro lg clk ret E
   wp_start as ⟨%Hlgnn, #Hclk⟩
@@ -45,7 +44,8 @@ theorem v3compactor.newRevision.wp_proof
   -- the fields are read-only once stored: persisted under the postcondition's update
   iapply wp_fupd
   wp_apply _root_.Perennial.context.wp_Background
-  wp_apply hWithCancelBackground as %ctx %γctx %cancel ⟨#Hcs, #Hctx⟩
+  -- `WithCancel(Background())`, carrying no trace (M2's freeze repair)
+  wp_apply traceutil.wp_WithCancelBackground_noTrace as %ctx %γctx %cancel ⟨#Hcs, #Hctx, #Htr⟩
   ipersist lg
   ipersist clock
   ipersist retention

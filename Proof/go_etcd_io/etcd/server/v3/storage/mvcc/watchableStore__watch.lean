@@ -680,7 +680,7 @@ theorem mvcc.watchableStore.watch.wp_proof
   · iPkgInit
   iunfold mvcc.watchReader at HR
   icases HR with ⟨Hsr0, Hmur⟩
-  iunfold mvcc.storeReader at Hsr0
+  iunfold mvcc.storeReader at Hsr0; iunfold mvcc.storeReaderC at Hsr0
   iNamedSuffix Hsr0 "R"
   wp_auto
   wp_apply +noauto sync.RWMutex.wp_Lock_guard $$ [$Hmu] as ⟨Hwl, HP⟩
@@ -899,10 +899,9 @@ theorem mvcc.watchableStore.watch.wp_proof
       isplitl [Hmur HmuR HrevMuR HtkR]
       · iunfold mvcc.watchReader
         iframe Hmur
-        iunfold mvcc.storeReader
+        iunfold mvcc.storeReader; iunfold mvcc.storeReaderC
         simp only [named]
         iframe HmuR HrevMuR HtkR
-        iframe #
       isplitr
       · iexists lo
         iunfold mvcc.watcherIs
@@ -1013,10 +1012,9 @@ theorem mvcc.watchableStore.watch.wp_proof
       isplitl [Hmur HmuR HrevMuR HtkR]
       · iunfold mvcc.watchReader
         iframe Hmur
-        iunfold mvcc.storeReader
+        iunfold mvcc.storeReader; iunfold mvcc.storeReaderC
         simp only [named]
         iframe HmuR HrevMuR HtkR
-        iframe #
       isplitr
       · iexists lo
         iunfold mvcc.watcherIs
@@ -1137,10 +1135,9 @@ theorem mvcc.watchableStore.watch.wp_proof
         isplitl [Hmur HmuR HrevMuR HtkR]
         · iunfold mvcc.watchReader
           iframe Hmur
-          iunfold mvcc.storeReader
+          iunfold mvcc.storeReader; iunfold mvcc.storeReaderC
           simp only [named]
           iframe HmuR HrevMuR HtkR
-          iframe #
         isplitr
         · iexists lo
           iunfold mvcc.watcherIs
@@ -1252,10 +1249,9 @@ theorem mvcc.watchableStore.watch.wp_proof
       isplitl [Hmur HmuR HrevMuR HtkR]
       · iunfold mvcc.watchReader
         iframe Hmur
-        iunfold mvcc.storeReader
+        iunfold mvcc.storeReader; iunfold mvcc.storeReaderC
         simp only [named]
         iframe HmuR HrevMuR HtkR
-        iframe #
       isplitr
       · iexists lo
         iunfold mvcc.watcherIs

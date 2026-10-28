@@ -16,6 +16,6 @@ axiom time.Duration.Seconds.wp_proof
 axiom time.Duration.Seconds_ptr.wp_proof
 axiom trace.New.wp_proof
 axiom trace.Trace.LogIfLong.wp_proof
+axiom utilruntime.HandleCrashWithLogger.wp_proof
 sorry Perennial.reflect.Type'.Type'_into_val_typed
 sorry Perennial.reflect.Type'.Type'_typed_pointsto
-sorry cache.deferred_HandleCrashWithLogger

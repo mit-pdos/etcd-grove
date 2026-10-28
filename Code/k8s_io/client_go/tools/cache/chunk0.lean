@@ -1422,7 +1422,7 @@ noncomputable def controller.RunWithContext.impl [GooseExts] [GoGlobalContext] :
   (Let "$f" (App (Val (GoInstruction (FuncResolve _root_.Perennial.k8s_io.apimachinery.pkg.util.runtime.HandleCrashWithContext []))) (Val #()))
   (App (Val (GoInstruction (GoStore deferType))) (Pair (Var "$defer") (Let "$oldf" (App (Val (GoInstruction (GoLoad deferType))) (Var "$defer"))
   (Lam BAnon
-  (Seq (App (Var "$f") (Var "$a0"))
+  (Seq (App (App (Var "$f") (Var "$a0")) (Var "$a1"))
   (App (Var "$oldf") (Val #()))))))))))))))))
   (Val #()))))
 
@@ -17462,7 +17462,7 @@ noncomputable def sharedIndexInformer.RunWithContext.impl [GooseExts] [GoGlobalC
   (Let "$f" (App (Val (GoInstruction (FuncResolve _root_.Perennial.k8s_io.apimachinery.pkg.util.runtime.HandleCrashWithContext []))) (Val #()))
   (App (Val (GoInstruction (GoStore deferType))) (Pair (Var "$defer") (Let "$oldf" (App (Val (GoInstruction (GoLoad deferType))) (Var "$defer"))
   (Lam BAnon
-  (Seq (App (Var "$f") (Var "$a0"))
+  (Seq (App (App (Var "$f") (Var "$a0")) (Var "$a1"))
   (App (Var "$oldf") (Val #()))))))))))))))))
   (Val #()))))
 
@@ -19055,7 +19055,7 @@ noncomputable def processorListener.pop.impl [GooseExts] [GoGlobalContext] : val
   (Let "$f" (App (Val (GoInstruction (FuncResolve _root_.Perennial.k8s_io.apimachinery.pkg.util.runtime.HandleCrashWithLogger []))) (Val #()))
   (App (Val (GoInstruction (GoStore deferType))) (Pair (Var "$defer") (Let "$oldf" (App (Val (GoInstruction (GoLoad deferType))) (Var "$defer"))
   (Lam BAnon
-  (Seq (App (Var "$f") (Var "$a0"))
+  (Seq (App (App (Var "$f") (Var "$a0")) (Var "$a1"))
   (App (Var "$oldf") (Val #())))))))))))))))
   (Val #()))))
 
@@ -19165,7 +19165,7 @@ noncomputable def processorListener.run.impl [GooseExts] [GoGlobalContext] : val
   (Let "$f" (App (Val (GoInstruction (FuncResolve _root_.Perennial.k8s_io.apimachinery.pkg.util.runtime.HandleCrashWithLogger []))) (Val #()))
   (App (Val (GoInstruction (GoStore deferType))) (Pair (Var "$defer") (Let "$oldf" (App (Val (GoInstruction (GoLoad deferType))) (Var "$defer"))
   (Lam BAnon
-  (Seq (App (Var "$f") (Var "$a0"))
+  (Seq (App (App (Var "$f") (Var "$a0")) (Var "$a1"))
   (App (Var "$oldf") (Val #()))))))))))))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "sleepAfterCrash") (Var "$r0"))))))))

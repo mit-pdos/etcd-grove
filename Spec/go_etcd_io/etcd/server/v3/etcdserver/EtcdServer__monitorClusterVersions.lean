@@ -5,7 +5,7 @@ attaches). Lean-first (the request path's unit 4c).
 module
 
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvApplier
-public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvMonitors
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.MonitorsOn
 
 @[expose] public section
 
@@ -26,13 +26,13 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 /-- `s.monitorClusterVersions()` returns (names-only: the leader's cluster version monitor, until
 `stopping`). It proposes, through `s.updateClusterVersionV3` and `s.raftRequest`, only
 `ClusterVersionSet` requests of a version it decided (`semver.Version.String()`, which parses
-back: `semverValid`), with the permission `srvMonitorPermit` gives (D19c, 2026-10-18,
+back: `semverValid`), with the permission `srvMonitorPermitM` gives (in either auth mode, `MonitorsOn.lean`, E3zb) (D19c, 2026-10-18,
 `InvMonitors.lean`; until then the contract took only the package's initialization, and its
 proposals were outside the model). -/
 abbrev EtcdServer.monitorClusterVersions.spec : Prop :=
-  ∀ (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames),
+  ∀ (on : Bool) (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
-      srvMonitorPermit s E ρ }}
+      srvMonitorPermitM on s E ρ }}
     (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"monitorClusterVersions")) (Val #()))
   {{ RET #(); True }}
 

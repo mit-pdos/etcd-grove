@@ -208,7 +208,7 @@ theorem Check.wp_proof
     · -- `apply`
       unfold lintest.applySpec
       iintro %i
-      iintro !> %Φ' %Hin HAU
+      iintro !> %Φ' ⟨%Hin, Htt⟩ HAU
       obtain ⟨x, rfl, Hk, Hv⟩ := Hin
       wp_auto
       ihave %Hlen := ownSlice_len $$ Hks
@@ -229,34 +229,37 @@ theorem Check.wp_proof
       · -- Get
         replace Hif : x.Kind' = opGetB := Hif
         ihave HAU' := kvAu_of_run γr γd x (fun s => s) (fun s => s x.Key')
-          (fun o => iprop(kvS.ioOk (GF := GF) (boxIn x) o -∗ Φ' #o))
+          (fun o => iprop(kvS.ioOk (GF := GF) (boxIn x) o ∗ threadTok -∗ Φ' #o))
           (fun s => by unfold inStep; rw [if_pos Hif])
           (fun s => by unfold inOut; rw [if_pos Hif]) $$ Hinv HAU
-        wp_apply wp_Get γr γp r x.Key' (fun v => iprop(kvS.ioOk (GF := GF) (boxIn x) (boxS v) -∗ Φ' #(boxS v)))
+        wp_apply wp_Get γr γp r x.Key' (fun v => iprop(kvS.ioOk (GF := GF) (boxIn x) (boxS v) ∗ threadTok -∗ Φ' #(boxS v)))
           Hk $$ [$HrKV $HAU'] as %v HΨ
         iapply HΨ
+        iframe Htt
         ipureintro; exact ⟨⟨x, rfl⟩, v, rfl⟩
       replace Hng : ¬ x.Kind' = opGetB := Hif
       wp_if_destruct
       · -- Put
         replace Hif : x.Kind' = opPutB := Hif
         ihave HAU' := kvAu_of_run γr γd x (fun s => kvUpd s x.Key' x.Val') (fun _ => [])
-          (fun o => iprop(kvS.ioOk (GF := GF) (boxIn x) o -∗ Φ' #o))
+          (fun o => iprop(kvS.ioOk (GF := GF) (boxIn x) o ∗ threadTok -∗ Φ' #o))
           (fun s => by unfold inStep; rw [if_neg Hng, if_pos Hif])
           (fun s => by unfold inOut; rw [if_neg Hng]) $$ Hinv HAU
-        wp_apply wp_Put γr γp r x.Key' x.Val' iprop(kvS.ioOk (GF := GF) (boxIn x) (boxS []) -∗ Φ' #(boxS []))
+        wp_apply wp_Put γr γp r x.Key' x.Val' iprop(kvS.ioOk (GF := GF) (boxIn x) (boxS []) ∗ threadTok -∗ Φ' #(boxS []))
           Hk Hv $$ [$HrKV $HAU'] as HΨ
         iapply HΨ
+        iframe Htt
         ipureintro; exact ⟨⟨x, rfl⟩, [], rfl⟩
       · -- Append
         replace Hif : ¬ x.Kind' = opPutB := Hif
         ihave HAU' := kvAu_of_run γr γd x (fun s => kvUpd s x.Key' (s x.Key' ++ x.Val')) (fun _ => [])
-          (fun o => iprop(kvS.ioOk (GF := GF) (boxIn x) o -∗ Φ' #o))
+          (fun o => iprop(kvS.ioOk (GF := GF) (boxIn x) o ∗ threadTok -∗ Φ' #o))
           (fun s => by unfold inStep; rw [if_neg Hng, if_neg Hif])
           (fun s => by unfold inOut; rw [if_neg Hng]) $$ Hinv HAU
-        wp_apply wp_Append γr γp r x.Key' x.Val' iprop(kvS.ioOk (GF := GF) (boxIn x) (boxS []) -∗ Φ' #(boxS []))
+        wp_apply wp_Append γr γp r x.Key' x.Val' iprop(kvS.ioOk (GF := GF) (boxIn x) (boxS []) ∗ threadTok -∗ Φ' #(boxS []))
           Hk Hv $$ [$HrKV $HAU'] as HΨ
         iapply HΨ
+        iframe Htt
         ipureintro; exact ⟨⟨x, rfl⟩, [], rfl⟩
     isplitr
     · -- `gen`

@@ -30,7 +30,7 @@ theorem v3compactor.Periodic.Resume.wp_proof :
   intro pc E period
   wp_start as #Hcp
   iunfold isPeriodic at Hcp
-  icases Hcp with ⟨%lg, %clk, %pd, %ctx, %cd, %γctx, %cancel, #Hlg, %Hlgnn, #Hclkf, #Hclk, #Hpdf, %Hpd, #Hrg, #Hc, #Hctxf, #Hctx, #Hcancelf, #Hcs, #Hguard⟩
+  icases Hcp with ⟨%lg, %clk, %pd, %ctx, %cd, %γctx, %cancel, #Hlg, %Hlgnn, #Hclkf, #Hclk, #Hpdf, %Hpd, #Hrg, #Hc, #Hctxf, #Hctx, #Htrc, #Hcancelf, #Hcs, #Hguard⟩
   wp_auto
   ihave #Psync : isPkgInit (PROP := IProp GF) pkg_id.sync $$ []
   · iPkgInit

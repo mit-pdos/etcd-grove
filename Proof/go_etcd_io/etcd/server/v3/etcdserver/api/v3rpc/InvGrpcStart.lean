@@ -128,6 +128,53 @@ theorem v3rpc.kvDesc_nodup (mds : List google_golang_org.grpc.MethodDesc)
   simp only [descNames, h1, h.2, v3rpc.kvDescMethods, List.map_cons, List.map_nil]
   decide
 
+/-- The Auth service's methods `v3rpc.Server` registers that `examples/authkv`'s `SetUp` calls, with
+the `*AuthServer` `p` (the auth plan's E3zb): `UserAdd`, `UserGrantRole`, `RoleAdd`,
+`RoleGrantPermission`, `AuthEnable`. -/
+def v3rpc.authRegs (p : Loc) : List (GoString × val × GoInterface) :=
+  [(go!"/etcdserverpb.Auth/UserAdd", (@! etcdserverpb._Auth_UserAdd_Handler),
+     interface.mkOk (go.GoType.PointerType v3rpc.AuthServer.ty) #p),
+   (go!"/etcdserverpb.Auth/UserGrantRole", (@! etcdserverpb._Auth_UserGrantRole_Handler),
+     interface.mkOk (go.GoType.PointerType v3rpc.AuthServer.ty) #p),
+   (go!"/etcdserverpb.Auth/RoleAdd", (@! etcdserverpb._Auth_RoleAdd_Handler),
+     interface.mkOk (go.GoType.PointerType v3rpc.AuthServer.ty) #p),
+   (go!"/etcdserverpb.Auth/RoleGrantPermission", (@! etcdserverpb._Auth_RoleGrantPermission_Handler),
+     interface.mkOk (go.GoType.PointerType v3rpc.AuthServer.ty) #p),
+   (go!"/etcdserverpb.Auth/AuthEnable", (@! etcdserverpb._Auth_AuthEnable_Handler),
+     interface.mkOk (go.GoType.PointerType v3rpc.AuthServer.ty) #p)]
+
+/-- **The Auth service's registration contains `authRegs`** (from the descriptor's methods). -/
+theorem v3rpc.authRegs_sub (p : Loc) (mds : List google_golang_org.grpc.MethodDesc)
+    (h : mds.map (fun md => (md.MethodName', (#md.Handler' : val))) = v3rpc.authDescMethods) :
+    ∀ x ∈ v3rpc.authRegs p, x ∈ descRegs go!"etcdserverpb.Auth" mds
+      (interface.mkOk (go.GoType.PointerType v3rpc.AuthServer.ty) #p) := by
+  intro x hx
+  rw [v3rpc.descRegs_eq, h]
+  simp only [v3rpc.authRegs, List.mem_cons, List.not_mem_nil, or_false] at hx
+  simp only [v3rpc.authDescMethods, List.map_cons, List.map_nil]
+  -- the positions of UserAdd, UserGrantRole, RoleAdd, RoleGrantPermission, AuthEnable
+  rcases hx with rfl | rfl | rfl | rfl | rfl
+  · iterate 4 apply List.mem_cons_of_mem
+    exact List.mem_cons_self ..
+  · iterate 9 apply List.mem_cons_of_mem
+    exact List.mem_cons_self ..
+  · iterate 11 apply List.mem_cons_of_mem
+    exact List.mem_cons_self ..
+  · iterate 15 apply List.mem_cons_of_mem
+    exact List.mem_cons_self ..
+  · exact List.mem_cons_self ..
+
+/-- The Auth descriptor's names are distinct. -/
+theorem v3rpc.authDesc_nodup (mds : List google_golang_org.grpc.MethodDesc)
+    (sds : List google_golang_org.grpc.StreamDesc)
+    (h : mds.map (fun md => (md.MethodName', (#md.Handler' : val))) = v3rpc.authDescMethods ∧
+      sds.map (·.StreamName') = []) :
+    (descNames mds sds).Nodup := by
+  have h1 : mds.map (·.MethodName') = v3rpc.authDescMethods.map Prod.fst := by
+    rw [← h.1, List.map_map]; rfl
+  simp only [descNames, h1, h.2, v3rpc.authDescMethods, List.map_cons, List.map_nil]
+  decide
+
 /-- **The Watch service's registration contains `watchSReg`**. -/
 theorem v3rpc.watchSReg_mem (p : Loc) (sds : List google_golang_org.grpc.StreamDesc)
     (h : sds.map (fun sd => (sd.StreamName', (#sd.Handler' : val))) =

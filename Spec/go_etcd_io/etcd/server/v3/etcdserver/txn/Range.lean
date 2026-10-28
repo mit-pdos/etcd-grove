@@ -53,11 +53,13 @@ abbrev txn.Range.spec : Prop :=
   {{ (resp trace : Loc) (err : GoInterface), RET (PairV (PairV #resp #trace) #err);
       mvcc.storeReader s γ ∗ ownToks γ.revs m ∗ ⌜trace ≠ null⌝ ∗
       (∃ te' : Bool, traceutil.ownTrace trace te') ∗ ⌜∀ t0, ot = some t0 → te = false → trace = t0⌝ ∗
-      ∃ (log : mvcc.Log) (rev : w64), mvcc.idxCert γ.idx log ∗ mvcc.certOk γ log ∗
+      ∃ (log : mvcc.Log) (rev : w64) (crev : Int), mvcc.idxCert γ.idx log ∗ mvcc.certOk γ log ∗
+        mvcc.crevLb γ.idx crev ∗
         ⌜log₀ <+: log ∧ log.length + m + 3 ≤ 2 ^ 63 ∧ log ≠ [] ∧
-          rev = W64 ((log.length : Int) - 1)⌝ ∗
-        txn.rangeResult resp err log rev o withTotal ∗ txn.rangeHdr resp err ∗
-        ⌜nd = true → err = GoInterface.nil ∨ sint.Z rev < sint.Z o.base.rev⌝ }}
+          rev = W64 ((log.length : Int) - 1) ∧ -1 ≤ crev ∧ crev ≤ sint.Z rev⌝ ∗
+        txn.rangeResult resp err log rev crev o withTotal ∗ txn.rangeHdr resp err ∗
+        ⌜nd = true → err = GoInterface.nil ∨ sint.Z rev < sint.Z o.base.rev ∨
+          sint.Z (mvcc.rangeRev rev o.base.rev) < crev⌝ }}
 
 end spec
 

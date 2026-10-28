@@ -429,12 +429,21 @@ theorem EtcdServer.start.wp_proof
   -- `go s.run()`, with the write budget backed by time receipts (D19b)
   imod srvWTPool_alloc E N ⊤ Hrb $$ HWB with ⟨%γp, #HWB, #HWA0⟩
   -- `if s.compactor != nil { s.compactor.Run() }` (the fork's fix: `start()` runs the compactor,
-  -- `issues/etcd-compactor-started-before-start.md`); nil until the pilot's glue (`compactorOk`)
-  ihave #Hcpo' := Hcpo
-  iunfold compactorOk at Hcpo'
-  wp_join at next with [s]
-  · icases Hcpo' with %Hcpn
-    rw [Hcpn]
+  -- `issues/etcd-compactor-started-before-start.md`): its run, once (`compactorRun`; M2, S4)
+  icases Hcrun with ⟨%cr, #Hcra, Hcr⟩
+  ihave %Hcreq := typedPointsto_agree_wand _ _ _ _ _ $$ Hcra Hcpf
+  subst Hcreq
+  wp_join iprop(s_ptr ↦ s) at next with [s Hcr] as s
+  · iunfold compactorRun at Hcr
+    icases Hcr with (%Hcpn | ⟨%T, %P, #Hcp, HT, HP⟩)
+    · rw [Hcpn]
+      (try wp_auto)
+      wp_join_done
+    icases v3compactor.compactorOk_Run _ _ _ $$ Hcp with ⟨%ci, %Hci, #HRun⟩
+    rw [Hci]
+    (try wp_auto)
+    wp_apply HRun $$ [HT HP]
+    · iframe HT HP
     (try wp_auto)
     wp_join_done
   wp_apply wp_fork $$ [Hsnap Hloop Hsend Happly Hrdone Hcomm Hdc Hclose Hstart Hlr Hsnapb]
@@ -950,12 +959,21 @@ theorem EtcdServer.start.wp_proofOn
   -- `go s.run()`, with the write budget backed by time receipts (D19b)
   imod srvWTPool_alloc E N ⊤ Hrb $$ HWB with ⟨%γp, #HWB, #HWA0⟩
   -- `if s.compactor != nil { s.compactor.Run() }` (the fork's fix: `start()` runs the compactor,
-  -- `issues/etcd-compactor-started-before-start.md`); nil until the pilot's glue (`compactorOk`)
-  ihave #Hcpo' := Hcpo
-  iunfold compactorOk at Hcpo'
-  wp_join at next with [s]
-  · icases Hcpo' with %Hcpn
-    rw [Hcpn]
+  -- `issues/etcd-compactor-started-before-start.md`): its run, once (`compactorRun`; M2, S4)
+  icases Hcrun with ⟨%cr, #Hcra, Hcr⟩
+  ihave %Hcreq := typedPointsto_agree_wand _ _ _ _ _ $$ Hcra Hcpf
+  subst Hcreq
+  wp_join iprop(s_ptr ↦ s) at next with [s Hcr] as s
+  · iunfold compactorRun at Hcr
+    icases Hcr with (%Hcpn | ⟨%T, %P, #Hcp, HT, HP⟩)
+    · rw [Hcpn]
+      (try wp_auto)
+      wp_join_done
+    icases v3compactor.compactorOk_Run _ _ _ $$ Hcp with ⟨%ci, %Hci, #HRun⟩
+    rw [Hci]
+    (try wp_auto)
+    wp_apply HRun $$ [HT HP]
+    · iframe HT HP
     (try wp_auto)
     wp_join_done
   wp_apply wp_fork $$ [Hsnap Hloop Hsend Happly Hrdone Hcomm Hdc Hclose Hstart Hlr Hsnapb]
@@ -978,6 +996,10 @@ theorem EtcdServer.start.wp_proofOn
     #Q15, #Q16, #Q17, #Q18, %Q19⟩
   ihave #Hreq : isServerReqM true s E { ρ with wait := γw } $$ []
   · iunfold isServerReqM
+    -- (E3zb) the store's bound request side, from the built part's store fact
+    isplitr
+    rotate_left
+    · iapply srvAuthBound_of_uberBase s ua E (by rw [hM]; rfl) $$ HuB
     iexists { vq with w := w, done := dch }
     iunfold srvReqFieldsAtM
     iframe Q18 Q16 Q15 Q14 Q13 Q12 Q11 Q10 Q9 Q8 Q7 Q6 Q5 Q4 Q3 Q2 Q1 Hdone Hw

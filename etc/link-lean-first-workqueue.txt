@@ -35,9 +35,7 @@ Set__Len:
 #
 # the typed queue (`queue.go`)
 queue__Push:
-# (`queue[T].Pop` names only since Perennial edcadb1e5: Goose rejects its `(*q)[0] = *new(T)`,
-# notes/perennial-changes.md, "Goose rejects a store of `*new(T)`")
-queue__Pop: ?
+queue__Pop:
 queue__Len:
 queue__Touch:
 noMetrics__add:
@@ -101,23 +99,19 @@ rateLimitingType__Forget:
 rateLimitingType__NumRequeues:
 NewTypedRateLimitingQueueWithConfig: NewTypedDelayingQueueWithConfig
 #
-# gap C2 (notes/k8s-clientgo-goose.md): the methods the delaying and rate-limiting queues promote
-# from their embedded interfaces (`TypedInterface[T]`, `TypedDelayingInterface[T]`) are excluded
-# from the translation (`Code/k8s_io/client_go/util/workqueue.toml`: Goose's unfolding of a
-# generic struct's promoted pointer method does not elaborate), so no call of one can be
-# executed; their specs are stated, not proved (`?`): each result reaching one takes its spec as
-# a hypothesis (`section links_pending`)
-delayingType__Add: ?
-delayingType__Len: ?
-delayingType__Get: ?
-delayingType__Done: ?
-delayingType__ShutDownWithDrain: ?
-delayingType__ShuttingDown: ?
-rateLimitingType__Add: ?
-rateLimitingType__Len: ?
-rateLimitingType__Get: ?
-rateLimitingType__Done: ?
-rateLimitingType__ShutDown: ?
-rateLimitingType__ShutDownWithDrain: ?
-rateLimitingType__ShuttingDown: ?
-rateLimitingType__AddAfter: ?
+# the methods the delaying and rate-limiting queues promote from their embedded interfaces
+# (`TypedInterface[T]`, `TypedDelayingInterface[T]`): each the embedded queue's
+delayingType__Add: Typed__Add
+delayingType__Len: Typed__Len
+delayingType__Get: Typed__Get
+delayingType__Done: Typed__Done
+delayingType__ShutDownWithDrain: Typed__ShutDownWithDrain
+delayingType__ShuttingDown: Typed__ShuttingDown
+rateLimitingType__Add: delayingType__Add
+rateLimitingType__Len: delayingType__Len
+rateLimitingType__Get: delayingType__Get
+rateLimitingType__Done: delayingType__Done
+rateLimitingType__ShutDown: delayingType__ShutDown
+rateLimitingType__ShutDownWithDrain: delayingType__ShutDownWithDrain
+rateLimitingType__ShuttingDown: delayingType__ShuttingDown
+rateLimitingType__AddAfter: delayingType__AddAfter

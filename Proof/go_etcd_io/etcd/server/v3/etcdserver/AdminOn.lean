@@ -211,7 +211,7 @@ theorem authRaftOk_on (hRR : EtcdServer.raftRequest.specM (GF := GF) (hG := hG) 
   wp_apply hRR s E ρ ctx cd p rq (adminQh ρ.kv rq) F hid $$ [Hrd Hard Hcred Hirr Hh Hperm]
       as %resp %err ⟨Hrd, Hard, Hres⟩
   · iframe # Hrd Hard Hcred Hirr Hperm Hh
-  icases Hres with (⟨%Herr, %hm, %rq', %L, %Hwire, #HL, Hok, #HpAf, #HQh⟩ | ⟨⟨%Hre, %Hne⟩, #HaE, Hfail⟩)
+  icases Hres with (⟨%Herr, %hm, %rq', %L, %Hwire, #HL, Hok, #HpAf, #HQh, -⟩ | ⟨⟨%Hre, %Hne⟩, #HaE, Hfail⟩)
   · subst Herr
     iunfold appliedOkM at Hok
     icases Hok with ⟨%x, %x', %o, %skip, %Hstep, Hans, Hok⟩
@@ -253,7 +253,9 @@ theorem authRaftOk_on (hRR : EtcdServer.raftRequest.specM (GF := GF) (hG := hG) 
     iright
     isplitr
     · ipureintro; exact Hne
-    iexact Hfail
+    icases Hfail with (⟨%hm, %rq', %Hwire, Herr, -⟩ | Hdep)
+    · ileft; iexists hm, rq'; iframe Herr; ipureintro; exact Hwire
+    · iright; iexact Hdep
 
 end lemmas
 

@@ -8,6 +8,7 @@ public import Proof.go_etcd_io.etcd.server.v3.etcdserver.BaseApply
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.TxnRange
 public import Proof.go_etcd_io.etcd.pkg.v3.traceutil.Defs
 public import Spec.go_opentelemetry_io.otel.trace.SpanFromContext
+public import Proof.google_golang_org.grpc.metadata.Incoming
 
 @[expose] public section
 
@@ -31,7 +32,9 @@ variable [package_sem : context.Assumptions]
 context like `ctx` (the same deadline and `Done`, other values: otel's `ContextWithSpan` is a
 `context.WithValue`), a context (`context.isContext`) if `ctx` is one (2026-10-12, unit 2: the
 request path's `WithTimeout`), carrying `ctx`'s trace (2026-10-14, unit P1b: otel's key is not
-`traceutil.TraceKey`), and a span (`trace.isSpan`). -/
+`traceutil.TraceKey`) and its incoming gRPC metadata (`metadata.incomingOf`, 2026-10-28, the auth
+plan's E3zb: otel's key is not grpc's `mdIncomingKey{}`, so `metadata.FromIncomingContext` reads
+`ctx`'s), and a span (`trace.isSpan`). -/
 abbrev traceutil.Tracer.Start.spec : Prop :=
   ∀ (tr ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) (name : GoString)
     (opts : GoSlice),
@@ -43,6 +46,7 @@ abbrev traceutil.Tracer.Start.spec : Prop :=
       (∃ vs : GMap GoInterface GoInterface, mvcc.txnCtx ctx' { cd with Values := vs } ∗
         (context.isContext ctx cd -∗ context.isContext ctx' { cd with Values := vs })) ∗
       □ (∀ o : Option Loc, traceutil.ctxTraceIs ctx o -∗ traceutil.ctxTraceIs ctx' o) ∗
+      ⌜metadata.incomingOf (GoInterface.ok ctx') = metadata.incomingOf (GoInterface.ok ctx)⌝ ∗
       trace.isSpan sp }}
 
 end spec

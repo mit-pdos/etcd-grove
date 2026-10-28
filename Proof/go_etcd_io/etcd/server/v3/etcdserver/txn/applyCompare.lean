@@ -9,7 +9,7 @@ public import Spec.go_etcd_io.etcd.server.v3.etcdserver.txn.compareKV
 public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.metricsTxnWrite__Range
 public import Spec.context.TODO
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.txn.RangeLemmas
-public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.FrozenSpecs
+public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.ReaderSpecs
 
 @[expose] public section
 
@@ -36,13 +36,13 @@ theorem txn.applyCompare.wp_proof
     (hRange : mvcc.metricsTxnWrite.Range.spec (GF := GF) (hG := hG))
     (hKV : txn.compareKV.spec (GF := GF) (hG := hG)) :
     txn.applyCompare.spec (GF := GF) (hG := hG) := by
-  have hRange := mvcc.metricsTxnWrite.Range.spec_frozen hRange
-  intro trace mw s γ log rev c cm
+  have hRange := mvcc.metricsTxnWrite.Range.spec_R hRange
+  intro trace mw s γ log rev c cm crev
   wp_start as ⟨Htx, #Hc⟩
   ihave #Hc2 := Hc
   iunfold txn.compareIs at Hc2
   icases Hc2 with ⟨%Hcn, %ksl, %esl, %e, %u, #Hres, #Htgt, #Hk, #Hks, #He, #Hes, %Hre, #Hu, #Hun⟩
-  icases txn.isTxnRead_pure mw s γ log rev $$ Htx with ⟨Htx, %Hlog⟩
+  icases txn.isTxnRead_pure mw s γ log rev crev $$ Htx with ⟨Htx, %Hlog⟩
   ihave #Hmv : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc $$ []
   · iPkgInit
   ihave %Hesl := ownSlice_len _ _ _ $$ Hes
@@ -57,14 +57,21 @@ theorem txn.applyCompare.wp_proof
   have Hend := (txn.srvEnd_mkGte esl esl' e hnil Hgte)
   rw [← Hre] at Hend
   generalize (if e = [W8 0] then [] else e) = e' at Hend ⊢
-  ihave Htx : mvcc.isTxn mw s γ trace (.read log rev) $$ [Htx]
+  ihave Htx : mvcc.isTxn mw s γ trace (.read log rev) crev $$ [Htx]
   · simp only [mvcc.isTxn]; iexact Htx
   ihave #Hctx : mvcc.rangeCtx true todoCtxVal txn.todoCd $$ []
   · simp only [mvcc.rangeCtx, ↓reduceIte]; ileft; iapply mvcc.doneNil_todo
   wp_apply (hRange trace mw s γ (.read log rev) todoCtxVal txn.todoCd true ksl esl' cm.key e'
-      (zero_val go_etcd_io.etcd.server.v3.storage.mvcc.RangeOptions)) $$ [$Htx $Hctx $Hks $Hes']
+      (zero_val go_etcd_io.etcd.server.v3.storage.mvcc.RangeOptions) crev) $$ [$Htx $Hctx $Hks $Hes']
     as %rr %err ⟨%Hrn, Htx, Hout⟩
-  ihave ⟨%Hok, Htx⟩ := txn.isTxn_kindOk mw s γ _ $$ Htx
+  ihave ⟨%Hok, Htx⟩ := txn.isTxn_kindOk mw s γ _ crev $$ Htx
+  -- (M2, S1) a read at the transaction's revision is never compacted
+  ihave ⟨%Hcr, Htx⟩ := txn.isTxn_crev mw s γ _ crev $$ Htx
+  ihave Hout := mvcc.rangeOutcomeC_latest _ _ _ _ _ _ _ _
+    (zero_val go_etcd_io.etcd.server.v3.storage.mvcc.RangeOptions)
+    (by rw [show (zero_val go_etcd_io.etcd.server.v3.storage.mvcc.RangeOptions).Rev' = W64 0 from rfl]
+        decide) Hcr $$ Hout
+  clear Hcr
   imod txn.rangeOutcome_sel rr err _ _ cm.key _ _ Hok ⟨rfl, rfl, rfl, rfl⟩ $$ Hout with Hout
   icases Hout with (⟨%Hrnull, %Hne⟩ | ⟨%Herr, %kvs, %rv', %cnt, %ps, Hrr, Hkvs, #Hsel⟩)
   · exact absurd Hrnull (Hrn rfl)
@@ -92,7 +99,7 @@ theorem txn.applyCompare.wp_proof
   rw [hH]
   simp only
   generalize (mvcc.stateAfter log).filter (fun v => inRange cm.key cm.rangeEnd v.key) = sel
-  ihave Htx : mvcc.isTxnRead mw s γ trace log rev $$ [Htx]
+  ihave Htx : mvcc.isTxnRead mw s γ trace log rev crev $$ [Htx]
   · simp only [mvcc.isTxn]; iexact Htx
   iStructNamedPrefix Hrr "Q"
   ihave #Hnil : (slice.nil ↦*□ ([] : List w8) : IProp GF) $$ []

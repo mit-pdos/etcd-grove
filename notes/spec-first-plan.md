@@ -33,6 +33,10 @@ against the code (phase 2). Step 1 below measures their shares.
 configuration the result covers (features on or off, message types, membership changes,
 snapshots, failure modes) and write the top-level theorem (e.g. the example's linearizability
 adequacy). Widening later is a new, deliberate stage, not a series of spec edits.
+*For a widening of code already proved* (M2, 2026-10-28): phase 0 drafts the top-level statements
+and the statements of the layers it changes, not a survey of the files: M2's phase 0, decided from
+a survey, was revised four times in phase 1 by drafting alone (C3, the watch store, Restore, and
+delete-then-put twice).
 
 **Phase 1: the spec skeleton, top-down.** Every function's spec written, internal and external,
 every proof `sorry` (or a trust-boundary axiom), `Link.lean` generated. Then prove the *glue*:
@@ -151,9 +155,21 @@ definition of the proof's own package is normal. The pilot's two `Run` proofs ha
 by its 31st of 42 conjuncts (now `mvcc.ErrCompacted_target`), and Perennial's `context.isContextDef`
 (`isContext_Done`, a Perennial branch). **The freeze requires the list empty**, or each remaining
 unfold justified in `notes/decisions.md` (a law pending in Perennial, say).
+**The freeze also requires every caller's glue** (M2, 2026-10-28), callers in planned later stages
+included; a spec whose callers are not all written is "frozen pending" them. The compactor's
+`compactableOk` passed five reviews and the freeze, then failed at the first glue of its real
+implementation's caller in M2: the reviews had checked it against `EtcdServer.Compact.spec`, itself
+an unproved `sorry`, not against `Compact`'s Go body (which reads the context's
+`Value(TraceKey{})`).
 
 **Phase 4: the remaining proofs**, against frozen specs, in parallel (independent per function,
 which suits agents).
+
+**Agents in phases 1 and 1b** (M2, 2026-10-28): a long agent drifts toward proving. Its brief says
+skeleton only from the start (statements; the glue; a marked `sorry` on the failing step of anything
+else) and **never deletes a finished proof**: a broken one keeps its text, with the `sorry` on the
+failing step naming the commit that had the proof. (M2's S1 agent re-proved about 45 files before
+S2-S4 had statements, and replaced finished proofs wholesale with `sorry`s, until redirected.)
 
 **Not covered by testing:** the resource part of a spec (ownership, fractions, invariants,
 atomicity). Only phase 1's glue proofs and phase 3's sampled proofs check it before phase 4.
@@ -333,3 +349,36 @@ resource parts show. Next libraries by the paper replay's yield: etcd's own name
 (mvcc, lease, quota: call sequences), prometheus and `strconv`-like single calls (cheap), rafthttp.
 The `wBkt` trio: fixed 2026-10-27 (handles at a generation, `notes/decisions.md`, "bbolt handles at
 a generation"); the tester now runs the new statements by default (`-old-wbkt` for the old).
+
+## Checkpoint: the compactor pilot and M2 to review round 1 (2026-10-28)
+
+**What works.**
+- *Review before proofs finds most spec problems*: the compactor's 18 of 19 first-tier revisions
+  came from the reviews, before any proof (the glue the 19th; proofs and the tester none); M2's
+  round 1 found 4 first-tier problems in S2-S4, none in S1, at no proof cost.
+- *Drafting statements tests the design cheaply*: M2's phase-0 scope was revised four times in phase
+  1 by writing statements alone; the reversal after round 1 (one family, the Go bug fixed instead of
+  a compaction-mode family through the serving stack) discarded statements and stubs, not proofs.
+- *The glue finds what the reviews miss*: `Compact`'s context `Value` (after five rounds), the
+  `rangeResult` bound.
+
+**What does not, yet.**
+- *The freeze leaked*: one revision after it (`compactableOk`'s context, above); "0 after the
+  freeze" held only while the spec's real caller did not exist. Revision: the freeze requires every
+  caller's glue (phase 3, above).
+- *Phase 0 from a survey underestimates a widening of proved code* (M2 is mostly that, which the
+  plan was not designed for). Revision: phase 0 drafts statements (above).
+- *Reviews introduce defects*: M2's future-revision defect came from the compactor's first review
+  repair ("any revision" instead of "a revision the store reached"), as round 2 of the pilot saw.
+  The rule stands: a round after every repair, looking hardest at what changed.
+- *Reviews trusted unproved specs*: a sharpened principle (`.claude/skills/spec/PRINCIPLES.md`,
+  "Complete": a contract against its implementation's Go body when that implementation's spec is
+  unproved).
+- *Execution*: agents drifted to proving and deleted finished proofs. Revision: the agents' brief
+  (phase 4, above).
+- *Cost*: a round is about 10-15 minutes of agent time plus long builds, and M2 needed many of the
+  user's decisions (eight so far): cheaper than re-proofs, not free.
+
+**The comparison** (step 3's main metric): spec revisions after the freeze, 1 for the compactor (by
+M2's glue), against about 5 for the read-index baseline over two weeks; not yet fair (hours against
+weeks, and M2 not finished).

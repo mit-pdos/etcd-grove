@@ -31,6 +31,7 @@ module
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.ServerOn
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.ProposeOn
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvProposer
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.AuthBound
 
 @[expose] public section
 
@@ -293,13 +294,168 @@ instance srvReqFieldsAtM_persistent (on : Bool) (s : Loc) (E : apply.AEnv GF) (�
 theorem srvReqFieldsAtM_false (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (v : ReqFields) :
     srvReqFieldsAtM (GF := GF) false s E ρ v = srvReqFieldsAt s E ρ v := rfl
 
-/-- **The server, as a proposer sees it, in the auth mode `on`** (persistent). -/
+/-- **The server's store's bound request side, in the auth mode `on`** (persistent): `True` off;
+on, `srvAuthBound` (`AuthInfoFromCtx`'s auth info bound to the request context's token; the auth
+plan's E3zb). -/
+def srvAuthBoundM (on : Bool) (s : Loc) (E : apply.AEnv GF) : IProp GF :=
+  match on with
+  | false => iprop(True)
+  | true => srvAuthBound s E
+
+instance srvAuthBoundM_persistent (on : Bool) (s : Loc) (E : apply.AEnv GF) :
+    Persistent (srvAuthBoundM (GF := GF) on s E) := by
+  cases on <;> unfold srvAuthBoundM <;> infer_instance
+
+/-- **The header a request is stamped with names its context's principal, in the auth mode `on`**
+(persistent; the auth plan's E3zb): `True` off; on, the header's user is the empty one (the
+header of an `Authenticate`, or of a context without a user: the apply thread then grants it no
+key), or the user, at the header's auth revision, is bound to the context `ctx` (`principalBound`:
+its token was issued to that user, or the server's TLS fallback is on). -/
+def hdrBoundM (on : Bool) (s : Loc) (E : apply.AEnv GF) (ctx : GoInterface)
+    (hm : apply.HeaderModel) : IProp GF :=
+  match on with
+  | false => iprop(True)
+  | true => iprop(⌜hm.username = (zeroValDef : GoString)⌝ ∨
+      principalBound s E.authMode ctx
+        (some (go_etcd_io.etcd.server.v3.auth.AuthInfo.mk hm.username hm.authRevision)))
+
+instance hdrBoundM_persistent (on : Bool) (s : Loc) (E : apply.AEnv GF) (ctx : GoInterface)
+    (hm : apply.HeaderModel) : Persistent (hdrBoundM (GF := GF) on s E ctx hm) := by
+  cases on <;> unfold hdrBoundM <;> infer_instance
+
+/-- **The auth info a read's check saw is the caller's** (persistent; E3zb: `hdrBoundM`'s, for an
+auth info): with auth on, the empty user (`doSerialize`'s stand-in for a context with none), or one
+bound to the context's token (`principalBound`). Off, `True`. -/
+def infoBoundM (on : Bool) (s : Loc) (E : apply.AEnv GF) (ctx : GoInterface)
+    (info : go_etcd_io.etcd.server.v3.auth.AuthInfo) : IProp GF :=
+  match on with
+  | false => iprop(True)
+  | true => iprop(⌜info.Username' = (zeroValDef : GoString)⌝ ∨
+      principalBound s E.authMode ctx (some info))
+
+instance infoBoundM_persistent (on : Bool) (s : Loc) (E : apply.AEnv GF) (ctx : GoInterface)
+    (info : go_etcd_io.etcd.server.v3.auth.AuthInfo) :
+    Persistent (infoBoundM (GF := GF) on s E ctx info) := by
+  cases on <;> unfold infoBoundM <;> infer_instance
+
+/-- **A writing transaction's error in the auth mode `on`** (`txnErrOk`'s, E3zb): the apply's
+error, at a header bound to the context `ctx` (`hdrBoundM`), or the proposal's. -/
+def txnErrOkOn (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (ctx : GoInterface) (F : mvcc.Log)
+    (t : TxnModel) (err : GoInterface) : IProp GF :=
+  iprop(∃ tw : txn.TxnModelW, ⌜tw.toModel = t⌝ ∗
+    ((∃ (hm : apply.HeaderModel) (rq' : apply.IRRModel),
+      ⌜irrWireOf (apply.withHeader (irrTxn tw) hm) rq'⌝ ∗ appliedErr E rq' F err ∗
+        hdrBoundM true s E ctx hm) ∨
+    srvMaybeDeposited ρ (irrTxn tw)))
+
+theorem txnErrOk_of_on (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (ctx : GoInterface)
+    (F : mvcc.Log) (t : TxnModel) (err : GoInterface) :
+    txnErrOkOn (GF := GF) s E ρ ctx F t err ⊢ txnErrOk E ρ F t err := by
+  unfold txnErrOkOn txnErrOk
+  iintro ⟨%tw, %Ht, (⟨%hm, %rq', %Hw, Ha, -⟩ | Hd)⟩
+  · iexists tw; isplitr
+    · ipureintro; exact Ht
+    ileft; iexists hm, rq'; iframe Ha; ipureintro; exact Hw
+  · iexists tw; isplitr
+    · ipureintro; exact Ht
+    iright; iexact Hd
+
+/-- A header with the empty user is bound (`hdrBoundM`). -/
+theorem hdrBoundM_empty (on : Bool) (s : Loc) (E : apply.AEnv GF) (ctx : GoInterface)
+    (hm : apply.HeaderModel) (h : hm.username = (zeroValDef : GoString)) :
+    ⊢ hdrBoundM (GF := GF) on s E ctx hm := by
+  cases on <;> unfold hdrBoundM
+  · itrivial
+  · ileft; ipureintro; exact h
+
+/-- A header stamped from an auth info the store bound to the context (`ctxBoundOrTLS`, with auth
+on) is bound (`hdrBoundM`). -/
+theorem hdrBoundM_of_ctxBound (on : Bool) (s : Loc) (E : apply.AEnv GF) (ctx : GoInterface)
+    (a : Loc) (id : w64) (user : GoString) (rev : w64) :
+    (⌜on = true⌝ → ctxBoundOrTLS s E.authMode ctx a) ∗ authInfoIs a user rev ⊢
+      hdrBoundM (GF := GF) on s E ctx ⟨id, user, rev⟩ := by
+  cases on <;> unfold hdrBoundM
+  · iintro -; itrivial
+  · iintro ⟨Hb, #Hai⟩
+    ihave #Hb' := Hb $$ %rfl
+    iright
+    iapply principalBound_of_ctxBoundOrTLS s E.authMode ctx a user rev $$ [$Hb' $Hai]
+
+/-- A header bound to a context is bound to any context with the same incoming metadata (the
+contexts the server derives from a request's: `Tracer.Start`'s, `WithValue`'s). -/
+theorem hdrBoundM_ctx (on : Bool) (s : Loc) (E : apply.AEnv GF) (c c' : GoInterface)
+    (hm : apply.HeaderModel) (h : metadata.incomingOf c = metadata.incomingOf c') :
+    hdrBoundM (GF := GF) on s E c hm ⊢ hdrBoundM on s E c' hm := by
+  have ht : auth.ctxTokenOf c = auth.ctxTokenOf c' := by unfold auth.ctxTokenOf; rw [h]
+  cases on <;> unfold hdrBoundM
+  · iintro -; itrivial
+  · unfold principalBound; rw [ht]
+
+/-- An auth info with the empty user is bound. -/
+theorem infoBoundM_empty (on : Bool) (s : Loc) (E : apply.AEnv GF) (ctx : GoInterface)
+    (info : go_etcd_io.etcd.server.v3.auth.AuthInfo)
+    (h : info.Username' = (zeroValDef : GoString)) :
+    ⊢ infoBoundM (GF := GF) on s E ctx info := by
+  cases on <;> unfold infoBoundM
+  · itrivial
+  · ileft; ipureintro; exact h
+
+/-- An auth info the store bound to the context (`ctxBoundOrTLS`, with auth on) is bound. -/
+theorem infoBoundM_of_ctxBound (on : Bool) (s : Loc) (E : apply.AEnv GF) (ctx : GoInterface)
+    (a : Loc) (user : GoString) (rev : w64) :
+    (⌜on = true⌝ → ctxBoundOrTLS s E.authMode ctx a) ∗ authInfoIs a user rev ⊢
+      infoBoundM (GF := GF) on s E ctx ⟨user, rev⟩ := by
+  cases on <;> unfold infoBoundM
+  · iintro -; itrivial
+  · iintro ⟨Hb, #Hai⟩
+    ihave #Hb' := Hb $$ %rfl
+    iright
+    iapply principalBound_of_ctxBoundOrTLS s E.authMode ctx a user rev $$ [$Hb' $Hai]
+
+/-- An auth info bound to a context is bound to any context with the same incoming metadata. -/
+theorem infoBoundM_ctx (on : Bool) (s : Loc) (E : apply.AEnv GF) (c c' : GoInterface)
+    (info : go_etcd_io.etcd.server.v3.auth.AuthInfo)
+    (h : metadata.incomingOf c = metadata.incomingOf c') :
+    infoBoundM (GF := GF) on s E c info ⊢ infoBoundM on s E c' info := by
+  have ht : auth.ctxTokenOf c = auth.ctxTokenOf c' := by unfold auth.ctxTokenOf; rw [h]
+  cases on <;> unfold infoBoundM
+  · iintro -; itrivial
+  · unfold principalBound; rw [ht]
+
+/-- **The server, as a proposer sees it, in the auth mode `on`** (persistent): its fields
+(`srvReqFieldsAtM`) and, with auth on, its store's bound request side (`srvAuthBound`, E3zb: the
+header a request is stamped with names its context's principal). Off, `isServerReq` by
+definition. -/
 def isServerReqM (on : Bool) (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) : IProp GF :=
-  iprop(∃ v : ReqFields, srvReqFieldsAtM on s E ρ v)
+  match on with
+  | false => iprop(∃ v : ReqFields, srvReqFieldsAtM false s E ρ v)
+  | true => iprop((∃ v : ReqFields, srvReqFieldsAtM true s E ρ v) ∗ srvAuthBound s E)
 
 instance isServerReqM_persistent (on : Bool) (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) :
     Persistent (isServerReqM (GF := GF) on s E ρ) := by
-  unfold isServerReqM; infer_instance
+  cases on <;> unfold isServerReqM <;> infer_instance
+
+/-- The server's built part's store has the bound request side (`srvUberBase`'s, E3zb). -/
+theorem srvAuthBound_of_uberBase (s : Loc) (ua : GoInterface) (E : apply.AEnv GF)
+    (h : E.authMode.isOn = true) :
+    srvUberBase (GF := GF) s ua E ⊢ srvAuthBound s E := by
+  iintro #Hb
+  iunfold srvUberBase at Hb
+  icases Hb with ⟨%au, %le, #Hauf, -, -, -, %stl, -, -, -, #HbB⟩
+  iunfold srvAuthBound
+  iexists au
+  iframe Hauf
+  iapply HbB
+  ipureintro; exact h
+
+theorem isServerReqM_split (on : Bool) (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) :
+    isServerReqM (GF := GF) on s E ρ ⊣⊢
+      (∃ v : ReqFields, srvReqFieldsAtM on s E ρ v) ∗ srvAuthBoundM on s E := by
+  cases on <;> unfold isServerReqM srvAuthBoundM <;> constructor
+  · iintro #H; iframe H
+  · iintro ⟨#H, -⟩; iexact H
+  · iintro #H; iexact H
+  · iintro #H; iexact H
 
 theorem isServerReqM_false (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) :
     isServerReqM (GF := GF) false s E ρ = isServerReq s E ρ := rfl
@@ -438,6 +594,42 @@ theorem adminDoneM_of_tie (on : Bool) (γk : KVNames) (rq : apply.IRRModel) (L :
       ipureintro
       exact fun _ => h hv
 
+variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions] in
+/-- **`AuthInfoFromCtx` in the auth mode `on`** (E3zb): its spec, and with auth on, over the
+store's bound request side (`srvAuthBoundM`), the auth info bound to the context too
+(`boundSpec`'s `ctxBoundOrTLS`). -/
+theorem EtcdServer.AuthInfoFromCtx.wpM (on : Bool)
+    (hAuth : EtcdServer.AuthInfoFromCtx.spec (GF := GF) (hG := hG))
+    (hAuthB : on = true → EtcdServer.AuthInfoFromCtx.boundSpec (GF := GF) (hG := hG))
+    (s : Loc) (E : apply.AEnv GF) (st : GoInterface) (cca : Bool) (ctx : GoInterfaceOk)
+    (cd : context.ContextDesc (IProp GF)) :
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
+      structFieldRef EtcdServer go!"authStore" s ↦□ st ∗ isReqAuth st E.RD ∗
+      srvAuthBoundM on s E ∗
+      srvCfgFieldAddr s go!"ClientCertAuthEnabled" ↦□ cca ∗ mvcc.txnCtx ctx cd ∗ E.RD }}
+    (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"AuthInfoFromCtx"))
+      (Val #(GoInterface.ok ctx)))
+  {{ (a : Loc) (err : GoInterface), RET (PairV #a #err); E.RD ∗ authInfoOpt a ∗ applyErrIs err ∗
+      □ (⌜on = true⌝ → ctxBoundOrTLS s E.authMode (GoInterface.ok ctx) a) }} := by
+  cases on
+  · iintro %Φ ⟨#Hpkg, #Hst, #Hauth, -, #Hcca, #Hctx, Hrd⟩ HΦ
+    iapply (hAuth s st E.RD cca ctx cd) $$ [Hrd] [HΦ]
+    · iframe Hrd; iframe #
+    · iintro !> %a %err ⟨Hrd, Ha, #Herr⟩
+      iapply HΦ; iframe Hrd Ha Herr
+      iintro !> %h; cases h
+  · iintro %Φ ⟨#Hpkg, #Hst, #Hauth, #Hbd, #Hcca, #Hctx, Hrd⟩ HΦ
+    unfold srvAuthBoundM
+    iunfold srvAuthBound at Hbd
+    icases Hbd with ⟨%st3, #Has3, #Hreqb⟩
+    icombine Hst Has3 gives %Heq3
+    subst Heq3
+    iapply (hAuthB rfl s st E.RD E.authMode cca ctx cd) $$ [Hrd] [HΦ]
+    · iframe Hrd; iframe #
+    · iintro !> %a %err ⟨Hrd, Ha, #Herr, #Hb⟩
+      iapply HΦ; iframe Hrd Ha Herr
+      iintro !> -; iexact Hb
+
 end lemmas
 
 /-! ## A put in the mode `on` -/
@@ -497,6 +689,19 @@ theorem putPermitOn_reqPropOk (γk : KVNames) (op : OpFull) (Q : KVState → IPr
   rw [hq]
   iapply reqPropOkM_true_write γk (irrPut op) (.put op) Q γc hp hop hz hs ha $$ Hau
 
+/-- **An applied plain write was granted** at the committed log before its entry (`grantedAt`):
+the auth layer's verdict is the model's grant there (`modelOutM true`'s tie). -/
+theorem grantedAt_of_applied (γk : KVNames) (rq : apply.IRRModel) (L : List EntryModel)
+    (lb log' : mvcc.Log) (skip : Bool)
+    (hkv : apply.isKVKind (apply.dispatchKind rq) = true)
+    (h : modelOutM true γk rq L lb (.dispatched (.applied log' false) skip)) :
+    grantedAt γk srvAuthSt0 rq L := by
+  obtain ⟨st, hst, htie⟩ := h
+  have hg : kvGranted st rq := by
+    have := htie hkv _ _ rfl
+    exact Classical.byContradiction fun hn => apply.Outcome.noConfusion (this.2 hn)
+  unfold grantedAt; rw [hst]; exact hg
+
 /-- **A KV write applied without an error was granted, so its client's result is there** (the
 mode-`on` success): the apply thread's outcome `.applied` is not the auth layer's rejection, so the
 model's auth state the entry met grants it (`authTie`), and `grantedRes` gives the result at the
@@ -506,12 +711,8 @@ theorem grantedRes_applied (γk : KVNames) (rq : apply.IRRModel) (γc : GName)
     (hkv : apply.isKVKind (apply.dispatchKind rq) = true)
     (h : modelOutM true γk rq L lb (.dispatched (.applied log' false) skip)) :
     grantedRes (GF := GF) γk srvAuthSt0 rq γc Q L ⊢ kvRes γc Q (kvStateOf lb) := by
-  obtain ⟨st, hst, htie⟩ := h
-  have hg : kvGranted st rq := by
-    have := htie hkv _ _ rfl
-    exact Classical.byContradiction fun hn => apply.Outcome.noConfusion (this.2 hn)
-  have hga : grantedAt γk srvAuthSt0 rq L := by
-    unfold grantedAt; rw [hst]; exact hg
+  have hga := grantedAt_of_applied γk rq L lb log' skip hkv h
+  obtain ⟨st, hst, -⟩ := h
   have hlb : kvModelOn γk srvAuthSt0 L = lb := by unfold kvModelOn; rw [hst]
   unfold grantedRes
   rw [hlb]
