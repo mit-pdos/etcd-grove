@@ -586,7 +586,28 @@ auth_newTokenProviderJWT:
 auth_newTokenProviderNop:
 auth_NewTokenProvider: auth_decomposeOpts auth_newTokenProviderSimple auth_newTokenProviderJWT auth_newTokenProviderNop zap_Logger__Warn zap_String zap_Error
 auth_NewAuthStore:
-v3compactor_New:
+# (the spec-first pilot, phase 1, 2026-10-27: notes/compactor-pilot-plan.md) the auto-compactor with
+# its bodies, specified; `New`, `newPeriodic`, `newRevision` and the getters are phase 1's glue
+# (`sorry` until written), `Run` phase 3's and the rest phase 4's. The clock is the trust boundary.
+clockwork_NewRealClock:
+# `EtcdServer.Compact` (the compactor's Compactable) and the request's getters (its trace attributes)
+CompactionRequest__GetPhysical:
+CompactionRequest__GetRevision:
+EtcdServer__Compact: traceutil_Tracer__Start trace_WithAttributes attribute_Bool attribute_Int64 CompactionRequest__GetPhysical CompactionRequest__GetRevision EtcdServer__Logger traceutil_EnsureTrace EtcdServer__processInternalRaftRequestOnce traceutil_Trace__GetStartTime traceutil_Trace__SetStartTime traceutil_Trace__InsertStep traceutil_Trace__LogIfLong mvcc_store__Rev
+v3compactor_New: zap_NewNop clockwork_NewRealClock v3compactor_newPeriodic v3compactor_newRevision fmt_Errorf v3compactor_Periodic__Run v3compactor_Periodic__Stop v3compactor_Periodic__Pause v3compactor_Periodic__Resume v3compactor_Revision__Run v3compactor_Revision__Stop v3compactor_Revision__Pause v3compactor_Revision__Resume
+v3compactor_newPeriodic: v3compactor_Periodic__getRetentions context_WithCancelBackground
+v3compactor_newRevision: context_WithCancelBackground
+v3compactor_Periodic__getRetentions: v3compactor_Periodic__getRetryInterval
+v3compactor_Periodic__getRetryInterval:
+v3compactor_Periodic__getCompactInterval:
+v3compactor_Periodic__Run: v3compactor_Periodic__getCompactInterval v3compactor_Periodic__getRetryInterval v3compactor_Periodic__getRetentions zap_Int64 zap_Duration zap_Logger__Info zap_Logger__Warn zap_Error errors_Is
+v3compactor_Periodic__Stop:
+v3compactor_Periodic__Pause:
+v3compactor_Periodic__Resume:
+v3compactor_Revision__Run: zap_Int64 zap_Duration zap_Logger__Info zap_Logger__Warn zap_Error errors_Is
+v3compactor_Revision__Stop:
+v3compactor_Revision__Pause:
+v3compactor_Revision__Resume:
 v3alarm_NewAlarmStore:
 # (D22 receiver epochs, S8c, 2026-10-24) `applySnapshot`'s lessor `Recover` and the cluster's
 # `SetBackend`, axioms true of the Go code (their specs' docstrings).

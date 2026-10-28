@@ -366,7 +366,8 @@ theorem auth.authStore.RoleRevokePermission.wp_tie
         rw [← hsnd, List.length_map, hlen, Hplen]
       exact List.length_filter_eq_length_iff.mp hl2
     have hnone : ∀ p ∈ ps, ¬ permAt key rangeEnd p := by
-      rw [← Hrrps]; exact auth.none_on_of_all_kept rr.perms key rangeEnd hallk
+      intro p hp
+      exact auth.none_on_of_all_kept rr.perms key rangeEnd hallk p (Hrrps.symm.subset hp)
     wp_apply HUnlock $$ %st0 %Post %hs [$HL $Hown] as ⟨HPost, HT, Hown⟩
     · ipureintro; exact Hl0
     (try wp_auto)
@@ -395,12 +396,12 @@ theorem auth.authStore.RoleRevokePermission.wp_tie
     iexists ePNG; iframe HePNG; ipureintro; rfl
   -- some permission revoked: the role put
   let rr' : RoleRec := { name := rr.name, perms := kept.map Prod.snd }
-  have hps' : rr'.toRole = ps.filter (fun p => ¬ permAt key rangeEnd p) := by
-    show (kept.map Prod.snd).filterMap permOfWire = _
-    rw [hsnd, auth.filterMap_filter_keepW, ← Hrrps]; rfl
+  have hps' : rr'.toRole.Perm (ps.filter (fun p => ¬ permAt key rangeEnd p)) := by
+    show ((kept.map Prod.snd).filterMap permOfWire).Perm _
+    rw [hsnd, auth.filterMap_filter_keepW]; exact Hrrps.filter _
   imod (ownSlice_persist _ _ _) $$ Hsl with #Hsl'
   wp_bind (App (Val #(methods ti.ty go!"UnsafePutRole" ti.v)) (Val #uu))
-  iapply HPutR $$ %st0 %Post %uu %rr' [HL Huu]
+  iapply HPutR $$ %st0 %Post %uu %rr' %(ps.filter (fun p => ¬ permAt key rangeEnd p)) [HL Huu]
   · iframe HL
     isplitl [Huu]
     · iunfold ownRole
@@ -412,13 +413,13 @@ theorem auth.authStore.RoleRevokePermission.wp_tie
         show (kept.map Prod.fst).zip (kept.map Prod.snd) = kept
         rw [← List.unzip_fst, ← List.unzip_snd, List.zip_unzip]
       rw [hz]; iexact Hkept
-    ipureintro; show rr.name.length ≤ _; rw [Hrrn]; exact Hrolelen
+    ipureintro; exact ⟨show rr.name.length ≤ _ by rw [Hrrn]; exact Hrolelen, hps'⟩
   inext
   iintro ⟨HL, Huu⟩
   (try wp_auto)
   obtain ⟨ps', hps'eq⟩ : ∃ l, l = ps.filter (fun p => ¬ permAt key rangeEnd p) := ⟨_, rfl⟩
   ihave HL : Lk (putRole st0 role ps') Post $$ [HL]
-  · iExactEq HL; show Lk (putRole st0 rr.name rr'.toRole) Post = _; rw [Hrrn, hps', hps'eq]
+  · iExactEq HL; show Lk (putRole st0 rr.name _) Post = _; rw [Hrrn, hps'eq]
   ihave %Hpk := authOwnF_last_permKeysOk M hs $$ Hown
   have hstep : roleRevokePermissionR role key rangeEnd st0 (.next (bump (putRole st0 role ps'))) := by
     simp only [roleRevokePermissionR, Hlook]

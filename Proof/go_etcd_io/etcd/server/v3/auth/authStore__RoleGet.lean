@@ -137,8 +137,7 @@ theorem auth.authStore.RoleGet.wp_proof :
   simp only [List.nil_append]
   iframe Hsl Hperms
   ipureintro
-  refine ⟨Hpl, ?_⟩
-  rw [← Hrrp]; rfl
+  exact ⟨Hpl, Hrrp⟩
 
 end proof
 

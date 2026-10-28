@@ -12,16 +12,15 @@ roles strictly ascending (`rolesSorted`: what `UserGrantRole` writes, and `UserA
 kept by every admin step (`rolesSorted_adminStateR`) and so along the whole model
 (`rolesSorted_kvRaftOfOn`), whether or not its entries were determinate.
 
-`roleGrantPermissionR` is looser: the role's permissions after the append and `sort.Sort` are any
-permutation of the old ones with the new one (Go's `permSlice` compares keys only and `sort.Sort`
-is not stable, so the model does not pin the order; S4, "the grants"). Its successor is unique
-only when that list has one element: the role has no permission yet (`grantPermFresh`). No
-invariant of the states gives that; the proposer of a `RoleGrantPermission` must know it of the
-state its entry meets (`examples/authkv`'s `SetUp`: one grant to a fresh role).
+`roleGrantPermissionR` is a function since E3z (the fork's fix,
+`issues/etcd-auth-grant-permission-same-key.md`: the permissions on the range replaced, the role's
+permissions compared up to order): one successor at every state
+(`relState_roleGrantPermission_unique`). Until then it was a relation, unique only at a role with
+no permission, which the proposer had to know.
 
 `authDet_of_sorted`: an admin entry is determinate at a sorted state when it is `UserAdd` with a
-password choice that cannot fail (`pwSure`, E2t/E2x), `RoleAdd`, `UserGrantRole`, `AuthEnable`, or
-any other kind (which keeps the state), or a `RoleGrantPermission` to a fresh role.
+password choice that cannot fail (`pwSure`, E2t/E2x), `RoleAdd`, `UserGrantRole`,
+`RoleGrantPermission`, `AuthEnable`, or any other kind (which keeps the state).
 -/
 module
 
@@ -202,11 +201,7 @@ theorem rolesSorted_adminStateR (rq : apply.IRRModel) (st st' : auth.AuthState)
           · cases ho
           · split at ho
             · cases ho
-            · split at ho
-              · obtain ⟨ps', -, ho⟩ := ho
-                cases ho; exact rolesSorted_bump _ (rolesSorted_putRole st _ _ h)
-              · obtain ⟨ps', -, -, -, ho⟩ := ho
-                cases ho; exact rolesSorted_bump _ (rolesSorted_putRole st _ _ h)
+            · cases ho; exact rolesSorted_bump _ (rolesSorted_putRole st _ _ h)
       · subst hR; exact h
     · obtain ⟨o, ho, rfl⟩ := hR
       apply rolesSorted_outState st o h
@@ -298,64 +293,31 @@ theorem relState_userGrantRole_unique (u r : GoString) (st : auth.AuthState) (h 
         · intro he
           exact ⟨_, ⟨insLt r us, insLt_perm r us, insLt_sorted r us hs hm, rfl⟩, he⟩
 
-/-- **A grant to a fresh role**: the role `RoleGrantPermission` names has no permission at `st`. -/
-def grantPermFresh (rq : apply.IRRModel) (st : auth.AuthState) : Prop :=
-  ∀ r w ps, rq.authRoleGrantPermission = some (r, w) → st.roles !! r = some ps → ps = []
-
-/-- `RoleGrantPermission` to a role with no permission has exactly one successor. -/
+/-- `RoleGrantPermission` has exactly one successor (its step is a function). -/
 theorem relState_roleGrantPermission_unique (r : GoString) (w : Option auth.PermW)
-    (st : auth.AuthState) (h : ∀ ps, st.roles !! r = some ps → ps = []) :
+    (st : auth.AuthState) :
     ∃ s, ∀ st', authRelState (auth.roleGrantPermissionR r w) st st' ↔ st' = s := by
-  unfold authRelState auth.roleGrantPermissionR
-  cases w with
-  | none =>
-    exact ⟨outState st (.err .permissionNotGiven), fun st' =>
-      ⟨fun ⟨o, ho, he⟩ => by subst ho; exact he, fun he => ⟨_, rfl, he⟩⟩⟩
-  | some w =>
-    simp only
-    by_cases hv : auth.rangeValid w.key w.rangeEnd
-    · simp only [if_neg (not_not_intro hv)]
-      cases hr : st.roles !! r with
-      | none =>
-        exact ⟨outState st (.err .roleNotFound), fun st' =>
-          ⟨fun ⟨o, ho, he⟩ => by subst ho; exact he, fun he => ⟨_, rfl, he⟩⟩⟩
-      | some ps =>
-        have hps : ps = [] := h ps hr
-        subst hps
-        simp only
-        cases hp : auth.permOfWire w with
-        | some perm =>
-          refine ⟨auth.bump (auth.putRole st r [perm]), fun st' => ⟨?_, ?_⟩⟩
-          · rintro ⟨o, ⟨ps', hps', rfl⟩, rfl⟩
-            rcases hps' with hps' | ⟨i, p, hi, -, -⟩
-            · simp only [List.nil_append] at hps'
-              rw [List.perm_singleton.1 hps']
-              rfl
-            · simp at hi
-          · intro he
-            exact ⟨_, ⟨[perm], Or.inl (List.Perm.refl _), rfl⟩, he⟩
-        | none =>
-          refine ⟨auth.bump (auth.putRole st r []), fun st' => ⟨?_, ?_⟩⟩
-          · rintro ⟨o, ⟨ps', ps'', hsub, hp', rfl⟩, rfl⟩
-            rw [List.sublist_nil.1 hsub] at hp'
-            rw [List.Perm.nil_eq hp'.symm]
-            rfl
-          · intro he
-            exact ⟨_, ⟨[], [], List.Sublist.slnil, List.Perm.refl _, rfl⟩, he⟩
-    · simp only [if_pos hv]
-      exact ⟨outState st (.err .invalidAuthMgmt), fun st' =>
-        ⟨fun ⟨o, ho, he⟩ => by subst ho; exact he, fun he => ⟨_, rfl, he⟩⟩⟩
+  obtain ⟨o, ho⟩ : ∃ o, ∀ o', auth.roleGrantPermissionR r w st o' ↔ o' = o := by
+    unfold auth.roleGrantPermissionR
+    cases w with
+    | none => exact ⟨_, fun _ => Iff.rfl⟩
+    | some w =>
+      simp only
+      split
+      · exact ⟨_, fun _ => Iff.rfl⟩
+      · split <;> exact ⟨_, fun _ => Iff.rfl⟩
+  refine ⟨outState st o, fun st' => ⟨?_, ?_⟩⟩
+  · rintro ⟨o', ho', rfl⟩; rw [(ho o').1 ho']
+  · rintro rfl; exact ⟨o, (ho o).2 rfl, rfl⟩
 
 /-- **The proposer's side of an admin entry's determinacy** (see the header): a `UserAdd` whose
-password choice cannot fail; a `RoleGrantPermission` only to a fresh role (`grantPermFresh`, of the
-state the entry meets); every other kind as it is. -/
-def adminDetReq (rq : apply.IRRModel) (st : auth.AuthState) : Prop :=
-  (∀ m, rq.authUserAdd = some m → m.pwSure) ∧ grantPermFresh rq st
+password choice cannot fail; every other kind as it is. -/
+def adminDetReq (rq : apply.IRRModel) : Prop :=
+  ∀ m, rq.authUserAdd = some m → m.pwSure
 
 /-- **An admin entry is determinate at a sorted state** meeting `adminDetReq`. -/
 theorem authDet_of_sorted (rq : apply.IRRModel) (st : auth.AuthState) (h : rolesSorted st)
-    (hr : adminDetReq rq st) : authDet rq st := by
-  obtain ⟨hpw, hgp⟩ := hr
+    (hpw : adminDetReq rq) : authDet rq st := by
   unfold authDet adminStateR
   split
   · split
@@ -381,7 +343,6 @@ theorem authDet_of_sorted (rq : apply.IRRModel) (st : auth.AuthState) (h : roles
     · split
       · rename_i r w hrw
         obtain ⟨s, hs⟩ := relState_roleGrantPermission_unique r w st
-          (fun ps hps => hgp r w ps hrw hps)
         exact ⟨s, (hs s).2 rfl, fun st'' h'' => (hs st'').1 h''⟩
       · exact ⟨st, rfl, fun _ h => h⟩
     · obtain ⟨s, hs⟩ := (⟨_, relState_stepOf_iff (auth.authEnableF st.enabled) st⟩ :

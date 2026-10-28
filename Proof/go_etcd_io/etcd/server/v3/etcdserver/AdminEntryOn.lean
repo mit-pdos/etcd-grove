@@ -85,7 +85,8 @@ abbrev adminEntryOn.spec : Prop :=
           E.RO rs ∗ T ∗ auth.tpAdmin stl (.on γa) ∗
           ∃ (hs' : List auth.AuthState) (st' : auth.AuthState),
             auth.authOwnFu γa hs' ∗ auth.tieRes stl (.on γa) hs' ∗
-            ⌜hs'.getLast? = some st' ∧ (if v3 then adminStateR rq st st' else st' = st)⌝ }}
+            ⌜hs'.getLast? = some st' ∧ (if v3 then adminStateR rq st st' else st' = st)⌝ ∗
+            (if v3 then adminTieAr ar rq st st' out else iprop(True)) }}
 
 /-- **An admin entry's application with auth on** (see the file header). -/
 theorem apply_admin_entry_on
@@ -164,7 +165,9 @@ theorem apply_admin_entry_on
     · ipureintro; exact ⟨Hst, hk⟩
     iexists hs, st
     iframe Hfu Htie
-    ipureintro; exact ⟨Hl, rfl⟩
+    isplitr
+    · ipureintro; exact ⟨Hl, rfl⟩
+    itrivial
   | true =>
     -- the result's error is not `ErrNoSpace`'s, read off the outcome before it is consumed
     ihave ⟨Hres, Hout, #Hnn⟩ := applyResultIs_notNoSpaceAdmin
@@ -175,7 +178,7 @@ theorem apply_admin_entry_on
     have hrj := Hlat.1
     have hps := Hlat.2
     rw [hM] at hrj hps
-    ihave ⟨%hs', %st', %Hm, Hown⟩ := adminOut_model γa
+    ihave ⟨%hs', %st', %Hm, Hown, #HtA⟩ := adminOut_model γa
       (fun γa' h => iprop(auth.authOwnFu γa' h ∗ auth.tieRes stl (.on γa) h)) hs st rq ar out Hl
       hn hrj (fun o b h => hps o b h) hout $$ Hout
     icases Hown with ⟨Hfu, Htie⟩
@@ -187,7 +190,7 @@ theorem apply_admin_entry_on
     isplitr
     · ipureintro; exact ⟨Hst, hk⟩
     iexists hs', st'
-    iframe Hfu Htie
+    iframe Hfu Htie HtA
     ipureintro; exact Hm
 
 end proof

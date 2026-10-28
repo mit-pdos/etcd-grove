@@ -110,7 +110,10 @@ non-empty separator that is no infix of a field and does not overlap them) in Pe
   a proof of that weaker fact over Perennial's translation of `sort.Search`.
 - **Proposed change.** `sort.wp_Search_any` (or a spec whose monotonicity premise is optional)
   in Perennial's `Proof/sort`, general; then the local copy goes.
-- **Status.** Open.
+- **Status.** No longer needed here (2026-10-27): the auth plan's E3z fork fix
+  (`issues/etcd-auth-grant-permission-same-key.md`) replaced the search by a filter, and
+  `SearchAny.lean` is gone (in git history). The general spec is still a reasonable Perennial
+  change, with no client here.
 
 ### Goose: a parenthesized untyped constant expression in a bitwise operation
 
@@ -141,7 +144,44 @@ non-empty separator that is no infix of a field and does not overlap them) in Pe
 - **Proposed change.** The caches keyed per declaration, or held in the tactic's own state
   (`MetaM`/`TacticM` state, or an environment extension reset per declaration), so that a
   declaration's elaboration does not depend on its siblings'.
+- **Seen again, within one declaration** (2026-10-27, the compactor pilot): in
+  `v3compactor.Periodic.getCompactInterval`/`getRetryInterval`'s proofs, `word` in the two sibling
+  branches of one `if` (hypotheses `h < pd` and `¬ h < pd`) gave a proof the kernel rejected
+  ("application type mismatch": the second branch's goal closed by the first branch's cached term,
+  built over the other hypothesis). So a cached proof does leak between contexts, as the paragraph
+  above feared, and fails at the kernel rather than silently. Workaround there: no `word` in sibling
+  branches (`rfl`/`omega` and `BitVec.toInt_sdiv_of_ne_or_ne` instead), with a comment.
 - **Status.** Not started (found 2026-10-21, `raft-retarget`, now on `lean`).
+
+### Specs: a law for `Done()` of an `isContext` context (2026-10-27, the compactor pilot)
+
+- **Missing.** `isContext` (an `abbrev` of `isContextDef`) has no law for calling `Done()`: clients
+  `iunfold context.isContextDef` and take its `#HDone` field (the compactor's `Run` proofs, the
+  client's `lessor`/`watchGRPCStream` proofs, leasing's).
+- **Needed by.** The spec-first recipe's rule that a client does not unfold another package's
+  definitions (`notes/spec-first-plan.md`, phase 3); the freeze of the compactor's specs.
+- **Workaround here.** The unfold, kept until the law lands.
+- **Proposed change.** `context.isContext_Done : isContext c s ⊢ {{ True }} c.Done() {{ ch γch,
+  RET #ch; isContextDone s ch γch }}`, next to `isContext_pers`: branch `context-done-law` of
+  Perennial (`3c384b081`, off `lean` at `edcadb1e5`; worktree `/shared/perennial-ctxdone`), checked
+  against the pinned `6b58510f9` (the same `isContextDef`), not yet built or landed there.
+- **Status.** Landed on Perennial's `lean` (`3c384b081`, 2026-10-27), just past the pin `edcadb1e5`
+  (2026-10-27), which did the uniform-function-results migration: the next pin bump brings it, and
+  the compactor's `Run` proofs switch to the law then.
+
+### Specs: a law for calling a `cancelSpec` cancel function (2026-10-27, the compactor pilot's phase 4)
+
+- **Missing.** `context.cancelSpec cancel γ P` (a `def`: `□ ∀ Φ, □ P -∗ ▷ (ContextClosed γ -∗ Φ #()) -∗
+  WP cancel #() {{ Φ }}`) has no law for the call: clients `iunfold context.cancelSpec` and apply it
+  (the compactor's `Periodic.Stop`/`Revision.Stop`, the client's `newClient`, `lessor.resetRecv`).
+- **Needed by.** The spec-first recipe's rule against cross-package unfolds (`notes/spec-first-plan.md`,
+  phase 3).
+- **Workaround here.** The unfold, justified at the compactor's freeze with `isContextDef`'s
+  (`notes/decisions.md`, "The compactor pilot's freeze").
+- **Proposed change.** `context.cancelSpec_call : cancelSpec cancel γ P ⊢ {{ □ P }} cancel #() {{ RET #();
+  ContextClosed γ }}`, next to `cancelSpec_weaken`.
+- **Status.** Not started; to land with the next Perennial change (the compactor's proofs switch at the
+  pin bump that brings `isContext_Done`).
 
 ### Specs: `context.WithCancel`'s cancel function not `nil`
 

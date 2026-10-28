@@ -50,9 +50,20 @@ theorem EtcdServer.UserAdd.wp_proof
     (try wp_auto)
     rcases err with ei | _
     · wp_auto
-      iapply HΦ; ileft; iframe HP; ipureintro; exact ⟨rfl, by simp⟩
-    icases Hor with (%Herr | ⟨%hs, Hh⟩)
-    · exact absurd rfl Herr
+      icases Hor with (⟨%ei', %Hei, #Hm⟩ | ⟨%Hnil, -⟩)
+      · obtain ⟨Heq, hl, hIs, hk⟩ := Hei
+        cases Heq
+        iapply HΦ; ileft; iframe HP
+        isplitr
+        · ipureintro; exact ⟨rfl, by simp⟩
+        rcases hk with hp | ⟨hty, hkey⟩
+        · iapply applyErrIs_leaf _ ⟨hp, hl, hIs⟩
+          iunfold errMsgOk; iexact Hm
+        · iapply applyErrIs_valLeaf _ hl hIs hty hkey
+          iunfold errMsgOk; iexact Hm
+      · cases Hnil
+    icases Hor with (⟨%ei', %Hei, -⟩ | ⟨-, %hs, Hh⟩)
+    · cases Hei.1
     wp_auto
     wp_apply Henc $$ [$Hh] as Hh
     (try wp_auto)
@@ -149,9 +160,20 @@ theorem EtcdServer.UserAdd.wp_proof
       (try wp_auto)
       rcases err with ei | _
       · wp_auto
-        iapply HΦ; ileft; iframe HP; ipureintro; exact ⟨rfl, by simp⟩
-      icases Hor with (%Herr | ⟨%hs, Hh⟩)
-      · exact absurd rfl Herr
+        icases Hor with (⟨%ei', %Hei, #Hm⟩ | ⟨%Hnil, -⟩)
+        · obtain ⟨Heq, hl, hIs, hk⟩ := Hei
+          cases Heq
+          iapply HΦ; ileft; iframe HP
+          isplitr
+          · ipureintro; exact ⟨rfl, by simp⟩
+          rcases hk with hp | ⟨hty, hkey⟩
+          · iapply applyErrIs_leaf _ ⟨hp, hl, hIs⟩
+            iunfold errMsgOk; iexact Hm
+          · iapply applyErrIs_valLeaf _ hl hIs hty hkey
+            iunfold errMsgOk; iexact Hm
+        · cases Hnil
+      icases Hor with (⟨%ei', %Hei, -⟩ | ⟨-, %hs, Hh⟩)
+      · cases Hei.1
       wp_auto
       wp_apply Henc $$ [$Hh] as Hh
       (try wp_auto)

@@ -35,6 +35,9 @@ public import Proof.go_etcd_io.etcd.server.v3.etcdserver.apply.Base
 public import Proof.go_etcd_io.raft.v3.InvPbMsg
 -- (the auth plan's E2x, 2026-10-26) `UserAdd`'s `base64.StdEncoding`: the server imports it
 public import Proof.encoding.base64.Base
+-- (the spec-first pilot) the auto-compactor and its clock
+public import Proof.github_com.jonboulle.clockwork.Base
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3compactor.Base
 
 @[expose] public section
 
@@ -284,24 +287,8 @@ end go_etcd_io.etcd.pkg.v3.idutil
 -- `api/v3/version`: `server/v3/lease/Base.lean` (2026-10-13, unit 9: the lessor's
 -- `shouldPersistCheckpoints` reads its `V3_6`)
 
--- (the spec-first pilot, 2026-10-27) the auto-compactor's clock, names only
-namespace github_com.jonboulle.clockwork
-
-instance isPkgInit_inst : IsPkgInit (IProp GF) pkg_id.github_com.jonboulle.clockwork :=
-  define_is_pkg_init iprop(True)
-instance get_isPkgInit_wf_inst : GetIsPkgInitWf (IProp GF) pkg_id.github_com.jonboulle.clockwork :=
-  build_get_is_pkg_init_wf
-
-end github_com.jonboulle.clockwork
-
-namespace go_etcd_io.etcd.server.v3.etcdserver.api.v3compactor
-
-instance isPkgInit_inst : IsPkgInit (IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3compactor :=
-  define_is_pkg_init iprop(True)
-instance get_isPkgInit_wf_inst : GetIsPkgInitWf (IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3compactor :=
-  build_get_is_pkg_init_wf
-
-end go_etcd_io.etcd.server.v3.etcdserver.api.v3compactor
+-- (the spec-first pilot, 2026-10-27) the auto-compactor's and its clock's: their packages'
+-- `Base.lean` (imported above)
 
 -- `strconv` (Perennial's translation, names only: `FormatBool`, the request path's metrics
 -- labels, and `FormatUint`, the read loop's trace field; no variable read): raft's `Base.lean`

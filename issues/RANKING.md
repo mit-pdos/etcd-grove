@@ -131,6 +131,13 @@ process or publicly through etcd-io/etcd#22395 was the user's decision: a securi
     by an integration test at the pin, which a one-line fix passes. Availability through one
     member, no data loss. Upstream not searched beyond `main`'s code (unchanged).
 
+13. **[etcd-auth-grant-permission-same-key](etcd-auth-grant-permission-same-key.md)**
+    (2026-10-27): `RoleGrantPermission` on a range the role has updates it only if it is the first
+    permission with its key; else it appends a duplicate and the old type stays in effect (a
+    downgrade from `READWRITE` to `READ` leaves writes permitted). Needs two permissions sharing a
+    key; admin-only with auth on; reproduced by a unit test at the pin; a small fix (match the
+    range end too). Upstream not searched.
+
 Also to file (2026-10-21, the last scan of the current batch):
 [etcd-watch-id-reuse-stale-events](etcd-watch-id-reuse-stale-events.md) (a watch created with a
 client-chosen id that a just-canceled watch used receives the canceled watch's buffered events, of
@@ -371,8 +378,8 @@ Also [raft-reportsnapshot-finish-not-noop](raft-reportsnapshot-finish-not-noop.m
   [etcd-backend-read-buffer-cache-stale-after-commit](etcd-backend-read-buffer-cache-stale-after-commit.md)
   (deterministic, a one-line fix, but no wrong etcd result known),
   [etcd-watch-sync-ticker-reset-zero](etcd-watch-sync-ticker-reset-zero.md) (Windows only; known,
-  PR open), [etcd-compactor-started-before-start](etcd-compactor-started-before-start.md) (not
-  reproduced), [etcd-request-id-zero-bootstrap-confchange](etcd-request-id-zero-bootstrap-confchange.md)
+  PR open), [etcd-compactor-started-before-start](etcd-compactor-started-before-start.md) (reproduced
+  2026-10-27 with a short periodic retention and a delayed `Start`; a small fix, in the fork), [etcd-request-id-zero-bootstrap-confchange](etcd-request-id-zero-bootstrap-confchange.md)
   (a member started in one particular millisecond),
   [raft-switchtoconfig-pending-reads](raft-switchtoconfig-pending-reads.md) (reads postponed to
   the leader's first commit are not released when `switchToConfig`'s commit is that commit; not a

@@ -388,24 +388,18 @@ theorem stepSmall_roleGrantPermission (role : GoString) (w : Option PermW) :
   simp only [roleGrantPermissionR] at hR
   split at hR
   · cases hR
-  · split at hR
+  · rename_i w
+    split at hR
     · cases hR
     · split at hR
       · cases hR
       · rename_i ps hps
-        split at hR
-        · obtain ⟨ps', hps', hR⟩ := hR
-          cases hR
-          refine ⟨by simp [bump, putRole], authSmall_bump_putRole st role ps' ?_ h⟩
-          rw [hps]; simp only [Option.getD_some]
-          rcases hps' with hp | ⟨i, p, -, -, rfl⟩
-          · rw [hp.length_eq]; simp
-          · rw [List.length_set]; omega
-        · obtain ⟨ps', ps'', hsub, hp, hR⟩ := hR
-          cases hR
-          refine ⟨by simp [bump, putRole], authSmall_bump_putRole st role ps' ?_ h⟩
-          rw [hps]; simp only [Option.getD_some]
-          rw [hp.length_eq]; have := hsub.length_le; omega
+        cases hR
+        refine ⟨by simp [bump, putRole], authSmall_bump_putRole st role _ ?_ h⟩
+        rw [hps]; simp only [Option.getD_some, grantPerms, List.length_append]
+        have := List.length_filter_le (fun p => decide ¬ permAt w.key w.rangeEnd p) ps
+        cases permOfWire w <;> simp only [Option.toList_none, Option.toList_some, List.length_nil,
+          List.length_singleton] <;> omega
 
 /-! ## The fuel -/
 

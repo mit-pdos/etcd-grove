@@ -24483,3 +24483,206 @@ at the model's state there (`adminQh`).
 success says the entry was applied, not yet that the model's step admitted it; the client can
 unfold `kvRaftOfOn` at `L ++ [e]`); the Auth handlers, `setupAuthOk`; `examples/authkv` and the
 closed theorem.
+
+## E3x of the auth plan: an admin answer tied to the model (2026-10-27 · `notes/auth-plan.md`, E3w's first left item)
+
+E3w's admin proposers learned that their entry was applied, not that the model's step admitted it
+(`authTie` covers KV requests only). Now `raftRequest.specM true`'s success post says, of an admin
+request, that its step from the auth state the model of the committed prefix `L` reaches succeeded:
+`adminDoneM true` in `appliedOkM` (`ReqOn.lean`), `needAdminPermission rq = true →
+adminStepOk rq st (adminNext rq st)` with `st := (kvRaftOfOn … L).1`. `adminStepOk`
+(`KVAuthModel.lean`): the principal admin-permitted at `st` and the kind's step (`adminStepO`,
+`adminStateR`'s steps; `AuthEnable` at `st`'s own flag) to an outcome other than an error, `st'` the
+state after it; `adminStateR_of_stepOk`/`adminNext_of_stepOk` relate it to the model's step. The
+entry points' `specOn` (E3w) carry it unchanged, through `adminOutOn`'s `appliedOkM`.
+
+Why a tie on the result rather than a pure one like `authTie`: the error is not in the apply
+outcome (`ApplyOut`) but in the result (`Result.Err`), so what the apply thread hands over is
+persistent, at the result's location: `adminTieAr ar rq st st' out` (`KVAuthModel.lean`), for a
+dispatched admin request `∃ v, ar ↦□ v ∗ ⌜v.Err' = nil → adminStepOk rq st st'⌝`. Its route:
+`adminOutX_on_noExtraE` (`ApplyTieOn.lean`, `adminOutX_on_noExtra` keeping that an error outcome's
+`authErrOf` is not `nil`) → `adminOut_model` (now with the tie at the result it read) →
+`adminEntryOn.spec`'s post (`v3`) → `applyEntryNormal` (at `st' = adminNext rq st` by
+`kvEntryOn_admin`; free for the other requests, `adminTieAr_nonAdmin`) → `resultIsWOn` → `resPostM`
+(`adminTieM`, `True` off) → `raftRequest`, which reads the same `Err` (`adminDoneM_of_tie`, the
+points-to agreement). Mode off unchanged (`adminTieM false`, `adminDoneM false` are `True`); no
+statement of a mode-off result changed; the mode-`on` statements gained the conjuncts.
+
+**Not done (in order).** The Auth handlers, `setupAuthOk`; `examples/authkv` and the closed
+theorem.
+
+## E3y of the auth plan: the Auth handlers with auth on (2026-10-27 · `notes/auth-plan.md`, E3x's first left item)
+
+The gRPC Auth handlers `AuthServer.{AuthEnable,UserAdd,RoleAdd,UserGrantRole}` (v3rpc) take their
+server call as a contract (`authInnerOk`: the call's error is one `togRPCError` takes, `applyErrIs`,
+and its outcome `authEntryOut Q`). With auth on it is discharged by the servers' `specOn` (E3w,
+E3x): `authEnable_end_to_end_on`, `userAdd_end_to_end_on`, `roleAdd_end_to_end_on`,
+`userGrantRole_end_to_end_on` (`api/v3rpc/Results.lean`): the handler's `(resp, nil)` is the
+request applied at the committed prefix before its entry, its admin step succeeding there
+(`adminOutOn`'s `appliedOkM true`, `adminDoneM`); an error, `togRPCError`'s of the server's
+(`authWrapOut`).
+
+`UserAdd` needed a stronger trust boundary (the user's call, 2026-10-27). Its server hashes the
+password before proposing, and returns `bcrypt.GenerateFromPassword`'s error as is; the handler
+hands every error to `togRPCError`, which needs it non-nil, a safe map key, with an `Error()` that
+returns and an error tree (`applyErrIs`). `bcrypt.GenerateFromPassword.spec` (an axiom) said
+nothing of its error (`⌜err ≠ nil⌝`), so `EtcdServer.UserAdd.spec`'s hashing-error branch had no
+`applyErrIs` and the handler's contract could not be met, in either mode. A gap in this
+repository's spec, not in the Go code: bcrypt v0.57.0's only errors under go1.27.3 are
+`ErrPasswordTooLong` (`errors.New`, a pointer leaf) and `InvalidCostError` (an `int`, a non-pointer
+leaf, a safe key); `crypto/rand.Reader` (the default, which etcd never replaces) never returns an
+error (go1.24+: it crashes instead), the salt it encodes decodes, and the Blowfish key (the
+password and a 0) is never empty. The axiom now says so: the error is `ok ei` with `ei` a leaf
+without `Is`, a pointer error or a non-pointer safe key, whose `Error()` returns; and a returned
+hash comes with `err = nil` (before, the post did not exclude a hash and an error together).
+`EtcdServer.UserAdd.spec`/`specOn`'s hashing-error branch carries `applyErrIs err`
+(`applyErrIs_leaf`/`applyErrIs_valLeaf`). The handler's answer `userAddAnsOn`: the hashing's
+error with nothing proposed (`adminPreOn` back), or `userAddOutOn`.
+
+**Not done (in order).** `setupAuthOk`; `examples/authkv` and the closed theorem.
+
+
+## E3z of the auth plan: `RoleGrantPermission` admitted with auth on (2026-10-27 · `notes/auth-plan.md`, E3y's first left item, `setupAuthOk`'s first prerequisite)
+
+`setupAuthOk` (`examples/authkv`'s `SetUp` with auth on) proposes a `RoleGrantPermission`, which
+`adminPropOk` excluded: the model's step `roleGrantPermissionR` was a relation (the role's
+permissions after the append and `sort.Sort`, any order `sort.Sort` may leave; and on an update,
+the first of the role's permissions with the key, wherever the search landed), determinate only at
+a role with no permission (`grantPermFresh`), which no proposer sees.
+
+Making it a function turned up a bug in the Go code (`issues/etcd-auth-grant-permission-same-key.md`):
+`RoleGrantPermission` finds the permission to update by key alone (`sort.Search` on the key, then
+`bytes.Equal` of the keys) but the role may hold several on one key with different range ends;
+the grant then updates (or inserts beside) whichever the search lands on, and a downgrade of
+`[a, c)` from READWRITE to READ can append a second `[a, c)` permission, leaving the old type in
+effect (reproduced: `issues/etcd-auth-grant-permission-same-key/grant_same_key_test.go`). A model
+faithful to that code is a relation over the search's index and the sort's order; one of the
+record's exact order needs `sort.Sort`'s result exactly, which Perennial proves only relationally
+(a permutation, sorted), so it would need a new axiom.
+
+The choice (the user's, 2026-10-27, over an exact record model): **fix the fork and compare roles
+up to order.**
+
+- **The fork** (`upamanyus/etcd` branch `goose-lean-grantfix`, `acafa0317` on `goose-lean`'s
+  `c00a2dc06`; `etc/goose.py`'s etcd pin): `RoleGrantPermission` removes every permission on the
+  range `[Key, RangeEnd)`, appends the new one and sorts (`sort.Sort(permSlice)`), with a Go test
+  (`TestRoleGrantPermissionSameKeyUpdates`). Only `Code/go_etcd_io/etcd/server/v3/auth.lean`
+  changed in the translation.
+- **The model** (`auth/Steps.lean`): `grantPerms ps w` = the permissions not on `w`'s range, then
+  `w`'s if of a known type; `roleGrantPermissionR` its function (`o = .next (bump (putRole st role
+  (grantPerms ps w)))`). A role (`Role`, a list) is now compared to its record up to permutation:
+  `roleOut`/`roleOutX` give `rr.toRole.Perm ps` (`Buckets.lean`), `UnsafePutRole`'s contract takes
+  any `ps` with `rr.toRole.Perm ps` (`InvAuth.lean`), `RoleGet`'s reply holds the role's
+  permissions in some order (`roleGetOut`). Nothing reads a role's order: the permission checks
+  (`getMergedPerms`) build interval trees from it, whose contents are compared up to permutation
+  already (`ivlsOf`).
+- **The proof** (`authStore__RoleGrantPermission.lean`): the filter loop's invariant (`kept` holds
+  the permissions of the first `n` off `w`'s range, `offW`), then the append and `sort.wp_Sort` as
+  before; `grant_kept_perm` gives the record's model role a permutation of `grantPerms ps w`.
+  `SearchAny.lean` (`sort.Search` without monotonicity) has no user left and is gone
+  (`notes/perennial-changes.md`).
+- **Determinacy** (`KVAuthShape.lean`): `relState_roleGrantPermission_unique` at every state;
+  `grantPermFresh` is gone, `adminDetReq` is `UserAdd`'s password choice alone; `adminPropOk` no
+  longer excludes `RoleGrantPermission` (`ProposeOn.lean`). `adminRespTy` has its response type,
+  `adminPropOk_roleGrantPermission` (`AdminOn.lean`); `EtcdServer.RoleGrantPermission.specOn`
+  (`server_role_grant_permission_on`) and `roleGrantPermission_end_to_end_on`
+  (`api/v3rpc/Results.lean`) as E3w/E3y for the other four.
+
+**Not done (in order).** The gRPC Auth layer (`_Auth_X_Handler`, the gRPC specs,
+`etcd_auth_served`); a member started with auth on (`grpcUp`'s Auth registration); `setupAuthOk`;
+`examples/authkv` and the closed theorem.
+
+## E3za of the auth plan: the gRPC Auth layer (2026-10-27 · `notes/auth-plan.md`, E3z's first left item, `setupAuthOk`'s second prerequisite)
+
+`setupAuthOk` asks, for each of the five admin methods `SetUp` calls, `isGrpcRpc ep method Spec`:
+the generated handler served at the member's address, meeting a spec over the client's wire
+models (`client/v3/InvAuthConn.lean`). E3y proved the `AuthServer` methods below the handlers
+with auth on (`*_end_to_end_on`); this stage puts grpc above them.
+
+- **The handlers.** `_Auth_{UserAdd,UserGrantRole,RoleAdd,RoleGrantPermission,AuthEnable}_Handler`
+  translated (`etcdserverpb.toml`) and proved by the generic unary handler lemma, as the KV
+  service's (`UnaryHandlerLemmas.lean`; the build checks each body is `unaryHandlerImpl`), linked in
+  the v3rpc `Link.lean`.
+- **A decoded request a handler writes.** `EtcdServer.UserAdd` replaces the decoded request's
+  `Password` by `""` and sets `HashedPassword`; the wire model gave a decoded request only a
+  read-only predicate (`ProtoMsg.recv`, persistent), so E3y's `UserAdd` result, which takes the
+  two fields exclusively, could not be met. Considered: making `recv` non-persistent (every
+  generic grpc lemma and the KV proofs rely on its persistence; a large change), and a `UserAdd`
+  model that never writes (false to the Go code). Chosen: an exclusive part beside it,
+  `ProtoMsg.recvOwn` (default `True`), which grpc's decode also hands the caller (`grpcDecOk`):
+  decoding fills a fresh message the handler owns, so this states more of what the runtime does
+  and changes no axiom's count; only `pbAuthUserAddRequest` sets it (its `Password` at the sent
+  password, `HashedPassword` at `""`, which the client sends; its name and options stay
+  read-only). Handlers that may write their request meet `grpcHandlerOwnOk` (`recvOwn` in the
+  precondition); `wp_unaryHandlerOwn` proves the generic handler for them and `wp_unaryHandler`
+  (the KV and Lease handlers', unchanged) follows from it (`grpcHandlerOk_own`). All five Auth
+  handlers use the `Own` form.
+- **The specs** (`v3rpc/AuthService.lean`): `etcdUserAddSpec E ρ m Φ` = the name's bound
+  (`maxKeySize`, what the admission needs) and `userAddReplied E ρ m.name -∗ Φ ()`; likewise for
+  the others (`adminReplied E ρ rq`: the request applied at the committed prefix before its entry,
+  its admin step succeeding there, the auth state after it published, its step determinate:
+  `adminOutOn`'s success less the response's memory and the store's certificates). The client
+  gives no resource: the run's slot is the server's (`authSlot`: a reader slot of `leadTimeMu` and
+  `E.RD`, back on every answer, `adminOutOn_reply`), the id budget `□ |==> idCred` the server's
+  start, the index certificate minted (`idxCert_nil`). Each spec is a predicate on a persistent
+  reply, so `setupAuthOk`'s `□ ▷ Spec m (fun _ => Q)` holds with `Q` the reply.
+- **Serving** (`api/v3rpc/Results.lean`): `etcd_*HandlerOk` (each E3y result under the slot,
+  `authWrapOut_admin`/`authWrapOut_userAdd`), `etcd_*MethodOk` (the handler under any chain of
+  transparent interceptors, `authServer_isAuthServer` the method-set fact), `etcd_auth_served`
+  (as `etcd_kv_served`: `grpc_serve_rpcs` over the five; trust base unchanged).
+
+Left for the next step: `etcd_auth_served`, like `etcd_kv_served`, consumes the server object
+`grpcServerAt` (one `grpc.serve` per server), so a member serving both needs one serve of the KV
+and Auth methods together, under one run slot; and the start's registration of the Auth service
+(`RegisterAuthServer` in `v3rpc.Server`, the Auth `ServiceDesc`'s methods in `etcdserverpbDescs`,
+now only `pbDescOk`).
+
+## The compactor pilot's specs after their first review (2026-10-27)
+
+**2026-10-27 · taken (the user for the clock and C1; the rest the review's)**
+
+The spec-first pilot's phase 1 (`notes/compactor-pilot-plan.md`, "Step 2b"): a fresh reviewer
+(`notes/spec-first-study/pilot-review-1.md`) ranked the specs crossing a package boundary before any
+proof. What changed and why:
+- **C1, periodic mode** (`v3compactor.perPermit`): was "reached by a time `T` with the clock past
+  `T + K`, or reached" — the second disjunct always holds, so the permit was vacuous. Now: `period`
+  past, except the run's first compaction, `retry` past and consuming a once-per-run token `First`
+  (`CompactEnv.First`, given to `Run`): the strongest statement true of the code without a timing
+  assumption (the first sample is taken at an unknown time after the run's start, and `Time.Sub` has
+  no meaningful spec). Rejected: `retry` for all (much weaker than the configured retention); `period`
+  for all over a new timing axiom (grows the trust base with an assumption about scheduling).
+- **The clock's `After`** (trust boundary, `clockwork.clockOk`): gives a reading `T ≥ n` for any bound
+  `clockLb n` the caller holds, so waits chain; no `0 ≤ d` premise; `clockLb_init`. The axioms have a
+  trivial model; their docstring says results' time content holds under the intended reading.
+- **The environment's contracts** (`revGetterOk`, `compactableOk`): thread the caller's resource `R`
+  (the store's `Rev` and the server's proposal path need reader slots), return what the compactor
+  inspects (`errTreeOk err`, `0 ≤ v`), and are over an abstract lower bound `CompactEnv.RevLb` instead
+  of mvcc's `IdxNames`.
+- **`EtcdServer.Compact`**: any revision (was: one the store has reached), the store reader in its pre
+  and post (its `s.kv.Rev()`), a result (`compactOutIs`), and `specOn`; `Physical` stays out, as scope.
+
+## The compactor pilot's freeze: the API laws, the request predicate's home, one unfold left (2026-10-27)
+
+**2026-10-27 · taken (the user for the rule; the rest by it)**
+
+The spec-first recipe's rule (`notes/spec-first-plan.md`, phase 3; the user's): a client of a good
+spec does not unfold another package's definitions, and the freeze needs the list of such unfolds
+empty or justified here. For the compactor:
+- **Laws added** where the `Run` proofs unfolded: `clockwork.clockOk_ok`/`clockOk_Now`/
+  `clockOk_After` (the clock's methods as triples), `mvcc.ErrCompacted_target` (`mvcc/ErrLaws.lean`:
+  mvcc's error variable as `errors.Is` takes it, instead of `mvccInit`'s 31st conjunct, which moves
+  when mvcc gains a variable), and `compactReqIs_of`.
+- **`compactReqIs` moved to the request type's package** (`api/v3/etcdserverpb/CompactReq.lean`;
+  was `v3compactor.compactReqIs`): the server's `Compact` spec imported the compactor's `Defs` for
+  it, so the server depended on its client's vocabulary.
+- **The clock's and the compactor's package-init instances moved to their packages' `Base.lean`**
+  (were in the server's `BaseApply.lean`), so the clock's `Defs` no longer imports the server
+  (round 3's coupling finding).
+- **Left, justified: `context.isContextDef`**, unfolded by both `Run` proofs for `Done()`. The law
+  (`context.isContext_Done`) landed in Perennial (`3c384b081`) past the pin's stopping point (its
+  uniform function results, a repository-wide migration); the proofs switch to it at that pin bump
+  (`notes/perennial-changes.md`). The unfold is of Perennial's documented, unsealed `abbrev`, so it
+  does not break when Perennial's internals change, only if `isContextDef`'s fields do.
+- **Left, justified (phase 4): `context.cancelSpec`**, unfolded by `Periodic.Stop`/`Revision.Stop` to
+  call the cancel function; no Perennial law yet (`notes/perennial-changes.md`, "a law for calling a
+  `cancelSpec` cancel function"). Not a statement change: the frozen specs are unchanged.

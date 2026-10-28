@@ -107,6 +107,14 @@ axiom binary.WriteUint64.wp_proof
 axiom binary.WriteUint8.wp_proof
 axiom bufferM.ownBuffer_new
 axiom bytes.Buffer.Write.wp_proof
+axiom clockwork.NewRealClock.wp_proof
+axiom clockwork.clockLb
+axiom clockwork.clockLb_init
+axiom clockwork.clockLb_le
+axiom clockwork.clockLb_persistent
+axiom clockwork.realClock
+axiom clockwork.stampAt
+axiom clockwork.stampAt_persistent
 axiom config.ServerConfig.BackendPath.wp_proof
 axiom config.ServerConfig.PeerDialTimeout.wp_proof
 axiom context.ErrAny.wp_proof
@@ -274,7 +282,6 @@ axiom v2stats.ServerStats.RecvAppendReq.wp_proof
 axiom v2stats.ServerStats.SendAppendReq.wp_proof
 axiom v3alarm.AlarmStore.restore.wp_proof
 axiom v3alarm.NewAlarmStore.wp_proof
-axiom v3compactor.New.wp_proof
 axiom verify.Verify.wp_proof
 axiom version.Cluster.wp_proof
 axiom version.LessThan.wp_proof
@@ -298,3 +305,4 @@ axiom zap.Stringer.wp_proof
 axiom zap.Strings.wp_proof
 axiom zap.Uint64.wp_proof
 axiom zapcore.CheckedEntry.Write.wp_proof
+sorry EtcdServer.Compact.wp_proof

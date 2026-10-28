@@ -817,6 +817,8 @@ local macro "trig_on" : tactic => `(tactic| (
   iframe HRes Hcert HMint Hcx'
   isplitr
   · ipureintro; exact ⟨Hstep0.1, Hstep0.2, rfl, Hwvf hpx, Htie⟩
+  isplitl; rotate_left
+  · iexact HtA
   iunfold appliedWit
   iexists m.index
   rw [Hrd]
@@ -1134,7 +1136,7 @@ theorem EtcdServer.applyEntryNormal.wp_proofOn
           (fun ot id => waitRegdOpt ρ.wait id ot) (fun ot id => waitGoneOpt ρ.wait id ot) ot γa stl
           bel T sa _ hM hna hns $$ [HKV HRD Hfu Htie HT Htp HRS Hlc]
           as %ar %id ⟨HRD, -, #Har, -, %Hid, %x', %out, HKV, %Hstep0, -, #Hdel, -, -, HRS, HT,
-            Htp, %hs', %sa', Hfu, Htie, %Hsa'⟩
+            Htp, %hs', %sa', Hfu, Htie, %Hsa', -⟩
         · simp only [↓reduceIte, Bool.false_eq_true]
           iframe HUA Hwok' HRD He HKV HT Htp Hwba Hlend HRS Hlc
           isplitr
@@ -1346,6 +1348,8 @@ theorem EtcdServer.applyEntryNormal.wp_proofOn
           obtain ⟨hc', hmod⟩ := kvOn_after_kv γr.kv.c0 sa x x' m rq out Htyp hdata hdec hv hna hkv hp
             γa hs Hhl hz Hdet Hch Hstep0.1 HXo'
           have Htie : authTie sa rq out := authTie_of_kvOutL γa hs sa Hhl rq x.log out hz HXo'
+          ihave #HtA : adminTieAr ar rq sa (adminNext rq sa) out $$ []
+          · iapply (adminTieAr_nonAdmin ar rq sa (adminNext rq sa) out hna)
           ihave ⟨Hfu, Htie'⟩ := HLback $$ HL
           ihave HAR := Hcl $$ %hs %sa Hfu Htie' %Hhl HT Htp
           ihave HFS : srvFS s $$ [HFS]
@@ -1390,6 +1394,8 @@ theorem EtcdServer.applyEntryNormal.wp_proofOn
           have hmod : (sa, x'.log) = kvEntryOn γr.kv.c0 x.chain (sa, x.log) m := by
             rw [hkeepM, hkeep.1]
           have Htie : authTie sa rq out := authTie_nonKV sa rq out hkv'
+          ihave #HtA : adminTieAr ar rq sa (adminNext rq sa) out $$ []
+          · iapply (adminTieAr_nonAdmin ar rq sa (adminNext rq sa) out hna)
           ihave HFS : srvFS s $$ [HFS]
           · rw [← HEo.1]; iexact HFS
           rw [srvRest_apply E γr A m rq true x x' out Htyp hdata hdec HkA.2 hp Hstep0.1]
@@ -1418,7 +1424,7 @@ theorem EtcdServer.applyEntryNormal.wp_proofOn
             (fun ot id => waitRegdOpt ρ.wait id ot) (fun ot id => waitGoneOpt ρ.wait id ot) ot γa stl
             bel T sa _ hM hna hns $$ [Hst Happ Hbe HKV HRD Hfu Htie HT Htp HRS Hlc Hhk]
             as %ar %id ⟨HRD, Hout, #Har, HTr, %Hid, %x', %out, HKV, %Hstep0, HRes, #Hdel, -, HNS,
-              HRS, HT, Htp, %hs', %sa', Hfu, Htie, %Hsa'⟩
+              HRS, HT, Htp, %hs', %sa', Hfu, Htie, %Hsa', #HtA0⟩
         · simp only [↓reduceIte]
           iframe HUA Hwok' HRD He HKV HT Htp Hwba Hlend HRS Hlc Hhk
           isplitr
@@ -1444,6 +1450,12 @@ theorem EtcdServer.applyEntryNormal.wp_proofOn
           exact outcomeOn_eq γr.kv.c0 x.chain (sa, x.log) (sa', x.log) m Hdet
             (outcomeOn_of_adminStateR γr.kv.c0 x.chain (sa, x.log) m rq sa' Htyp hdata hdec hv hna hR)
         have Htie : authTie sa rq out := authTie_nonKV sa rq out hkv'
+        -- (E3x) the result's tie at the model's step
+        have hsa : sa' = adminNext rq sa :=
+          (Prod.mk.inj (hmod.trans (kvEntryOn_admin γr.kv.c0 x.chain (sa, x.log) m rq Htyp hdata
+            hdec hv hna))).1
+        ihave #HtA : adminTieAr ar rq sa (adminNext rq sa) out $$ []
+        · rw [← hsa]; iexact HtA0
         ihave HAR := Hcl $$ %hs' %sa' Hfu Htie %Hsa'.1 HT Htp
         ihave HRS : srvRest E γr (A ++ [m]) $$ [HRS]
         · rw [srvRest_admin E γr A m rq Htyp hdata hdec hadm]; iunfold srvRest; iexact HRS
