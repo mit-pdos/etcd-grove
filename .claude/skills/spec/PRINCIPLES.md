@@ -111,8 +111,9 @@ A spec that breaks one of these is wrong, whatever else it does well, and is not
 
 ## Preferences: measures
 
-Preferences too, but counted: for each spec, on the unfolded statement (as `etc/gen-interface.py`
-renders it). Each is a cost; lower is better among specs that keep the hard rules. (`notes/spec-first-plan.md`,
+Preferences too, but counted for each spec: on its unfolded statement (as `etc/gen-interface.py`
+renders it), or in its callers' proofs. Each is a cost; lower is better among specs that keep the
+hard rules. (`notes/spec-first-plan.md`,
 phase 1b)
 
 - **Coupling**: the other packages' predicates and definitions the statement mentions. Each is a
@@ -123,3 +124,10 @@ phase 1b)
 - **Law coverage**: the laws exported next to each predicate (persistence, timelessness, fractions,
   agreement, exclusivity) against the laws its callers use. A missing law shows up as a caller
   unfolding the predicate.
+- **Caller burden**: the unfolds of the spec's definitions in its callers' proofs, and the *glue
+  lines* per call. A glue proof is the proof of a caller whose body only passes state between its
+  callees, proved from the callees' specs alone; its glue lines for one call are the lines it spends
+  turning what it holds into the spec's precondition and reshaping the postcondition into what it
+  needs next. A spec that fits its callers costs about one line, the `wp_apply`; dozens mean its
+  shape is wrong for them (the server's `Put` once cost its gRPC handler about 60 lines of
+  repackaging, `put.md`).
