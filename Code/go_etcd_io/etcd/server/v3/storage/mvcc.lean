@@ -8140,7 +8140,7 @@ noncomputable def watchStream.Watch.impl [GooseExts] [GoGlobalContext] : val :=
   (Let "$f" (App (Val (GoInstruction (MethodResolve _root_.Perennial.go_opentelemetry_io.otel.trace.Span.ty go!"End"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.go_opentelemetry_io.otel.trace.Span.ty))) (Var "span")))
   (App (Val (GoInstruction (GoStore deferType))) (Pair (Var "$defer") (Let "$oldf" (App (Val (GoInstruction (GoLoad deferType))) (Var "$defer"))
   (Lam BAnon
-  (Seq (App (Var "$f") (Val #()))
+  (Seq (App (Var "$f") (Var "$a0"))
   (App (Var "$oldf") (Val #())))))))))))))
   (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
