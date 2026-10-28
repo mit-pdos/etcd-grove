@@ -493,7 +493,9 @@ sealed over `InvApiRule.lean`/`InvApiRuleAlloc.lean`):
   the snapshot's index and the membership `m` after its committed log, `confAt`, `confStateIs`;
   premises the snapshot's certificate, its index the loan's length, no auto-leave). Linked in
   `Linked.lean` (`wp_RestartNode_unified`, `node.wp_Advance_unified`, `node.wp_ApplyConfChange_unified`).
-Remaining for U4a: kv's port (the proposed statements, `notes/decisions.md`, "Stage U4a"), a
+Remaining for U4a: kv's port (approved 2026-10-28; **blocked**: `MemoryStorage.CreateSnapshot.spec`
+asks a snapshot certificate at every term, which a dynamic certificate, fixed to its term, cannot give;
+needs stage U8's `CreateSnapshot` first, `notes/decisions.md`, "Stage U4a"), a
 `StartNode` from a bootstrap log in this cluster. `notes/decisions.md`, "Stage U4a: kv's adequacy
 over the dynamic half with snapshots".
 

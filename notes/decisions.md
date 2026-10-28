@@ -25146,3 +25146,16 @@ gone. `kv_porcupine_safe`, `kv_Main`, `kv_Check`, `kv_StartCluster`, `kv_Put`/`G
 (`kv_committed_cc`), of a non-voter (`RmShrink`), so every decision keeps `kvMembership`
 (`Membership.applyChange_removeAbsent`, `_nodeZero`) and kv's configuration is `kvMembership` at
 every node and snapshot.
+
+**2026-10-28 · kv's port approved by the user (the two specs as proposed); blocked at `CreateSnapshot`.**
+`MemoryStorage.CreateSnapshot.spec`'s atomic update asks, before the commit, `□ ∀ t, memStorCert γs
+(snapTrip (memSnapCreated σt i t oc bs) ...)`: a certificate at **every** term, because the client does
+not learn which term the storage stamps (its entry's at `i`). A static certificate holds at any term
+(`snapshotCert_static`); a dynamic one fixes the term (`snapAtOk`: a committed prefix of the snapshot's
+length **and last term**, which raft's `restore` needs), so `snapshotCert_make` gives it at one term
+only, and `storageCert_registerAny` cannot be met. kv's run loop takes a snapshot every `snapEvery`
+entries, so its port needs stage U8's `CreateSnapshot` first (the plan: "`CreateSnapshot` of any prefix
+the storage holds (`storHoldsLb`) ..., its term fixed in the post"): the certificate asked only at the
+term the storage stamps, and a storage fact relating that term to the committed log's (the storage
+holds raft's log; its entries up to the applied index are committed). A change to a public raft spec
+(`CreateSnapshot.spec`, used by kv and the other examples that snapshot), so it waits for the user.
