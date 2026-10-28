@@ -24746,9 +24746,23 @@ would tie the opaque function to Perennial's context model, which does not descr
 values by key; the per-call fact is the same kind of statement as the specs' trace facts
 (`ctxTraceIs`), which they already make.
 
-Next, in order: the grant and the bound header into `srvKVAnsOn`'s write answers (today
-`ServerKVOn` drops them); the refusal side (an applied error of a write whose header is bound:
-not granted at `L`); then the gRPC-level specs with auth on (`etcdPutSpecOn`, ...: the client's
+**Done (4): the grant in the KV answers.** `srvKVAnsOn` takes the caller's token `tok` (a call
+is at a context with `auth.ctxTokenOf ctx = tok`; the gRPC level picks it per call, as it picks
+the deposit `d`: `kvServerAt` reads the answers only through `revR`), rather than adding the
+context to `KVAns`'s `ok`/`err` (about fifty files for the same fact). A successful write's answer
+adds `writeGrantOn s E ρ tok rq0`: for the request with the stamped header `hm`, granted at the
+committed log `L` before its entry, `hm`'s user the empty one or the one `tok` was issued to
+(`hdrBoundT`, or the TLS fallback), and `L` with the write's entry committed (`pubAfterM`).
+`*_end_to_end_on` state it at `auth.ctxTokenOf ctx`. The last part is what makes the grant usable:
+`authkv` knows the set-up's entries are committed (its admin replies' `pubAfterM`), the write's
+entry carries a non-empty user, which no set-up entry does, so `L` extends the set-up's prefix and
+the auth state there is `setupSt`.
+
+**The refusal side is not needed.** `Work` panics only when a request its principal may not make
+succeeds; an error answer is never checked against the model. So nothing is added to the error
+answers (the bound header stays in `Put`/`DeleteRange`/`Txn.specOn`'s error posts, unused).
+
+Next, in order: the gRPC-level specs with auth on (`etcdPutSpecOn`, ...: the client's
 bound `n`, the shape premises, the grant and the read class in the replies), the handlers as grpc
 runs them and one serve of the KV and Auth methods.
 
