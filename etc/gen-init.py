@@ -2025,6 +2025,8 @@ PROGRAMS = {'github_com.mit_pdos.etcd_grove.examples.putget':
             'Proof/github_com/mit_pdos/etcd_grove/examples/authkv/PkgTable.lean',
             'github_com.mit_pdos.etcd_grove.examples.lintest.counter':
             'Proof/github_com/mit_pdos/etcd_grove/examples/lintest/counter/PkgTable.lean',
+            'github_com.mit_pdos.etcd_grove.examples.lintest.logkv':
+            'Proof/github_com/mit_pdos/etcd_grove/examples/lintest/logkv/PkgTable.lean',
             'github_com.mit_pdos.etcd_grove.examples.kv':
             'Proof/github_com/mit_pdos/etcd_grove/examples/kv/PkgTable.lean',
             'github_com.mit_pdos.etcd_grove.examples.k8setcd3':

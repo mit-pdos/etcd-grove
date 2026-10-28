@@ -60,6 +60,7 @@ theorem runClient.wp_proof : runClient.spec (GF := GF) (hG := hG) :=
   wp_if_destruct
   · iunfold genSpec at Hgen
     wp_apply (lc := 1) Hgen as %input #Hin
+    · ipureintro; exact Hid
     wp_apply (lc := 1) wp_clock_read S.M libState clockVal Eclk n γ clock (sint.nat id) (Lc, lr')
       HEclk $$ [$Hclock $Hinv $Hlc1 $Htok] as %call ⟨Htok, %Hcall⟩
     wp_apply (lc := 1) wp_apply_commit S inOk libState clockVal Eapp n γ apply (sint.nat id)

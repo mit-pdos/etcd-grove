@@ -14,7 +14,10 @@ Lean-first (no Rocq counterpart).
   input `i` with `inOk i`, at its linearization point it takes the state from `s` to `s'`
   with the output `o` it then returns, and `S.M.step s (i, o) = some s'`; it returns what
   porcupine's `Step` needs of the input and output (`S.ioOk i o`).
-- `genSpec f inOk`: the input generator returns a value `i` with `inOk i`, persistently.
+- `genSpec f inOk`: the input generator, called with a client's index (`0 ≤ id`: `Run` calls it
+  with `0, ..., clients - 1`), returns a value `i` with `inOk i`, persistently. (Until
+  2026-10-28 it was required of every `id`, negative ones included, which a generator indexing a
+  table by `id % n`, logkv's `vals[id%4]`, does not meet: it panics on a negative `id`.)
   `inOk` is the library's notion of a well-formed input (e.g. `∃ b, i = boxed bool b` for a
   library that asserts `input.(bool)`); `True` covers any input. Within it, the result holds
   for whatever inputs `gen` picks, e.g. at random.
@@ -77,7 +80,7 @@ def applySpec (S : ModelSpec GF σ) (inOk : GoInterface → IProp GF) (libState 
 /-- The input generator (see the file header). -/
 def genSpec (f : GoFunc) (inOk : GoInterface → IProp GF) : IProp GF :=
   iprop(∀ id : w64,
-    {{ True }} (App (Val #f) (Val #id)) {{ (i : GoInterface), RET #i; □ inOk i }})
+    {{ ⌜0 ≤ sint.Z id⌝ }} (App (Val #f) (Val #id)) {{ (i : GoInterface), RET #i; □ inOk i }})
 
 instance clockSpec_persistent (clockVal : w64 → IProp GF) (Eclk : CoPset) (f : GoFunc) :
     Persistent (clockSpec clockVal Eclk f) := by unfold clockSpec; infer_instance

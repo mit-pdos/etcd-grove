@@ -40,6 +40,7 @@ usage: etc/gen-link.py --raft > Proof/go_etcd_io/raft/v3/Link.lean
        etc/gen-link.py --porcupine > Proof/github_com/anishathalye/porcupine/Link.lean
        etc/gen-link.py --lintest > Proof/github_com/mit_pdos/etcd_grove/examples/lintest/Link.lean
        etc/gen-link.py --lintest-counter > Proof/github_com/mit_pdos/etcd_grove/examples/lintest/counter/Link.lean
+       etc/gen-link.py --lintest-logkv > Proof/github_com/mit_pdos/etcd_grove/examples/lintest/logkv/Link.lean
        etc/gen-link.py --linkvtxn > Proof/github_com/mit_pdos/etcd_grove/examples/linkvtxn/Link.lean
        etc/gen-link.py --linkv3p > Proof/github_com/mit_pdos/etcd_grove/examples/linkv3p/Link.lean
        etc/gen-link.py --watchkv > Proof/github_com/mit_pdos/etcd_grove/examples/watchkv/Link.lean
@@ -305,6 +306,15 @@ LEAN_FIRST = {
                           "github_com.mit_pdos.etcd_grove.examples.lintest.counter.Assumptions",
                           "The porcupine driver's instance's proofs (`examples/lintest/counter`)",
                           [""]),
+    # the log-applied register (examples/lintest/logkv): writes take effect in the apply
+    # goroutine; over the driver's (`@`)
+    "--lintest-logkv": ("link-lean-first-lintest-logkv.txt",
+                        "github_com.mit_pdos.etcd_grove.examples.lintest.logkv "
+                        "github_com.mit_pdos.etcd_grove.examples.lintest "
+                        "github_com.anishathalye.porcupine",
+                        "github_com.mit_pdos.etcd_grove.examples.lintest.logkv.Assumptions",
+                        "The log-applied register's proofs (`examples/lintest/logkv`)",
+                        [""]),
     # the linearizability instance over the robustness tester's KV workload (examples/linkvtxn,
     # notes/linkv-txn-plan.md): its porcupine model (stage E), `Apply` (stage F), its generator,
     # `Check` (over the driver's, `@`) and `Main` (over the server's, v3rpc's and the client's, `@`;
@@ -385,7 +395,7 @@ LEAN_FIRST = {
 # The mode whose results are put in a namespace of their own (see the docstring).
 NAMESPACED = {"--backend": "backend", "--client": "client", "--concurrency": "concurrency", "--leasing": "leasing", "--recipes": "recipes", "--v3lock": "v3lock", "--v3election": "v3election",
               "--txn": "txn", "--porcupine": "porcupine", "--lintest": "lintest",
-              "--lintest-counter": "lintest", "--linkv3p": "linkv3p", "--linkvtxn": "linkvtxn", "--watchkv": "watchkv", "--authkv": "authkv", "--cachekv": "cachekv", "--common": "common", "--k8s": "kubernetes", "--k8s-etcd3": "k8s", "--cacher": "cacher", "--k8setcd3": "k8setcd3", "--apply": "apply", "--v3rpc": "v3rpc", "--read": "read"}
+              "--lintest-counter": "lintest", "--lintest-logkv": "lintest", "--linkv3p": "linkv3p", "--linkvtxn": "linkvtxn", "--watchkv": "watchkv", "--authkv": "authkv", "--cachekv": "cachekv", "--common": "common", "--k8s": "kubernetes", "--k8s-etcd3": "k8s", "--cacher": "cacher", "--k8setcd3": "k8setcd3", "--apply": "apply", "--v3rpc": "v3rpc", "--read": "read"}
 # The Links a mode imports for the callees' results they already define (see "Reuse" above), by
 # their module below `Proof/`, beside those of its `@` callees.
 REUSES = {"--server": ["Proof.go_etcd_io.etcd.server.v3.storage.mvcc.Link"]}
@@ -414,7 +424,7 @@ if mode is None:
 # The modes whose results rest on porcupine's `checkSingle`, which shares the model's state values
 # in non-atomic invariants (`Shared.lean`) of iris-lean's camera `NaInvG GF`, not yet in
 # Perennial's `allG`: their sections assume the instance (`notes/STATUS.md`, "Porcupine").
-NA_MODES = {"--porcupine", "--lintest", "--lintest-counter", "--kv", "--linkv3p",
+NA_MODES = {"--porcupine", "--lintest", "--lintest-counter", "--lintest-logkv", "--kv", "--linkv3p",
             "--linkvtxn", "--kvwitness", "--k8setcd3"}
 em = (("variable [EM : EtcdModel GF]\n" if sys.argv[1] in EM_MODES else "")
       + ("variable [NaInvG GF]\n" if sys.argv[1] in NA_MODES else ""))

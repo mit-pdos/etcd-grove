@@ -15,7 +15,7 @@ tests trace etcd (a `porcupine.Operation` per call, its call and return timestam
   well-formed inputs: e.g. of the dynamic type it asserts);
 - `clock` is logically atomic and monotone over its abstract value `clockVal`
   (`clockSpec`), e.g. `CounterClock`'s;
-- `gen` returns an input `i` with `inOk i` (`genSpec`), any such input, so randomized
+- `gen`, called with a client's index `id ≥ 0`, returns an input `i` with `inOk i` (`genSpec`), any such input, so randomized
   traffic is covered;
 - the invariants of the library and the clock (`Eapp`, `Eclk`) are not `Run`'s
   (`lintestN`);

@@ -24743,3 +24743,30 @@ to be the specs in, e.g., node__Propose.lean."
 **Left (D4, a follow-up):** the other variant triples (`MemstorageAU.lean`'s `spec_tok`,
 `raft.applyConfChange.specS`, `confchange.Restore.specE`); a clean `node.ForgetLeader` spec.
 
+
+## lintest's `genSpec`: the generator is called with a client's index (`id ≥ 0`)
+
+**2026-10-28 · accepted** (branch `logkv-eval`)
+
+`lintest.genSpec gen inOk` was `∀ id, {{ True }} gen id {{ i, □ inOk i }}`: every `id`, negative
+ones included. logkv's generator (`examples/lintest/logkv`) indexes `vals[id%4]`; Go's `%` is
+negative for a negative `id`, so it panics there and cannot meet that spec, though `Run` only ever
+calls `gen` with `0, ..., clients - 1` (`runClient.spec` already has `0 ≤ sint.Z id`). Now
+`{{ ⌜0 ≤ sint.Z id⌝ }}`: `Run.spec` is strictly stronger (a weaker premise; the PRINCIPLES' "no
+unneeded premise"), `runClient`'s proof discharges it (one line), and the existing generators'
+proofs are unchanged (they drop the premise). The `Gen.spec`s of linkvtxn and k8setcd3, stated
+as `genSpec`, now say less than their Go code (any `id`); their only caller is `Run`. Not a Go
+bug: nothing in `issues/`.
+
+## logkv: the writer's update fired in the apply goroutine, its result back by a saved proposition
+
+**2026-10-28 · accepted** (branch `logkv-eval`, `notes/logkv-eval.md`)
+
+`Put`'s linearization point is in `applyLoop`. The writer's atomic update (Perennial's one-shot
+fancy update) goes into the lock invariant (a pending slot), the apply goroutine fires it under
+the mutex, and the result `P` waits in a done slot, which the writer identifies by a monotone
+list of request names and claims with a ticket; a saved proposition says the slot's `P'` is its
+`P` (`▷ (P' ≡ P)`, paid by `Unlock`'s step). Rejected: an invariant per request (puts a
+namespace in `Put`'s mask, `@@ ↑logkvN` instead of `∅`, visible to every client); the writer
+firing its own update once applied (wrong: later operations may have seen the value). The API
+(`regState γ`, `isServer γ s`, mask `∅`) is the one a register under a mutex would have.
