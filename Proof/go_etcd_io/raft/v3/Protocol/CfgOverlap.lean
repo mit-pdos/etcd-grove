@@ -229,14 +229,29 @@ given the log prefix before it. The prefix is there because etcd's application m
 it applies depending on the history (`EtcdServer.applyConfChange` validates the change against
 its membership store and, if it refuses it, passes it to raft with `NodeID` zeroed, which
 `confchange` then skips): every node applies the same committed entry at the same prefix,
-which is all the argument needs. `CCDec.ofEnt` is a decoder that ignores the prefix. -/
-abbrev CCDec := List EntryM → EntryM → Option CCOp
+which is all the argument needs.
 
-/-- One entry, after the prefix `pre`: a conf-change entry's decoded change applied; any other
-entry leaves the configuration. -/
+(2026-10-28, stage U6m) The decoder gives a **decision** (`CCDecision`): apply a change, or reject
+the entry (the application does not call `ApplyConfChange`; the configuration, joint or not, is
+kept). Its `none` is still "no configuration" (the fold fails). -/
+inductive CCDecision where
+  /-- the entry's change, applied (`ApplyConfChange`) -/
+  | apply (op : CCOp)
+  /-- the entry rejected: the configuration kept -/
+  | reject
+
+/-- A decision's effect on a configuration: an applied change's `ccStepB`; a rejection keeps it. -/
+def CCDecision.step : CCDecision → CCState → Option CCState
+  | .apply op, s => ccStepB op s
+  | .reject, s => some s
+
+abbrev CCDec := List EntryM → EntryM → Option CCDecision
+
+/-- One entry, after the prefix `pre`: a conf-change entry's decision taken (its change applied,
+or nothing for a rejection); any other entry leaves the configuration. -/
 def entStep (dec : CCDec) (pre : List EntryM) (s : CCState) (e : EntryM) :
     Option CCState :=
-  if IsConfEnt e then (dec pre e).bind fun op => ccStepB op s else some s
+  if IsConfEnt e then (dec pre e).bind fun d => d.step s else some s
 
 /-- The configuration after the entries `l`, from `s`, the entries `pre` before them. -/
 def cfgFoldFrom (dec : CCDec) (pre : List EntryM) (s : CCState) :
@@ -287,16 +302,19 @@ theorem entStep_overlap {dec : CCDec} {pre : List EntryM} {s s' : CCState}
   split at h
   · cases hd : dec pre e with
     | none => rw [hd] at h; cases h
-    | some op =>
+    | some d =>
       rw [hd, Option.bind_some] at h
-      unfold ccStepB at h
-      cases ha : ccApplyM op.1 op.2 s with
-      | none => rw [ha] at h; cases h
-      | some s1 =>
-        rw [ha, Option.bind_some] at h
-        split at h
-        · rename_i hb; cases h; exact ccApplyM_overlap ha hs hb
-        · cases h
+      cases d with
+      | reject => cases h; exact ⟨QOverlap.refl hs.2.1, hs⟩
+      | apply op =>
+        simp only [CCDecision.step] at h; unfold ccStepB at h
+        cases ha : ccApplyM op.1 op.2 s with
+        | none => rw [ha] at h; cases h
+        | some s1 =>
+          rw [ha, Option.bind_some] at h
+          split at h
+          · rename_i hb; cases h; exact ccApplyM_overlap ha hs hb
+          · cases h
   · cases h; exact ⟨QOverlap.refl hs.2.1, hs⟩
 
 theorem cfgFoldFrom_ok {dec : CCDec} {pre : List EntryM} {s s' : CCState}

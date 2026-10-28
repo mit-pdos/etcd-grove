@@ -51,7 +51,7 @@ private theorem stepCD_appliedTo (c : CfgM) (id : w64) (m : MessageM) (s : NStat
     rw [toPState_logAppliedTo]
     simp [logAppliedTo]
   rw [Hr]
-  refine StepR.advance (rOf s g) (w64Max idx s.logst.applied) (by simp [rOf, Hsn]) ?_ ?_ Ha1
+  refine StepR.advance (rOf s g) (w64Max idx s.logst.applied) (by simp [rOf, Hsn]) ?_ ?_ Ha1.noUndec
   · show uint.Z s.logst.applied ≤ uint.Z (w64Max idx s.logst.applied)
     unfold w64Max; split <;> word
   · show uint.Z (w64Max idx s.logst.applied) ≤ uint.Z s.logst.committed

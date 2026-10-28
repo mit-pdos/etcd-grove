@@ -339,7 +339,7 @@ of the entry's `AddNode` of a member, also a no-op). -/
 def DynCCPreOp (dec : CCDec) (D : List EntryM) (ca : Nat) (cfg : CCState) (op : CCOp)
     (k : Nat) (e : EntryM) (cs' : CCState) : Prop :=
   ca ≤ k ∧ k < D.length ∧ D[k]? = some e ∧ IsConfEnt e ∧
-  NoConfIn D ca k ∧ (∃ op', dec (D.take k) e = some op' ∧ ccStepB op' cfg = some cs') ∧
+  NoConfIn D ca k ∧ (∃ op', dec (D.take k) e = some (.apply op') ∧ ccStepB op' cfg = some cs') ∧
   ccStepB op cfg = some cs' ∧ cs'.cfg.autoLeave = false
 
 end

@@ -105,6 +105,17 @@ def RState.full (r : RState) : List EntryM := r.fp ++ r.p.log
 def NoConfIn (l : List EntryM) (lo hi : Nat) : Prop :=
   ∀ (k : Nat) (e : EntryM), lo ≤ k → k < hi → l[k]? = some e → ¬ IsConfEnt e
 
+/-- (2026-10-28, stage U6m) **No undecided conf entry** at the positions `[lo, hi)` of `l`: every
+conf-change entry there is rejected by the decoder (`CCDecision.reject`, at its prefix), so that the
+configuration passes it unchanged. A log with no conf entry there has none (`NoConfIn.noUndec`). -/
+def NoUndecConfIn (dec : CCDec) (l : List EntryM) (lo hi : Nat) : Prop :=
+  ∀ (k : Nat) (e : EntryM), lo ≤ k → k < hi → l[k]? = some e → IsConfEnt e →
+    dec (l.take k) e = some .reject
+
+theorem NoConfIn.noUndec {dec : CCDec} {l : List EntryM} {lo hi : Nat} (h : NoConfIn l lo hi) :
+    NoUndecConfIn dec l lo hi :=
+  fun k e h1 h2 he hc => absurd hc (h k e h1 h2 he)
+
 /-- `stepLeader`'s conf-change loop at `r`: the batch and the new `pendingConfIndex`. -/
 def propBatch (r : RState) (ents : List EntryM) (cs : List (Option ConfChangeIM)) :
     List EntryM × w64 :=
@@ -390,13 +401,14 @@ inductive StepR : RState → List Msg → RState → Prop where
       (∀ v i, mt !! v = some i → uint.Z i = 0 ∨ r.p.matched !! v = some i) →
       StepR r [] { r with p := { r.p with matched := mt } }
   /-- `Advance`'s `appliedTo`: `applied` moves up to `a ≤ commit`, the configuration having
-  taken every conf entry up to `a` (A1); the configuration index moves along when it was
-  below. -/
+  taken every conf entry up to `a` (A1): each one applied (`applyConf`) or, since stage U6m
+  (2026-10-28), rejected by the decoder (`NoUndecConfIn`); the configuration index moves along when
+  it was below. -/
   | advance (r : RState) (a : w64) :
       r.snap = false →
       uint.Z r.applied ≤ uint.Z a →
       uint.Z a ≤ uint.Z r.p.commit →
-      NoConfIn r.full r.cidx (uint.nat a) →
+      NoUndecConfIn dec r.full r.cidx (uint.nat a) →
       StepR r [] { r with applied := a, cidx := max r.cidx (uint.nat a) }
   /-- `appliedSnap`: the pending snapshot applied, the configuration switched to the snapshot's
   (2026-10-28, stage U0: until then `snapRestore` switched it). -/
@@ -405,15 +417,17 @@ inductive StepR : RState → List Msg → RState → Prop where
       Adm r.fp cs' →
       StepR r [] { r with applied := r.p.base.index', snap := false, cfg := cs' }
   /-- `ApplyConfChange` of the next conf entry (at position `k`, log index `k + 1`), committed,
-  in order: the configuration takes its change, decoded from the entry and its prefix. -/
+  in order: the configuration takes its change, decoded from the entry and its prefix (the
+  decoder's `apply`); the conf entries before it since the configuration index rejected (stage
+  U6m). -/
   | applyConf (r : RState) (k : Nat) (e : EntryM) (op : CCOp) (cs' : CCState) :
       r.snap = false →
       r.cidx ≤ k →
       k < uint.nat r.p.commit →
       r.full[k]? = some e →
       IsConfEnt e →
-      NoConfIn r.full r.cidx k →
-      dec (r.full.take k) e = some op →
+      NoUndecConfIn dec r.full r.cidx k →
+      dec (r.full.take k) e = some (.apply op) →
       ccStepB op r.cfg = some cs' →
       Adm (r.full.take (k + 1)) cs' →
       StepR r [] { r with cidx := k + 1, cfg := cs' }

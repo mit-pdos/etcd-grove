@@ -64,17 +64,22 @@ theorem cfgFoldFrom_good {dec : CCDec} {pre : List EntryM} {s s' : CCState}
       split at h1
       · cases h2 : dec pre e with
         | none => rw [h2] at h1; cases h1
-        | some op =>
+        | some d =>
           rw [h2] at h1
-          simp only [Option.bind_some, ccStepB] at h1
-          cases h3 : ccApplyM op.1 op.2 s with
-          | none => rw [h3] at h1; cases h1
-          | some s2 =>
-            rw [h3] at h1
-            simp only [Option.bind_some] at h1
-            split at h1
-            · cases h1; exact ccApplyM_good h op.1 op.2 h3
-            · cases h1
+          cases d with
+          | reject =>
+            simp only [Option.bind_some, CCDecision.step, Option.some.injEq] at h1
+            subst h1; exact h
+          | apply op =>
+            simp only [Option.bind_some, CCDecision.step, ccStepB] at h1
+            cases h3 : ccApplyM op.1 op.2 s with
+            | none => rw [h3] at h1; cases h1
+            | some s2 =>
+              rw [h3] at h1
+              simp only [Option.bind_some] at h1
+              split at h1
+              · cases h1; exact ccApplyM_good h op.1 op.2 h3
+              · cases h1
       · cases h1; exact h
 
 theorem cfgFold_good {dec : CCDec} {c0 s : CCState} {l : List EntryM} (h : CCGood c0)

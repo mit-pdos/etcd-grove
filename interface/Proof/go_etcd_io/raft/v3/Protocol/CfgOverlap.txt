@@ -16,7 +16,7 @@ theorem ccApplyM_overlap {t : raftpb.ConfChangeTransition} {ccs : List ConfChang
     QOverlap s.cfg s'.cfg ∧ CfgOk s'
 
 def CCDec : Type :=
-  List EntryM → EntryM → Option CCOp
+  List EntryM → EntryM → Option CCDecision
 
 def CfgOk (s : CCState) : Prop :=
   CfgInv s ∧ s.cfg.incoming ≠ ∅ ∧ GMap.size s.cfg.ids < 2 ^ 62
@@ -57,6 +57,10 @@ theorem simpleM_overlap {ccs : List ConfChangeSingleM} {s s' : CCState} (h : sim
 theorem not_symdiffTooBig {l r : GSet w64} (hb : symdiffN l r < 2 ^ 63) (h : ¬SymdiffTooBig l r) :
     symdiffN l r ≤ 1
 
+inductive CCDecision : Type
+  | CCDecision.apply (op : CCOp) : CCDecision
+  | CCDecision.reject : CCDecision
+
 theorem gset_size_inter_diff (l r : GSet w64) : GMap.size l = (l ∩ r).size + (l \ r).size
 
 def cfgFold (dec : CCDec) (s : CCState) (l : List EntryM) : Option CCState :=
@@ -79,6 +83,11 @@ theorem size_incoming_le (c : CfgM) : GMap.size c.incoming ≤ GMap.size c.ids
 theorem cfgFold_append (dec : CCDec) (s : CCState) (l1 l2 : List EntryM) : cfgFold dec s (l1 ++ l2)
     = (cfgFold dec s l1).bind fun s' => cfgFoldFrom dec l1 s' l2
 
+def CCDecision.step : CCDecision → CCState → Option CCState :=
+  match x✝¹, x✝ with
+  | CCDecision.apply op, s => ccStepB op s
+  | CCDecision.reject, s => some s
+
 theorem applyM_incoming {ccs : List ConfChangeSingleM} {s s' : CCState} (h : applyM ccs s = some s')
     : s'.cfg.incoming ≠ ∅
 
@@ -86,7 +95,7 @@ def cfgFoldFrom (dec : CCDec) (pre : List EntryM) (s : CCState) : List EntryM �
   List.brecOn (motive := fun x => List EntryM → CCState → Option CCState) x✝ (cfgFoldFrom._f dec) pre s
 
 def entStep (dec : CCDec) (pre : List EntryM) (s : CCState) (e : EntryM) : Option CCState :=
-  if IsConfEnt e then (dec pre e).bind fun op => ccStepB op s else some s
+  if IsConfEnt e then (dec pre e).bind fun d => d.step s else some s
 
 theorem entStep_overlap {dec : CCDec} {pre : List EntryM} {s s' : CCState} {e : EntryM} (h : entStep
     dec pre s e = some s') (hs : CfgOk s) : QOverlap s.cfg s'.cfg ∧ CfgOk s'

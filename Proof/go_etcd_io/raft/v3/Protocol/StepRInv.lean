@@ -154,6 +154,36 @@ theorem cfgFold_noConf (dec : CCDec) (c0 : CCState) {l : List EntryM} {lo hi : N
     rwa [Nat.add_sub_cancel' hlh] at h
   rw [hsplit, cfgFold_append, hf, Option.bind_some, cfgFoldFrom_zero _ _ _ _ h.confCount]
 
+theorem NoUndecConfIn.mono {dec : CCDec} {l : List EntryM} {lo hi lo' hi' : Nat}
+    (h : NoUndecConfIn dec l lo hi) (h1 : lo ≤ lo') (h2 : hi' ≤ hi) : NoUndecConfIn dec l lo' hi' :=
+  fun k e hk1 hk2 he hc => h k e (by omega) (by omega) he hc
+
+/-- (2026-10-28, stage U6m) With every conf entry in `[lo, hi)` rejected, the fold up to `hi` is the
+fold up to `lo`. -/
+theorem cfgFold_noUndec (dec : CCDec) (c0 : CCState) {l : List EntryM} {lo hi : Nat}
+    {cs : CCState} (h : NoUndecConfIn dec l lo hi) (hlh : lo ≤ hi)
+    (hf : cfgFold dec c0 (l.take lo) = some cs) : cfgFold dec c0 (l.take hi) = some cs := by
+  obtain ⟨d, rfl⟩ : ∃ d, hi = lo + d := ⟨hi - lo, by omega⟩
+  induction d with
+  | zero => exact hf
+  | succ d ih =>
+    have ih := ih (h.mono (Nat.le_refl _) (by omega)) (by omega)
+    rw [← Nat.add_assoc]
+    have hn : lo ≤ lo + d := by omega
+    have hn2 : lo + d < lo + (d + 1) := by omega
+    generalize lo + d = n at ih hn hn2 ⊢
+    by_cases hl : n < l.length
+    · rw [List.take_add_one, List.getElem?_eq_getElem hl, Option.toList_some, cfgFold_snoc, ih,
+        Option.bind_some]
+      unfold entStep
+      by_cases hc : IsConfEnt l[n]
+      · rw [ite_eq_left hc, h n l[n] hn hn2 (List.getElem?_eq_getElem hl) hc]
+        rfl
+      · rw [ite_eq_right hc]
+    · rw [List.take_of_length_le (by omega)]
+      rw [List.take_of_length_le (by omega)] at ih
+      exact ih
+
 /-! ### I1 and I3 -/
 
 theorem ConfI1.mono {l : List EntryM} {c c' : Nat} (h : ConfI1 l c) (hc : c ≤ c') :
@@ -648,7 +678,7 @@ theorem RInv_snapRestore {r : RState} (m : Msg) (fp' : List EntryM)
 
 theorem RInv_advance {r : RState} (a : w64) (H : RInv dec c0 r) (hs : r.snap = false)
     (h1 : uint.Z r.applied ≤ uint.Z a) (h2 : uint.Z a ≤ uint.Z r.p.commit)
-    (hn : NoConfIn r.full r.cidx (uint.nat a)) :
+    (hn : NoUndecConfIn dec r.full r.cidx (uint.nat a)) :
     RInv dec c0 { r with applied := a, cidx := max r.cidx (uint.nat a) } := by
   have h1n := rUnat_le h1
   have h2n := rUnat_le h2
@@ -663,7 +693,7 @@ theorem RInv_advance {r : RState} (a : w64) (H : RInv dec c0 r) (hs : r.snap = f
     by_cases ha : uint.nat a ≤ r.cidx
     · rw [Nat.max_eq_left ha]; exact H.cfg hs
     · rw [Nat.max_eq_right (by omega)]
-      exact cfgFold_noConf dec c0 hn (by omega) (H.cfg hs)
+      exact cfgFold_noUndec dec c0 hn (by omega) (H.cfg hs)
   · intro hl
     exact ⟨(H.i3 hl).1, Nat.le_trans (confCount_drop_le _ h1n) (H.i3 hl).2⟩
   · intro hc
@@ -689,8 +719,8 @@ theorem RInv_applySnap {r : RState} (cs' : CCState) (H : RInv dec c0 r) (hs : r.
 /-- The configuration takes the next conf entry: the fold one entry further. -/
 theorem RInv_applyConf {r : RState} (k : Nat) (e : EntryM) (op : CCOp) (cs' : CCState)
     (H : RInv dec c0 r) (hs : r.snap = false) (hk : r.cidx ≤ k) (hkc : k < uint.nat r.p.commit)
-    (he : r.full[k]? = some e) (hc : IsConfEnt e) (hn : NoConfIn r.full r.cidx k)
-    (hd : dec (r.full.take k) e = some op) (hst : ccStepB op r.cfg = some cs') :
+    (he : r.full[k]? = some e) (hc : IsConfEnt e) (hn : NoUndecConfIn dec r.full r.cidx k)
+    (hd : dec (r.full.take k) e = some (.apply op)) (hst : ccStepB op r.cfg = some cs') :
     RInv dec c0 { r with cidx := k + 1, cfg := cs' } := by
   refine ⟨H.full, H.base_commit, H.commit_last,
     (show uint.nat r.applied ≤ k + 1 by have := H.applied_cidx; omega), hkc, ?_,
@@ -701,7 +731,7 @@ theorem RInv_applyConf {r : RState} (k : Nat) (e : EntryM) (op : CCOp) (cs' : CC
   intro _
   show cfgFold dec c0 (r.full.take (k + 1)) = some cs'
   rw [List.take_add_one, he, Option.toList_some, cfgFold_snoc,
-    cfgFold_noConf dec c0 hn hk (H.cfg hs), Option.bind_some]
+    cfgFold_noUndec dec c0 hn hk (H.cfg hs), Option.bind_some]
   unfold entStep; rw [ite_eq_left hc, hd, Option.bind_some]; exact hst
 
 end rules

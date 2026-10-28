@@ -177,9 +177,10 @@ theorem confStateIs_of_ok (cs : ConfStateM) (c : CfgM) (h : confstateOk cs c) :
     confStateIs cs (memOf c) := h
 
 /-- The decoder as raft takes it (`CCDec`): the client's, on the entries as the client sees them,
-its change as `AsV2` makes it. -/
+its change as `AsV2` makes it, applied (2026-10-28, stage U6m: the client's decoder rejects
+nothing). -/
 def decOf (decode : ConfChangeDecoder) : CCDec :=
-  fun D e => (decode (strip D) (LogEntry.ofEntryM e)).map ccV2Of
+  fun D e => (decode (strip D) (LogEntry.ofEntryM e)).map fun o => .apply (ccV2Of o)
 
 end pure
 

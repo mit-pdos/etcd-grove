@@ -27,9 +27,10 @@ theorem RInv_propDrop {dec : CCDec} {c0 : CCState} {r : RState} (m : Msg) (cs : 
 
 theorem RInv_applyConf {dec : CCDec} {c0 : CCState} {r : RState} (k : Nat) (e : EntryM) (op : CCOp)
     (cs' : CCState) (H : RInv dec c0 r) (hs : r.snap = false) (hk : r.cidx ≤ k) (hkc : k < uint.nat
-    r.p.commit) (he : r.full[k]? = some e) (hc : IsConfEnt e) (hn : NoConfIn r.full r.cidx k) (hd :
-    dec (List.take k r.full) e = some op) (hst : ccStepB op r.cfg = some cs') : RInv dec c0 { p :=
-    r.p, applied := r.applied, pci := r.pci, snap := r.snap, cidx := k + 1, cfg := cs', fp := r.fp }
+    r.p.commit) (he : r.full[k]? = some e) (hc : IsConfEnt e) (hn : NoUndecConfIn dec r.full r.cidx
+    k) (hd : dec (List.take k r.full) e = some (CCDecision.apply op)) (hst : ccStepB op r.cfg = some
+    cs') : RInv dec c0 { p := r.p, applied := r.applied, pci := r.pci, snap := r.snap, cidx := k +
+    1, cfg := cs', fp := r.fp }
 
 theorem RInv_commit {dec : CCDec} {c0 : CCState} {r : RState} (n : w64) (H : RInv dec c0 r) (hrole :
     r.p.role = Role.leader) (hc : uint.Z r.p.commit < uint.Z n) (hn : uint.Z n ≤ plogLastIndexZ
@@ -99,6 +100,13 @@ def ConfI3 (l : List EntryM) (pci a : Nat) : Prop :=
 
 theorem confCount_eq_zero {l : List EntryM} (h : ∀ (k : Nat) (e : EntryM), l[k]? = some e →
     ¬IsConfEnt e) : confCount l = 0
+
+theorem cfgFold_noUndec (dec : CCDec) (c0 : CCState) {l : List EntryM} {lo hi : Nat} {cs : CCState}
+    (h : NoUndecConfIn dec l lo hi) (hlh : lo ≤ hi) (hf : cfgFold dec c0 (List.take lo l) = some cs)
+    : cfgFold dec c0 (List.take hi l) = some cs
+
+theorem NoUndecConfIn.mono {dec : CCDec} {l : List EntryM} {lo hi lo' hi' : Nat} (h : NoUndecConfIn
+    dec l lo hi) (h1 : lo ≤ lo') (h2 : hi' ≤ hi) : NoUndecConfIn dec l lo' hi'
 
 theorem RInv_win {dec : CCDec} {c0 : CCState} {r : RState} (id : w64) (mt : GMap w64 w64) (ms : List
     Msg) (H : RInv dec c0 r) (hrole : r.p.role = Role.candidate) (hlast : plogLastIndexZ r.p.base
@@ -213,8 +221,8 @@ theorem plogFindConflict_first (b : entryID) (es ents : List EntryM) (d : Nat) (
 
 theorem RInv_advance {dec : CCDec} {c0 : CCState} {r : RState} (a : w64) (H : RInv dec c0 r) (hs :
     r.snap = false) (h1 : uint.Z r.applied ≤ uint.Z a) (h2 : uint.Z a ≤ uint.Z r.p.commit) (hn :
-    NoConfIn r.full r.cidx (uint.nat a)) : RInv dec c0 { p := r.p, applied := a, pci := r.pci, snap
-    := r.snap, cidx := max r.cidx (uint.nat a), cfg := r.cfg, fp := r.fp }
+    NoUndecConfIn dec r.full r.cidx (uint.nat a)) : RInv dec c0 { p := r.p, applied := a, pci :=
+    r.pci, snap := r.snap, cidx := max r.cidx (uint.nat a), cfg := r.cfg, fp := r.fp }
 
 theorem RInv_stepR {Adm : List EntryM → CCState → Prop} {dec : CCDec} {c0 : CCState} {id : w64} {B :
     Int} (hAdm : ∀ (l : List EntryM) (cs : CCState), Adm l cs → cfgFold dec c0 l = some cs) {r :

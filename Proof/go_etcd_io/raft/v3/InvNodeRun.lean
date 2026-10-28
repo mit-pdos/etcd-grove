@@ -1125,7 +1125,7 @@ theorem wp_applyConf_dyn
       (rOf s g') :=
     StepR.applyConf (rOf s g) k e op' cs'
       (by simp [rOf, Hsnap (.inr (by rw [hm]; rfl))]) Hk1 Hkc Hfull_k Hconf
-      Hnoc' (by rw [Htake]; exact Hdec) Hstep' Hadm
+      Hnoc'.noUndec (by rw [Htake]; exact Hdec) Hstep' Hadm
   have HR2 := applyCCOkC_stepR (B := 0) (Adm := AdmS dec c0 (fun l => l = (rOf s g).full.take (k + 1)))
     (dec := dec) cs'.cfg id s s' g' Hok rfl
   have HR := StepR.trans _ _ _ _ _ HR1 HR2
