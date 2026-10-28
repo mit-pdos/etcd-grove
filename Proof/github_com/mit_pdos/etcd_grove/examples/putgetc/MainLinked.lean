@@ -43,14 +43,15 @@ variable [sem : go.Semantics]
 variable [package_sem : github_com.mit_pdos.etcd_grove.examples.putgetc.Assumptions]
 
 /-- `StartCompactingServer`, over `newServer`'s compacting variant (`specCompact`) and
-`NewServer`'s (`NewServer.specCompact`, M2's S4: its proof the skeleton's `sorry`, with no callee
-hypotheses yet), linked by hand: `etc/gen-link.py` links a function's one `wp_proof`. -/
+`NewServer`'s (`NewServer.specCompact`, M2's S4: its proof the skeleton's `sorry`, over the
+compactor's `New`, the server's `Compact` and the store's `Rev`), linked by hand: `etc/gen-link.py` links a function's one `wp_proof`. -/
 theorem putgetc.wp_StartCompactingServer [go_etcd_io.etcd.cache.v3.Assumptions]
     [Float64ToInt64Semantics] :
     common.StartCompactingServer.spec (GF := GF) (hG := hG) :=
   common.StartCompactingServer.wp_proof
     (common.newServer.wp_proofCompact common.features.wp_NewDefaultServerFeatureGate
-      (fun {_} => NewServer.wp_proofCompact))
+      (fun {_} => NewServer.wp_proofCompact v3compactor.wp_New EtcdServer.wp_Compact
+        mvcc.store.wp_Rev))
     EtcdServer.wp_Start
 
 /-- **The adequacy example's `Main` does not panic** (see the file header;

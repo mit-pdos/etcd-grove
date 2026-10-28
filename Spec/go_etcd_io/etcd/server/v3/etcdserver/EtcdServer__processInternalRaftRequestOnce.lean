@@ -97,21 +97,23 @@ abbrev EtcdServer.processInternalRaftRequestOnce.specM (on : Bool) : Prop :=
 /-- **A compaction through the request path** (M2, `notes/m2-plan.md`, S2-S3: the compaction mode's
 variant, `CompactMode.lean`): `EtcdServer.Compact`'s proposal of a compaction request
 (`compactPropOk`) returns the apply thread's result of the compaction (`compactResultIs`, with its
-trace), or an error the request path reports. Its proof is the apply side's (S2: the uber-applier's
-compaction arm over `store.Compact`, the apply thread holding the compaction right), in a server in
-compaction mode. -/
+trace), or an error the request path reports. In a server in compaction mode (`isServerReqC`: its
+KV invariant admits compaction entries; review round 1, S2-1), at a revision the store has reached
+(`srvRevLb`: `store.Compact` needs its certificate; S2-3). Its proof is the apply side's (S2: the
+uber-applier's compaction arm over `store.Compact`, the apply thread holding the compaction
+right). -/
 abbrev EtcdServer.processInternalRaftRequestOnce.specCompact : Prop :=
   ∀ (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (ctx : GoInterfaceOk)
-    (cd : context.ContextDesc (IProp GF)) (p : Loc) (rq : apply.IRRModel),
-  rq.id = W64 0 → compactPropOk rq →
+    (cd : context.ContextDesc (IProp GF)) (p : Loc) (rq : apply.IRRModel) (r : w64),
+  rq.id = W64 0 → compactPropOk rq → rq.compaction = some r →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
-      isServerReq s E ρ ∗ srvLeadTimeReader s ∗ E.RD ∗ idCred ρ.ids 1 ∗ context.isContext ctx cd ∗
-      irrNoHdrIs p rq ∗
+      isServerReqC s E ρ ∗ srvLeadTimeReader s ∗ E.RD ∗ idCred ρ.ids 1 ∗ context.isContext ctx cd ∗
+      srvRevLb E.γ (sint.Z r) ∗ irrNoHdrIs p rq ∗
       (∃ h0 : Loc, structFieldRef etcdserverpb.InternalRaftRequest go!"Header" p ↦ h0) }}
     (App (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"processInternalRaftRequestOnce"))
       (Val #(GoInterface.ok ctx))) (Val #p))
   {{ (res : Loc) (err : GoInterface), RET (PairV #res #err); srvLeadTimeReader s ∗ E.RD ∗
-      ((⌜err = GoInterface.nil⌝ ∗ apply.resTrace res ∗ compactResultIs res) ∨
+      ((⌜err = GoInterface.nil⌝ ∗ compactResultIs res) ∨
        (⌜res = null ∧ err ≠ GoInterface.nil⌝ ∗ applyErrIs err ∗ srvMaybeDeposited ρ rq)) }}
 end spec
 

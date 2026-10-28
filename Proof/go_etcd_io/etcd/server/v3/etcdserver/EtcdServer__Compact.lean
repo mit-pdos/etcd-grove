@@ -116,7 +116,7 @@ theorem EtcdServer.Compact.wp_proof
     (hAddField : traceutil.Trace.AddField.spec (GF := GF) (hG := hG)) :
     EtcdServer.Compact.spec (GF := GF) (hG := hG) := by
   intro s E ρ γr ctx cd p r
-  wp_start as ⟨#Hsrv, #Hsrd, Hlt, Hlr, Hrd, Hrdr, #Hcred, #Hctx, #Htrc, Hreq⟩
+  wp_start as ⟨#Hsrv, #Hsrd, Hlt, Hlr, Hrd, Hrdr, #Hcred, #Hctx, #Htrc, #Hlb, Hreq⟩
   wp_apply wp_with_defer as %defer defer
   ihave Hinit : (srvInit : IProp GF) $$ []
   · iapply isPkgInit_access $$ Hpkg
@@ -238,12 +238,15 @@ theorem EtcdServer.Compact.wp_proof
     iexists _; iframe #; try (ipureintro; simp)
   (try wp_auto)
   -- the proposal, in compaction mode's form (`compactPropOk`)
-  wp_apply hPIRRO s E ρ ctx2 _ «$a1_ptr» (irrCompaction rv.Revision') rfl
-      (compactPropOk_irrCompaction _) $$ [Hlt Hrd Header] as %res %err ⟨Hlt, Hrd, Hres⟩
+  -- (review round 1, S2-3) the revision reached, at the request's value
+  ihave #Hlb' : srvRevLb E.γ (sint.Z rv.Revision') $$ []
+  · rw [Hrv.1]; iexact Hlb
+  wp_apply hPIRRO s E ρ ctx2 _ «$a1_ptr» (irrCompaction rv.Revision') rv.Revision' rfl
+      (compactPropOk_irrCompaction _) rfl $$ [Hlt Hrd Header] as %res %err ⟨Hlt, Hrd, Hres⟩
   · iframe # Hlt Hrd
     iexists _; iexact Header
   (try wp_auto)
-  icases Hres with (⟨%Herr, -, Hcr⟩ | ⟨⟨%Hrn, %Hne⟩, #HaE, -⟩)
+  icases Hres with (⟨%Herr, Hcr⟩ | ⟨⟨%Hrn, %Hne⟩, #HaE, -⟩)
   · -- proposed: the apply thread's result, with its trace
     subst Herr
     iunfold compactResultIs at Hcr

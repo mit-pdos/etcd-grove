@@ -24673,3 +24673,26 @@ read facts and the logger's reader slot (`isServerRead s E γr`, `srvLgReader s`
 `s.Logger()` and `s.kv.Rev()`), and the request path's compaction variant's result
 (`compactResultIs`) now owns the apply thread's trace whatever the error (`Compact` uses
 `result.Trace` before it checks `result.Err`).
+
+## M2's compaction mode in the request path's statements (2026-10-28)
+
+**2026-10-28 · taken (review round 1's repair; the family's extent open, for the user)**
+
+Review round 1 of M2's skeleton (`notes/spec-first-study/m2-review-1.md`, S2-1) found the
+compaction mode in no statement: the compaction request path took the compaction-off view
+`isServerReq`, whose KV invariant (`kvInv`: `plainLog`, `logShape` over `dispatchOk`) excludes a
+compaction entry, so it was unprovable. Repair: a compaction-mode family beside the off one, as
+auth's `…On` family (`CompactMode.lean`): `kvInvC` (over `plainLogC`, a plain request or a
+compaction; `logShapeC`, `rqShapeC` with `dispatchOkC` and option (a)'s `irrNoDelPut` on the
+admitted writes; `compactClaims`, every committed compaction's revision reached), and
+`srvReqFieldsAtC`/`isServerReqC` (`isServerReq` over `kvInvC`). The compaction-off definitions and
+every statement over them are unchanged. Used by `processInternalRaftRequestOnce.specCompact` and
+`EtcdServer.Compact.spec`, which also take the revision reached (`srvRevLb`: `store.Compact` needs
+its certificate, S2-3; the compactor's permit gives it, `compactableOk_server`, `CompactEnv.lean`).
+Rejected: a mode bit in the ghost names (`ρ.kv`) read by `kvInv` (the off-mode proofs would need
+the bit's value, a premise on every off-mode statement). **Open:** the family stops at the request
+path's compaction; `NewServer.specCompact`'s post, and `common`'s `memberBuilt`/`memberUp` that
+`putgetc` goes through, still give the off view `isServerReq` (and the watch readers), which cannot
+coexist with `kvInvC` over the same names: a compaction-mode serving stack (the request path's
+`Put`/`Range`/`Txn`/`DeleteRange`, v3rpc, the client, `common`'s member predicates) is the family's
+remaining extent.
