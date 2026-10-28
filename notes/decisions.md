@@ -24832,3 +24832,11 @@ ones. `Start.wp_proof` passes `false`. The read loop runs at the mode-`on` model
 Next: `v3rpc.Server`'s configuration (`grpcCfgOk`) from a server started with auth on, and the
 examples' member start with auth on; `start.specOn`'s `srvLessorNil` (the lessor finds no lease)
 is a named premise there, to be discharged for `authkv` (which grants no lease) or carried.
+
+**Done (5e): the examples' `Serve` with auth on.** `common.Serve.specOn` (`Serve.wp_proofOn`):
+`Serve.spec`'s, for a server started with auth on (`isServerReqM true`, `isServerReadM true`,
+`srvAuthLb`; `grpcCfgOk_of_started_on_w`, `ServeFromStartOn.lean`), whose caller's ghost step
+receives `grpcUpOn` (`grpcUp` with the answers with auth on, `srvKVAnsOn`, the Auth service's
+registrations `v3rpc.authRegs` and its server `v3rpc.authServerIs`), from which
+`etcd_kv_auth_served_on` gives the four KV methods at their md specs and the five Auth methods.
+`gen-link.py` links only `.spec`, so `Serve.specOn` is linked by hand where it is used.

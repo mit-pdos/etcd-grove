@@ -35,6 +35,8 @@ public import Proof.go_etcd_io.etcd.server.v3.etcdserver.BuildGap
 public import Proof.net.InvNet
 public import Spec.google_golang_org.grpc.Server__Serve
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.ServerKV
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.ServerKVOn
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.InvAuthServer
 public import Proof.github_com.mit_pdos.etcd_grove.examples.common.Base
 
 @[expose] public section
@@ -270,6 +272,32 @@ def grpcUp (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames) (gs :
     v3rpc.quotaKVServerAt q
       ⟨go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.kvServer.ty, #p⟩ s ∗
     v3rpc.kvServerIs p s C.A cid mid C.n ∗
+    v3rpc.isWatchServer pw R ∗
+    (□ ∀ Q : GoInterface → IProp GF, srvInterceptorOk il (srvLgReader s) Q) ∗
+    (□ ∀ Q : GoInterface → IProp GF, srvInterceptorOk im iprop(True) Q) ∗
+    srvInterceptorOk iu iprop(True) v3rpc.learnerReqOk ∗
+    srvStreamInterceptorOk ims iprop(True) ∗ srvStreamInterceptorOk is iprop(True) ∗
+    srvLgReader s ∗ srvBemuReader s ∗ srvGoRes s ∗
+    srvCfgFieldAddr s go!"WatchProgressNotifyInterval" ↦ d' ∗
+    ([∗list] _x ∈ List.replicate 64 (), mvcc.watchReader C.wsl E.s C.γ) ∗
+    netListenerAt lis addr)
+
+/-- **What `v3rpc.Server` and `Listen` return, with auth on** (the auth plan's E3zb; `grpcUp`'s): at
+the KV answers with auth on (`srvKVAnsOn … 0 none`), and with the Auth service's registrations on
+the `*AuthServer` `pa` over the server (`authRegs`, `authServerIs`). -/
+def grpcUpOn (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames) (gs : Loc)
+    (lis : GoInterface) (addr : GoString) (cid mid : w64) (R : v3rpc.WSrv GF) : IProp GF :=
+  iprop(∃ (C : v3rpc.GrpcCfg GF) (q p pw pa : Loc) (il im iu ims is : GoFunc)
+      (svcs : List GoString) (regs sregs : List (GoString × val × GoInterface)) (d' : w64),
+    ⌜C.A = v3rpc.srvKVAnsOn s E ρ γr (W64 0) [] .none 0 none ∧ C.E = E ∧
+      (∀ x ∈ v3rpc.kvRegs q, x ∈ regs) ∧ (∀ x ∈ v3rpc.authRegs pa, x ∈ regs) ∧
+      v3rpc.watchSReg pw ∈ sregs ∧ R.s = s ∧ R.E = E ∧ R.wsl = C.wsl ∧ R.γ = C.γ⌝ ∗
+    v3rpc.grpcCfgOk s C ∗
+    grpcSrvNew gs [il, im, iu] [ims, is] svcs regs sregs ∗
+    v3rpc.quotaKVServerAt q
+      ⟨go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.kvServer.ty, #p⟩ s ∗
+    v3rpc.kvServerIs p s C.A cid mid C.n ∗
+    v3rpc.authServerIs pa s ∗
     v3rpc.isWatchServer pw R ∗
     (□ ∀ Q : GoInterface → IProp GF, srvInterceptorOk il (srvLgReader s) Q) ∗
     (□ ∀ Q : GoInterface → IProp GF, srvInterceptorOk im iprop(True) Q) ∗
