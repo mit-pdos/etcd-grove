@@ -173,6 +173,126 @@ theorem tokIssue (γa : AuthNames) (S : GMap GoString GoString) (token user : Go
       · ipureintro; exact hsh
     · iexact Hsp
 
+/-! ### The rights to issue, by raft index (C1's A1, 2026-10-28)
+
+`applierV3backend.Authenticate` issues `<prefix>.<index>` with the consistent index it reads: per
+apply-thread step it only grows, whatever the prefix (which is random, so not known distinct). The
+authority of the rights (`ghostMapAuth γf 1`, empty when `NewTokenProvider` makes the provider)
+is kept with the bound `n` above every index it has handed out (`freshBelow`): for an index at or
+above `n` every prefix's right is still in it (`freshBelow_mint`). -/
+
+theorem decimalNat_inj (a b : Nat) (h : fmt.decimalNat a = fmt.decimalNat b) : a = b := by
+  induction a using Nat.strongRecOn generalizing b with
+  | _ a ih =>
+    rw [fmt.decimalNat_eq a, fmt.decimalNat_eq b] at h
+    obtain ⟨h1, h2⟩ := List.append_inj' h rfl
+    try simp only [List.cons.injEq, and_true] at h2
+    have ha := Nat.mod_lt a (show 10 > 0 by omega)
+    have hb := Nat.mod_lt b (show 10 > 0 by omega)
+    have hd : a % 10 = b % 10 := by
+      unfold fmt.digitByte at h2
+      have := congrArg (fun w : w8 => uint.Z w) h2
+      word
+    by_cases hA : a < 10 <;> by_cases hB : b < 10 <;> simp only [hA, hB, ↓reduceIte] at h1
+    · omega
+    · exact absurd h1.symm (fmt.decimalNat_ne_nil _)
+    · exact absurd h1 (fmt.decimalNat_ne_nil _)
+    · have := ih (a / 10) (by omega) (b / 10) h1
+      omega
+
+/-- Two lists ending in `x ++ a`, `x ++ b` with `x` in neither `a` nor `b`: `a = b` (the part after
+the last `x`). -/
+theorem suffix_after_last {α : Type} (x : α) : ∀ (a b r s : List α), x ∉ a → x ∉ b →
+    (a ++ x :: r = b ++ x :: s) → a = b
+  | [], [], _, _, _, _, _ => rfl
+  | [], y :: b, _, _, _, hb, h => by
+    simp only [List.nil_append, List.cons_append, List.cons.injEq] at h
+    obtain ⟨rfl, -⟩ := h
+    exact absurd (List.mem_cons_self) hb
+  | y :: a, [], _, _, ha, _, h => by
+    simp only [List.nil_append, List.cons_append, List.cons.injEq] at h
+    obtain ⟨rfl, -⟩ := h
+    exact absurd (List.mem_cons_self) ha
+  | y :: a, z :: b, r, s, ha, hb, h => by
+    simp only [List.cons_append, List.cons.injEq] at h
+    obtain ⟨rfl, h⟩ := h
+    rw [suffix_after_last x a b r s (fun h' => ha (List.mem_cons_of_mem _ h'))
+      (fun h' => hb (List.mem_cons_of_mem _ h')) h]
+
+/-- **A simple token's index is determined by the token** (`decimal`'s digits have no `.`). -/
+theorem simpleTok_idx_inj (pre pre' : GoString) (i i' : w64)
+    (h : simpleTok pre i = simpleTok pre' i') : i = i' := by
+  unfold simpleTok at h
+  rw [fmt.decimal_of_nonneg (by word), fmt.decimal_of_nonneg (by word)] at h
+  have hdot : ∀ n : Nat, W8 46 ∉ fmt.decimalNat n := by
+    intro n hm
+    have := fmt.decimalNat_digits n _ hm
+    revert this; word
+  have h' := congrArg List.reverse h
+  simp only [List.append_assoc, List.reverse_append] at h'
+  have hrev := suffix_after_last (W8 46) _ _ pre.reverse pre'.reverse
+    (fun hm => hdot _ (List.mem_reverse.mp hm)) (fun hm => hdot _ (List.mem_reverse.mp hm))
+    (by simpa using h')
+  have := decimalNat_inj _ _ (List.reverse_inj.mp hrev)
+  word
+
+/-- **The rights to issue the tokens of index `n` and above, every prefix's**: the authority of the
+rights `γf` whose handed-out tokens are of an index below `n`. -/
+def freshBelow (γf : GName) (n : Int) : IProp GF :=
+  iprop(∃ F : GMap GoString Unit, ghostMapAuth γf 1 F ∗
+    ⌜∀ t, F.lookup t ≠ none → ∃ (pre : GoString) (i : w64), t = simpleTok pre i ∧ uint.Z i < n⌝)
+
+/-- The provider's fresh authority (`NewTokenProvider`'s): nothing handed out. -/
+theorem freshBelow_init (γf : GName) :
+    ghostMapAuth (GF := GF) γf 1 (∅ : GMap GoString Unit) ⊢ freshBelow γf 0 := by
+  iintro Ha
+  unfold freshBelow
+  iexists ∅
+  iframe Ha
+  ipureintro
+  intro t ht
+  simp at ht
+
+/-- A lower bound may grow. -/
+theorem freshBelow_mono (γf : GName) (n m : Int) (h : n ≤ m) :
+    freshBelow (GF := GF) γf n ⊢ freshBelow γf m := by
+  unfold freshBelow
+  iintro ⟨%F, Ha, %HF⟩
+  iexists F
+  iframe Ha
+  ipureintro
+  intro t ht
+  obtain ⟨pre, i, rfl, hi⟩ := HF t ht
+  exact ⟨pre, i, rfl, by omega⟩
+
+/-- **Minting the right to issue `<pre>.<x>`** for an index `x` at or above the bound: the bound
+moves past `x`. -/
+theorem freshBelow_mint (γf : GName) (n : Int) (x : w64) (pre : GoString) (hx : n ≤ uint.Z x) :
+    freshBelow (GF := GF) γf n ⊢
+      |==> (freshBelow γf (uint.Z x + 1) ∗ ghostMapElem γf (simpleTok pre x) (DFrac.own 1) ()) := by
+  unfold freshBelow
+  iintro ⟨%F, Ha, %HF⟩
+  have hnone : F.lookup (simpleTok pre x) = none := by
+    cases hk : F.lookup (simpleTok pre x) with
+    | none => rfl
+    | some _ =>
+      obtain ⟨pre', i, heq, hi⟩ := HF _ (by rw [hk]; simp)
+      have := simpleTok_idx_inj _ _ _ _ heq
+      subst this; omega
+  ihave Hins := ghost_map_insert (GF := GF) (γ := γf) (simpleTok pre x) () hnone $$ Ha
+  imod Hins with ⟨Ha, Hel⟩
+  imodintro
+  iframe Hel
+  iexists F.insert (simpleTok pre x) ()
+  iframe Ha
+  ipureintro
+  intro t ht
+  by_cases htk : t = simpleTok pre x
+  · exact ⟨pre, x, htk, by omega⟩
+  · have hne : simpleTok pre x ≠ t := fun h => htk h.symm
+    obtain ⟨pre', i, heq, hi⟩ := HF t (by simpa [GMap.insert, hne] using ht)
+    exact ⟨pre', i, heq, by omega⟩
+
 end ghost
 
 /-! ## The binding in a mode -/

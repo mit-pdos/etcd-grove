@@ -298,13 +298,7 @@ provider's contract (`TokenSimple`), `CheckPassword`, `Revision`, `LinearizableR
 `applierV3backend.Authenticate` (applyErrIs only: the response is dropped), `AuthServer.Authenticate`
 (through `authInnerOk`). What is missing, in order:
 
-- **A1. The right to issue, at apply.** `<prefix>.<index>` is unique per raft index (the index is
-  the entry's), whatever the prefix: the apply thread holds the rights of every token
-  `simpleTok pre i` for `i` above its applied index (a ghost reservation allocated with `γa.fresh`,
-  all prefixes at once: an element per token, generated from an authority over the indexes), and
-  hands the entry's `authnCtx` to `authStore.Authenticate` (the applier builds the context with the
-  entry's index, `applierV3backend.Authenticate`'s `AuthenticateParamIndex`). Design to be checked
-  against `authHist_alloc` (the provider is made with `γf` before the history exists).
+- **A1. The right to issue, at apply** (design below, "A1's design").
 - **A2. Admission.** `rqOk`'s `.authenticate` is `False` (D22, 2026-10-23), the dispatch's case
   refutes it (`uberApplier__dispatch`, `DispatchKVL`). Admit it in the mode `on` (`adminKindOk`'s
   second clause, or a third of `rqOkM`: it needs no admin permission and writes no auth or KV state,
@@ -323,3 +317,38 @@ provider's contract (`TokenSimple`), `CheckPassword`, `Revision`, `LinearizableR
 
 Effort, by analogy with E3n/E3w (the admin entries, each several sessions): A1 and A2 are the
 largest (the apply thread's resources and the dispatch); A4 is one long proof; A3 and A5 are glue.
+
+### A1's design (2026-10-28)
+
+**What Go does.** `applierV3backend.Authenticate` puts in the context not the entry's index but
+`ConsistentIndex()`: `authStore.Authenticate` takes no batch lock inside apply, so the post-lock hook
+does not run and the value is the consistent index before the entry (`< e.Index`; the spec of
+`applyEntryNormal` has it: `ciEff γ st.k < m.index`). Each applied entry's `defer` then raises the
+consistent index to at least its index. So the index of the tokens issued is strictly increasing
+from one `Authenticate` entry to the next, whatever the prefix (`GenTokenPrefix`'s random letters,
+not provably distinct): `<prefix>.<index>` is issued once. (Not a Go bug: `isValidSimpleToken`
+waits for an applied index at least the token's, and a smaller one is applied already.)
+
+**The ghost** (`Tokens.lean`, done): `freshBelow γf n`, the rights' authority whose minted tokens
+are of an index below `n` (`simpleTok_idx_inj`: a token's index is determined by the token, the
+decimal having no `.`); `freshBelow_mint` mints `<pre>.<x>` for any `x ≥ n`, moving the bound to
+`x + 1`; `freshBelow_init` from `NewTokenProvider`'s empty authority (`ghostMapAuth γf 1 ∅`, which
+`authSrvTP_on` drops today).
+
+**The plumbing.**
+- The bound against the consistent index, threaded by the apply loop: `srvTokRights E k` (in the
+  mode `on γa`, `∃ n, freshBelow γa.fresh n ∗ ⌜n ≤ k⌝`; else `True`), monotone in `k`, carried in
+  the mode-`on` specs at `k = ciEff γ st.k` (`applyEntryNormal`, `apply`, `applyAll`, the run loop):
+  their posts already make `ciEff` monotone (`apply`: `max`; `applyAll`: equal or `max`), and a v3
+  entry ends at `k = m.index`. It starts from `freshBelow_init` (the authority routed from
+  `authSrvTP_on` with the auth row, `authApplyResPre`).
+- The mint at the server: an `Authenticate` entry decodes to its prefix `pre` (the request's
+  `SimpleToken`), and `applyEntryNormal` knows `x = ciEff γ st.k` with `n ≤ x < m.index`: it mints
+  `tokFresh γa (simpleTok pre x)` and ends with the bound `x + 1 ≤ m.index`.
+- The applier: `applierV3backend.Authenticate`'s mode-`on` triple does not use the generic
+  `isConsistentIndexer` contract (whose triple says nothing of the value) but its own premise: from
+  `Pre` and the right `R`, a split `C` with `E.ciC C`, the value `x` that `ConsistentIndex()`
+  returns from `C`, and `freshOk M (simpleTok pre x)`. The server proves it from `wp_ci_get` (the
+  value `ciEff γ st.k`, `Pre` being `applyThread γ st ∗ …`). Only this proof calls the contract, so
+  nothing else changes. `R` travels with the request through the admin-on chain (`applierAdmin`,
+  `applierAdmL`), with A2.
