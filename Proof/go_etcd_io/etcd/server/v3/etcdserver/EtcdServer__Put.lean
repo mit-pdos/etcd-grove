@@ -46,6 +46,7 @@ theorem EtcdServer.Put.wp_proof
     EtcdServer.Put.spec (GF := GF) (hG := hG) := by
   intro s E ρ ctx cd r op Q F
   wp_start as ⟨#Hsrv, Hrd, Hard, Hcred, #Hctx, #Hput, Hperm, #HF⟩
+  wp_auto
   wp_apply wp_with_defer as %defer defer
   ihave Hinit : (srvInit : IProp GF) $$ []
   · iapply isPkgInit_access $$ Hpkg
@@ -218,6 +219,7 @@ theorem EtcdServer.Put.wp_proofOn
     EtcdServer.Put.specOn (GF := GF) (hG := hG) := by
   intro s E ρ ctx cd r op Q F
   wp_start as ⟨#Hsrv, Hrd, Hard, Hcred, #Hctx, #Hput, Hperm, #HF⟩
+  wp_auto
   wp_apply wp_with_defer as %defer defer
   ihave Hinit : (srvInit : IProp GF) $$ []
   · iapply isPkgInit_access $$ Hpkg

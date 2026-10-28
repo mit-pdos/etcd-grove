@@ -51,7 +51,6 @@ theorem CounterClock.wp_proof :
       ghostVar γ (1 : Qp).half (W64 (k : Int)) ∗ ⧗ k) $$ [Hu Hv1 H0] with #Hinv
   · inext; iexists 0; iframe
   ipersist t
-  rw [recv_eq_func_mk]
   imodintro
   iapply HΦ
   iexists (fun t => ghostVar γ (1 : Qp).half t)
@@ -59,6 +58,10 @@ theorem CounterClock.wp_proof :
   unfold clockSpec
   imodintro
   iintro %Φ' HAU
+  wp_pure
+  wp_pure
+  wp_alloc r as Hres
+  wp_pure
   wp_pure
   wp_pure
   wp_pure

@@ -48,7 +48,8 @@ theorem lockServer.Unlock.wp_proof : lockServer.Unlock.spec (GF := GF) (hG := hG
       exact ⟨rfl, Herr⟩
   · subst Herr
     (try wp_auto)
-    wp_alloc r as Hr
+    irename «$r0» => Hr
+    generalize «$r0_ptr» = r at *
     (try wp_auto)
     iapply HΦ
     ileft

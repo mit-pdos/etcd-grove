@@ -47,6 +47,19 @@ Perennial pin at the start: `a39a3d14c` (Perennial's `lean` head on 2026-10-22).
   stutter). Waiting for the pin to reach it: the bump regenerates every translation with the
   new goose and rebuilds; then `.lake/manifest-extnames.json` and the helper branch
   `ext-names-at-pin` go, and this entry moves to "Landed".
+### Tactics: `wp_if_destruct` on a loop condition left as `#(decide P) = #true` (2026-10-27)
+
+- **Limitation.** After a `wp_for`, `wp_if_destruct` sometimes splits on `#(decide P) = #true`
+  without peeling it to `P`, and `cleanup_bool_decide` (and `simp only [decide_eq_true_iff]`)
+  makes no progress on it; unconfirmed guess: `P`'s `Decidable` instance is the one of a Lean
+  `if` inside it. Elsewhere `cleanup_bool_decide` between `wp_for` and `wp_if_destruct` suffices.
+- **Needed by.** `v3rpc/checkIntervals.lean`'s third loop (found in the pin bump to `edcadb1e5`).
+- **Workaround here.** Convert the hypothesis by hand in each branch (`Decidable.byContradiction
+  fun h => by simp [h] at Hif`).
+- **Proposed.** Make `wp_if_destruct` (or `cleanup_bool_decide`) normalize `#(decide P) = #true`
+  whatever `P`'s instance; first a minimal reproduction.
+- **Status.** Open.
+
 ### Lemmas: `strings.split` of `strings.Join` (2026-10-27, D22 J-T)
 
 Perennial's `Proof/strings/Base.lean` has `intercalate_split` (joining the fields of a split gives
@@ -98,6 +111,11 @@ non-empty separator that is no infix of a field and does not overlap them) in Pe
   `PerennialMeta` library), document the loop in `docs/PERENNIAL_PROOF_TUTORIAL.md` beside
   `lake build`; `lean-check.py` here then imports nothing of its own (`SPLIT_MODULE`).
 - **Status.** Open (2026-10-26, `notes/STATUS.md`, "Checking proofs while editing them").
+- **Concurrent clients (2026-10-27).** With eight agents checking files through one server (the
+  pin bump to `edcadb1e5`), the server stopped answering twice (its log silent, `Watchdog error:
+  Cannot read LSP message: Stream was closed`), kept 33 files open past `--max-open 12`, and once
+  reported a file as passing that `lake env lean` showed broken (`checkParallel`). The fallback was
+  `lake env lean FILE`. To fix before it moves: eviction under load, and a client timeout.
 
 ### Specs: `(*Time).After`
 
@@ -177,10 +195,9 @@ non-empty separator that is no infix of a field and does not overlap them) in Pe
   RET #ch; isContextDone s ch γch }}`, next to `isContext_pers`: branch `context-done-law` of
   Perennial (`3c384b081`, off `lean` at `edcadb1e5`; worktree `/shared/perennial-ctxdone`), checked
   against the pinned `6b58510f9` (the same `isContextDef`), not yet built or landed there.
-- **Status.** Landed on Perennial's `lean` (`3c384b081`, 2026-10-27). Not yet in the pin: moving the
-  pin there brings Perennial's uniform function results (`2b17d5f09`), which touch every proof that
-  runs a translated function (the pin `6b58510f9` stops before it on purpose). The compactor's
-  `Run` proofs switch to the law at the pin bump that does that migration.
+- **Status.** Landed on Perennial's `lean` (`3c384b081`, 2026-10-27), just past the pin `edcadb1e5`
+  (2026-10-27), which did the uniform-function-results migration: the next pin bump brings it, and
+  the compactor's `Run` proofs switch to the law then.
 
 ### Specs: a law for calling a `cancelSpec` cancel function (2026-10-27, the compactor pilot's phase 4)
 
@@ -230,24 +247,6 @@ non-empty separator that is no infix of a field and does not overlap them) in Pe
 - **Proposed change.** `init_adequate`, `adequate_of_unrecovered` and `ownInitializing_of_empty`
   in `Perennial/GooseLang/Adequacy.lean` (or beside `IsInit` in `Perennial/Golang/Theory/Pkg.lean`).
 - **Status.** Not started (2026-10-22).
-
-### Goose: range over a function (`iter.Seq`/`iter.Seq2`)
-
-- **Missing.** Goose rejects `for k, v := range f` when `f` is a function (`[unsupported]: range
-  over func(...) (only integers, maps, slices, channels and arrays are supported)`). The iterator
-  functions themselves, closures calling `yield`, already translate.
-- **Needed by.** The k8s etcd3 store's `GetList` (`store.go:825`, over `pagedChunks` or
-  `streamChunks`): every list. Blocks `notes/k8s-etcd3-plan.md`'s phase 5. The standard library
-  increasingly returns iterators (`maps.Keys`, `slices.All`, ...).
-- **Workaround here.** `store.GetList` names-only (survey branch's `etcd3.toml`); alternatives: a
-  Goose fork of k8s.io/apiserver rewriting the loop, or a trusted model.
-- **Proposed.** Desugar the loop as Go's compiler does: call the iterator with a closure for the
-  body that returns `false` on `break`, and records a `return` (with its values) or a labelled
-  `break`/`continue` in flags checked after the call; plus the runtime check that `yield` is not
-  called after it returned `false` (Go panics).
-- **Status.** On Perennial's `lean` since `caa9d07ee` (2026-10-26), after uniform function results
-  (`2b17d5f09`), which the pin `6b58510f9` stops short of (`notes/decisions.md`, "Method-set facts
-  are theorems of goose's method sets"): reached when the pin moves past them.
 
 ### Goose: field selection through a type alias of a struct
 
@@ -328,8 +327,8 @@ non-empty separator that is no infix of a field and does not overlap them) in Pe
 
 ### Standard library: packages not translated, and functions without specs
 
-- **Missing translations.** `encoding/json`, `encoding/base64`, `iter`, `path` (Perennial
-  translates none of them).
+- **Missing translations.** `encoding/json`, `encoding/base64`, `path` (Perennial translates
+  none of them; `iter` is Perennial's since the pin `edcadb1e5`, 2026-10-27).
 - **Missing specs.** `strconv.ParseInt`, `ParseUint`, `FormatInt`, `FormatUint`, `ParseBool`;
   some of `strings`; `fmt.Sprint`, `Sprintln`, `Fprintf`; `os.Getenv`; `json.Marshal`,
   `Unmarshal`; `base64.RawURLEncoding`'s methods; `path.Join`, `Clean`. (2026-10-24, rafthttp stage 7d)
@@ -341,10 +340,10 @@ non-empty separator that is no infix of a field and does not overlap them) in Pe
   (`time` is translated without `Duration.String`, so its pointer wrapper is missing too).
 - **Needed by.** The k8s etcd3 store and `k8s.io/apiserver/pkg/storage`: continue tokens (JSON in
   base64), `prepareKey` (`path`), resource versions (`strconv`), `GetList`'s iterators (`iter`).
-- **Workaround here.** The four packages names-only in this repository's configuration (survey
-  branch: `Code/encoding/{json,base64}.toml`, `Code/iter.toml`, `Code/path.toml`); specs as
+- **Workaround here.** The three packages names-only in this repository's configuration (survey
+  branch: `Code/encoding/{json,base64}.toml`, `Code/path.toml`); specs as
   needed, local until proposed.
-- **Proposed.** Translations (or trusted models) of the four in Perennial's standard library, and
+- **Proposed.** Translations (or trusted models) of the three in Perennial's standard library, and
   the specs above, each with the subset proofs use.
 - **Status.** Not started. (2026-10-22) Local trust-boundary specs here for `strings.HasSuffix`,
   `strings.Contains` (`Spec/strings/`). (2026-10-23) Also `strings.TrimSuffix` (`Spec/strings/TrimSuffix.lean`: Perennial's
@@ -574,6 +573,24 @@ non-empty separator that is no infix of a field and does not overlap them) in Pe
   serve the k8s etcd3 store's continue tokens.
 
 ## Landed
+
+### Goose: range over a function (`iter.Seq`/`iter.Seq2`)
+
+- **Missing.** Goose rejects `for k, v := range f` when `f` is a function (`[unsupported]: range
+  over func(...) (only integers, maps, slices, channels and arrays are supported)`). The iterator
+  functions themselves, closures calling `yield`, already translate.
+- **Needed by.** The k8s etcd3 store's `GetList` (`store.go:825`, over `pagedChunks` or
+  `streamChunks`): every list. Blocks `notes/k8s-etcd3-plan.md`'s phase 5. The standard library
+  increasingly returns iterators (`maps.Keys`, `slices.All`, ...).
+- **Workaround here.** `store.GetList` names-only (survey branch's `etcd3.toml`); alternatives: a
+  Goose fork of k8s.io/apiserver rewriting the loop, or a trusted model.
+- **Proposed.** Desugar the loop as Go's compiler does: call the iterator with a closure for the
+  body that returns `false` on `break`, and records a `return` (with its values) or a labelled
+  `break`/`continue` in flags checked after the call; plus the runtime check that `yield` is not
+  called after it returned `false` (Go panics).
+- **Landed.** Perennial `caa9d07ee` (2026-10-26), after uniform function results (`2b17d5f09`);
+  reached by the pin `edcadb1e5` (2026-10-27). Nothing here uses it yet: `store.GetList` is still
+  names-only.
 
 ### The type set of an interface with an embedded interface
 

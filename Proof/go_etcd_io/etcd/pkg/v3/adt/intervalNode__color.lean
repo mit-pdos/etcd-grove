@@ -30,6 +30,7 @@ theorem adt.intervalNode.color.wp_proof : adt.intervalNode.color.spec (GF := GF)
     rw [_root_.decide_eq_true rfl]
     wp_auto
     rw [show black = #(adt.colorW .black) from rfl]
+    wp_auto
     iapply HΦ
     ileft; ipureintro; exact ⟨rfl, rfl⟩
   · rw [_root_.decide_eq_false Hx]

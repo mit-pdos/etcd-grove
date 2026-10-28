@@ -43,6 +43,7 @@ theorem auth.authStore.isRangeOpPermitted.wp_proof
   ihave %Hle := ownSlice_len _ _ _ $$ He
   have he0 := adt.slice_len_eq_zero Hle
   iunfold cacheRd at Hrd
+  wp_auto
   wp_apply wp_with_defer as %defer defer
   (try wp_auto)
   wp_apply sync.RWMutex.wp_RLock $$ [$Hrd] as ⟨Hlk, HP⟩

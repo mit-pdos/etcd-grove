@@ -563,6 +563,7 @@ theorem EtcdServer.Range.wp_proof
     EtcdServer.Range.spec (GF := GF) (hG := hG) := by
   intro s E ρ γr c ctx cd r o ot te Q F
   wp_start as ⟨#Hsrv, #Hrd, Hcall, #Hctx, #Hct, Hto, #Hr, %Hvst, #Hdep, #HF⟩
+  wp_auto
   wp_apply wp_with_defer as %defer defer
   ihave #Hrd' := Hrd
   iunfold isServerRead at Hrd'
@@ -704,11 +705,12 @@ theorem EtcdServer.Range.wp_proof
         (if o.base.serializable then iprop(True) else readLogOk γr c logR) ∗
         (if o.base.serializable then iprop(True) else ∃ g' : GName, readWitAt γr Q g' logR) ∗
         err_ptr ↦ GoInterface.nil ∗ trace_ptr ↦ trc ∗ srvReadReader s γr ∗
-        traceutil.ownTrace trc false) ∨
-      (∃ rei : GoInterfaceOk, ⌜v = returnVal (PairV #Loc.null #(GoInterface.ok rei))⌝ ∗
+        traceutil.ownTrace trc false ∗ «$res0_ptr» ↦ Loc.null ∗ «$res1_ptr» ↦ GoInterface.nil) ∨
+      (∃ rei : GoInterfaceOk, ⌜v = returnVal #()⌝ ∗
         err_ptr ↦ GoInterface.ok rei ∗ trace_ptr ↦ trc ∗ srvReadReader s γr ∗
-        traceutil.ownTrace trc false ∗ applyErrIs (GoInterface.ok rei))))
-    at next with [err Hrr Hown0 trace]
+        traceutil.ownTrace trc false ∗ applyErrIs (GoInterface.ok rei) ∗
+        «$res0_ptr» ↦ Loc.null ∗ «$res1_ptr» ↦ (GoInterface.ok rei : GoInterface))))
+    at next with [err Hrr Hown0 trace «$res0» «$res1»]
   · cases ser
     · -- linearizable: the read index first
       (try wp_auto)
@@ -732,7 +734,7 @@ theorem EtcdServer.Range.wp_proof
         iexists rei
         isplitr
         · ipureintro; rfl
-        iframe err trace Hrr Hown0 HrE
+        iframe err trace Hrr Hown0 HrE «$res0» «$res1»
       | nil =>
         ihave #Hri' := Hri $$ %rfl
         icases Hri' with ⟨-, #Hsv⟩
@@ -745,7 +747,7 @@ theorem EtcdServer.Range.wp_proof
         iexists logR
         isplitr
         · ipureintro; exact ⟨Nat.le_trans Hl0 HpR.length_le, HL0.2.trans HpR⟩
-        iframe HcR err trace Hrr Hown0
+        iframe HcR err trace Hrr Hown0 «$res0» «$res1»
         isplitr
         · rw [Hser]; simp only [Bool.false_eq_true, ↓reduceIte]; iexact HrlR
         rw [Hser]; simp only [Bool.false_eq_true, ↓reduceIte]; iexists g; iexact HwR
@@ -756,12 +758,12 @@ theorem EtcdServer.Range.wp_proof
       iexists log₀
       isplitr
       · ipureintro; exact ⟨Hl0, HL0.2⟩
-      iframe Hc0 err trace Hrr Hown0
+      iframe Hc0 err trace Hrr Hown0 «$res0» «$res1»
       isplitr
       · rw [Hser]; simp only [↓reduceIte]; itrivial
       rw [Hser]; simp only [↓reduceIte]; itrivial
-  iintro (⟨%Hv, %logR, %HlF, #HcR, #HriO, #HwO, err, trace, Hrr, Hown0⟩ |
-    ⟨%rei, %Hv, err, trace, Hrr, Hown0, #HrE⟩)
+  iintro (⟨%Hv, %logR, %HlF, #HcR, #HriO, #HwO, err, trace, Hrr, Hown0, «$res0», «$res1»⟩ |
+    ⟨%rei, %Hv, err, trace, Hrr, Hown0, #HrE, «$res0», «$res1»⟩)
   · subst Hv
     obtain ⟨HlR, HFR⟩ := HlF
     wp_auto
@@ -821,6 +823,7 @@ theorem EtcdServer.Range.wp_proofOn
     EtcdServer.Range.specOn (GF := GF) (hG := hG) := by
   intro s E ρ γr c ctx cd r o ot te Q F n γa hM
   wp_start as ⟨#Hsrv, #Hrd, #HaLb, #Hpub, Hcall, #Hctx, #Hct, Hto, #Hr, %Hvst, #Hdep, #HF⟩
+  wp_auto
   wp_apply wp_with_defer as %defer defer
   ihave #Hrd' := Hrd
   iunfold isServerReadM at Hrd'
@@ -973,11 +976,13 @@ theorem EtcdServer.Range.wp_proofOn
         err_ptr ↦ GoInterface.nil ∗ trace_ptr ↦ trc ∗ srvReadReader s γr ∗
         traceutil.ownTrace trc false ∗
         (∃ nA : Nat, ⌜n ≤ nA⌝ ∗ auth.authPubLbM (.on γa) nA ∗
-          (if o.base.serializable then iprop(True) else authFloorAt (.on γa) γr c nA))) ∨
-      (∃ rei : GoInterfaceOk, ⌜v = returnVal (PairV #Loc.null #(GoInterface.ok rei))⌝ ∗
+          (if o.base.serializable then iprop(True) else authFloorAt (.on γa) γr c nA)) ∗
+        «$res0_ptr» ↦ Loc.null ∗ «$res1_ptr» ↦ GoInterface.nil) ∨
+      (∃ rei : GoInterfaceOk, ⌜v = returnVal #()⌝ ∗
         err_ptr ↦ GoInterface.ok rei ∗ trace_ptr ↦ trc ∗ srvReadReader s γr ∗
-        traceutil.ownTrace trc false ∗ applyErrIs (GoInterface.ok rei))))
-    at next with [err Hrr Hown0 trace]
+        traceutil.ownTrace trc false ∗ applyErrIs (GoInterface.ok rei) ∗
+        «$res0_ptr» ↦ Loc.null ∗ «$res1_ptr» ↦ (GoInterface.ok rei : GoInterface))))
+    at next with [err Hrr Hown0 trace «$res0» «$res1»]
   · cases ser
     · -- linearizable: the read index first
       (try wp_auto)
@@ -1001,7 +1006,7 @@ theorem EtcdServer.Range.wp_proofOn
         iexists rei
         isplitr
         · ipureintro; rfl
-        iframe err trace Hrr Hown0 HrE
+        iframe err trace Hrr Hown0 HrE «$res0» «$res1»
       | nil =>
         ihave #Hri' := Hri $$ %rfl
         icases Hri' with ⟨-, #Hsv⟩
@@ -1016,7 +1021,7 @@ theorem EtcdServer.Range.wp_proofOn
         iexists logR
         isplitr
         · ipureintro; exact ⟨Nat.le_trans Hl0 HpR.length_le, HL0.2.trans HpR⟩
-        iframe HcR err trace Hrr Hown0
+        iframe HcR err trace Hrr Hown0 «$res0» «$res1»
         isplitr
         · rw [Hser]; simp only [Bool.false_eq_true, ↓reduceIte]; iexact HrlR
         isplitr
@@ -1033,7 +1038,7 @@ theorem EtcdServer.Range.wp_proofOn
       iexists log₀
       isplitr
       · ipureintro; exact ⟨Hl0, HL0.2⟩
-      iframe Hc0 err trace Hrr Hown0
+      iframe Hc0 err trace Hrr Hown0 «$res0» «$res1»
       isplitr
       · rw [Hser]; simp only [↓reduceIte]; itrivial
       isplitr
@@ -1043,8 +1048,8 @@ theorem EtcdServer.Range.wp_proofOn
       isplitr
       · ipureintro; exact Nat.le_refl _
       rw [Hser]; simp only [↓reduceIte]; itrivial
-  iintro (⟨%Hv, %logR, %HlF, #HcR, #HriO, #HwO, err, trace, Hrr, Hown0, %nA, %HnA, #HnAlb, #Hfl⟩ |
-    ⟨%rei, %Hv, err, trace, Hrr, Hown0, #HrE⟩)
+  iintro (⟨%Hv, %logR, %HlF, #HcR, #HriO, #HwO, err, trace, Hrr, Hown0, ⟨%nA, %HnA, #HnAlb, #Hfl⟩,
+    «$res0», «$res1»⟩ | ⟨%rei, %Hv, err, trace, Hrr, Hown0, #HrE, «$res0», «$res1»⟩)
   · subst Hv
     obtain ⟨HlR, HFR⟩ := HlF
     -- (E3s, E3u) the store's range check at the bound `nA ≥ n`

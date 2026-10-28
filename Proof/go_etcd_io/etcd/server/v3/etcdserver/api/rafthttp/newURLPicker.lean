@@ -28,8 +28,10 @@ theorem rafthttp.newURLPicker.wp_proof :
     rafthttp.newURLPicker.spec (GF := GF) (hG := hG) := by
   intro urls us P Hne HP
   wp_start as #Hus
+  iapply wp_fupd
   wp_auto
-  wp_alloc pk as Hpk
+  irename «$r0» => Hpk
+  generalize «$r0_ptr» = pk at *
   iStructNamed Hpk
   imod sync.init_Mutex (pickerInv pk P) ⊤
     (pk.[rafthttp.urlPicker, go!"mu"]) $$ mu [urls picked] with #Hmu
@@ -41,7 +43,7 @@ theorem rafthttp.newURLPicker.wp_proof :
     refine ⟨by decide, ?_, HP⟩
     have : 0 < us.length := List.length_pos_iff.2 Hne
     simp; omega
-  (try wp_auto)
+  imodintro
   iapply HΦ
   iunfold pickerOk
   iexact Hmu

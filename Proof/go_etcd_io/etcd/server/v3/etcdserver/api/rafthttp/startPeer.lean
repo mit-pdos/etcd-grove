@@ -180,6 +180,7 @@ theorem rafthttp.startPeer.wp_proof
   obtain ⟨Hmem, Hturls⟩ := HmemU
   have Hpp : Rh.member pid ∧ pid ≠ lid := ⟨Hpm, fun h => Hnp h.symm⟩
   ihave #Hpreg := Hpreg0 $$ %pid %Hpp
+  wp_auto
   wp_apply wp_with_defer as %defer defer
   (try wp_auto)
   rw [_root_.decide_eq_false Hlgnn]

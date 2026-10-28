@@ -28,6 +28,7 @@ theorem NewMemoryStorage.wp_proof
     NewMemoryStorage.spec (GF := GF) (hG := hG) := by
   intro cap Hcap
   wp_start as #Hinit
+  wp_auto
   wp_apply wp_slice_literal_ex (V := Loc)
   wp_alloc l0 as Hl0
   wp_auto

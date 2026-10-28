@@ -66,6 +66,7 @@ theorem lease.lessor.Grant.wp_proof
   ihave #Hbe' := Hbe
   iunfold lessorBackend at Hbe'
   icases Hbe' with ⟨%b, #Hbk, #Hlens⟩
+  wp_auto
   wp_apply wp_with_defer as %defer defer
   (try wp_auto)
   wp_if_destruct

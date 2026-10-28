@@ -28,9 +28,9 @@ theorem NewElection.wp_proof : NewElection.spec (GF := GF) (hG := hG) := by
   wp_start as ⟨#Hs, #Hc⟩
   iapply wp_fupd
   wp_auto
-  wp_alloc e as He
+  irename «$r0» => He
+  generalize «$r0_ptr» = e at *
   iStructNamed He
-  wp_auto
   ipersist session
   ipersist keyPrefix
   imodintro

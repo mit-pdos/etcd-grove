@@ -30,6 +30,7 @@ theorem MemoryStorage.FirstIndex.wp_proof
   iNamed Hpre
   iunfold ownMemoryStorage at Hms
   iNamed Hms
+  wp_auto
   wp_apply wp_with_defer as %defer defer
   -- `ms.Lock()`: the method of the embedded `sync.Mutex`
   wp_method_call

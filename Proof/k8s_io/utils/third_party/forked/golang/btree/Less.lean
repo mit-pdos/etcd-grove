@@ -21,8 +21,7 @@ variable [package_sem : k8s_io.utils.third_party.forked.golang.btree.Assumptions
 theorem Less.wp_proof : Less.spec (GF := GF) (hG := hG) := by
   intro V _ _ T _ ltb hord hlt
   wp_start
-  wp_pures
-  rw [recv_eq_func_mk]
+  wp_auto
   iapply HΦ
   unfold isLess orderedOrder
   iintro %a %b %ka %kb

@@ -70,6 +70,7 @@ theorem auth.authStore.lockedReadTx.wp_latest :
   iunfold authInv at Hinv
   icases Hinv with ⟨%Hst, -, -, -, -, -, -⟩
   iunfold beRd at Hrd
+  wp_auto
   wp_apply wp_with_defer as %defer defer
   (try wp_auto)
   wp_apply sync.RWMutex.wp_RLock $$ [$Hrd] as ⟨Hlk, HP⟩
@@ -357,6 +358,7 @@ theorem auth.authStore.IsAuthEnabled.wp_latest :
   iunfold authInv at Hinv
   icases Hinv with ⟨%Hst, -, -, -, -, -, -⟩
   iunfold enabledRd at Hrd
+  wp_auto
   wp_apply wp_with_defer as %defer defer
   (try wp_auto)
   wp_apply sync.RWMutex.wp_RLock $$ [$Hrd] as ⟨Hlk, HP⟩
@@ -398,6 +400,7 @@ theorem auth.authStore.isRangeOpPermitted.wp_latest
   icases Hca with ⟨%mp', %Mp', Hmp', #HM', #Hof, Hq⟩
   iunfold cacheOf at Hof
   icases Hof with ⟨%Hdom, #Hall⟩
+  wp_auto
   wp_apply wp_with_defer as %defer defer
   (try wp_auto)
   wp_apply sync.RWMutex.wp_RLock $$ [$Hrd] as ⟨Hlk, HP⟩
@@ -528,6 +531,7 @@ theorem auth.authStore.isOpPermitted.wp_latest
   ihave #Hinv' := Hinv
   iunfold authInv at Hinv'
   icases Hinv' with ⟨%Hst, -, ⟨%lg, #Hlg, %Hlgnn⟩, -, -, -, -⟩
+  wp_auto
   wp_apply wp_with_defer as %defer defer
   (try wp_auto)
   wp_apply (h_IsAuthEnabled st R M b) $$ [$Hinv $Hen $Hfl] as %en ⟨Hen, Hfl, #Hev, %Hen_b⟩

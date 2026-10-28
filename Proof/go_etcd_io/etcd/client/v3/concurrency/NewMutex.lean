@@ -28,9 +28,9 @@ theorem NewMutex.wp_proof : NewMutex.spec (GF := GF) (hG := hG) := by
   wp_start as ⟨#Hs, #Hc⟩
   iapply wp_fupd
   wp_auto
-  wp_alloc m as Hm
+  irename «$r0» => Hm
+  generalize «$r0_ptr» = m at *
   iStructNamed Hm
-  wp_auto
   ipersist s
   ipersist pfx
   imodintro

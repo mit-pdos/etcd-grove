@@ -114,8 +114,8 @@ theorem apply.applierV3backend.LeaseCheckpoint.wp_proof
       wp_auto
       wp_apply hHdr $$ [$Hrd $Hsw] as %h ⟨Hrd, Hsw, %Hh⟩
       · iexact Hb
-      wp_alloc resp as Hresp
-      wp_auto
+      irename «$r0» => Hresp
+      generalize «$r0_ptr» = resp at *
       wp_for_post
       iapply HΦ
       isplitl; rotate_left
@@ -130,8 +130,8 @@ theorem apply.applierV3backend.LeaseCheckpoint.wp_proof
       · iexact HPP
     wp_apply hHdr $$ [$Hrd $Hsw] as %h ⟨Hrd, Hsw, %Hh⟩
     · iexact Hb
-    wp_alloc resp as Hresp
-    wp_auto
+    irename «$r0» => Hresp
+    generalize «$r0_ptr» = resp at *
     iapply HΦ
     isplitl; rotate_left
     · first | iexact HeI | iapply applyErrIs_nil

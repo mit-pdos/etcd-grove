@@ -245,6 +245,7 @@ theorem mvcc.store.scheduleCompaction.wp_proof
   · iPkgInit
   iunfold mvcc.compactTok at Htok
   icases Htok with ⟨%c', %hc', Htok⟩
+  wp_auto
   wp_apply wp_with_defer as %defer defer
   (try wp_auto)
   wp_apply HLSR

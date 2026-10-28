@@ -21,16 +21,18 @@ variable [package_sem : k8s_io.utils.third_party.forked.golang.btree.Assumptions
 theorem NewFreeList.wp_proof : NewFreeList.spec (GF := GF) (hG := hG) := by
   intro V _ _ T _ size Hsize
   wp_start
+  iapply wp_fupd
   wp_auto
   wp_apply wp_slice_make3 (V := Loc) (W64 0) size ⟨by word, by word⟩ as %sl ⟨Hsl, Hcap, _⟩
-  wp_alloc f as Hf
+  irename «$r0» => Hf
+  generalize «$r0_ptr» = f at *
   iStructNamed Hf
   imod sync.init_Mutex (freeListInv (V := V) f) ⊤ (structFieldRef (FreeList V) go!"mu" f)
     $$ [mu] [freelist Hsl Hcap] with #Hmu
   · iexact mu
   · inext; unfold freeListInv; iexists sl, []; iframe
     simp; itrivial
-  wp_auto
+  imodintro
   iapply HΦ
   unfold isFreeList
   iexact Hmu

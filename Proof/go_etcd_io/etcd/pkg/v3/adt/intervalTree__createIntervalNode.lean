@@ -25,10 +25,10 @@ theorem adt.intervalTree.createIntervalNode.wp_proof :
   intro K hK t s dq vb ve b e v
   wp_start as ⟨Hs, #Hb, #He⟩
   wp_auto
-  wp_alloc z as Hz
+  irename «$r0» => Hz
+  generalize «$r0_ptr» = z at *
   ihave %Hzn := typedPointsto_not_null _ _ _ $$ Hz
   iStructNamed Hz
-  wp_auto
   iapply HΦ
   simp only [adt.colorW]
   iframe Hs left right parent c

@@ -785,6 +785,7 @@ theorem applySnapshot_walk
   (try wp_auto)
   subst Hua'
   imodintro
+  wp_pures
   iapply HΦ
   iunfold snapWalkPost
   iexists γB, d', gx', π0, p', γw, ws, g, up', opts', L, spc, Ll, jf, γcf, w0, RD0, up, sfv.lg, ws, stck

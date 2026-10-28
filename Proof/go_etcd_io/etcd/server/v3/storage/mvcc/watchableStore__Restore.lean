@@ -235,6 +235,7 @@ theorem mvcc.watchableStore.Restore.wp_proof
   · iPkgInit
   iunfold mvcc.isWatchableStore at Hws
   iNamed Hws
+  wp_auto
   wp_apply wp_with_defer as %defer defer
   (try wp_auto)
   wp_apply +noauto sync.RWMutex.wp_Lock_guard $$ [$Hmu] as ⟨Hwl, HP⟩

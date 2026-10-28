@@ -33,9 +33,9 @@ theorem NewQueue.wp_proof (hTODO : EtcdGrove.context.TODO.spec (GF := GF) (hG :=
   wp_auto
   wp_apply hTODO
   (try wp_auto)
-  wp_alloc q as Hq
+  irename «$r0» => Hq
+  generalize «$r0_ptr» = q at *
   iStructNamed Hq
-  wp_auto
   ipersist client
   ipersist ctx
   ipersist keyPrefix

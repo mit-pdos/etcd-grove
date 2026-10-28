@@ -848,8 +848,8 @@ theorem applierV3backend.AuthEnable.wp_step
   · -- enabled: a fresh response with the header
     wp_auto
     wp_apply (hHdr E p log) $$ [$Hpkg $Hb $Hrd $Hsw] as %h ⟨Hrd, Hsw, -⟩
-    wp_alloc l as Hl
-    wp_auto
+    irename «$r0» => Hl
+    generalize «$r0_ptr» = l at *
     iapply HΦ
     iframe
     iframe #
@@ -877,8 +877,8 @@ theorem applierV3backend.AuthDisable.wp_step
   wp_apply HM $$ %hs %Pre %Q %Post [$Ho $HW $Hcs] as ⟨HPP, HW, %en, #Hv, Hout⟩
   · ipureintro; exact hok
   wp_apply (hHdr E p log) $$ [$Hpkg $Hb $Hrd $Hsw] as %h ⟨Hrd, Hsw, -⟩
-  wp_alloc l as Hl
-  wp_auto
+  irename «$r0» => Hl
+  generalize «$r0_ptr» = l at *
   iapply HΦ
   iframe
   iframe #

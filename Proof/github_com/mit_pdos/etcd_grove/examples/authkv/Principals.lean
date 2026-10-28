@@ -27,6 +27,7 @@ variable [package_sem : github_com.mit_pdos.etcd_grove.examples.authkv.Assumptio
 
 theorem Principals.wp_proof : Principals.spec (GF := GF) (hG := hG) := by
   wp_start
+  wp_auto
   wp_apply wp_slice_literal (V := GoString) principals
   isplitr
   · ipureintro; rfl

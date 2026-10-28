@@ -183,7 +183,8 @@ theorem RawNode.readyWithoutAccept.wp_proof
   imod cellRO_alloc $$ «$v0» with #cT
   imod cellRO_alloc $$ «$v1» with #cV
   imod cellRO_alloc $$ «$v2» with #cC
-  wp_alloc hp as Hp
+  irename «$r0» => Hp
+  generalize «$r0_ptr» = hp at *
   imod hsRO_of_struct hp (raftpb.HardState.mk zeroValDef «$v0_ptr» «$v1_ptr» «$v2_ptr» slice.nil 0)
     (hardstateVal (nodeHardstate s)) ⊤ rfl $$ [Hp] with #Hhp
   · iframe Hp
@@ -191,7 +192,6 @@ theorem RawNode.readyWithoutAccept.wp_proof
     simp only [hardstateVal, nodeHardstate]
     iframe cT cV cC
   clear Hlv
-  wp_auto
   ihave #Hhp' := hsOpt_of_hsRO _ _ $$ Hhp
   ihave #Hhard' := hsOpt_of_hsRO _ _ $$ Hhard
   wp_apply (wp_isHardStateEqual hp rnv.prevHardSt' (hardstateVal (nodeHardstate s)) hprev) $$ [$Hhp' $Hhard']
@@ -265,7 +265,8 @@ theorem RawNode.readyWithoutAccept.wp_proof
   imod cellRO_alloc $$ «$v0» with #cT2
   imod cellRO_alloc $$ «$v1» with #cV2
   imod cellRO_alloc $$ «$v2» with #cC2
-  wp_alloc hp2 as Hp2
+  irename «$r0» => Hp2
+  generalize «$r0_ptr» = hp2 at *
   imod hsRO_of_struct hp2 (raftpb.HardState.mk zeroValDef «$v0_ptr» «$v1_ptr» «$v2_ptr» slice.nil 0)
     (hardstateVal (nodeHardstate s)) ⊤ rfl $$ [Hp2] with #Hhp2
   · iframe Hp2
@@ -273,7 +274,6 @@ theorem RawNode.readyWithoutAccept.wp_proof
     simp only [hardstateVal, nodeHardstate]
     iframe cT2 cV2 cC2
   clear Hlv
-  wp_auto
   ihave #Hhp2' := hsOpt_of_hsRO _ _ $$ Hhp2
   wp_apply (wp_MustSync hp2 rnv.prevHardSt' (hardstateVal (nodeHardstate s)) hprev _)
     $$ [$Hhp2' $Hhard']

@@ -168,10 +168,11 @@ within the timeout, not forced), so the rest of `Step` is verified once, not onc
 (MsgVote_gt: 15m to 3m of CPU, 2026-10-20). The return is closed here (`StepC.refl`); the one
 goal left is the code after the check. -/
 macro "wp_lease_check " cx:term : tactic => `(tactic| (
-  wp_join (Q := fun v => iprop(⌜v = executeVal ∨ v = returnVal #interface.nil⌝ ∗
+  wp_join (Q := fun v => iprop(⌜v = executeVal ∨ v = returnVal #()⌝ ∗
       r_ptr ↦ r ∗ m_ptr ↦ ml ∗ ownRaftPhysCV c c.voters r id s ∗
       msgPtsC ml (DFrac.own 1) DFrac.discard (needsCap (⟨m, ents, sn, ctx, rs⟩ : MsgSt).msg)
-        ⟨m, ents, sn, ctx, rs⟩)) at next with [r m Hphys Hm force]
+        ⟨m, ents, sn, ctx, rs⟩ ∗ «$res0_ptr» ↦ interface.nil)) at next
+      with [r m Hphys Hm force «$res0»]
   · wp_apply Perennial.EtcdGrove.raft.wp_load_checkQuorumC $$ Hphys as Hphys
     cases Hcq : s.cq
     all_goals try wp_auto
@@ -215,10 +216,11 @@ macro "wp_lease_check " cx:term : tactic => `(tactic| (
            try wp_auto))
       wp_raft_logC)
     all_goals (
+      try wp_auto
       iframe
       ipureintro
       first | exact Or.inl rfl | exact Or.inr rfl | exact Or.inl trivial)
-  iintro ⟨%Hv, r, m, Hphys, Hm⟩
+  iintro ⟨%Hv, r, m, Hphys, Hm, «$res0»⟩
   rcases Hv with rfl | rfl
   -- ignored within the lease: `nil`, the state unchanged
   rotate_left

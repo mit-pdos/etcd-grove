@@ -199,13 +199,12 @@ theorem opGet_res (wp_NewOp : NewOp.spec (GF := GF) (hG := hG)) (key : GoString)
       (App (App (Val (@! go_etcd_io.etcd.client.v3.OpGet)) (Val #key)) (Val #sl))
     {{ (op : go_etcd_io.etcd.client.v3.Op), RET #op; opFullAt op (opGetModel key gs) ∗ R }} := by
   wp_start as ⟨#Hopts, HR, %Hnp⟩
-  wp_alloc o_ptr as Ho
   wp_auto
   wp_apply (isOptsWithPrefix_res wp_NewOp sl gs R) $$ [$Hopts $HR] as HR
   have Hrest : ∀ Φ' : val → IProp GF,
-      (iprop(isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ o_ptr ↦ sl ∗
-        optsAtRes sl gs R ∗ R ∗ (∀ op, opFullAt op (opGetModel key gs) -∗ R -∗ Φ' #op)) ⊢
-      WP (exceptionDo
+      (iprop(isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ opts_ptr ↦ sl ∗
+        optsAtRes sl gs R ∗ R ∗ «$res0_ptr» ↦ zero_val go_etcd_io.etcd.client.v3.Op ∗ (∀ op, opFullAt op (opGetModel key gs) -∗ R -∗ Φ' #op)) ⊢
+      WP ((exceptionDo
         (let: "$r0" :=
           let: "$v1" := (Convert go.string go.byte.SliceType) #key in
             (CompositeLiteral go_etcd_io.etcd.client.v3.Op.ty)
@@ -216,11 +215,13 @@ theorem opGet_res (wp_NewOp : NewOp.spec (GF := GF) (hG := hG)) (key : GoString)
           let: "ret" := (GoAlloc go_etcd_io.etcd.client.v3.Op.ty) ((GoZeroVal go_etcd_io.etcd.client.v3.Op.ty) #()) in
             do: "ret" <-[go_etcd_io.etcd.client.v3.Op.ty] "$r0" ;;;
               do:
-                  (let: "$a0" := ![go_etcd_io.etcd.client.v3.OpOption.ty.SliceType] #o_ptr in
+                  (let: "$a0" := ![go_etcd_io.etcd.client.v3.OpOption.ty.SliceType] #opts_ptr in
                     ((MethodResolve go_etcd_io.etcd.client.v3.Op.ty.PointerType go!"applyOpts") "ret") "$a0") ;;;
-                return: ![go_etcd_io.etcd.client.v3.Op.ty] "ret")) {{ Φ' }}) := by
+                let: "$r0" := ![go_etcd_io.etcd.client.v3.Op.ty] "ret" in
+                  do: #«$res0_ptr» <-[go_etcd_io.etcd.client.v3.Op.ty] "$r0" ;;; return: #())) ;;
+        ![go_etcd_io.etcd.client.v3.Op.ty] #«$res0_ptr») {{ Φ' }}) := by
     intro Φ'
-    iintro ⟨#Hpkg, Ho, #Hopts, HR, HΦ'⟩
+    iintro ⟨#Hpkg, Ho, #Hopts, HR, «$res0», HΦ'⟩
     iapply wp_fupd
     wp_apply wp_string_to_bytes key as %ksl ⟨Hks, -⟩
     ipersist Hks

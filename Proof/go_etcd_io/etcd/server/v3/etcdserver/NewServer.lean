@@ -301,6 +301,7 @@ theorem NewServer.wp_proofM (on : Bool)
   ihave #Hwci : waitClosecInit (GF := GF) $$ []
   · iapply waitClosecInit_of_pkg
     iPkgInit
+  wp_auto
   wp_apply wp_with_defer as %defer defer
   ihave #Hzpkg : isPkgInit (PROP := IProp GF) pkg_id.go_uber_org.zap $$ []
   · iPkgInit
@@ -1354,6 +1355,7 @@ theorem NewServer.wp_proofM (on : Bool)
     -- (E3n) and so does the rest resource, at the same rest value
     iapply roLends_authBeOn
   imodintro
+  wp_auto
   iapply HΦ
   iright
   isplitr

@@ -42,11 +42,10 @@ theorem Op.toRequestOp.wp_proof (wp_toRangeRequest : Op.toRangeRequest.spec (GF 
     wp_method_call
     wp_call
     wp_auto
+    iapply wp_fupd
     wp_apply wp_toRangeRequest opv o $$ [] as %r ⟨%req, Hr, #Hk, #He, %Hreq⟩
     · iframe #; ipureintro; exact h1
-    iapply wp_fupd
-    wp_alloc pp as Hp
-    wp_auto
+    irename «$r0» => Hp
     ihave %Hpn := typedPointsto_not_null _ _ _ $$ Hp
     ihave %Hrn := typedPointsto_not_null _ _ _ $$ Hr
     iStructNamed Hp
@@ -72,8 +71,9 @@ theorem Op.toRequestOp.wp_proof (wp_toRangeRequest : Op.toRangeRequest.spec (GF 
   · rw [h2]
     iapply wp_fupd
     wp_auto
-    wp_alloc pp as Hp
-    wp_auto
+    rename_i rp
+    irename «$r0» => Hp
+    irename : (rp ↦ (_ : etcdserverpb.PutRequest)) => «$r0»
     ihave %Hpn := typedPointsto_not_null _ _ _ $$ Hp
     ihave %Hrn := typedPointsto_not_null _ _ _ $$ «$r0»
     iStructNamed Hp
@@ -100,8 +100,9 @@ theorem Op.toRequestOp.wp_proof (wp_toRangeRequest : Op.toRangeRequest.spec (GF 
   · rw [h3]
     iapply wp_fupd
     wp_auto
-    wp_alloc pp as Hp
-    wp_auto
+    rename_i rp
+    irename «$r0» => Hp
+    irename : (rp ↦ (_ : etcdserverpb.DeleteRangeRequest)) => «$r0»
     ihave %Hpn := typedPointsto_not_null _ _ _ $$ Hp
     ihave %Hrn := typedPointsto_not_null _ _ _ $$ «$r0»
     iStructNamed Hp

@@ -32,7 +32,7 @@ theorem backend.backend.OpenReadTxN.wp_proof : backend.backend.OpenReadTxN.spec 
   unfold isBackend
   icases Hb with ⟨%t, %rt, %tm, %db, %lg, %h, -, -, -, -, -, -, -, -, -, -, -, -, -, -, #Hm, -⟩
   wp_auto
-  wp_apply_core sync.atomic.wp_LoadInt64 _ (DFrac.own 1) $$ [] [HΦ]
+  wp_apply_core sync.atomic.wp_LoadInt64 _ (DFrac.own 1) $$ [] [HΦ «$res0»]
   · iexact Hat
   unfold metricsInv
   iinv Hm with >Hi Hclose

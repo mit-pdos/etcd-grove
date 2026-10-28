@@ -33,7 +33,7 @@ theorem auth.authStore.Revision.wp_proof :
   iunfold authInv at Hinv
   icases Hinv with ⟨%Hst, #Hrev, -⟩
   wp_auto
-  wp_apply_core sync.atomic.wp_LoadUint64 $$ [] [HΦ Hown]
+  wp_apply_core sync.atomic.wp_LoadUint64 $$ [] [HΦ Hown «$res0»]
   · iexact Hatomic
   iinv Hrev with Hi Hclose
   iapply fupd_mask_intro Std.LawfulSet.empty_subset

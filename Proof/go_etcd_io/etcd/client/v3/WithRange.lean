@@ -29,7 +29,6 @@ theorem WithRange.wp_proof : WithRange.spec (GF := GF) (hG := hG) := by
   wp_auto
   ipersist endKey
   imodintro
-  simp only [recv_eq_func_mk]
   iapply HΦ
   unfold optSpec
   imodintro

@@ -42,6 +42,7 @@ theorem mvcc.treeIndex.Tombstone.wp_proof
   iunfold mvcc.idxWriter at Hw
   icases Hw with ⟨Hauth, #Hwlb, %Hwwf, Hlauth, Hrc⟩
   obtain ⟨Hwf, Hlen, Hplen, Hcs⟩ := Hwwf
+  wp_auto
   wp_apply wp_with_defer
   iintro %defer Hdefer
   (try wp_auto)

@@ -84,12 +84,13 @@ theorem v3rpc.newStreamInterceptor.wp_proof
   icases HeIV with ⟨%eIV, #HeIV⟩
   wp_pures
   wp_alloc_auto
+  wp_pures
+  wp_alloc_auto
   irename : (s_ptr ↦ s : IProp GF) => Hs
   ipersist Hs
   wp_auto
   wp_apply wp_monitorLeader s ch tm et $$ [Hgr Hlg] as %smap ⟨#Hsm, Hgr, Hlg⟩
   · iframe; iframe #
-  rw [recv_eq_func_mk]
   iapply HΦ
   iframe Hgr Hlg
   unfold srvStreamInterceptorOk
@@ -106,13 +107,14 @@ theorem v3rpc.newStreamInterceptor.wp_proof
     error_return eNC
   wp_auto
   ipersist info
-  wp_join (Q := fun v => iprop((⌜v = executeVal⌝ ∗
+  wp_join (Q := fun v => iprop((⌜v = executeVal⌝ ∗ «$res0_ptr» ↦ GoInterface.nil ∗
       ((∀ (st' : GoInterface) (ci' : GoInterfaceOk) (cd' : context.ContextDesc (IProp GF)),
           srvRawStreamIs st' γ Req Rep Up Dn ci' cd' -∗
           WP (streamHandlerCall #h #srv #st')
             {{ v, ∃ err : GoInterface, ⌜v = #err⌝ ∗ (True -∗ Ψ v) }}) ∧
         (True -∗ ∀ err : GoInterface, ⌜err ≠ GoInterface.nil⌝ -∗ Ψ #err))) ∨
-      ∃ e : GoInterface, ⌜v = returnVal #e⌝ ∗ Ψ #e)) at next with [Hk]
+      ∃ e : GoInterface, ⌜v = returnVal #()⌝ ∗ «$res0_ptr» ↦ e ∗ Ψ #e)) at next
+      with [Hk «$res0»]
   · wp_apply wp_MemberID s mid $$ []
     · iframe #
     wp_apply wp_IsMemberExist s c mid $$ [] as %b1 -
@@ -131,11 +133,10 @@ theorem v3rpc.newStreamInterceptor.wp_proof
     · ileft; iframe
     · iright
       iexists (GoInterface.ok eNL)
-      isplitr
-      · ipureintro; rfl
+      iframe «$res0»
       error_return eNL
   rename_i v
-  iintro (⟨%Hv, Hk⟩ | ⟨%e, %Hv, HΨ⟩)
+  iintro (⟨%Hv, «$res0», Hk⟩ | ⟨%e, %Hv, «$res0», HΨ⟩)
   rotate_left
   · subst Hv
     wp_auto

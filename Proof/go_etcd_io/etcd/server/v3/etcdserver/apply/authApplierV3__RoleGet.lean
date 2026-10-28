@@ -78,8 +78,8 @@ theorem apply.authApplierV3.RoleGet.wp_proof :
     · iexact Hgate
     cases b
     · wp_auto
-      wp_alloc resp as Hresp
-      wp_auto
+      irename «$r0» => Hresp
+      generalize «$r0_ptr» = resp at *
       iapply HΦ
       isplitl; rotate_left
       · first | iexact HeI' | iexact HeI | iapply applyErrIs_nil

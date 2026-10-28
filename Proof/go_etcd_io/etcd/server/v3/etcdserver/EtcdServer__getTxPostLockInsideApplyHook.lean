@@ -34,10 +34,11 @@ theorem EtcdServer.getTxPostLockInsideApplyHook.wp_proof
     EtcdServer.getTxPostLockInsideApplyHook.spec (GF := GF) (hG := hG) := by
   intro s γ ci TM
   wp_start as #Hsrv
+  wp_alloc_auto
+  wp_pures
   wp_alloc sp as Hsp
   ipersist Hsp
   wp_auto
-  rw [recv_eq_func_mk]
   iapply HΦ
   isplitr
   · ipureintro; simp [func.nil]
