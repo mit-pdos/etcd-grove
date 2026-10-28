@@ -302,3 +302,37 @@ it, with `newBackend`'s creator fixing `Φ` (`NewAlloc`, its one construction si
 `BParams.VI` in place, `newBackend` returning `dlNone`, the slot and the registration, the
 wiring (`storeBackend_of_backend` over the new bridge with `isKeyBackendG_congrDel`, `NewStore` and
 `compactTok` carrying the budgets, `kbCmp := True`), and `metaVI`.
+
+## Draft (2026-10-28, second round)
+
+Done (`031e726c59`, `5c02b3d580`; full build passes):
+- **The registration in `BNames`** (round 1's finding 3, O1): `BNames.dlg` (the deletable keys'
+  saved predicate, allocated by the constructor at `False`) and `BNames.dln` (`dlNone`); the
+  constructor's posts `newPost`/`newPostK` end with `dlInit γ` (the registration's whole fraction
+  and `dlNone`, the creator's); `dlReg_fix` fixes the predicate once. `dlReg`/`dlIs`/`thinV`/
+  `dlNone`/`cacheValidC`, the bridge's `bkDel` and the two spec variants are over the backend's
+  names (no explicit `g`). D22's `SnapApplyWalk` and the server's `BootBackend` drop `dlInit` in
+  their destructuring (mechanical: unused while the store keeps the old bridge).
+- **`Unlock.specC`'s deleting branch** (finding 4): the writer's contents thin of the view the batch
+  lock holds (`vData P (st.C, st.R)`), not of an existential view.
+- **The delete clause takes the key lent** (finding 1): `isKeyBackendG`'s `UnsafeDelete(Key)` takes
+  `rdCap Rd (Locked l) ∗ □ Rd key k`, as the limited range returns the key, instead of an owned
+  slice; the job's delete step (`store.scheduleCompaction`) is glue, its sorry gone.
+
+**Left** (measured this round):
+- **`safeSt` in place** (3.1): dropping its third clause breaks the three lemmas establishing it
+  (`BatchLemmas` 103, 133, 245: put, a non-safe-range delete, create; `DelKeys.safeStC_of`), and
+  its one consumer is `BatchLemmas`' put lemma (116, 120), which carries the put condition from the
+  writer's keys to the committed keys: there `UnsafeSeqPut`'s premise "above the committed keys"
+  (`specC`) must take over, in place, with its callers (13 files) supplying it from mvcc's put
+  condition. Tried and reverted (a re-proof, not a statement step).
+- **The view's quarters over the logical view** (3.2): `batchGhostAt` (30 uses, 13 files), `rtRest`
+  (26, 9), `cacheValid` → `cacheValidC` (18, 5): the quarters of `γ.view` hold the logical view
+  with the physical one thin of it, which weakens every backend read spec from exact to thin
+  (statements): the stage's core redesign, its own Draft round.
+- **`BParams.VI`** (3.3): one use; with the `Meta` keys' clause.
+- **The wiring** (`storeBackend_of_backend` over the new bridge, `isKeyBackendG_congrDel`, NewStore
+  and `compactTok` with the budgets): after the above. **The `kbCmp := True` switch** needs: the new
+  bridge's four `sorry`s proved (or the switch puts them under every server result), the server's
+  `BootBackend` passing `dlInit` to mvcc (`dlReg_fix` at mvcc's `delKey`), and `newPost`'s
+  `dlNone` routed to D22's exact-view users.
