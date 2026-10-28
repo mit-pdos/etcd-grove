@@ -656,7 +656,7 @@ def StaticNames (γ : Cluster) (N : Namespace) (vs : List w64)
     (snapOk : List LogEntry → List w8 → Prop) : Prop :=
   γ.raft.reCfg = GMap.listToSet vs ∧ γ.raft.reDyn = none ∧ γ.raft.reNoSnap = false ∧
   γ.raft.reSnapOkRaw = sokOf snapOk ∧ γ.mode = RNMode.static.all ∧
-  γ.raft.reSnapLoc = (fun _ => none) ∧ γ.raft.reCertNs = N ∧
+  γ.raft.reSnapLoc = (fun _ => none) ∧ γ.raft.reCertNs = N ∧ γ.raft.reSnapReg = none ∧
   (γ.raft.reTracked = none ∨ γ.raft.reTracked = some (GMap.listToSet vs)) ∧
   vs ≠ [] ∧ vs.Nodup ∧ W64 0 ∉ vs ∧ (vs.length : Int) ≤ 2 ^ 62
 
@@ -834,7 +834,7 @@ theorem cluster_alloc_impl (N : Namespace) (ps : List w64) (ctxs : List (List w8
     Hnz' Hwf
     (fun _ => by rw [show uint.Z (W64 1) = 1 from rfl]; exact Int.le_refl _)
     $$ Hcl with ⟨%γr, %Hγ, #Hcinv, #Hc0, Hnodes, Hout, Hcr, -⟩
-  obtain ⟨Hcfg, Hdyn, -, Hboot, Htrk, Hns, Hnx, Hsok, Hsl, HNs, Hcert⟩ := Hγ
+  obtain ⟨Hcfg, Hdyn, -, Hboot, Htrk, Hns, Hnx, Hsok, Hsl, HNs, Hcert, Hreg⟩ := Hγ
   iunfold allocOut at Hout
   icases Hout with ⟨%γ, %Hγr, #HspT, #Hinv, Hops, Hctx⟩
   obtain ⟨Hγr, Hγb, Hγm, -⟩ := Hγr
@@ -843,7 +843,7 @@ theorem cluster_alloc_impl (N : Namespace) (ps : List w64) (ctxs : List (List w8
   · unfold isStaticCluster clusterInv
     iframe Hcinv Hinv HspT
     ipureintro
-    exact ⟨⟨Hcfg, Hdyn, Hns, Hsok, Hγm, Hsl, Hcert, .inr Htrk, Hne, Hnd, Hnz, Hlen⟩, HNs⟩
+    exact ⟨⟨Hcfg, Hdyn, Hns, Hsok, Hγm, Hsl, Hcert, Hreg, .inr Htrk, Hne, Hnd, Hnz, Hlen⟩, HNs⟩
   imodintro
   iexists γ
   isplitr
@@ -888,7 +888,7 @@ theorem cluster_alloc_static_impl (N : Namespace) (vs : List w64)
     false (fun h => by cases h) (sokOf snapOk) (fun _ => none) (N .@ "raft") N Hcne
     Hnz' BootWf_nil (fun h => absurd rfl h)
     $$ Hcl with ⟨%γr, %Hγ, #Hcinv, #Hc0, Hnodes, Hout, Hcr, -⟩
-  obtain ⟨Hcfg, Hdyn, -, -, Htrk, Hns, Hnx, Hsok, Hsl, HNs, Hcert⟩ := Hγ
+  obtain ⟨Hcfg, Hdyn, -, -, Htrk, Hns, Hnx, Hsok, Hsl, HNs, Hcert, Hreg⟩ := Hγ
   iunfold allocOut at Hout
   icases Hout with ⟨%γ, %Hγr, #HspT, #Hinv, Hops, Hctx⟩
   obtain ⟨Hγr, Hγb, Hγm, -⟩ := Hγr
@@ -897,7 +897,7 @@ theorem cluster_alloc_static_impl (N : Namespace) (vs : List w64)
   · unfold isStaticCluster clusterInv
     iframe Hcinv Hinv HspT
     ipureintro
-    exact ⟨⟨Hcfg, Hdyn, Hns, Hsok, Hγm, Hsl, Hcert, .inl Htrk, Hne, Hnd, Hnz, Hlen⟩, HNs⟩
+    exact ⟨⟨Hcfg, Hdyn, Hns, Hsok, Hγm, Hsl, Hcert, Hreg, .inl Htrk, Hne, Hnd, Hnz, Hlen⟩, HNs⟩
   imodintro
   iexists γ
   iframe Hops Hctx Hst
@@ -1393,12 +1393,23 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [StorageModel GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
+/-- (2026-10-28, stage U2) What raft's `snapAtOk` says of the committed prefix `L` of the
+snapshot `k`'s length, in a cluster that keeps a registry of the snapshots made: its last term is
+`k`'s, `k`'s lists are well formed and denote the mode's configuration of `L`. -/
+def SnapAtPure (γr : RaftNames) (k : SnapTrip) (L : List EntryM) : Prop :=
+  γr.reSnapReg ≠ none → L.getLast?.map EntryM.Term' = some k.sid.term' ∧ SnapListsOk k ∧
+    ∀ D, γr.dyn = some D → D.fold L = some k.cfgM
+
 /-- **The snapshot `k` is certified** for the cluster: raft's configuration certificate, and its
 data what the cluster admits of a committed log as long as its index, which the client knows.
-(2026-10-27) Only outside raft's no-snapshot mode (a dynamic cluster's: `readySnap_dynamic`). -/
+(2026-10-27) Only outside raft's no-snapshot mode (a dynamic cluster's: `readySnap_dynamic`).
+(2026-10-28, stage U2) In a cluster that keeps a registry of the snapshots made
+(`RaftNames.reSnapReg`), what raft's `snapAtOk` says, of the client's committed log, and the
+registry's record of the snapshot (`snapRegOk`). -/
 def snapshotCert (γ : Cluster) (_N : Namespace) (k : SnapTrip) : IProp GF :=
   iprop(⌜γ.raft.reNoSnap = false⌝ ∗ raftSnapCert γ.raft k ∗ ∃ L : List EntryM, isCommittedLogLb γ (strip L) ∗
-    ⌜IdxOk L ∧ L.length = uint.nat k.sid.index' ∧ γ.raft.reSnapOk L k.dat⌝)
+    ⌜IdxOk L ∧ L.length = uint.nat k.sid.index' ∧ γ.raft.reSnapOk L k.dat ∧ SnapAtPure γ.raft k L⌝ ∗
+    snapRegOk γ.raft k.sid.index' k.dat)
 
 instance snapshotCert_persistent (γ : Cluster) (N : Namespace) (k : SnapTrip) :
     Persistent (snapshotCert (GF := GF) γ N k) := by
@@ -1419,22 +1430,35 @@ theorem snapshotCert_of_raft (γ : Cluster) (N : Namespace) (E : CoPset) (HE : �
   iunfold raftSnapCertD at Hk
   icases Hk with ⟨#Hc, #Hd⟩
   iunfold snapDataOk at Hd
-  icases Hd with ⟨%L, #HL, %HLp⟩
+  icases Hd with ⟨%L, #HL, %HLp, #Hreg⟩
+  ihave #Hat : snapAtOk γ.raft k $$ []
+  · iunfold raftSnapCert at Hc; icases Hc with ⟨-, -, -, #H⟩; iexact H
+  ihave %Hap : ⌜SnapAtPure γ.raft k L⌝ $$ []
+  · iunfold snapAtOk at Hat
+    icases Hat with (%Hn | ⟨%L', #HL', %HL'p⟩)
+    · ipureintro; intro h; exact absurd Hn h
+    · icases isCommitted_agree γ.raft L L' $$ HL HL' with %Hpre
+      have HLL : L = L' := by
+        rcases Hpre with h | h
+        · exact h.eq_of_length (by rw [HLp.1, HL'p.1])
+        · exact (h.eq_of_length (by rw [HLp.1, HL'p.1])).symm
+      subst HLL
+      ipureintro; intro _; exact HL'p.2
   imod api_committed_lb γ N E HE L $$ Hci HL with ⟨#Hlb, %Hidx⟩
   imodintro
   unfold snapshotCert
   iframe Hc
   isplitr; · ipureintro; exact Hns
   iexists L
-  iframe Hlb
-  ipureintro; exact ⟨Hidx, HLp.1, HLp.2⟩
+  iframe Hlb Hreg
+  ipureintro; exact ⟨Hidx, HLp.1, HLp.2, Hap⟩
 
 theorem raft_of_snapshotCert (γ : Cluster) (N : Namespace) (E : CoPset) (HE : ↑N ⊆ E)
     (k : SnapTrip) :
     ⊢ clusterInv (GF := GF) γ N -∗ snapshotCert γ N k ={E}=∗ raftSnapCertD γ.raft k := by
   iintro #Hci #Hk
   iunfold snapshotCert at Hk
-  icases Hk with ⟨-, #Hc, %L, #Hlb, %HL⟩
+  icases Hk with ⟨-, #Hc, %L, #Hlb, %HL, #Hreg⟩
   imod api_lb_committed γ N E HE (strip L) $$ Hci Hlb with ⟨%D, %HD, #HDc⟩
   imod api_committed_lb γ N E HE D $$ Hci HDc with ⟨-, %HDi⟩
   have HDL : D = L := by
@@ -1444,8 +1468,8 @@ theorem raft_of_snapshotCert (γ : Cluster) (N : Namespace) (E : CoPset) (HE : �
   unfold raftSnapCertD snapDataOk
   iframe Hc
   iexists D
-  iframe HDc
-  ipureintro; exact ⟨HL.2.1, HL.2.2⟩
+  iframe HDc Hreg
+  ipureintro; exact ⟨HL.2.1, HL.2.2.1⟩
 
 /-- **The storage's certificates are the cluster's** (the draft's `storageCertLink`). -/
 def storageCertLink (γ : Cluster) (N : Namespace) (st : Storage) : IProp GF :=
@@ -1617,12 +1641,12 @@ theorem snapshotCert_data_impl (γ : Cluster) (N : Namespace) (vs : List w64)
     isStaticCluster (GF := GF) γ N vs snapOk ∗ snapshotCert γ N k ⊢
       ∃ l, isCommittedLogLb γ l ∗ ⌜l.length = uint.nat k.sid.index' ∧ snapOk l k.dat⌝ := by
   unfold isStaticCluster snapshotCert
-  iintro ⟨⟨%Hst, -⟩, -, -, %L, #Hlb, %HL⟩
+  iintro ⟨⟨%Hst, -⟩, -, -, %L, #Hlb, %HL, -⟩
   iexists strip L
   iframe Hlb
   ipureintro
   exact ⟨by rw [strip_length]; exact HL.2.1,
-    (reSnapOk_sokOf γ.raft snapOk Hst.2.2.2.1 L k.dat).1 HL.2.2⟩
+    (reSnapOk_sokOf γ.raft snapOk Hst.2.2.2.1 L k.dat).1 HL.2.2.1⟩
 
 theorem toEntries_idx (l : List LogEntry) (Hl : l.length < 2 ^ 64) :
     IdxOk (LogEntry.toEntries l 0) := by
@@ -1650,14 +1674,14 @@ theorem snapshotCert_static_impl (γ : Cluster) (N : Namespace) (vs : List w64)
   intro Hok Hl Hso
   unfold isStaticCluster
   iintro ⟨⟨%Hst, -⟩, #Hlb⟩
-  obtain ⟨Hcfg, Hdyn, Hns, Hsok, -, -, -, Htrk, -⟩ := Hst
+  obtain ⟨Hcfg, Hdyn, Hns, Hsok, -, -, -, Hreg, Htrk, -⟩ := Hst
   have Hlen : l.length < 2 ^ 64 := by have := word.unsigned_range i; rw [Hl]; word
   imodintro
   iintro %t
   unfold snapshotCert
   isplitr; · ipureintro; exact Hns
   isplitl []
-  · iapply raftSnapCert_static γ.raft _ (by unfold RaftNames.dyn; rw [Hdyn]; rfl) (Hok t)
+  · iapply raftSnapCert_static γ.raft _ (by unfold RaftNames.dyn; rw [Hdyn]; rfl) (Hok t) (hr := Hreg)
     intro _
     refine ⟨Hcfg.symm, rfl, ?_⟩
     intro T hT
@@ -1670,10 +1694,12 @@ theorem snapshotCert_static_impl (γ : Cluster) (N : Namespace) (vs : List w64)
   iexists LogEntry.toEntries l 0
   rw [strip_toEntries]
   iframe Hlb
-  ipureintro
-  refine ⟨toEntries_idx l Hlen, by rw [toEntries_length]; exact Hl, ?_⟩
-  rw [reSnapOk_sokOf γ.raft snapOk Hsok, strip_toEntries]
-  exact Hso
+  isplitr
+  · ipureintro
+    refine ⟨toEntries_idx l Hlen, by rw [toEntries_length]; exact Hl, ?_, fun h => absurd Hreg h⟩
+    rw [reSnapOk_sokOf γ.raft snapOk Hsok, strip_toEntries]
+    exact Hso
+  iapply snapRegOk_none Hreg
 
 end cert
 

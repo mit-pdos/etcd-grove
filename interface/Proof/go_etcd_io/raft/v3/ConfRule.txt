@@ -31,6 +31,11 @@ def Membership.foldStep (r : ConfRule) (pre : List LogEntry) (m : Membership) (e
     | some o => Membership.applyChange o m
   else some m
 
+structure SnapRec : Type where
+  index : Nat
+  conf : Membership
+  data : List w8
+
 def RaftLeave (r : ConfRule) (c0 : Membership) (pre : List LogEntry) (e : LogEntry) : Prop :=
   e.type = W32 2 ∧ e.data = [] ∧ ∃ m, Membership.fold r c0 pre = some m ∧ m.isJoint ∧ m.autoLeave = true
 

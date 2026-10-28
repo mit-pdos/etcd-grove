@@ -24837,3 +24837,66 @@ CCDec` decides by the rule at the membership the prefix folds to (`none` ↦ `re
 `apply (ccV2Of o)`); `cfgFold_toDec`: from a valid `c0`, `cfgFold (r.toDec c0) (stOf c0) L =
 (Membership.fold r c0 (strip L)).map stOf`, for any rule (a change keeps a membership valid,
 `memApply_valid`), so the dynamic mode of a cluster with rule `r` can be `DynCfg.ofFold (r.toDec c0)`.
+
+## Stages U2, U3: snapshots in the dynamic mode (2026-10-28 · `notes/raft-unified-plan.md`)
+
+**2026-10-28 · U2 taken; U3 not started (see "U3: what it needs" below)**
+
+**Why.** The unified API certifies a snapshot from a committed prefix (candidate 12's
+`snapshotCert_make`) and reads a certificate back (`snapshotCert_made`), with a client-owned
+registry of the snapshots made (`ownSnapsMade`/`snapMade`, TaDa style). Raft's certificate had a
+dynamic clause nothing created, and nothing a certificate carried through raft (the storage's
+registry, a `MsgSnap`, the receiver's `Ready`) could tell a client that the snapshot was one it
+made, or at which term.
+
+**The changed statements (raft-internal; no exported result moved).**
+- `RaftNames.reSnapReg : Option GName := none` (`Protocol/Ghost.lean`): the registry of the snapshots
+  made, a `mono_list` of `(index, data)` keys. Every allocation sets `none` for now
+  (`ownRaftGhost_alloc_core`'s post says so); U4 allocates one for the unified cluster.
+- `snapDataOk` gains `snapRegOk γ i d` (the key in the registry, when there is one): it travels with
+  the data certificate (`msgDat`, the storage's registry). Not in `raftSnapCert`, which must not read
+  the data (a message's certificate is of `msgSnapTrip`, data `[]`).
+- `raftSnapCert` gains a fourth conjunct `snapAtOk γ k` (registry `none`, or a committed prefix of
+  the snapshot's length and last term, `SnapListsOk k`, and the mode's fold of it is `k.cfgM`); it
+  reads only `sid`, `cl`, `al`. `raftSnapCert_empty`/`raftSnapCert_static`/`snapDataOk_triv` take
+  `reSnapReg = none`. `StaticNames` gains `γ.raft.reSnapReg = none`.
+- The client's `snapshotCert` (`InvApi.lean`) gains `SnapAtPure` (what `snapAtOk` says, of the
+  client's committed log) and `snapRegOk`; `snapshotCert_of_raft` derives the former from raft's
+  `snapAtOk` (the two committed prefixes of one length are one). So `snapshotCert_made` needs no
+  update.
+- New: `Protocol/SnapCertDyn.lean` (`isCommitted_recs`: a committed log is the bootstrap log's
+  prefix or has records; `committedRecs_full`: it is the only full log with records ending at its
+  id; `raftSnapCert_make_dyn`); `SnapsMade.lean` (`RuleNames γ r c0`, `ownSnapsMade`, `snapMade`,
+  `snapMade_elem`, `snapshotCert_make`, `snapshotCert_made`); `ConfRule.lean`: `SnapRec`. All
+  proved, no `sorry`. Nothing allocates `ownSnapsMade` yet (U4: the cluster's allocation with a
+  registry, `ownSnapsMade γ r c0 []`), so the laws have no client until then.
+
+**Departures from candidate 12 (to settle in U9).**
+- The rule and `c0` are explicit arguments (`ownSnapsMade γ r c0 S`); `Cluster` has no `rule`/`c0`
+  yet (U9). `RuleNames γ r c0` (the mode the rule's `ConfRule.toDec`, snapshots on, every data
+  admitted, a registry) stands for "a unified cluster" until then.
+- `snapshotCert_make` is a fancy update inside `N`, not `==∗`: the dynamic clause is about every full
+  log with records, and showing a committed prefix is the only one ending at its id opens raft's
+  commit invariant (`isCommitted_recs`).
+- **`snapshotCert_make` takes `SnapListsOk` of the snapshot** (the design does not): the receiver's
+  `restore` needs the lists' ids nonzero and at most `2^62` entries in the four lists together, and
+  neither follows from `Membership.Valid` (`memValid`: `CfgOk ∧ CCGood`, which bound the distinct
+  ids by `2^62`, not the lists' total, and say nothing of id `0`). A design question for U9: make
+  `Membership.Valid` say both (the candidate's docstring says "ids nonzero"; `ccStepB` would then
+  need the total bound too), or keep the premise in the public law. `uint.Z i < 2^61` (K2) is part
+  of `SnapListsOk`.
+
+**U3: what it needs (not done).** The dynamic `RawNode` still excludes snapshots (`DynNoSnap`,
+`"%Hsnap"`, `md.isDyn = false` at `MsgStorageAppendResp`, `GMode.Pre`'s `s.logst.snap = none` at
+`MsgStorageApplyResp`, `DynNames.reNoSnap = true`). The first piece is the model: conf changes of a
+`Ready` handed out before a restore apply while the snapshot is pending, to the pre-restore
+configuration. The equivalent of the pre-restore prefix: `StepR.snapRestore` keeps `cidx` (it moves
+it today) with a premise that the restored prefix `fp'` agrees with the old full log below the old
+commit index (both committed: the `MsgSnap`'s `.snap` clause has the leader log's committed prefix
+up to the index, `isMessage`), so `RInv.cfg` holds while a snapshot is pending; `applyConf` drops
+`r.snap = false` (its `k < commit` is the old commit, which the restore raised); `applySnap` moves
+`cidx` to the base and installs `cs'`, which the certificate's dynamic clause makes the fold of
+`fp'` (so it includes the changes applied in between). Then the refinement (`ownRaftGhost_stepR`'s
+`snapRestore` case), `raft.Step`'s two storage-response cases in the dynamic mode, the dynamic
+`RawNode` invariant with a pending snapshot (`RNState.cfg/capplied` following `applySnap`), and
+`RawNode.Step` supplying `GMode.SnapDyn` from the message's certificate.

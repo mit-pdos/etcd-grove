@@ -432,7 +432,7 @@ private theorem wp_RestartNode_impl
   icases Hboot with ⟨⟨%so, #Hst⟩, Hg, #Hc0, #Hbinv, #Htlb⟩
   iunfold isStaticCluster at Hst
   icases Hst with ⟨%Hsn, #Hci⟩
-  obtain ⟨Hcfg, Hdyn, Hns, -, Hγm, Hsl, Hcert, -, Hne, Hnd, Hnz, Hlen⟩ := Hsn
+  obtain ⟨Hcfg, Hdyn, Hns, -, Hγm, Hsl, Hcert, -, -, Hne, Hnd, Hnz, Hlen⟩ := Hsn
   subst Hv
   ihave #Hok' := storCertOk_of_link γ N _ Hcert Hns $$ Hci Hlink
   iapply (hS γ.raft .static γ.bud c cv lok si σ hs csm true

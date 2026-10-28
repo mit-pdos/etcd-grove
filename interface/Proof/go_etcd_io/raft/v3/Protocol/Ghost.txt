@@ -48,6 +48,7 @@ structure RaftNames : Type 1 where
   reSnapLoc : Option GName
   reNs : Namespace
   reCertNs : Namespace
+  reSnapReg : Option GName
 
 theorem witsB_agree [ReceiptGS GF] (γ : RaftNames) (F F' : List EntryM) (lim : Nat) (B : Int) :
     List.take lim F' = List.take lim F → ⊢ witsB γ F lim B -∗ witsB γ F' lim B
@@ -78,10 +79,11 @@ def raftSnapCert [ReceiptGS GF] (γ : RaftNames) (k : SnapTrip) : IProp GF :=
               k.cl.Has x →
                 listToSet k.cl.voters = γ.reCfg ∧
                   k.cl.outgoing = [] ∧ ∀ (T : GSet w64), γ.reTracked = some T → k.cfgM.voters ∪ k.cfgM.learners ⊆ T⌝ ∗
-        □
-          ∀ x,
-            ⌜k.cl.Has x⌝ -∗
-              ∀ D, ⌜γ.dyn = some D⌝ -∗ ∀ fp, logRecs γ base0 fp -∗ ⌜FullOk k.sid fp⌝ -∗ ⌜D.fold fp = some k.cfgM⌝)
+        (□
+            ∀ x,
+              ⌜k.cl.Has x⌝ -∗
+                ∀ D, ⌜γ.dyn = some D⌝ -∗ ∀ fp, logRecs γ base0 fp -∗ ⌜FullOk k.sid fp⌝ -∗ ⌜D.fold fp = some k.cfgM⌝) ∗
+          snapAtOk γ k)
 
 structure BootEntry : Type where
   term : w64
@@ -124,6 +126,8 @@ theorem leadFull_wf [ReceiptGS GF] (γ : RaftNames) (t : w64) (G : List EntryM) 
 
 def entTk (γ : RaftNames) (e : EntryM) : IProp GF :=
   if Filler e.Type' e.Data' then iprop(emp) else propTk γ (entKey e.Type' e.Data')
+
+theorem snapRegOk_timeless (γ : RaftNames) (i : w64) (d : List w8) : Timeless (snapRegOk γ i d)
 
 theorem entDataIs_agree [ReceiptGS GF] (γ : RaftNames) (e : EntryM) (o1 o2 : Option (List w8)) : ⊢
     entDataIs γ e o1 -∗ entDataIs γ e o2 -∗ ⌜o1 = o2⌝
@@ -282,6 +286,11 @@ theorem hist_keep [ReceiptGS GF] (γ : RaftNames) (F F' : List EntryM) (t i : w6
     : w64), 0 < uint.Z j ∧ uint.Z j ≤ uint.Z i → (plogTermAt base0 F j).isSome = true → plogTermAt
     base0 F' j = plogTermAt base0 F j) → ⊢ hist γ F t i B -∗ hist γ F' t i B
 
+def snapRegOk (γ : RaftNames) (i : w64) (d : List w8) : IProp GF :=
+  match γ.reSnapReg with
+  | none => iprop(True)
+  | some g => iprop(∃ K, monoListLbOwn g K ∗ ⌜(i, d) ∈ K⌝)
+
 theorem isCommitted_agree [ReceiptGS GF] (γ : RaftNames) (l1 l2 : List EntryM) : ⊢ isCommitted γ l1
     -∗ isCommitted γ l2 -∗ ⌜l1 <+: l2 ∨ l2 <+: l1⌝
 
@@ -415,10 +424,13 @@ theorem ackAgree_persistent [ReceiptGS GF] (γ : RaftNames) (b : entryID) (es : 
     w64) : Persistent (ackAgree γ b es t i)
 
 def snapDataOk (γ : RaftNames) (i : w64) (d : List w8) : IProp GF :=
-  iprop(∃ L, isCommitted γ L ∗ ⌜L.length = uint.nat i ∧ γ.reSnapOk L d⌝)
+  iprop(∃ L, isCommitted γ L ∗ ⌜L.length = uint.nat i ∧ γ.reSnapOk L d⌝ ∗ snapRegOk γ i d)
 
 def RaftNames.reSnapOk (γ : RaftNames) (L : List EntryM) (d : List w8) : Prop :=
   γ.reSnapOkRaw (List.map BootEntry.ofEntry L) d
+
+theorem snapRegOk_none [ReceiptGS GF] {γ : RaftNames} (h : γ.reSnapReg = none) (i : w64) (d : List
+    w8) : ⊢ snapRegOk γ i d
 
 theorem lpfull_timeless [ReceiptGS GF] (γ : RaftNames) (ldr t : w64) (bL : entryID) (l fp : List
     EntryM) : Timeless (lpfull γ ldr t bL l fp)
@@ -578,6 +590,14 @@ def dynOn (γ : RaftNames) (P : IProp GF) : IProp GF :=
 def isCommittedDef (γ : RaftNames) (l : List EntryM) : IProp GF :=
   monoListLbOwn γ.reCommit l
 
+def snapAtOk (γ : RaftNames) (k : SnapTrip) : IProp GF :=
+  iprop(⌜γ.reSnapReg = none⌝ ∨
+      ∃ L,
+        isCommitted γ L ∗
+          ⌜L.length = uint.nat k.sid.index' ∧
+              Option.map EntryM.Term' L.getLast? = some k.sid.term' ∧
+                SnapListsOk k ∧ ∀ (D : DynCfg), γ.dyn = some D → D.fold L = some k.cfgM⌝)
+
 theorem isWin_core [ReceiptGS GF] (γ : RaftNames) (id term : w64) (q : GSet w64) : ⊢ isWin γ id term
     q -∗ ∃ c, isWinCore γ id term c q
 
@@ -626,6 +646,8 @@ def PropRec : Type :=
 
 theorem CfgStatic.isQuorum {γ : RaftNames} {c : CfgM} (HC : CfgStatic γ c) {q : GSet w64} (H :
     JQuorum c q) : IsQuorum γ.reCfg q
+
+theorem snapAtOk_persistent (γ : RaftNames) (k : SnapTrip) : Persistent (snapAtOk γ k)
 
 theorem commitJ_persistent [ReceiptGS GF] (γ : RaftNames) (F : List EntryM) (c tm : w64) :
     Persistent (commitJ γ F c tm)
@@ -681,7 +703,7 @@ def WinRec : Type :=
   (w64 × CfgM) × GSet w64
 
 theorem raftSnapCert_empty [ReceiptGS GF] (γ : RaftNames) (k : SnapTrip) (h : ∀ (x : w64), ¬k.cl.Has
-    x) : ⊢ raftSnapCert γ k
+    x) (hr : γ.reSnapReg = none) : ⊢ raftSnapCert γ k
 
 def isVote (γ : RaftNames) (v term cand : w64) : IProp GF :=
   iprop(∃ γv, ⌜γ.reVotes !! v = some γv⌝ ∗ term ↪[γv]□ cand)
@@ -739,7 +761,10 @@ theorem recs_mono [ReceiptGS GF] (γ : RaftNames) (F : List EntryM) : PlogWf bas
 
 theorem raftSnapCert_static [ReceiptGS GF] (γ : RaftNames) (k : SnapTrip) (hd : γ.dyn = none) (hl :
     SnapListsOk k) (hs : γ.reDyn = none → listToSet k.cl.voters = γ.reCfg ∧ k.cl.outgoing = [] ∧ ∀
-    (T : GSet w64), γ.reTracked = some T → k.cfgM.voters ∪ k.cfgM.learners ⊆ T) : ⊢ raftSnapCert γ k
+    (T : GSet w64), γ.reTracked = some T → k.cfgM.voters ∪ k.cfgM.learners ⊆ T) (hr : γ.reSnapReg =
+    none) : ⊢ raftSnapCert γ k
+
+theorem snapRegOk_persistent (γ : RaftNames) (i : w64) (d : List w8) : Persistent (snapRegOk γ i d)
 
 theorem logRecs_timeless [ReceiptGS GF] (γ : RaftNames) (b : entryID) (es : List EntryM) : Timeless
     (logRecs γ b es)
@@ -924,8 +949,8 @@ theorem logRecs_boot_wf [ReceiptGS GF] (γ : RaftNames) (F : List EntryM) : Plog
     e.Term' = W64 1⌝
 
 theorem snapDataOk_triv [ReceiptGS GF] (γ : RaftNames) (L : List EntryM) (i : w64) (d : List w8)
-    (hok : ∀ (L : List BootEntry) (d : List w8), γ.reSnapOkRaw L d) (hl : L.length = uint.nat i) :
-    isCommitted γ L ⊢ snapDataOk γ i d
+    (hok : ∀ (L : List BootEntry) (d : List w8), γ.reSnapOkRaw L d) (hl : L.length = uint.nat i) (hr
+    : γ.reSnapReg = none) : isCommitted γ L ⊢ snapDataOk γ i d
 
 theorem CfgStatic.voters {γ : RaftNames} {c : CfgM} (HC : CfgStatic γ c) : c.voters = γ.reCfg
 
@@ -991,6 +1016,8 @@ theorem baseOk_persistent [ReceiptGS GF] (γ : RaftNames) (b : entryID) : Persis
 theorem isEntryR_boot_leader [ReceiptGS GF] (γ : RaftNames) (e1 : EntryM) (pt1 : w64) (e2 : EntryM)
     (pt2 ldr : w64) : e1.Term' = e2.Term' → BootRec γ.reBoot e1 pt1 → isLeader γ ldr e2.Term' ⊢
     False
+
+theorem snapAtOk_timeless (γ : RaftNames) (k : SnapTrip) : Timeless (snapAtOk γ k)
 
 def msgTks (γ : RaftNames) (m : Msg) : IProp GF :=
   if m.ty = MsgType.propose then [∗list] e ∈ m.entries, entTk γ e else iprop(emp)

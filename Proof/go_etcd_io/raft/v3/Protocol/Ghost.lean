@@ -357,6 +357,13 @@ structure RaftNames where
   inside the caller's namespace, apart from the commit invariant's; the default is the fixed one it
   had until then. -/
   reCertNs : Namespace := nroot .@ "raft_snapcert"
+  /-- The registry of the snapshots the application made (2026-10-28, stage U2 of
+  `notes/raft-unified-plan.md`): `some g` names a `mono_list` of `(index, data)` keys, whose
+  authority the application holds (the node API's `ownSnapsMade`), and a snapshot's data
+  certificate (`snapDataOk`) then carries a lower bound holding its key (`snapRegOk`), so that a
+  snapshot raft hands out is known to be one the application made; `none` (the default) for a
+  cluster that keeps no registry. Pure data (as `reSnapLoc`), fixed at allocation. -/
+  reSnapReg : Option GName := none
 
 /-- The configuration a step is taken at is the ghost state's (2026-10-14, reconfiguration
 stage B2): its incoming voters are `γ.reCfg` and it is not joint (learners, staged
@@ -1540,6 +1547,24 @@ instance logRecs_timeless (γ : RaftNames) (b : entryID) (es : List EntryM) :
     Timeless (logRecs (GF := GF) γ b es) := by
   unfold logRecs; infer_instance
 
+/-- **The snapshot `k` is at a committed prefix** (2026-10-28, stage U2 of
+`notes/raft-unified-plan.md`), in a cluster that keeps a registry of the snapshots the application
+made (`RaftNames.reSnapReg`): a committed prefix `L` of its length and last term, its lists well
+formed (`SnapListsOk`) and denoting the mode's configuration of `L`. Nothing without a registry.
+It does not read the snapshot's data. -/
+def snapAtOk (γ : RaftNames) (k : SnapTrip) : IProp GF :=
+  iprop(⌜γ.reSnapReg = none⌝ ∨ ∃ L : List EntryM, isCommitted γ L ∗
+    ⌜L.length = uint.nat k.sid.index' ∧ L.getLast?.map EntryM.Term' = some k.sid.term' ∧
+      SnapListsOk k ∧ ∀ D, γ.dyn = some D → D.fold L = some k.cfgM⌝)
+
+instance snapAtOk_persistent (γ : RaftNames) (k : SnapTrip) :
+    Persistent (snapAtOk (GF := GF) γ k) := by
+  unfold snapAtOk; infer_instance
+
+instance snapAtOk_timeless (γ : RaftNames) (k : SnapTrip) :
+    Timeless (snapAtOk (GF := GF) γ k) := by
+  unfold snapAtOk; infer_instance
+
 /-- The application's certificate of the snapshot `k` (2026-10-15, stage S; moved here from
 `SnapConf.lean` and restated, D22 S-b′3, 2026-10-20): what a receiver of a `MsgSnap` needs of the
 snapshot -- `SnapScope`'s facts (`SnapListsOk`), and what the mode asks (`GMode.SnapOk`):
@@ -1554,7 +1579,8 @@ def raftSnapCert (γ : RaftNames) (k : SnapTrip) : IProp GF :=
     ⌜γ.reDyn = none → ∀ x, k.cl.Has x → GMap.listToSet k.cl.voters = γ.reCfg ∧ k.cl.outgoing = [] ∧
       ∀ T, γ.reTracked = some T → k.cfgM.voters ∪ k.cfgM.learners ⊆ T⌝ ∗
     □ (∀ (x : w64), ⌜k.cl.Has x⌝ -∗ ∀ (D : DynCfg), ⌜γ.dyn = some D⌝ -∗ ∀ (fp : List EntryM),
-        logRecs γ base0 fp -∗ ⌜FullOk k.sid fp⌝ -∗ ⌜D.fold fp = some k.cfgM⌝))
+        logRecs γ base0 fp -∗ ⌜FullOk k.sid fp⌝ -∗ ⌜D.fold fp = some k.cfgM⌝) ∗
+    snapAtOk γ k)
 
 instance raftSnapCert_persistent (γ : RaftNames) (k : SnapTrip) :
     Persistent (raftSnapCert (GF := GF) γ k) := by
@@ -1566,31 +1592,58 @@ instance raftSnapCert_timeless (γ : RaftNames) (k : SnapTrip) :
 
 /-- (D22 S-b′3) A snapshot whose `ConfState` names no node (etcd's empty one) is certified, in
 either mode. -/
-theorem raftSnapCert_empty (γ : RaftNames) (k : SnapTrip) (h : ∀ x, ¬ k.cl.Has x) :
+theorem raftSnapCert_empty (γ : RaftNames) (k : SnapTrip) (h : ∀ x, ¬ k.cl.Has x)
+    (hr : γ.reSnapReg = none) :
     ⊢ raftSnapCert (GF := GF) γ k := by
   unfold raftSnapCert
   isplitr; · ipureintro; intro x hx; exact absurd hx (h x)
   isplitr; · ipureintro; intro _ x hx; exact absurd hx (h x)
-  imodintro
-  iintro %x %hx
-  exact absurd hx (h x)
+  isplitr
+  · imodintro
+    iintro %x %hx
+    exact absurd hx (h x)
+  unfold snapAtOk; ileft; ipureintro; exact hr
 
 /-- (D22 S-b′3) A static cluster's snapshot with the static configuration's lists. -/
 theorem raftSnapCert_static (γ : RaftNames) (k : SnapTrip) (hd : γ.dyn = none)
     (hl : SnapListsOk k)
     (hs : γ.reDyn = none → GMap.listToSet k.cl.voters = γ.reCfg ∧ k.cl.outgoing = [] ∧
-      ∀ T, γ.reTracked = some T → k.cfgM.voters ∪ k.cfgM.learners ⊆ T) :
+      ∀ T, γ.reTracked = some T → k.cfgM.voters ∪ k.cfgM.learners ⊆ T)
+    (hr : γ.reSnapReg = none) :
     ⊢ raftSnapCert (GF := GF) γ k := by
   unfold raftSnapCert
   isplitr; · ipureintro; intro _ _; exact hl
   isplitr; · ipureintro; intro h _ _; exact hs h
-  imodintro
-  iintro %x %_ %D %hD
-  rw [hd] at hD; cases hD
+  isplitr
+  · imodintro
+    iintro %x %_ %D %hD
+    rw [hd] at hD; cases hD
+  unfold snapAtOk; ileft; ipureintro; exact hr
 
 /-- (D22 S-r, 2026-10-21) The configuration certificate does not read a snapshot's data. -/
 theorem raftSnapCert_dat (γ : RaftNames) (k : SnapTrip) (d : List w8) :
     raftSnapCert (GF := GF) γ { k with dat := d } = raftSnapCert γ k := rfl
+
+/-- **The snapshot of index `i` and data `d` was made by the application** (2026-10-28, stage U2 of
+`notes/raft-unified-plan.md`), if the cluster keeps a registry of the snapshots made
+(`RaftNames.reSnapReg`): its key `(i, d)` is in the registry. Nothing without a registry.
+Persistent. -/
+def snapRegOk (γ : RaftNames) (i : w64) (d : List w8) : IProp GF :=
+  match γ.reSnapReg with
+  | none => iprop(True)
+  | some g => iprop(∃ K : List (w64 × List w8), monoListLbOwn g K ∗ ⌜(i, d) ∈ K⌝)
+
+instance snapRegOk_persistent (γ : RaftNames) (i : w64) (d : List w8) :
+    Persistent (snapRegOk (GF := GF) γ i d) := by
+  unfold snapRegOk; split <;> infer_instance
+
+instance snapRegOk_timeless (γ : RaftNames) (i : w64) (d : List w8) :
+    Timeless (snapRegOk (GF := GF) γ i d) := by
+  unfold snapRegOk; split <;> infer_instance
+
+theorem snapRegOk_none {γ : RaftNames} (h : γ.reSnapReg = none) (i : w64) (d : List w8) :
+    ⊢ snapRegOk (GF := GF) γ i d := by
+  unfold snapRegOk; rw [h]; exact true_intro
 
 /-- **A snapshot's data certificate** (2026-10-21, D22 S-r): the data `d` of a snapshot at index `i`
 is what the application admits (`RaftNames.reSnapOk`, fixed at allocation) of the committed log
@@ -1600,7 +1653,8 @@ certificate registry (`storCertOk`), on the `MsgSnap` (`netP`, `isRaftMsg`) and 
 hands the snapshot to the receiver (`readySnapData`'s certificate) -- as it carries the
 configuration certificate (`raftSnapCert`). -/
 def snapDataOk (γ : RaftNames) (i : w64) (d : List w8) : IProp GF :=
-  iprop(∃ L : List EntryM, isCommitted γ L ∗ ⌜L.length = uint.nat i ∧ γ.reSnapOk L d⌝)
+  iprop(∃ L : List EntryM, isCommitted γ L ∗ ⌜L.length = uint.nat i ∧ γ.reSnapOk L d⌝ ∗
+    snapRegOk γ i d)
 
 instance snapDataOk_persistent (γ : RaftNames) (i : w64) (d : List w8) :
     Persistent (snapDataOk (GF := GF) γ i d) := by
@@ -1626,13 +1680,14 @@ instance raftSnapCertD_timeless (γ : RaftNames) (k : SnapTrip) :
 /-- (D22 S-r) A cluster that admits every data (`reSnapOk` trivial) certifies a snapshot's data at
 the length of a committed prefix. -/
 theorem snapDataOk_triv (γ : RaftNames) (L : List EntryM) (i : w64) (d : List w8)
-    (hok : ∀ L d, γ.reSnapOkRaw L d) (hl : L.length = uint.nat i) :
+    (hok : ∀ L d, γ.reSnapOkRaw L d) (hl : L.length = uint.nat i) (hr : γ.reSnapReg = none) :
     isCommitted (GF := GF) γ L ⊢ snapDataOk γ i d := by
   iintro #H
   unfold snapDataOk
   iexists L
   iframe H
-  ipureintro; exact ⟨hl, hok _ _⟩
+  isplitr; · ipureintro; exact ⟨hl, hok _ _⟩
+  iapply snapRegOk_none hr
 
 def leadFrags (γt : GName) (l0 l : List EntryM) : IProp GF :=
   iprop([∗list] k ↦ e ∈ l,

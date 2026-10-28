@@ -469,6 +469,21 @@ Other notes in use: `notes/snapshot-receiver-epochs.md` (S5's plan),
 In status-history.md: the raft v3.7 retarget ("Retargeting raft to v3.7, stage R0" to "stage R8b"), reconfiguration (stages 0, A1-A3, B1-B8, D, L, N), the read index and proposals (stage R, stage F), CheckQuorum and PreVote, the multi-member stages "D21 M0" to "D21 M6", and the witness stages W1-W3b-A and W5.
 
 
+## Raft unified, stages U2 (done) and U3 (not started): snapshots in the dynamic mode (2026-10-28, branch `raft-unified`)
+
+U2: the dynamic snapshot certificate is made and read. Raft's names may name a registry of the
+snapshots the application made (`RaftNames.reSnapReg`, `none` in every allocation until U4); a
+snapshot's data certificate carries its key there (`snapRegOk`), and raft's configuration
+certificate says it is at a committed prefix of its length and last term whose fold is its
+configuration (`snapAtOk`). `Protocol/SnapCertDyn.lean`: `raftSnapCert_make_dyn` (a committed prefix
+is the only full log with records ending at its id). `SnapsMade.lean` (internal, `ApiImpl`):
+`ownSnapsMade`/`snapMade`/`snapMade_elem`, `snapshotCert_make`, `snapshotCert_made` over
+`RuleNames γ r c0` (the rule and `c0` explicit until U9). Two departures from candidate 12 (a fancy
+update; a `SnapListsOk` premise, which `Membership.Valid` does not imply: a design question for U9).
+No new `sorry` or axiom; no exported statement moved. U3 (the dynamic `RawNode` with snapshots) is
+not started; what it needs, starting with `StepR.snapRestore` keeping `cidx`: `notes/decisions.md`,
+"Stages U2, U3".
+
 ## Raft unified, stages U1 and U6m: the conf-change decision, the API's vocabulary (2026-10-28, branch `raft-unified`)
 
 The protocol's decoder gives a decision (`CCDecision.apply op | reject`; a rejection keeps the

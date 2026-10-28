@@ -28,8 +28,9 @@ theorem ownRaftGhost_alloc_core [ReceiptGS GF] [InvGS GF] (E : CoPset) (cfg ids 
     ≠ ∅ → ¬W64 0 ∈ ids → BootWf L → (L ≠ [] → 1 ≤ uint.Z t) → ⊢ allocClientGen E cfg dyn ccOk L C
     nsN ={E}=∗ ∃ γ, ⌜γ.reCfg = cfg ∧ γ.reDyn = dyn ∧ γ.reCCOk = ccOk ∧ γ.reBoot = L ∧ γ.reTracked =
     trk ∧ γ.reNoSnap = ns ∧ γ.reNoXfer = nx ∧ γ.reSnapOkRaw = sok ∧ γ.reSnapLoc = sl ∧ γ.reNs = nsN
-    ∧ γ.reCertNs = certN⌝ ∗ raftCommitInv γ ∗ isCommitted γ L ∗ ([∗map] id ↦ _u ∈ toMap ids,
-    ownRaftGhost γ id (initPStateAt t L) dyn.isSome) ∗ C γ ∗ rdCred γ (2 ^ 64 - 2) ∗ rdCredInv γ
+    ∧ γ.reCertNs = certN ∧ γ.reSnapReg = none⌝ ∗ raftCommitInv γ ∗ isCommitted γ L ∗ ([∗map] id ↦ _u
+    ∈ toMap ids, ownRaftGhost γ id (initPStateAt t L) dyn.isSome) ∗ C γ ∗ rdCred γ (2 ^ 64 - 2) ∗
+    rdCredInv γ
 
 theorem heartbeat_commit_le_last [ReceiptGS GF] [InvGS GF] (γ : RaftNames) (id : w64) (ps : PState)
     (m : Msg) {md : Bool} : m.ty = MsgType.heartbeat → m.dst = id → uint.Z ps.term ≤ uint.Z m.term →

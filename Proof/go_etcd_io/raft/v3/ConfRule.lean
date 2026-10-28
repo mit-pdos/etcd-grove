@@ -225,6 +225,15 @@ theorem Membership.fold_total (r : ConfRule) (c0 : Membership) (l : List LogEntr
     simp only [Membership.foldFrom, h1, Option.bind_some]
     exact ih (pre ++ [e]) m1 hv1
 
+/-! ### Snapshots -/
+
+/-- **A snapshot the application made** (the candidate's `SnapRec`): the length of the committed
+prefix it covers, the membership of that prefix, its data. -/
+structure SnapRec where
+  index : Nat
+  conf : Membership
+  data : List w8
+
 /-! ### Raft's automatic leave, and the requested entries -/
 
 /-- **Raft's automatic leave** at the end of the log `pre`: an `EntryConfChangeV2` with empty data

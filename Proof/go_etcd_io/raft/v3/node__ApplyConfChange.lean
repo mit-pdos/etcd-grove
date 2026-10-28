@@ -288,7 +288,7 @@ private theorem node.wp_ApplyConfChange_impl
   iintro %Φ ⟨#Hinit, #Hnode, #Hst, Hcc⟩ HΦ
   iunfold isStaticCluster at Hst
   icases Hst with ⟨%Hsn, -⟩
-  obtain ⟨Hcfg, -, -, -, Hγm, -, -, -, -, Hnd, -⟩ := Hsn
+  obtain ⟨Hcfg, -, -, -, Hγm, -, -, -, -, -, Hnd, -⟩ := Hsn
   iunfold isNode at Hnode
   icases Hnode with ⟨%γn, %Hnok, #Hrn, -⟩
   obtain ⟨Hγr, -, -, Hmd, -⟩ := Hnok
