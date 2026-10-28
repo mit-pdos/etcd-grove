@@ -336,3 +336,22 @@ Done (`031e726c59`, `5c02b3d580`; full build passes):
   bridge's four `sorry`s proved (or the switch puts them under every server result), the server's
   `BootBackend` passing `dlInit` to mvcc (`dlReg_fix` at mvcc's `delKey`), and `newPost`'s
   `dlNone` routed to D22's exact-view users.
+
+## After Review round 1 (2026-10-28, the user's)
+
+Round 1 (`notes/spec-first-study/backend-review-1.md`): the design (a logical view, readers' views
+missing only registered keys) is right; four of the new clauses are unprovable as stated (F1-F5),
+`dlNone` is unsound as drafted (F6). Decisions:
+- **F3: bbolt's `Bucket.Delete_kv` widened** to accept a key readable within its own transaction
+  (true of bbolt v1.5.0: `bucket.go:518-532`, `node.go:145-159`, Delete copies what it needs). A
+  trust-base change, recorded as such; to be covered by the Test step's bbolt tester (a Delete of a
+  key returned by a range in the same transaction).
+- **F6: `dlNone` dropped** (reverses O2): the unfixed registration (`dlInit`, before mvcc fixes the
+  predicate) already rules out every deletable key, and D22's exact readers use that.
+- **F10: the job's write-back tokens from a pool of its own** (revises O4), funded at `NewServer` from
+  the time receipts: no share of D22's `E.γbe`, no coupling to D22.
+Repairs without a decision: F1/F2 (the limited range lends against a per-call token and hands out the
+delete capability over its own `Rd`), F4 (the delete permits a fixed stock per session), F5 (the
+bridge's non-compaction clauses re-proved over the new `Locked`), F7 (`dlInit` kept unfixed for mvcc;
+`isKeyBackendG_congrDel` under `▷`), F8 (`Unlock.specC`'s deleting branch also requires no puts to
+non-hook buckets; the first branch dropped), F9 (`kbSR`/`srSlot` one definition), F11.
