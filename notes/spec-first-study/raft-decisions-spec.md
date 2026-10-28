@@ -1,4 +1,7 @@
-# The conf-change decision switch: the spec (candidate 14 rev 2, 2026-10-28)
+# The conf-change decision switch: the spec (candidate 14 rev 2, 2026-10-28) — frozen, approved by the user
+
+(Review 2, `raft-decisions-review-2.md`: ready to freeze; its Tier 3 items N1, N3, N4 folded in; N2's laws
+(`skippedIn_snoc`, `skippedIn_mono`, `confAt_skipped`) are kvreconf's stage's.)
 
 Scratch file, never committed. Candidate 13 rev 3 §13 reconciled with the interim API
 (`interface/Proof/go_etcd_io/raft/v3/InvNodeRule.txt`, the `unifiedSpec`s), with the user's authority design
@@ -40,7 +43,8 @@ Raft's API mentions no rule. A client deciding by a rule uses a library module
 decision, the facts making it the rule's answer at its prefix and membership.
 
 ```lean
-def (sealed) confPolicy (γ : Cluster) (N' : Namespace) (r : ConfRule) : IProp GF      -- persistent
+def (sealed) confPolicy (γ : Cluster) (N' : Namespace) (r : ConfRule) : IProp GF
+instance : Persistent (confPolicy γ N' r)        -- (review 2, N4: kv's persistent `kvCluster` needs it)
 theorem confPolicy_alloc : ownConfDecisions γ ∅ ={E}=∗ confPolicy γ N' r
 /-- The recorded decision if the position is decided (the same at every caller), else decided now. The
 caller shows the rule's answer allowed at `m` (per call, as in the interim API: no global premise on `r`). -/
@@ -66,15 +70,18 @@ theorem skippedIn_noConf : NoConfChangeIn l a b → ⊢ skippedIn γ l a b     -
 
 - `node.ApplyConfChange.unifiedSpec`: `NoConfChangeIn l v.applied k` becomes `skippedIn γ l v.applied k` (a
   separating premise); `k` may still be above `v.applied` (kv calls it so).
-- `node.Advance.unifiedSpec`: `NoConfChangeIn st.delivered v.applied st.delivered.length` (the no-snapshot
-  case) becomes `skippedIn γ st.delivered v.applied st.delivered.length`.
-- Internally `nodeConfig`'s ghost view moves past skipped entries at the call (the specs move it, as they
-  move it past normal entries today; no entailment changes a pinned ghost variable).
+- `node.Advance.unifiedSpec`: `NoConfChangeIn st.delivered v.applied st.delivered.length` becomes
+  `skippedIn γ st.delivered v.applied st.delivered.length` (for both cases of the loan, as today's premise).
+- (Review 2, N1.) `Advance`'s post returns `nodeConfig v` as today; what changes internally is the node loop's
+  `NoConfIn` in `runCfg`/`runCfgLoan` (`InvNodeChan.lean`), which becomes "decided `.skip`".
 
 ## 5. Leaving the API, deferred
 
 - Leaving: `cluster_alloc_rule`, raft's persistent `confPolicy γ r` (now the library's, §2),
-  `Membership.fold` and its laws, `opsOfRule`, `RaftLeave` (stage U5 restates what it needs).
+  `Membership.fold` and its laws (`fold_total`, `foldFrom`, `foldStep`), `opsOfRule`/`opsOfRuleFrom`,
+  `RaftLeave` (stage U5 restates what it needs), and of `ConfRule`'s vocabulary what only the rule-based
+  cluster used (`ConfRule.Ok`, `clamp*`, `validated*`; `ConfRule` itself and `ConfDecision.ofRule` stay, for
+  the library). The docstrings citing `cluster_alloc_rule` (`Api.lean`, `RestartNode.lean`) are updated.
 - Deferred to later stages: automatic leaves (`m'.autoLeave = false` stays in `ApplyConfChange.unifiedSpec`;
   U5), joiners (U4), the bootstrap-log allocation, `opsOf` as the pure filter with
   `committed_emptyV2_joint` (U5), `committed_confDecodes`, `nodeConfig_confAt`.
