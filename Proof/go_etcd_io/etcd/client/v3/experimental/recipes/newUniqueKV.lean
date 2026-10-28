@@ -63,8 +63,8 @@ theorem newUniqueKV.wp_proof (hPNK : putNewKV.spec (GF := GF) (hG := hG)) :
   · -- created
     subst Heq
     wp_auto
-    wp_alloc rk as Hrk
-    wp_auto
+    irename «$r0» => Hrk
+    generalize «$r0_ptr» = rk at *
     wp_for_post
     iapply HΦ
     ileft

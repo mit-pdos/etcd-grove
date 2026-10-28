@@ -114,7 +114,7 @@ def rdOwn [ReceiptGS GF] [InvGS GF] (γ : RaftNames) (id : w64) (s : PState) : I
           ([∗map] t ↦ γq ∈ rqm, t ↪[γl]□ γq) ∗
             ⌜LcmOk rqm s⌝ ∗
               rdLead γ s rqm ∗
-                ([∗list] st ∈ s.rd.states, readStateOk γ st) ∗
+                ([∗list] st ∈ s.rd.states, readStateRaw γ st) ∗
                   ([∗list] p ∈ s.rd.pend, iprop(∃ e c Lc, ⌜p.snd = [e]⌝ ∗ ⌜e.Data' = c⌝ ∗ readReq γ c Lc)) ∗
                     rdCred γ (s.rd.pend.length + rdCount s.outbox) ∗ rdCredInv γ ∗ msgsTks γ s.outbox)
 
@@ -133,6 +133,9 @@ def propFresh (γ : RaftNames) (d : List w8) : IProp GF :=
 
 def raftLogInv [ReceiptGS GF] [InvGS GF] (γ : RaftNames) : IProp GF :=
   inv (raftLogN γ) (raftLogInvBody γ)
+
+def readStateRaw (γ : RaftNames) (st : ReadStateM) : IProp GF :=
+  iprop(∃ c, ⌜st.RequestCtx' = c⌝ ∗ readOk γ c st.Index')
 
 def LogOk (s : PState) : Prop :=
   PlogWfR s.base s.log ∧ uint.Z s.base.index' ≤ uint.Z s.commit ∧ uint.Z s.commit ≤ plogLastIndexZ s.base s.log
@@ -415,9 +418,6 @@ theorem winTbl_timeless (γ : RaftNames) : Timeless (winTbl γ)
 theorem readWit_persistent (γ : RaftNames) (c : List w8) (Qr : List EntryM → IProp GF) (i : w64) :
     Persistent (readWit γ c Qr i)
 
-def readStateOk (γ : RaftNames) (st : ReadStateM) : IProp GF :=
-  iprop(∃ c, ⌜st.RequestCtx' = c⌝ ∗ readOk γ c st.Index')
-
 theorem msgCert_timeless [ReceiptGS GF] (γ : RaftNames) (m : Msg) : Timeless (msgCert γ m)
 
 def votesTbl [ReceiptGS GF] (γ : RaftNames) : IProp GF :=
@@ -522,6 +522,8 @@ theorem votesTbl_insert [ReceiptGS GF] (γ : RaftNames) (id : w64) (γv : GName)
     votesTbl γ -∗ ghostMapAuth γv (Qp.half 1) voted ==∗ votesTbl γ ∗ ghostMapAuth γv (Qp.half 1) <[T
     := c]>voted ∗ T ↪[γv]□ c
 
+theorem readStateRaw_persistent (γ : RaftNames) (st : ReadStateM) : Persistent (readStateRaw γ st)
+
 theorem rdLead_nl [ReceiptGS GF] [InvGS GF] (γ : RaftNames) (s : PState) (rqm : GMap w64 GName) (h :
     s.role ≠ Role.leader) : rdLead γ s rqm = iprop(⌜s.rd.ro = { pending := [], acks := ∅, confirmed
     := W64 0 }⌝)
@@ -609,7 +611,7 @@ theorem rdOwn_update [ReceiptGS GF] [InvGS GF] (γ : RaftNames) (id : w64) (s s'
     List ReadStateM) (ps : List (MessageM × List EntryM)) (ms : List Msg) : s'.role = s.role →
     s'.term = s.term → s'.rd.ro = s.rd.ro → s'.rd.states = s.rd.states ++ sts → s'.rd.pend =
     s.rd.pend ++ ps → s'.outbox = s.outbox ++ ms → (∀ (m : Msg), m ∈ ms → m.ty ≠ MsgType.propose) →
-    ⊢ rdOwn γ id s -∗ ([∗list] st ∈ sts, readStateOk γ st) -∗ ([∗list] p ∈ ps, iprop(∃ e c Lc,
+    ⊢ rdOwn γ id s -∗ ([∗list] st ∈ sts, readStateRaw γ st) -∗ ([∗list] p ∈ ps, iprop(∃ e c Lc,
     ⌜p.snd = [e]⌝ ∗ ⌜e.Data' = c⌝ ∗ readReq γ c Lc)) -∗ rdCred γ (ps.length + rdCount ms) -∗ rdOwn γ
     id s'
 
@@ -724,7 +726,7 @@ theorem rdOwn_takeReads [ReceiptGS GF] [InvGS GF] (γ : RaftNames) (id : w64) (s
     s.matched, rd :=
             have __src := s.rd;
             { ro := __src.ro, pend := __src.pend } } ∗
-      [∗list] st ∈ s.rd.states, readStateOk γ st
+      [∗list] st ∈ s.rd.states, readStateRaw γ st
 
 theorem rdCred_bound [ReceiptGS GF] [InvGS GF] (γ : RaftNames) (n : Nat) (E : CoPset) (HE :
     ↑(rdCredN γ) ⊆ E) : ⊢ rdCredInv γ -∗ rdCred γ n ={E}=∗ rdCred γ n ∗ ⌜n < 2 ^ 64 - 1⌝
@@ -733,8 +735,6 @@ def raftN (γ : RaftNames) : Namespace :=
   γ.reNs
 
 theorem granted_empty : granted ∅ = ∅
-
-theorem readStateOk_persistent (γ : RaftNames) (st : ReadStateM) : Persistent (readStateOk γ st)
 
 theorem rdCred_zero_upd [ReceiptGS GF] [InvGS GF] (γ : RaftNames) : ⊢ |==> rdCred γ 0
 

@@ -47,7 +47,8 @@ noncomputable def lowbit [GooseExts] [GoGlobalContext] : GoString :=
 noncomputable def NewGenerator.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "memberID"
   (Lam "now"
-  (App (Val exceptionDo)
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType Generator.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType Generator.ty)))) (Val #())))
+  (Seq (App (Val exceptionDo)
   (Let "now" (App (Val (GoInstruction (GoAlloc _root_.Perennial.time.Time.ty))) (Var "now"))
   (Let "memberID" (App (Val (GoInstruction (GoAlloc go.uint16))) (Var "memberID"))
   (Let "$r0" (App (Val (GoInstruction (GoOp GoShiftl go.uint64))) (Pair (App (Val (GoInstruction (Convert go.uint16 go.uint64))) (App (Val (GoInstruction (GoLoad go.uint16))) (Var "memberID"))) (App (Val (GoInstruction (Convert go.untypedInt go.uint64))) (Val suffixLen))))
@@ -61,16 +62,21 @@ noncomputable def NewGenerator.impl [GooseExts] [GoGlobalContext] : val :=
   (App (App (App (Val (GoInstruction (FuncResolve lowbit []))) (Val #())) (Var "$a0")) (Var "$a1")))) (App (Val (GoInstruction (Convert go.untypedInt go.uint64))) (Val cntLen))))
   (Let "suffix" (App (Val (GoInstruction (GoAlloc go.uint64))) (App (Val (GoInstruction (GoZeroVal go.uint64))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
-  (App (Val doReturn)
-  (App (Val (GoInstruction (GoAlloc Generator.ty))) (Let "$v0" (App (Val (GoInstruction (GoLoad go.uint64))) (Var "prefix"))
+  (Let "$r0" (App (Val (GoInstruction (GoAlloc Generator.ty))) (Let "$v0" (App (Val (GoInstruction (GoLoad go.uint64))) (Var "prefix"))
   (Let "$v1" (App (Val (GoInstruction (GoLoad go.uint64))) (Var "suffix"))
-  (App (Val (GoInstruction (CompositeLiteral Generator.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"prefix")) (ElementExpression go.uint64 (Var "$v0"))), (KeyedElement (some (KeyField go!"suffix")) (ElementExpression go.uint64 (Var "$v1")))]))))))))
+  (App (Val (GoInstruction (CompositeLiteral Generator.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"prefix")) (ElementExpression go.uint64 (Var "$v0"))), (KeyedElement (some (KeyField go!"suffix")) (ElementExpression go.uint64 (Var "$v1")))])))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType Generator.ty)))) (Pair (Var "$res0") (Var "$r0"))))))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.uint64))) (Pair (Var "suffix") (Var "$r0")))))))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.uint64))) (Pair (Var "unixMilli") (Var "$r0")))))))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore go.uint64))) (Pair (Var "prefix") (Var "$r0"))))))))))))
+  (App (Val (GoInstruction (GoStore go.uint64))) (Pair (Var "prefix") (Var "$r0"))))))))))
+  (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Generator.ty)))) (Var "$res0"))))))
 
 /-- Next generates a id that is unique.
 
@@ -78,7 +84,8 @@ noncomputable def NewGenerator.impl [GooseExts] [GoGlobalContext] : val :=
 noncomputable def Generator.Next.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "g"
   (Lam BAnon
-  (App (Val exceptionDo)
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc go.uint64))) (App (Val (GoInstruction (GoZeroVal go.uint64))) (Val #())))
+  (Seq (App (Val exceptionDo)
   (Let "g" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType Generator.ty)))) (Var "g"))
   (Let "$r0" (Let "$a0" (App (Val (GoInstruction (StructFieldRef Generator.ty go!"suffix"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Generator.ty)))) (Var "g")))
   (Let "$a1" (Val #(W64 1))
@@ -90,22 +97,33 @@ noncomputable def Generator.Next.impl [GooseExts] [GoGlobalContext] : val :=
   (App (App (App (Val (GoInstruction (FuncResolve lowbit []))) (Val #())) (Var "$a0")) (Var "$a1"))))))
   (Let "id" (App (Val (GoInstruction (GoAlloc go.uint64))) (App (Val (GoInstruction (GoZeroVal go.uint64))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoLoad go.uint64))) (Var "id"))
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (App (Val (GoInstruction (GoLoad go.uint64))) (Var "id")))))
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.uint64))) (Pair (Var "$res0") (Var "$r0"))))))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.uint64))) (Pair (Var "id") (Var "$r0")))))))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore go.uint64))) (Pair (Var "suffix") (Var "$r0")))))))))))
+  (App (Val (GoInstruction (GoStore go.uint64))) (Pair (Var "suffix") (Var "$r0")))))))))
+  (App (Val (GoInstruction (GoLoad go.uint64))) (Var "$res0"))))))
 
 /-- go: id.go:73:6 -/
 noncomputable def lowbit.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "x"
   (Lam "n"
-  (App (Val exceptionDo)
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc go.uint64))) (App (Val (GoInstruction (GoZeroVal go.uint64))) (Val #())))
+  (Seq (App (Val exceptionDo)
   (Let "n" (App (Val (GoInstruction (GoAlloc go.uint))) (Var "n"))
   (Let "x" (App (Val (GoInstruction (GoAlloc go.uint64))) (Var "x"))
+  (Let "$r0" (App (Val (GoInstruction (GoOp GoAnd go.uint64))) (Pair (App (Val (GoInstruction (GoLoad go.uint64))) (Var "x")) (App (Val (GoInstruction (GoOp GoShiftr go.uint64))) (Pair (App (Val (GoInstruction (Convert go.untypedInt go.uint64))) (Val _root_.Perennial.math.MaxUint64)) (App (Val (GoInstruction (Convert go.uint go.uint64))) (App (Val (GoInstruction (GoOp GoSub go.uint))) (Pair (Val #(W64 64)) (App (Val (GoInstruction (GoLoad go.uint))) (Var "n")))))))))
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (App (Val (GoInstruction (GoOp GoAnd go.uint64))) (Pair (App (Val (GoInstruction (GoLoad go.uint64))) (Var "x")) (App (Val (GoInstruction (GoOp GoShiftr go.uint64))) (Pair (App (Val (GoInstruction (Convert go.untypedInt go.uint64))) (Val _root_.Perennial.math.MaxUint64)) (App (Val (GoInstruction (Convert go.uint go.uint64))) (App (Val (GoInstruction (GoOp GoSub go.uint))) (Pair (Val #(W64 64)) (App (Val (GoInstruction (GoLoad go.uint))) (Var "n")))))))))))))))
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.uint64))) (Pair (Var "$res0") (Var "$r0")))))))))
+  (App (Val (GoInstruction (GoLoad go.uint64))) (Var "$res0"))))))
 
 noncomputable instance info' : PkgInfo pkg_id.go_etcd_io.etcd.pkg.v3.idutil where
   pkgImportedPkgs := [pkg_id.math, pkg_id.sync.atomic, pkg_id.time]

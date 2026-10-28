@@ -1,7 +1,7 @@
 /- Lean-first (no Rocq counterpart).
 
 `New(id, node, storage, send)` (kv.go:96): replica `id` on its running node (the driver's token
-idle at its start on the store's storage) of the store's static cluster (`Draft.isStaticCluster`,
+idle at its start on the store's storage) of the store's static cluster (`isStaticCluster`,
 2026-10-27: raft's draft API; until then raft's static mode, `KVStat`), and its storage; it starts
 `run`. The replica's
 seq token (`id ↪[γr.seq] 0`, from the cluster's allocation) starts its sequence numbers. (D22
@@ -36,10 +36,10 @@ abbrev New.spec : Prop :=
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.kv ∗ rkvInv γr ∗
       -- node `id` of the store's static cluster, its driver token idle at its start on the
       -- store's storage
-      Draft.isNode n γr.cluster kvRaftN id ∗
-      Draft.nodeDriver n γr.cluster kvRaftN (Draft.NodeDriverState.init (kvStorIface st)) ∗
-      Draft.isStaticCluster γr.cluster kvRaftN kvVoters kvSnapOk ∗
-      Draft.leaderTransferOn γr.cluster kvRaftN ∗
+      isNode n γr.cluster kvRaftN id ∗
+      nodeDriver n γr.cluster kvRaftN (NodeDriverState.init (kvStorIface st)) ∗
+      isStaticCluster γr.cluster kvRaftN kvVoters kvSnapOk ∗
+      leaderTransferOn γr.cluster kvRaftN ∗
       (∃ (ms : Loc) (γs : MemStorNames), kvStorRec st ms γs) ∗ id ↪[γr.seq] (W64 0) ∗
       -- the storage's snapshot token, for `run` (`runStor`)
       runStor γr st memStorEmpty ∗

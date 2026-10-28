@@ -512,7 +512,7 @@ theorem entryShapeOn_of_entryShape (m : EntryModel) (h : entryShape m) :
 /-! ### The mode-`on` model reads only the requested entries (2026-10-27) -/
 
 /-- **A requested entry's effect** on the mode-`on` model's state, above the consistent index. -/
-def kvOpOn (ch : apply.Chain) (s : auth.AuthState × mvcc.Log) (x : Draft.LogEntry) :
+def kvOpOn (ch : apply.Chain) (s : auth.AuthState × mvcc.Log) (x : LogEntry) :
     auth.AuthState × mvcc.Log :=
   kvEntryOn (W64 0) ch s ⟨x.term, W64 1, x.type, x.data⟩
 
@@ -535,7 +535,7 @@ theorem kvEntryOn_filler (c₀ : w64) (ch : apply.Chain) (s : auth.AuthState × 
 theorem kvRaftOfOn_ops (c₀ : w64) (ch : apply.Chain) :
     ∀ (A : List EntryModel) (s : auth.AuthState × mvcc.Log),
       (∀ m ∈ A, uint.Z c₀ < uint.Z m.index) →
-      kvRaftOfOn c₀ ch s A = (Draft.opsOf (A.map EntryModel.toLE)).foldl (kvOpOn ch) s
+      kvRaftOfOn c₀ ch s A = (opsOf (A.map EntryModel.toLE)).foldl (kvOpOn ch) s
   | [], _, _ => rfl
   | m :: A, s, h => by
     have hA : ∀ m' ∈ A, uint.Z c₀ < uint.Z m'.index := fun m' hm' => h m' (List.mem_cons_of_mem _ hm')
@@ -543,14 +543,14 @@ theorem kvRaftOfOn_ops (c₀ : w64) (ch : apply.Chain) :
     rw [List.foldl_cons]
     by_cases hf : m.toLE.isFiller
     · rw [kvEntryOn_filler c₀ ch s m hf]
-      have : Draft.opsOf ((m :: A).map EntryModel.toLE) = Draft.opsOf (A.map EntryModel.toLE) := by
-        simp [Draft.opsOf, hf]
+      have : opsOf ((m :: A).map EntryModel.toLE) = opsOf (A.map EntryModel.toLE) := by
+        simp [opsOf, hf]
       rw [this]
       exact kvRaftOfOn_ops c₀ ch A s hA
     · rw [kvEntryOn_above c₀ ch s m (h m (List.mem_cons_self ..))]
-      have : Draft.opsOf ((m :: A).map EntryModel.toLE) =
-          m.toLE :: Draft.opsOf (A.map EntryModel.toLE) := by
-        simp [Draft.opsOf, hf]
+      have : opsOf ((m :: A).map EntryModel.toLE) =
+          m.toLE :: opsOf (A.map EntryModel.toLE) := by
+        simp [opsOf, hf]
       rw [this, List.foldl_cons]
       exact kvRaftOfOn_ops c₀ ch A _ hA
 
@@ -712,12 +712,12 @@ theorem kvRaftOfOn_eqv (γ : ServerRaftNames) (c₀ : w64) (ch : apply.Chain)
 theorem kvRaftOfOn_of_lb (γ : ServerRaftNames) (c₀ : w64) (ch : apply.Chain)
     (s₀ : auth.AuthState × mvcc.Log) (A L : List EntryModel) (hc : uint.Z c₀ ≤ uint.Z γ.ai0)
     (hA : srvIdxOkW γ.ai0 A) (hL : srvIdxOkW γ.ai0 L) (hnf : ∀ m ∈ L, ¬ m.toLE.isFiller)
-    (hp : Draft.opsOf (A.map EntryModel.toLE) <+: L.map EntryModel.toLE) :
+    (hp : opsOf (A.map EntryModel.toLE) <+: L.map EntryModel.toLE) :
     ∃ L', L' <+: L ∧ kvRaftOfOn c₀ ch s₀ A = kvRaftOfOn c₀ ch s₀ L' := by
-  refine ⟨L.take (Draft.opsOf (A.map EntryModel.toLE)).length, List.take_prefix _ _, ?_⟩
+  refine ⟨L.take (opsOf (A.map EntryModel.toLE)).length, List.take_prefix _ _, ?_⟩
   apply kvRaftOfOn_eqv γ c₀ ch s₀ _ _ ⟨hA, srvIdxOkW_prefix _ _ L hL (List.take_prefix _ _), ?_⟩ hc
   obtain ⟨r, hr⟩ := hp
-  rw [opsOf_nofill ((L.take (Draft.opsOf (A.map EntryModel.toLE)).length).map EntryModel.toLE)
+  rw [opsOf_nofill ((L.take (opsOf (A.map EntryModel.toLE)).length).map EntryModel.toLE)
     (fun x hx => by
       obtain ⟨y, hy, rfl⟩ := List.mem_map.1 hx
       exact hnf y (List.mem_of_mem_take hy)), List.map_take, ← hr, List.take_left' rfl]
@@ -728,7 +728,7 @@ request, determinate). -/
 theorem detLogOn_transfer (γ : ServerRaftNames) (c₀ : w64) (ch : apply.Chain)
     (s₀ : auth.AuthState × mvcc.Log) (B L : List EntryModel) (hc : uint.Z c₀ ≤ uint.Z γ.ai0)
     (hB : srvIdxOkW γ.ai0 B) (hL : srvIdxOkW γ.ai0 L) (hnf : ∀ m ∈ L, ¬ m.toLE.isFiller)
-    (hp : Draft.opsOf (B.map EntryModel.toLE) <+: L.map EntryModel.toLE)
+    (hp : opsOf (B.map EntryModel.toLE) <+: L.map EntryModel.toLE)
     (h : detLogOn c₀ ch s₀ L) : detLogOn c₀ ch s₀ B := by
   intro i m hm
   by_cases hf : m.toLE.isFiller
@@ -736,18 +736,18 @@ theorem detLogOn_transfer (γ : ServerRaftNames) (c₀ : w64) (ch : apply.Chain)
   obtain ⟨m', hm', hme, htk⟩ := srv_pos B L i m hm hf hp
   have hdet := h _ m' hm'
   have hBi : srvIdxOkW γ.ai0 (B.take i) := srvIdxOkW_prefix _ _ B hB (List.take_prefix _ _)
-  have hLj : srvIdxOkW γ.ai0 (L.take (Draft.opsOf ((B.take i).map EntryModel.toLE)).length) :=
+  have hLj : srvIdxOkW γ.ai0 (L.take (opsOf ((B.take i).map EntryModel.toLE)).length) :=
     srvIdxOkW_prefix _ _ L hL (List.take_prefix _ _)
   have hst : kvRaftOfOn c₀ ch s₀ (B.take i) =
-      kvRaftOfOn c₀ ch s₀ (L.take (Draft.opsOf ((B.take i).map EntryModel.toLE)).length) := by
+      kvRaftOfOn c₀ ch s₀ (L.take (opsOf ((B.take i).map EntryModel.toLE)).length) := by
     apply kvRaftOfOn_eqv γ c₀ ch s₀ _ _ ⟨hBi, hLj, ?_⟩ hc
-    rw [opsOf_nofill ((L.take (Draft.opsOf ((B.take i).map EntryModel.toLE)).length).map
+    rw [opsOf_nofill ((L.take (opsOf ((B.take i).map EntryModel.toLE)).length).map
       EntryModel.toLE) (fun x hx => by
         obtain ⟨y, hy, rfl⟩ := List.mem_map.1 hx
         exact hnf y (List.mem_of_mem_take hy)), htk]
   rw [hst]
-  have h1 := congrArg Draft.LogEntry.type hme
-  have h2 := congrArg Draft.LogEntry.data hme
+  have h1 := congrArg LogEntry.type hme
+  have h2 := congrArg LogEntry.data hme
   simp only [EntryModel.toLE] at h1 h2
   intro ht hd rq hdec
   have hd' := hdet (h1 ▸ ht) (h2 ▸ hd) rq (h2 ▸ hdec)
@@ -780,8 +780,8 @@ theorem kv_log_plain_on (γ : ServerRaftNames) (γk : KVNames) (st₀ : auth.Aut
   refine ⟨srv_entry_transfer γ.ai0 B L plainEntryOn ?_ ?_ HBi Hp.2.2 Hok.1,
     detLogOn_transfer γ _ _ _ B L Hok.2.2.2.1 HBi Hp.1 Hp.2.1 Hp.2.2 Hok.2.1, Hok.2.2.2.2.1⟩
   · intro m m' he h ht hd rq hdec
-    have h1 := congrArg Draft.LogEntry.type he
-    have h2 := congrArg Draft.LogEntry.data he
+    have h1 := congrArg LogEntry.type he
+    have h2 := congrArg LogEntry.data he
     simp only [EntryModel.toLE] at h1 h2
     exact h (h1 ▸ ht) (h2 ▸ hd) rq (h2 ▸ hdec)
   · intro m _ hd _ h; exact absurd hd h

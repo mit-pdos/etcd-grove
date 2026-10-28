@@ -97,7 +97,8 @@ theorem electionServer.Campaign.wp_proof
   (try wp_auto)
   wp_apply hSL s γ c id $$ [$Hcpkg $Hss]
   (try wp_auto)
-  wp_alloc r0 as Hr
+  irename «$r0» => Hr
+  generalize «$r0_ptr» = r0 at *
   (try wp_auto)
   iapply HΦ
   ileft

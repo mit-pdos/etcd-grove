@@ -21,7 +21,7 @@ register: one value, `Put` and `Get`.)
 -/
 module
 
-public import Proof.go_etcd_io.raft.v3.NodeApiDraft
+public import Spec.go_etcd_io.raft.v3.Api
 public import Proof.go_etcd_io.raft.v3.Base
 public import Proof.go_etcd_io.raft.v3.LemmasMemstorage
 public import GeneratedProof.github_com.mit_pdos.etcd_grove.examples.kv
@@ -237,11 +237,11 @@ section snapdata
 variable [GooseExts]
 
 /-- An entry's client datum: a normal entry's non-empty data, else none (a filler, a conf change). -/
-def odOf (e : Draft.LogEntry) : Option (List w8) :=
+def odOf (e : LogEntry) : Option (List w8) :=
   if e.type = W32 0 ∧ e.data ≠ [] then some e.data else none
 
 /-- A filler has no client datum. -/
-theorem odOf_filler (e : Draft.LogEntry) (h : e.isFiller) : odOf e = none := by
+theorem odOf_filler (e : LogEntry) (h : e.isFiller) : odOf e = none := by
   unfold odOf; rw [if_neg]; intro h'; exact h'.2 h.1
 
 end snapdata
@@ -352,14 +352,14 @@ theorem hist_prefix_before_unique (L L0 L1 : List (List w8)) (d : List w8) (Hnd 
   rw [e0, e1, hlen]
 
 /-- The history of a log: its entries' data's (`odOf`). -/
-def logHist [GooseExts] (l : List Draft.LogEntry) : List (List w8) := histOf (l.map odOf)
+def logHist [GooseExts] (l : List LogEntry) : List (List w8) := histOf (l.map odOf)
 
-theorem foldl_histStep_opsOf [GooseExts] (l : List Draft.LogEntry) (L : List (List w8)) :
-    ((Draft.opsOf l).map odOf).foldl histStep L = (l.map odOf).foldl histStep L := by
+theorem foldl_histStep_opsOf [GooseExts] (l : List LogEntry) (L : List (List w8)) :
+    ((opsOf l).map odOf).foldl histStep L = (l.map odOf).foldl histStep L := by
   induction l generalizing L with
   | nil => rfl
   | cons e l ih =>
-    unfold Draft.opsOf at ih ⊢
+    unfold opsOf at ih ⊢
     by_cases hf : e.isFiller
     · simp only [List.filter_cons, hf, decide_true, Bool.not_true, Bool.false_eq_true, ↓reduceIte,
         List.map_cons, List.foldl_cons, odOf_filler e hf, histStep]
@@ -369,11 +369,11 @@ theorem foldl_histStep_opsOf [GooseExts] (l : List Draft.LogEntry) (L : List (Li
       exact ih _
 
 /-- The history of a log is that of its requested entries (a filler carries no datum). -/
-theorem logHist_opsOf [GooseExts] (l : List Draft.LogEntry) :
-    logHist (Draft.opsOf l) = logHist l := by
+theorem logHist_opsOf [GooseExts] (l : List LogEntry) :
+    logHist (opsOf l) = logHist l := by
   unfold logHist histOf; exact foldl_histStep_opsOf l []
 
-theorem logHist_prefix [GooseExts] (a b : List Draft.LogEntry) (h : a <+: b) :
+theorem logHist_prefix [GooseExts] (a b : List LogEntry) (h : a <+: b) :
     logHist a <+: logHist b := by
   obtain ⟨c, rfl⟩ := h
   unfold logHist; rw [List.map_append]; exact histOf_append_prefix _ _
@@ -465,7 +465,7 @@ def StateEnc (H : List (List w8)) (d : List w8) : Prop :=
 /-- **The key-value cluster's data certificate** (the static cluster's `snapOk`, see the section
 header): the data of a snapshot at the end of the committed prefix `L` encodes the replicated
 state of `L`. -/
-def kvSnapOk [GooseExts] (L : List Draft.LogEntry) (d : List w8) : Prop :=
+def kvSnapOk [GooseExts] (L : List LogEntry) (d : List w8) : Prop :=
   StateEnc (logHist L) d
 
 end EtcdGrove

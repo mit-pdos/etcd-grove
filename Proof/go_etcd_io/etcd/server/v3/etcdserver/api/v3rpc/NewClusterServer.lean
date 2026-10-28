@@ -39,8 +39,6 @@ theorem v3rpc.NewClusterServer.wp_proof
   wp_auto
   wp_apply (hCl s cl)
   · iframe #
-  wp_alloc p as Hp
-  wp_auto
   iapply HΦ
   itrivial
 

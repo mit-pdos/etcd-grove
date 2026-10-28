@@ -32,7 +32,7 @@ public import Spec.go_etcd_io.raft.v3.raftpb.Message__GetType
 public import Spec.go_etcd_io.raft.v3.raftpb.Message__GetFrom
 public import Proof.go_etcd_io.raft.v3.InvNodeRun
 public import Proof.go_etcd_io.raft.v3.LemmasRunR
-import all Proof.go_etcd_io.raft.v3.InvNode
+import all Proof.go_etcd_io.raft.v3.InvNodeChan
 public import Proof.go_etcd_io.raft.v3.InvRawnodeReady
 public import Proof.go_etcd_io.raft.v3.InvApplyConf
 public import Proof.go_etcd_io.raft.v3.InvBoot
@@ -806,7 +806,7 @@ theorem node.run.wp_proof
         ([∗list] q ∈ ms, msgOwn q.loc (readyDq q.st) q.st) ∗
         ([∗list] q ∈ ms, isRaftMsg γ.raft γ.id q.st) ∗
         (∃ sts : List ReadStateM, readStatesPts rdv'.ReadStates' sts ∗
-          [∗list] st ∈ sts, readStateOk γ.raft st) ∗
+          [∗list] st ∈ sts, readStateRaw γ.raft st) ∗
         (∃ h : HardStateM, hsOpt rdv'.HardState' h ∗
           hsWit γ.raft (phsNext rs.phs h) (rs.delivered ++ ce).length) ∗
         rdSnapOut γ.raft rs rdv' ce es L ∗

@@ -8,7 +8,7 @@ public import Perennial.GeneratedProof.fmt
 public import GeneratedProof.go_opentelemetry_io.otel.«attribute»
 public import GeneratedProof.google_golang_org.grpc.metadata
 public import Perennial.GeneratedProof.io
-public import GeneratedProof.iter
+public import Perennial.GeneratedProof.iter
 public import GeneratedProof.k8s_io.apimachinery.pkg.api.errors
 public import GeneratedProof.k8s_io.apimachinery.pkg.api.«meta»
 public import GeneratedProof.k8s_io.apimachinery.pkg.apis.«meta».v1

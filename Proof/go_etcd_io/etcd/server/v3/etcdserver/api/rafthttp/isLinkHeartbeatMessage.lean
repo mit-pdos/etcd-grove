@@ -35,6 +35,8 @@ theorem rafthttp.isLinkHeartbeatMessage.wp_proof
   wp_pures
   wp_alloc_auto
   wp_pures
+  wp_alloc_auto
+  wp_pures
   wp_load
   wp_pures
   wp_apply wp_GetType.1 $$ [$Hm] as Hm
@@ -56,15 +58,14 @@ theorem rafthttp.isLinkHeartbeatMessage.wp_proof
       have : decide (st.msg.To' = W64 0) = decide (isHB st.msg) := by
         simp [isHB, h1, h2]
       rw [this]
-      wp_pures
       iapply HΦ; iexact Hm
     · rw [decide_eq_false (p := st.msg.From' = W64 0) h2,
         decide_eq_false (p := isHB st.msg) (fun h => h2 h.2.1)]
-      wp_pures
+      wp_auto
       iapply HΦ; iexact Hm
   · rw [decide_eq_false (p := st.msg.Type' = W32 8) h1,
       decide_eq_false (p := isHB st.msg) (fun h => h1 h.1)]
-    wp_pures
+    wp_auto
     iapply HΦ; iexact Hm
 
 end proof

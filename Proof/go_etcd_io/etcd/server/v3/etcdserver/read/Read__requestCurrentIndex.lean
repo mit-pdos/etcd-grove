@@ -128,6 +128,7 @@ theorem read.Read.requestCurrentIndex.wp_proof
   ihave ⟨%eTO, #HeTO, #HaTO⟩ := errVarLeaf_get _ $$ HTO
   ihave #Ptime : isPkgInit (PROP := IProp GF) pkg_id.time $$ []
   · iPkgInit
+  wp_auto
   wp_apply wp_with_defer as %defer defer
   wp_apply wp_map_make1 (K := w64) (V := Unit) as %mref Hm
   ihave HN0 := HNRu

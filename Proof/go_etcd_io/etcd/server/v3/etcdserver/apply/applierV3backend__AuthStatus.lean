@@ -46,8 +46,8 @@ theorem apply.applierV3backend.AuthStatus.wp_proof
   wp_apply HEn $$ [$Hard] as %en ⟨Hard, -⟩
   wp_apply HRev as %rev -
   wp_apply (hHdr E p log) $$ [$Hpkg $Hb $Hrd $Hsw] as %h ⟨Hrd, Hsw, -⟩
-  wp_alloc l as Hl
-  wp_auto
+  irename «$r0» => Hl
+  generalize «$r0_ptr» = l at *
   iapply HΦ
   isplitl; rotate_left
   · first | iexact HeI | iapply applyErrIs_nil

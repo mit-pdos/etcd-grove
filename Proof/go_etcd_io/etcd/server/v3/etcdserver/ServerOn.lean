@@ -642,16 +642,16 @@ theorem clusterWorkloadOkOn_of (ρ : ReqNames) (E : apply.AEnv GF) (st₀ : auth
   -- (2026-10-27) the committed log's entries are the server's log's or fillers
   have HshL : logShapeOn L := srv_entry_transfer _ L L' entryShapeOn
     (fun m m' he h => by
-      have h1 := congrArg Draft.LogEntry.type he
-      have h2 := congrArg Draft.LogEntry.data he
+      have h1 := congrArg LogEntry.type he
+      have h2 := congrArg LogEntry.data he
       simp only [EntryModel.toLE] at h1 h2
       unfold entryShapeOn at h ⊢; rw [h1, h2]; exact h)
     (fun m ht hd => ⟨fun _ => .inl hd, fun h => absurd ht h⟩) HLi Hp.2.2 Hsh
   have HcclL : ccLogOk ρ.raft.raft L := srv_entry_transfer _ L L'
     (fun m => m.typ ≠ W32 0 → ccPolOk ρ.raft.raft m.data)
     (fun m m' he h => by
-      have h1 := congrArg Draft.LogEntry.type he
-      have h2 := congrArg Draft.LogEntry.data he
+      have h1 := congrArg LogEntry.type he
+      have h2 := congrArg LogEntry.data he
       simp only [EntryModel.toLE] at h1 h2
       rw [h1, h2]; exact h)
     (fun m ht _ h => absurd ht h) HLi Hp.2.2 Hccl

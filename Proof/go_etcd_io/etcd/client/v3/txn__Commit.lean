@@ -50,6 +50,7 @@ theorem txn.Commit.wp_generic (wp_retry_Txn : retryKVClient.Txn.spec (GF := GF) 
   icases Hkv' with ⟨%rkv, %conn, %sl, #Hremote, #Hrkv, #Hconn, #Hcopts, #Hco'⟩
   iunfold callOptsAt at Hco
   icases Hco with ⟨%vs, #Hvs, %Hcap, #Hok, %Hsc⟩
+  wp_auto
   wp_apply wp_with_defer as %defer defer
   ihave #Hsync : isPkgInit (PROP := IProp GF) pkg_id.sync $$ []
   · iPkgInit

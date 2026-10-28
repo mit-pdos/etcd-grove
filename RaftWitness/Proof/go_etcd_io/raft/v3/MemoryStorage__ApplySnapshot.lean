@@ -42,6 +42,7 @@ theorem MemoryStorage.ApplySnapshot.wp_proof
   iunfold memSnapTok at Htok
   icases Htok with ⟨-, -, -, Hak, Hsvt, Hcbt⟩
   icases ownSnapM_not_null $$ Hsnap with ⟨Hsnap, %Hspnn⟩
+  wp_auto
   wp_apply wp_with_defer as %defer defer
   ihave #Hsync : isPkgInit (PROP := IProp GF) pkg_id.sync $$ []
   · iPkgInit

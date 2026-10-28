@@ -43,7 +43,7 @@ set_option hygiene false in
 /-- The loop continues past the frame `(w, bs)`, the tokens moved past it (`Hrd`). -/
 local macro "dl_next" : tactic => `(tactic| (
   wp_for_post
-  iframe HΦ
+  iframe HΦ «$res0»
   iexists _, fr ++ [(w, bs)], s'
   simp only [named, chainBytes_append, chainBytes_cons, chainBytes_nil, List.append_nil,
     List.length_append, List.length_singleton]

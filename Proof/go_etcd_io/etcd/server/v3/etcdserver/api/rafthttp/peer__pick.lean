@@ -53,6 +53,7 @@ theorem rafthttp.peer.pick.wp_proof
   ihave #Hph' := Hph
   iunfold pipeHandleOk at Hph'
   icases Hph' with ⟨-, %ps', %fs', %r', %id', %γd', %mc, %γm, -, -, -, -, -, #Hmc, #Hbag⟩
+  simp only [rafthttp.pipelineMsg, rafthttp.streamMsg, rafthttp.streamAppV2]
   wp_auto
   wp_apply hIsSnap ml st $$ []
   · iframe #

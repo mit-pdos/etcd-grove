@@ -3,16 +3,13 @@
 -- (`ext`, `ffi`, `go_gctx`, `sem`, the package's `Assumptions`), `GF`, `hG`, `StorageModel GF`, `AllG GF`.
 
 def node.ReadIndex.spec : Prop :=
-  ∀ (γ : NodeNames) (id : w64) (n : Loc) (rctx : GoSlice) (c : List w8) (Qr : List EntryM → IProp GF) (L0 : List EntryM)
+  ∀ (n : Loc) (γ : Cluster) (N : Namespace) (id : w64) (rctx : GoSlice) (c : List w8) (Q : List LogEntry → IProp GF)
     (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)),
     ⊢
       ∀ Φ,
         isPkgInit pkg_id.go_etcd_io.raft.v3 ∗
-            isNode γ id n ∗
-              nodeCtx ctx cd ∗
-                ownSlice rctx c DFrac.discard ∗
-                  rdFresh γ.raft c ∗ readAu γ.raft Qr ∗ isCommitted γ.raft L0 ∗ rdCred γ.raft 1 -∗
-          (▷ ∀ err, (∃ Lc, ⌜L0 <+: Lc⌝ ∗ readReq γ.raft c Lc ∗ isRead γ.raft c Qr) ∗ nodeErr cd err -∗ Φ (intoVal err)) -∗
+            isNode n γ N id ∗ nodeCtx ctx cd ∗ ownSlice rctx c DFrac.discard ∗ isReadCtx γ N c Q ∗ readCredit γ -∗
+          (▷ ∀ err, nodeErr cd err -∗ Φ (intoVal err)) -∗
             WP
               (((intoVal
                     (methods node.ty.PointerType go!"ReadIndex"

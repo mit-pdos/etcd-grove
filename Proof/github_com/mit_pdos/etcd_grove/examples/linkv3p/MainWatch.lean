@@ -204,11 +204,11 @@ theorem MainWatch.wp_proof
     ⟨by rw [hr₃, hr₁], hc₃.trans hc₁.symm, hch₃.trans hch₁.symm, hlog₃.trans hlog₁.symm⟩
   -- the clients' adapter over the KV state, its property the plan's (the start: revision `1`, no
   -- change)
-  have hboot : kvModel ρ₁.rd.kv (bootEntries (Draft.LogEntry.toEntries boot 0)) = [[], []] := by
+  have hboot : kvModel ρ₁.rd.kv (bootEntries (LogEntry.toEntries boot 0)) = [[], []] := by
     unfold kvModel
     rw [linkv.kvRaftOf_boot _ _ _ (fun _ _ => True) (ids id₁ id₂ id₃)
-      (Draft.LogEntry.toEntries boot 0) (srvBootLogOk_of_BootLog _ _ _ Hbf.boot), hlog₁]
-  have hW0 : wkW (trs.map pairOf) (kvModelSt ρ₁.rd.kv (bootEntries (Draft.LogEntry.toEntries boot 0))).changes := by
+      (LogEntry.toEntries boot 0) (srvBootLogOk_of_BootLog _ _ _ Hbf.boot), hlog₁]
+  have hW0 : wkW (trs.map pairOf) (kvModelSt ρ₁.rd.kv (bootEntries (LogEntry.toEntries boot 0))).changes := by
     rw [kvModelSt_boot _ (fun _ _ => True) _ _ (srvBootLogOk_of_BootLog _ _ _ Hbf.boot), hboot]; exact wkW_start _
   imod (client.kmInv_alloc ρ₁.rd.kv _ (wkW (trs.map pairOf)) hW0) $$ Hetcd
     with ⟨%γ, %Hγ, #Hkm, #Hlb0⟩

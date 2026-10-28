@@ -124,8 +124,8 @@ stream needs), with its credits (`msgCredits`: a `MsgReadIndex`'s read credit, a
 proposal's tickets): what a peer's `node.Step` takes of a network message (`stepIn_intro`) but the
 receiver's own facts. -/
 def srvMsgNet (γ : SrvRaft) (id : w64) (m : Loc) : IProp GF :=
-  iprop(∃ st : MsgSt, msgOwn m DFrac.discard st ∗ Draft.sentMsg γ.cl srvClusterN id st ∗
-    Draft.msgCredits γ.cl srvClusterN st)
+  iprop(∃ st : MsgSt, msgOwn m DFrac.discard st ∗ sentMsg γ.cl srvClusterN id st ∗
+    msgCredits γ.cl srvClusterN st)
 
 /-- **What the server's messages carry over the network** (D21 M2, 2026-10-19; the network's
 payload, `NetPayload`; 2026-10-27: the node API's): persistently, the protocol facts
@@ -134,11 +134,11 @@ once; any other message may be duplicated, its credits made anew (`msgCredits_no
 D22 S-i) A snapshot's database image carries `srvImage` (`dbImage` at the fresh cluster's start;
 the server's clusters send no snapshot). -/
 def srvNet (γ : SrvRaft) : NetPayload GF where
-  P st := iprop(∃ sid, Draft.sentMsg γ.cl srvClusterN sid st)
-  O st := Draft.msgCredits γ.cl srvClusterN st
+  P st := iprop(∃ sid, sentMsg γ.cl srvClusterN sid st)
+  O st := msgCredits γ.cl srvClusterN st
   once st := st.msg.Type' = MsgReadIndex ∨ st.msg.Type' = MsgProp
   P_pers st := by infer_instance
-  dup st h := Draft.msgCredits_none γ.cl srvClusterN st (fun e => h (Or.inl e)) (fun e => h (Or.inr e))
+  dup st h := msgCredits_none γ.cl srvClusterN st (fun e => h (Or.inl e)) (fun e => h (Or.inr e))
   img i D := srvImage γ i D
   img_pers i D := by infer_instance
 
@@ -161,15 +161,15 @@ none), is one the network takes from its sender (`netBundle`; 2026-10-24, raftht
 leader transfer off, a `MsgApp` of raft's shape, `SentMsgOk`, from its sender, `AppFrom`;
 2026-10-27: the node API's `sentMsg_transferOff`, `sentMsg_appFrom`). -/
 theorem srvMsgNet_bundle (γ : SrvRaft) (id : w64) (m : Loc) :
-    Draft.leaderTransferOff (GF := GF) γ.cl srvClusterN ∗ srvMsgNet γ id m ∗ srvMsgNoSnap m ⊢
+    leaderTransferOff (GF := GF) γ.cl srvClusterN ∗ srvMsgNet γ id m ∗ srvMsgNoSnap m ⊢
       netBundle (srvNet γ) id m := by
   letI := srvAnyStor (GF := GF)
   iintro ⟨#Hxo, H, Hns⟩
   iunfold srvMsgNet at H
   icases H with ⟨%st, #Hm, #Hr, Hc⟩
-  ihave %Hsent := Draft.sentMsg_transferOff γ.cl srvClusterN id st $$ [Hxo Hr]
+  ihave %Hsent := sentMsg_transferOff γ.cl srvClusterN id st $$ [Hxo Hr]
   · iframe Hxo Hr
-  ihave %Hfrom := Draft.sentMsg_appFrom γ.cl srvClusterN id st $$ Hr
+  ihave %Hfrom := sentMsg_appFrom γ.cl srvClusterN id st $$ Hr
   iunfold srvMsgNoSnap at Hns
   icases Hns with ⟨%st', #Hm', %Hns⟩
   ihave %Hty := msgOwn_type_agree m st st' $$ [Hm Hm']

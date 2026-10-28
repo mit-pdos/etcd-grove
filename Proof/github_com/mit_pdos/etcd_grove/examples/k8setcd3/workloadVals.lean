@@ -24,6 +24,7 @@ variable [package_sem : github_com.mit_pdos.etcd_grove.examples.k8setcd3.Assumpt
 
 theorem workloadVals.wp_proof : workloadVals.spec (GF := GF) (hG := hG) := by
   wp_start
+  wp_auto
   wp_apply wp_slice_literal (l := wvsD)
   isplitr
   · ipureintro; rfl

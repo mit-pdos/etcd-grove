@@ -31,6 +31,7 @@ theorem wait.timeList.Wait.wp_proof : wait.timeList.Wait.spec (GF := GF) (hG := 
   · iPkgInit
   iunfold isTimeList at Htl
   icases Htl with ⟨%mref, #Hm, #Hmu, #Hmono, #Hcl⟩
+  wp_auto
   wp_apply wp_with_defer as %defer defer
   (try wp_auto)
   wp_apply sync.Mutex.wp_Lock $$ [$Hmu] as ⟨Hlocked, HR⟩

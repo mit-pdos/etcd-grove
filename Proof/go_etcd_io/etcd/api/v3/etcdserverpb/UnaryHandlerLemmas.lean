@@ -32,7 +32,9 @@ def unaryHandlerImpl [GooseExts] [GoGlobalContext] (srvTy reqTy repTy : go.GoTyp
     (Lam "ctx"
     (Lam "dec"
     (Lam "interceptor"
-    (App (Val exceptionDo)
+    (Let "$res0" (App (Val (GoInstruction (GoAlloc (go.GoType.InterfaceType [])))) (App (Val (GoInstruction (GoZeroVal (go.GoType.InterfaceType [])))) (Val #())))
+    (Let "$res1" (App (Val (GoInstruction (GoAlloc go.error))) (App (Val (GoInstruction (GoZeroVal go.error))) (Val #())))
+    (Seq (App (Val exceptionDo)
     (Let "interceptor" (App (Val (GoInstruction (GoAlloc _root_.Perennial.google_golang_org.grpc.UnaryServerInterceptor.ty))) (Var "interceptor"))
     (Let "dec" (App (Val (GoInstruction (GoAlloc (go.GoType.FunctionType (go.signature.Signature [(go.GoType.InterfaceType [])] false [go.error]))))) (Var "dec"))
     (Let "ctx" (App (Val (GoInstruction (GoAlloc _root_.Perennial.context.Context.ty))) (Var "ctx"))
@@ -49,7 +51,9 @@ def unaryHandlerImpl [GooseExts] [GoGlobalContext] (srvTy reqTy repTy : go.GoTyp
     (App (App (Val exceptionSeq) (Lam BAnon
     (Let "$r0" (Lam "ctx"
     (Lam "req"
-    (App (Val exceptionDo)
+    (Let "$res0" (App (Val (GoInstruction (GoAlloc (go.GoType.InterfaceType [])))) (App (Val (GoInstruction (GoZeroVal (go.GoType.InterfaceType [])))) (Val #())))
+    (Let "$res1" (App (Val (GoInstruction (GoAlloc go.error))) (App (Val (GoInstruction (GoZeroVal go.error))) (Val #())))
+    (Seq (App (Val exceptionDo)
     (Let "req" (App (Val (GoInstruction (GoAlloc (go.GoType.InterfaceType [])))) (Var "req"))
     (Let "ctx" (App (Val (GoInstruction (GoAlloc _root_.Perennial.context.Context.ty))) (Var "ctx"))
     (Let "__p" (Let "$a0" (App (Val (GoInstruction (GoLoad _root_.Perennial.context.Context.ty))) (Var "ctx"))
@@ -57,8 +61,17 @@ def unaryHandlerImpl [GooseExts] [GoGlobalContext] (srvTy reqTy repTy : go.GoTyp
     (App (App (App (Val (GoInstruction (MethodResolve srvTy meth))) (App (Val (GoInstruction (TypeAssert srvTy))) (App (Val (GoInstruction (GoLoad (go.GoType.InterfaceType [])))) (Var "srv")))) (Var "$a0")) (Var "$a1"))))
     (Let "$ret0" (Fst (Var "__p"))
     (Let "$ret1" (Snd (Var "__p"))
+    (Let "$r0" (App (Val (GoInstruction (Convert (go.GoType.PointerType repTy) (go.GoType.InterfaceType [])))) (Var "$ret0"))
+    (Let "$r1" (Var "$ret1")
+    (App (App (Val exceptionSeq) (Lam BAnon
+    (App (App (Val exceptionSeq) (Lam BAnon
     (App (Val doReturn)
-    (Pair (App (Val (GoInstruction (Convert (go.GoType.PointerType repTy) (go.GoType.InterfaceType [])))) (Var "$ret0")) (Var "$ret1")))))))))))
+    (Val #()))))
+    (App (Val doExecute)
+    (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res1") (Var "$r1")))))))
+    (App (Val doExecute)
+    (App (Val (GoInstruction (GoStore (go.GoType.InterfaceType [])))) (Pair (Var "$res0") (Var "$r0")))))))))))))
+    (Pair (App (Val (GoInstruction (GoLoad (go.GoType.InterfaceType [])))) (Var "$res0")) (App (Val (GoInstruction (GoLoad go.error))) (Var "$res1"))))))))
     (Let "handler" (App (Val (GoInstruction (GoAlloc (go.GoType.FunctionType (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.InterfaceType [])] false [(go.GoType.InterfaceType []), go.error]))))) (App (Val (GoInstruction (GoZeroVal (go.GoType.FunctionType (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.InterfaceType [])] false [(go.GoType.InterfaceType []), go.error]))))) (Val #())))
     (App (App (Val exceptionSeq) (Lam BAnon
     (Let "__p" (Let "$a0" (App (Val (GoInstruction (GoLoad _root_.Perennial.context.Context.ty))) (Var "ctx"))
@@ -68,8 +81,16 @@ def unaryHandlerImpl [GooseExts] [GoGlobalContext] (srvTy reqTy repTy : go.GoTyp
     (App (App (App (App (App (Val (GoInstruction (GoLoad _root_.Perennial.google_golang_org.grpc.UnaryServerInterceptor.ty))) (Var "interceptor")) (Var "$a0")) (Var "$a1")) (Var "$a2")) (Var "$a3"))))))
     (Let "$ret0" (Fst (Var "__p"))
     (Let "$ret1" (Snd (Var "__p"))
+    (Let "$r0" (Var "$ret0")
+    (Let "$r1" (Var "$ret1")
+    (App (App (Val exceptionSeq) (Lam BAnon
+    (App (App (Val exceptionSeq) (Lam BAnon
     (App (Val doReturn)
-    (Pair (Var "$ret0") (Var "$ret1"))))))))
+    (Val #()))))
+    (App (Val doExecute)
+    (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res1") (Var "$r1")))))))
+    (App (Val doExecute)
+    (App (Val (GoInstruction (GoStore (go.GoType.InterfaceType [])))) (Pair (Var "$res0") (Var "$r0"))))))))))))
     (App (Val doExecute)
     (App (Val (GoInstruction (GoStore (go.GoType.FunctionType (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.InterfaceType [])] false [(go.GoType.InterfaceType []), go.error]))))) (Pair (Var "handler") (Var "$r0")))))))))
     (App (Val doExecute)
@@ -80,8 +101,16 @@ def unaryHandlerImpl [GooseExts] [GoGlobalContext] (srvTy reqTy repTy : go.GoTyp
     (App (App (App (Val (GoInstruction (MethodResolve srvTy meth))) (App (Val (GoInstruction (TypeAssert srvTy))) (App (Val (GoInstruction (GoLoad (go.GoType.InterfaceType [])))) (Var "srv")))) (Var "$a0")) (Var "$a1"))))
     (Let "$ret0" (Fst (Var "__p"))
     (Let "$ret1" (Snd (Var "__p"))
+    (Let "$r0" (App (Val (GoInstruction (Convert (go.GoType.PointerType repTy) (go.GoType.InterfaceType [])))) (Var "$ret0"))
+    (Let "$r1" (Var "$ret1")
+    (App (App (Val exceptionSeq) (Lam BAnon
+    (App (App (Val exceptionSeq) (Lam BAnon
     (App (Val doReturn)
-    (Pair (App (Val (GoInstruction (Convert (go.GoType.PointerType repTy) (go.GoType.InterfaceType [])))) (Var "$ret0")) (Var "$ret1"))))))
+    (Val #()))))
+    (App (Val doExecute)
+    (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res1") (Var "$r1")))))))
+    (App (Val doExecute)
+    (App (Val (GoInstruction (GoStore (go.GoType.InterfaceType [])))) (Pair (Var "$res0") (Var "$r0"))))))))))
     (App (Val doExecute)
     (Val #()))))))
     (Let "$r0" (Let "$a0" (App (Val (GoInstruction (Convert (go.GoType.PointerType reqTy) (go.GoType.InterfaceType [])))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType reqTy)))) (Var "in")))
@@ -89,14 +118,23 @@ def unaryHandlerImpl [GooseExts] [GoGlobalContext] (srvTy reqTy repTy : go.GoTyp
     (Let "err" (App (Val (GoInstruction (GoAlloc go.error))) (App (Val (GoInstruction (GoZeroVal go.error))) (Val #())))
     (App (App (Val exceptionSeq) (Lam BAnon
     (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.error))) (Pair (App (Val (GoInstruction (GoLoad go.error))) (Var "err")) (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))))))
+    (Let "$r0" (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.InterfaceType [])))) (Val UntypedNil))
+    (Let "$r1" (App (Val (GoInstruction (GoLoad go.error))) (Var "err"))
+    (App (App (Val exceptionSeq) (Lam BAnon
+    (App (App (Val exceptionSeq) (Lam BAnon
     (App (Val doReturn)
-    (Pair (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.InterfaceType [])))) (Val UntypedNil)) (App (Val (GoInstruction (GoLoad go.error))) (Var "err"))))
+    (Val #()))))
+    (App (Val doExecute)
+    (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res1") (Var "$r1")))))))
+    (App (Val doExecute)
+    (App (Val (GoInstruction (GoStore (go.GoType.InterfaceType [])))) (Pair (Var "$res0") (Var "$r0")))))))
     (App (Val doExecute)
     (Val #())))))
     (App (Val doExecute)
     (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "err") (Var "$r0"))))))))))
     (App (Val doExecute)
-    (App (Val (GoInstruction (GoStore (go.GoType.PointerType reqTy)))) (Pair (Var "in") (Var "$r0"))))))))))))))))
+    (App (Val (GoInstruction (GoStore (go.GoType.PointerType reqTy)))) (Pair (Var "in") (Var "$r0"))))))))))))
+    (Pair (App (Val (GoInstruction (GoLoad (go.GoType.InterfaceType [])))) (Var "$res0")) (App (Val (GoInstruction (GoLoad go.error))) (Var "$res1"))))))))))
 
 
 section proof

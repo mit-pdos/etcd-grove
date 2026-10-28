@@ -13,7 +13,7 @@ to `run` (2026-10-16, stage R8b, D12).
 -/
 module
 
-public import Proof.go_etcd_io.raft.v3.InvNode
+public import Proof.go_etcd_io.raft.v3.InvNodeChan
 public import Spec.go_etcd_io.raft.v3.NewRawNode
 public import Spec.go_etcd_io.raft.v3.RawNode__Bootstrap
 public import Spec.go_etcd_io.raft.v3.newNode

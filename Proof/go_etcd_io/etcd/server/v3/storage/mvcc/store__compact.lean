@@ -41,6 +41,7 @@ theorem mvcc.wp_context_TODO_body :
       (App (Val #(functions _root_.Perennial.context.TODO [])) (Val #()))
     {{ RET #(GoInterface.ok mvcc.todoCtxV); True }} := by
   wp_start
+  wp_auto
   iapply HΦ
   itrivial
 

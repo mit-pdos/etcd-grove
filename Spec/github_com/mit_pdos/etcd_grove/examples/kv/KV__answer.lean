@@ -32,7 +32,7 @@ variable [KVStor GF]
 /-- See the file header. -/
 abbrev KV.answer.spec : Prop :=
   ∀ (γr : RKVNames) (γp : RepNames) (r : Loc) (id : w64) (n st : Loc)
-    (ap : List Draft.LogEntry) (psl : GoSlice) (ps : List ReadState) (dq : DFrac) (applied : w64),
+    (ap : List LogEntry) (psl : GoSlice) (ps : List ReadState) (dq : DFrac) (applied : w64),
   uint.Z applied ≤ (ap.length : Int) →
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.kv ∗
       isReplica γr γp r id n st ∗ runOwn γr r ap ∗

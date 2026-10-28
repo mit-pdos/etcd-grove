@@ -30,7 +30,6 @@ theorem WithContext.wp_proof : WithContext.spec (GF := GF) (hG := hG) := by
   wp_auto
   ipersist ctx
   imodintro
-  simp only [recv_eq_func_mk]
   iapply HΦ
   unfold sessionOptSpec
   imodintro

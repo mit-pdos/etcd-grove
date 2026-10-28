@@ -29,6 +29,7 @@ variable [package_sem : github_com.mit_pdos.etcd_grove.examples.linkvtxn.Assumpt
 
 theorem workloadKeys.wp_proof : workloadKeys.spec (GF := GF) (hG := hG) := by
   wp_start
+  wp_auto
   wp_apply wp_slice_literal (l := wks)
   isplitr
   · ipureintro; rfl

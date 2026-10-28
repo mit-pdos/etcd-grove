@@ -222,7 +222,7 @@ def rnCfgAt (γ : RNNames) (L : List EntryModel) : IProp GF :=
   if γ.node.dyn then srvCfgView γ.srv γ.nl γ.pre L else iprop(True)
 
 /-- The driver's state at the committed log `L` handed out and the hard state `p`, idle. -/
-def rnDrvSt (γ : RNNames) (L : List EntryModel) (p : HardStateM) : Draft.NodeDriverState :=
+def rnDrvSt (γ : RNNames) (L : List EntryModel) (p : HardStateM) : NodeDriverState :=
   ⟨memStorIface γ.ms, srvLE γ.srv L, p, none⟩
 
 /-- The driver, idle, handed the committed log `L` so far: the node API's `nodeDriver` at
@@ -230,13 +230,13 @@ def rnDrvSt (γ : RNNames) (L : List EntryModel) (p : HardStateM) : Draft.NodeDr
 (`rnCfgAt`); `p` the hard state of the last `Ready` with a non-empty one. -/
 def rnDrv (γ : RNNames) (L : List EntryModel) (p : HardStateM) : IProp GF :=
   letI := srvStor (GF := GF) γ.node
-  iprop(Draft.nodeDriver γ.nl γ.node.cl srvClusterN (rnDrvSt γ L p) ∗ rnCfgAt γ L)
+  iprop(nodeDriver γ.nl γ.node.cl srvClusterN (rnDrvSt γ L p) ∗ rnCfgAt γ L)
 
 /-- The driver with a `Ready` in hand, handed the committed log `d ++ ce`, to append `es`
 before `Advance`: the node API's `nodeDriver` busy, without the view. -/
 def rnBusyN (γ : RNNames) (d ce es : List EntryModel) (p : HardStateM) : IProp GF :=
   letI := srvStor (GF := GF) γ.node
-  Draft.nodeDriver γ.nl γ.node.cl srvClusterN
+  nodeDriver γ.nl γ.node.cl srvClusterN
     ⟨memStorIface γ.ms, srvLE γ.srv (d ++ ce), p, some (es.map EntryModel.toM, none)⟩
 
 /-- The driver with a `Ready` in hand (`rnBusyN`) and its view after the log before it, `d`. -/
@@ -244,16 +244,16 @@ def rnBusy (γ : RNNames) (d ce es : List EntryModel) (p : HardStateM) : IProp G
   iprop(rnBusyN γ d ce es p ∗ rnCfgAt γ d)
 
 /-- A read credit for one `ReadIndex` (the node API's). -/
-def rnReadCred (γ : RNNames) : IProp GF := Draft.readCredit γ.node.cl
+def rnReadCred (γ : RNNames) : IProp GF := readCredit γ.node.cl
 
 /-- **The node API's read registration of the request id `id`** (persistent; 2026-10-27: what
 `E.RQ id n Qr` is for the server): the context `beBytes id` committed to the server's read of
 `Qr` (`srvReadQ`), after a committed log at least `n` long (`n` a lower bound of the committed
 index at the registration). -/
 def srvRQ (γs : ServerRaftNames) (id n : w64) (Qr : List EntryModel → IProp GF) : IProp GF :=
-  iprop(∃ l0 : List Draft.LogEntry,
-    Draft.isReadCtx γs.raft.cl srvClusterN (beBytes id) (srvReadQ γs Qr) ∗
-    Draft.readCtxAfter γs.raft.cl srvClusterN (beBytes id) l0 ∗ ⌜uint.Z n ≤ (l0.length : Int)⌝)
+  iprop(∃ l0 : List LogEntry,
+    isReadCtx γs.raft.cl srvClusterN (beBytes id) (srvReadQ γs Qr) ∗
+    readCtxAfter γs.raft.cl srvClusterN (beBytes id) l0 ∗ ⌜uint.Z n ≤ (l0.length : Int)⌝)
 
 instance srvRQ_persistent (γs : ServerRaftNames) (id n : w64) (Qr : List EntryModel → IProp GF) :
     Persistent (srvRQ (GF := GF) γs id n Qr) := by
@@ -274,7 +274,7 @@ def rnEnvOk (E : RNEnv GF) (γ : RNNames) : IProp GF :=
     -- (2026-10-19, D21 M3) the storage's cap at least `1` (`compactRaftLog`'s compaction at `1`)
     ⌜1 ≤ γ.γs.cap⌝ ∗ srvRaftLogInv E.γr.raft ∗
     □ (∀ (m : Loc) (st : MsgSt), msgOwn m DFrac.discard st ∗
-        Draft.sentMsg γ.node.cl srvClusterN γ.id st ∗ Draft.msgCredits γ.node.cl srvClusterN st -∗
+        sentMsg γ.node.cl srvClusterN γ.id st ∗ msgCredits γ.node.cl srvClusterN st -∗
         E.M m) ∗
     □ (∀ L : List EntryModel, srvRLogLb E.γr.raft L -∗
         ⌜uint.Z E.γr.raft.ai0 + 1 + L.length < 2 ^ 64⌝ ={⊤}=∗ □ E.C L) ∗
@@ -298,7 +298,7 @@ of its context `c` at its index, its cells read-only) answers the server's regis
 (`srvReadStateOk`). `srvReadStateOk_of_raft` proves it from `rnEnvOk`. -/
 def rnReadStateBridge (E : RNEnv GF) (γ : RNNames) : IProp GF :=
   iprop(□ ∀ (c : List w8) (i : w64) (v : ReadState),
-    Draft.readStateOk γ.node.cl srvClusterN c i -∗ ⌜v.Index' = i⌝ -∗ v.RequestCtx' ↦*□ c -∗
+    readStateOk γ.node.cl srvClusterN c i -∗ ⌜v.Index' = i⌝ -∗ v.RequestCtx' ↦*□ c -∗
       srvReadStateOk E.γr.raft E.RQ v)
 
 instance rnReadStateBridge_persistent (E : RNEnv GF) (γ : RNNames) :
@@ -319,7 +319,7 @@ index is past the registration's bound (`readStateOk_after`) and the read's witn
 (`srvReadWit_of`). -/
 theorem srvReadStateOk_of_raft [go_etcd_io.raft.v3.Assumptions] (E : RNEnv GF) (γ : RNNames)
     (c : List w8) (i : w64) (v : ReadState) :
-    rnEnvOk E γ ∗ Draft.readStateOk γ.node.cl srvClusterN c i ∗ ⌜v.Index' = i⌝ ∗
+    rnEnvOk E γ ∗ readStateOk γ.node.cl srvClusterN c i ∗ ⌜v.Index' = i⌝ ∗
       v.RequestCtx' ↦*□ c ⊢ srvReadStateOk E.γr.raft E.RQ v := by
   letI := srvAnyStor (GF := GF)
   iintro ⟨#Henv, #Hst, %Hi, #Hctx⟩
@@ -339,9 +339,9 @@ theorem srvReadStateOk_of_raft [go_etcd_io.raft.v3.Assumptions] (E : RNEnv GF) (
   iunfold srvRQ at HRQ'
   icases HRQ' with ⟨%l0, #Hrc, #Haft, %Hn0⟩
   subst Hbs
-  ihave #Hst' : Draft.readStateOk E.γr.raft.raft.cl srvClusterN (beBytes id) i $$ []
+  ihave #Hst' : readStateOk E.γr.raft.raft.cl srvClusterN (beBytes id) i $$ []
   · rw [Hraft]; iexact Hst
-  ihave %Hle := Draft.readStateOk_after E.γr.raft.raft.cl srvClusterN (beBytes id) i l0 $$ [Hst' Haft]
+  ihave %Hle := readStateOk_after E.γr.raft.raft.cl srvClusterN (beBytes id) i l0 $$ [Hst' Haft]
   · iframe Hst' Haft
   isplitr
   · ipureintro
@@ -381,7 +381,7 @@ def isRaftNodeIfc (E : RNEnv GF) (γ : RNNames) (n : GoInterface) : IProp GF :=
     -- (D43 M3, 2026-10-25) in a dynamic cluster, its `ApplyConfChange` (the apply thread's)
     (⌜γ.node.dyn = false⌝ ∨ raftApplyCCDyn γ.srv γ.nl n) ∗
     □ ({{ True }} (App (Val #(methods ni.ty go!"Ready" ni.v)) (Val #()))
-      {{ (ch : Loc), RET #ch; Draft.isReadyChan γ.nl γ.node.cl srvClusterN ch }}) ∗
+      {{ (ch : Loc), RET #ch; isReadyChan γ.nl γ.node.cl srvClusterN ch }}) ∗
     -- (D43 M3) with the view after the batch (in a dynamic cluster its conf entries applied)
     □ (∀ (d ce es : List EntryModel) (p : HardStateM),
       {{ rnBusyN γ d ce es p ∗ rnCfgAt γ (d ++ ce) ∗ rnAppendReceipt γ es }}
@@ -399,7 +399,7 @@ def isRaftNodeIfc (E : RNEnv GF) (γ : RNNames) (n : GoInterface) : IProp GF :=
       {{ (err : GoInterface), RET #err; applyErrIs err ∗
           (⌜err = GoInterface.nil⌝ -∗ □ E.RQ id n Qr) }}) ∗
     -- (2026-10-27) the node itself (the `Ready` channel's receive takes it)
-    (letI := srvStor (GF := GF) γ.node; Draft.isNode γ.nl γ.node.cl srvClusterN γ.id))
+    (letI := srvStor (GF := GF) γ.node; isNode γ.nl γ.node.cl srvClusterN γ.id))
 
 instance isRaftNodeIfc_persistent (E : RNEnv GF) (γ : RNNames) (n : GoInterface) :
     Persistent (isRaftNodeIfc E γ n) := by
@@ -421,10 +421,10 @@ server's clusters send no `MsgSnap`, `srv_sentMsg_notSnap`). -/
 theorem rnMsgOk_of_api [go_etcd_io.raft.v3.Assumptions] (E : RNEnv GF) (γ : RNNames) :
     ∀ ms : List QMsg,
       ⊢ □ (∀ (m : Loc) (st : MsgSt), msgOwn m DFrac.discard st ∗
-          Draft.sentMsg γ.node.cl srvClusterN γ.id st ∗ Draft.msgCredits γ.node.cl srvClusterN st -∗
+          sentMsg γ.node.cl srvClusterN γ.id st ∗ msgCredits γ.node.cl srvClusterN st -∗
           E.M m) -∗ srvClusterOk E.γr.raft -∗ ⌜E.γr.raft.raft = γ.node⌝ -∗
         ([∗list] q ∈ ms, msgOwn q.loc (readyDq q.st) q.st ∗
-          Draft.sentMsg γ.node.cl srvClusterN γ.id q.st ∗ Draft.msgCredits γ.node.cl srvClusterN q.st)
+          sentMsg γ.node.cl srvClusterN γ.id q.st ∗ msgCredits γ.node.cl srvClusterN q.st)
           ={⊤}=∗
         [∗list] m ∈ ms.map QMsg.loc, rnMsgR E γ m
   | [] => by
@@ -436,8 +436,8 @@ theorem rnMsgOk_of_api [go_etcd_io.raft.v3.Assumptions] (E : RNEnv GF) (γ : RNN
   | q :: ms => by
     iintro #HM #Hcl %Hraft H
     icases (BigSepL.bigSepL_cons (Φ := fun _ (q : QMsg) => iprop(msgOwn (GF := GF) q.loc
-      (readyDq q.st) q.st ∗ Draft.sentMsg γ.node.cl srvClusterN γ.id q.st ∗
-      Draft.msgCredits γ.node.cl srvClusterN q.st))).1 $$ H with ⟨⟨Hm, #Hsm, Hc⟩, Hrest⟩
+      (readyDq q.st) q.st ∗ sentMsg γ.node.cl srvClusterN γ.id q.st ∗
+      msgCredits γ.node.cl srvClusterN q.st))).1 $$ H with ⟨⟨Hm, #Hsm, Hc⟩, Hrest⟩
     imod rnMsgOk_of_api E γ ms $$ HM Hcl %Hraft Hrest with Hrest
     simp only [List.map_cons]
     ihave %hsn := srv_sentMsg_notSnap E.γr.raft γ.id q.st $$ [Hcl Hsm]
@@ -465,7 +465,7 @@ theorem rnReadStates_of_api (E : RNEnv GF) (γ : RNNames) :
     ∀ (vs : List ReadState) (sts : List ReadStateM),
       ⊢ rnReadStateBridge E γ -∗
         ([∗list] v;st ∈ vs;sts, ⌜v.Index' = st.Index'⌝ ∗ v.RequestCtx' ↦*□ st.RequestCtx') -∗
-        ([∗list] st ∈ sts, Draft.readStateOk γ.node.cl srvClusterN st.RequestCtx' st.Index') -∗
+        ([∗list] st ∈ sts, readStateOk γ.node.cl srvClusterN st.RequestCtx' st.Index') -∗
         [∗list] v ∈ vs, srvReadStateOk E.γr.raft E.RQ v
   | [], _ => by
     iintro - - -
@@ -478,7 +478,7 @@ theorem rnReadStates_of_api (E : RNEnv GF) (γ : RNNames) :
       with ⟨%st, %sts', %Hsts, ⟨%Hi, #Hc⟩, H2'⟩
     subst Hsts
     icases (BigSepL.bigSepL_cons (Φ := fun _ (st : ReadStateM) =>
-      Draft.readStateOk (GF := GF) γ.node.cl srvClusterN st.RequestCtx' st.Index')).1 $$ Hok
+      readStateOk (GF := GF) γ.node.cl srvClusterN st.RequestCtx' st.Index')).1 $$ Hok
       with ⟨#Hok1, #Hok'⟩
     ihave #Hrest := rnReadStates_of_api E γ vs sts' $$ Hbr H2' Hok'
     iapply (BigSepL.bigSepL_cons (Φ := fun _ v => srvReadStateOk (GF := GF) E.γr.raft E.RQ v)).2
@@ -508,23 +508,23 @@ theorem entriesAt_of_entRO (ls : List Loc) (es : List EntryM) :
     iexact He'
 
 /-- The committed entries a `Ready` hands out after the base `b`, as the server's records. -/
-def rnCe (b : Nat) (ce : List Draft.LogEntry) : List EntryModel :=
-  (Draft.LogEntry.toEntries ce b).map EntryModel.ofM
+def rnCe (b : Nat) (ce : List LogEntry) : List EntryModel :=
+  (LogEntry.toEntries ce b).map EntryModel.ofM
 
-theorem rnCe_toLE (b : Nat) (ce : List Draft.LogEntry) :
+theorem rnCe_toLE (b : Nat) (ce : List LogEntry) :
     (rnCe b ce).map EntryModel.toLE = ce := by
-  unfold rnCe Draft.LogEntry.toEntries
+  unfold rnCe LogEntry.toEntries
   apply List.ext_getElem?
   intro n
   simp only [List.getElem?_map, List.getElem?_mapIdx]
   cases ce[n]? <;> rfl
 
-theorem rnCe_length (b : Nat) (ce : List Draft.LogEntry) : (rnCe b ce).length = ce.length := by
-  simp [rnCe, Draft.LogEntry.toEntries]
+theorem rnCe_length (b : Nat) (ce : List LogEntry) : (rnCe b ce).length = ce.length := by
+  simp [rnCe, LogEntry.toEntries]
 
-theorem rnCe_index (b : Nat) (ce : List Draft.LogEntry) (n : Nat) (m : EntryModel)
+theorem rnCe_index (b : Nat) (ce : List LogEntry) (n : Nat) (m : EntryModel)
     (h : (rnCe b ce)[n]? = some m) : m.index = W64 ((b : Int) + n + 1) := by
-  unfold rnCe Draft.LogEntry.toEntries at h
+  unfold rnCe LogEntry.toEntries at h
   simp only [List.getElem?_map, List.getElem?_mapIdx] at h
   cases hc : ce[n]? with
   | none => rw [hc] at h; cases h
@@ -532,7 +532,7 @@ theorem rnCe_index (b : Nat) (ce : List Draft.LogEntry) (n : Nat) (m : EntryMode
     rw [hc] at h
     simp only [Option.map_some, Option.some.injEq] at h
     subst h
-    simp [EntryModel.ofM, Draft.LogEntry.toEntryM]
+    simp [EntryModel.ofM, LogEntry.toEntryM]
 
 /-- (2026-10-27) **Receiving a `Ready`, after the node API's receive** (`isReadyChan_recvAu`'s
 postcondition): the idle driver at `L` learns the `Ready`'s data in the server's terms and is busy
@@ -540,30 +540,30 @@ with it; the messages persisted, `E.C` of the committed log (`rnEnvOk`), the rea
 (`rnReadStateBridge`); and the committed log delivered through the batch (`deliveredLogLb`, for a
 dynamic cluster's `ApplyConfChange`). A `Ready` with a snapshot is refuted (`srv_readySnap_none`). -/
 theorem rn_ready_recv [go_etcd_io.raft.v3.Assumptions] (E : RNEnv GF) (γ : RNNames)
-    (L : List EntryModel) (p : HardStateM) (rd : Ready) (ce : List Draft.LogEntry)
+    (L : List EntryModel) (p : HardStateM) (rd : Ready) (ce : List LogEntry)
     (es : List EntryM) (h : HardStateM) (Lo : Option SnapLoan)
     (HLi : srvIdxOkW E.γr.raft.ai0 L) :
     letI := srvStor (GF := GF) γ.node
     rnEnvOk E γ -∗ rnReadStateBridge E γ -∗ rnCfgAt γ L -∗
-      Draft.committedEntriesAt rd.CommittedEntries' (rnDrvSt γ L p).delivered.length ce -∗
-      Draft.isCommittedLogLb γ.node.cl ((rnDrvSt γ L p).delivered ++ ce) -∗
+      committedEntriesAt rd.CommittedEntries' (rnDrvSt γ L p).delivered.length ce -∗
+      isCommittedLogLb γ.node.cl ((rnDrvSt γ L p).delivered ++ ce) -∗
       (∃ rs, readStatesPts rd.ReadStates' rs ∗
-        [∗list] s ∈ rs, Draft.readStateOk γ.node.cl srvClusterN s.RequestCtx' s.Index') -∗
-      Draft.readyRest γ.node.cl srvClusterN γ.id rd (rnDrvSt γ L p) ce es h Lo -∗
-      Draft.nodeDriver γ.nl γ.node.cl srvClusterN (match Lo with
+        [∗list] s ∈ rs, readStateOk γ.node.cl srvClusterN s.RequestCtx' s.Index') -∗
+      readyRest γ.node.cl srvClusterN γ.id rd (rnDrvSt γ L p) ce es h Lo -∗
+      nodeDriver γ.nl γ.node.cl srvClusterN (match Lo with
           | none => { rnDrvSt γ L p with
               delivered := (rnDrvSt γ L p).delivered ++ ce
               hardState := phsNext (rnDrvSt γ L p).hardState h
               handling := some (es, none) }
           | some l => { rnDrvSt γ L p with
-              delivered := Draft.strip l.dlv
+              delivered := strip l.dlv
               hardState := phsNext (rnDrvSt γ L p).hardState h
               handling := some (es, some l) }) ={⊤}=∗
       ∃ ce' es' p', rnReadyData E γ rd L ce' es' p p' ∗ rnBusy γ L ce' es' p' ∗
-        Draft.deliveredLogLb γ.nl γ.node.cl srvClusterN (srvLE γ.srv (L ++ ce')) ∗
+        deliveredLogLb γ.nl γ.node.cl srvClusterN (srvLE γ.srv (L ++ ce')) ∗
         ⌜srvIdxOkW E.γr.raft.ai0 (L ++ ce')⌝ := by
   letI := srvStor (GF := GF) γ.node
-  simp only [Draft.committedEntriesAt, rnDrvSt]
+  simp only [committedEntriesAt, rnDrvSt]
   iintro #Henv #Hbr Hcfg #Hce #Hcom ⟨%sts, #Hrs, #Hrsok⟩ Hrest Hdrv
   ihave #Henv' := Henv
   iunfold rnEnvOk at Henv'
@@ -574,19 +574,19 @@ theorem rn_ready_recv [go_etcd_io.raft.v3.Assumptions] (E : RNEnv GF) (γ : RNNa
   cases Lo with
   | some l =>
     iexfalso
-    simp only [Draft.readyRest]
+    simp only [readyRest]
     icases Hrest with ⟨%ms, -, -, -, -, -, -, Hsn⟩
     iapply srv_readySnap_none E.γr.raft rd ⟨memStorIface γ.ms, srvLE γ.srv L, p, none⟩ ce es l
       $$ [Hcl Hsn]
     rw [Hraft]
     iframe Hcl Hsn
   | none =>
-  ihave #Hfits : Draft.readyFits γ.node.cl srvClusterN $$ []
+  ihave #Hfits : readyFits γ.node.cl srvClusterN $$ []
   · iunfold srvClusterOk at Hcl; icases Hcl with ⟨-, -, #H, -⟩; rw [Hraft]; iexact H
-  icases Draft.readyRest_fits γ.node.cl srvClusterN γ.id rd _ ce es h none $$ [Hfits Hrest]
+  icases readyRest_fits γ.node.cl srvClusterN γ.id rd _ ce es h none $$ [Hfits Hrest]
     with ⟨Hrest, %Hfit61⟩
   · iframe Hfits Hrest
-  simp only [Draft.readyRest, Draft.readySnap]
+  simp only [readyRest, readySnap]
   icases Hrest with ⟨%ms, #Hes, Hmsgs, Hmo, #Hhs, #Hss, %Hbnd, ⟨%Hsnap, Happ⟩⟩
   obtain ⟨Lx, HLx, Hes0, Hdl, -⟩ := Hbnd
   obtain ⟨ce', Hce'def⟩ : ∃ ce', ce' = rnCe (srvLE γ.srv L).length ce := ⟨_, rfl⟩
@@ -607,11 +607,11 @@ theorem rn_ready_recv [go_etcd_io.raft.v3.Assumptions] (E : RNEnv GF) (γ : RNNa
   imod ownSlice_persist _ _ _ $$ Hmsgs with #Hmsgs
   imod rnMsgOk_of_api E γ ms $$ HM Hcl %Hraft Hmo with Hmok
   -- `E.C (L ++ ce)` from the committed log, the next index fitting
-  ihave #Hcom' : Draft.isCommittedLogLb E.γr.raft.raft.cl (srvLE E.γr.raft (L ++ ce')) $$ []
+  ihave #Hcom' : isCommittedLogLb E.γr.raft.raft.cl (srvLE E.γr.raft (L ++ ce')) $$ []
   · rw [HsrvLE, Hdel, Hraft]; iexact Hcom
-  ihave #Hfits' : Draft.readyFits E.γr.raft.raft.cl srvClusterN $$ []
+  ihave #Hfits' : readyFits E.γr.raft.raft.cl srvClusterN $$ []
   · first | (rw [Hraft]; iexact Hfits) | (rw [← Hraft]; iexact Hfits)
-  ihave %Hnext := Draft.isCommittedLogLb_length E.γr.raft.raft.cl srvClusterN _ $$ [Hfits' Hcom']
+  ihave %Hnext := isCommittedLogLb_length E.γr.raft.raft.cl srvClusterN _ $$ [Hfits' Hcom']
   · iframe Hfits' Hcom'
   have HLi' : ∀ (n : Nat) (m : EntryModel), (L ++ ce')[n]? = some m →
       uint.Z m.index = uint.Z E.γr.raft.ai0 + 1 + n := by
@@ -641,7 +641,7 @@ theorem rn_ready_recv [go_etcd_io.raft.v3.Assumptions] (E : RNEnv GF) (γ : RNNa
     rw [Hai0]
     simp only [List.length_append] at Hnext ⊢
     omega
-  ihave ⟨Hdrv, #Hdlb⟩ := Draft.nodeDriver_deliveredLogLb γ.nl γ.node.cl srvClusterN _ $$ Hdrv
+  ihave ⟨Hdrv, #Hdlb⟩ := nodeDriver_deliveredLogLb γ.nl γ.node.cl srvClusterN _ $$ Hdrv
   imodintro
   iexists ce', es.map EntryModel.ofM, phsNext p h
   isplitl [Happ Hmok]
@@ -901,7 +901,7 @@ through the batch (`dlvLb`), if `rnHands`. -/
 def rnApGive (γ : RNNames) (F ce : List EntryModel) : IProp GF :=
   letI := srvStor (GF := GF) γ.node
   if rnHands γ ce then
-    iprop(rnCfgAt γ F ∗ Draft.deliveredLogLb γ.nl γ.node.cl srvClusterN (srvLE γ.srv (F ++ ce)))
+    iprop(rnCfgAt γ F ∗ deliveredLogLb γ.nl γ.node.cl srvClusterN (srvLE γ.srv (F ++ ce)))
   else iprop(True)
 
 /-- The `i`th payload on `applyc` with committed entries: the log `F` forwarded before it (`cum[i]`)

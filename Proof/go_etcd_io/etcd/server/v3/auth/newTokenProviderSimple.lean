@@ -32,6 +32,7 @@ theorem auth.newTokenProviderSimple.wp_proof (h_NewNop : zap.NewNop.spec (GF := 
     auth.newTokenProviderSimple.spec (GF := GF) (hG := hG) := by
   intro lg iw ttl
   wp_start
+  iapply wp_fupd
   ihave #Hsync : isPkgInit (PROP := IProp GF) pkg_id.sync $$ []
   · iPkgInit
   ihave #Hzap : isPkgInit (PROP := IProp GF) pkg_id.go_uber_org.zap $$ []
@@ -42,7 +43,8 @@ theorem auth.newTokenProviderSimple.wp_proof (h_NewNop : zap.NewNop.spec (GF := 
     (try wp_auto)
     wp_apply (wp_map_make1 (K := GoString) (V := GoString) go.string go.string) as %mp Hm
     (try wp_auto)
-    wp_alloc p as Hp
+    irename «$r0» => Hp
+    generalize «$r0_ptr» = p at *
     iStructNamed Hp
     ipersist lg
     ipersist indexWaiter
@@ -66,6 +68,7 @@ theorem auth.newTokenProviderSimple.wp_proof (h_NewNop : zap.NewNop.spec (GF := 
         · iapply BigSepM.bigSepM_empty.2; itrivial
         ipureintro; exact hpos
       (try wp_auto)
+      imodintro
       iapply HΦ
       iframe #
       iright
@@ -81,12 +84,14 @@ theorem auth.newTokenProviderSimple.wp_proof (h_NewNop : zap.NewNop.spec (GF := 
       iframe Hk2
       ileft; ipureintro; rfl
     · (try wp_auto)
+      imodintro
       iapply HΦ
       iframe #
       ileft; ipureintro; omega
   · wp_apply (wp_map_make1 (K := GoString) (V := GoString) go.string go.string) as %mp Hm
     (try wp_auto)
-    wp_alloc p as Hp
+    irename «$r0» => Hp
+    generalize «$r0_ptr» = p at *
     iStructNamed Hp
     ipersist lg
     ipersist indexWaiter
@@ -110,6 +115,7 @@ theorem auth.newTokenProviderSimple.wp_proof (h_NewNop : zap.NewNop.spec (GF := 
         · iapply BigSepM.bigSepM_empty.2; itrivial
         ipureintro; exact hpos
       (try wp_auto)
+      imodintro
       iapply HΦ
       iframe #
       iright
@@ -125,6 +131,7 @@ theorem auth.newTokenProviderSimple.wp_proof (h_NewNop : zap.NewNop.spec (GF := 
       iframe Hk2
       ileft; ipureintro; rfl
     · (try wp_auto)
+      imodintro
       iapply HΦ
       iframe #
       ileft; ipureintro; omega

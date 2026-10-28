@@ -3,7 +3,7 @@ module
 
 public import Perennial.Proof.ProofPrelude
 public import Perennial.GeneratedProof.fmt
-public import GeneratedProof.iter
+public import Perennial.GeneratedProof.iter
 public import GeneratedProof.k8s_io.apimachinery.pkg.api.errors
 public import GeneratedProof.k8s_io.apimachinery.pkg.fields
 public import GeneratedProof.k8s_io.apimachinery.pkg.labels

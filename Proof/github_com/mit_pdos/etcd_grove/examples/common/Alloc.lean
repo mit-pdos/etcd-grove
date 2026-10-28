@@ -42,18 +42,18 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 variable [v3rpc_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions]
 
 /-- **What a one-member `Main` takes of the ghost state, for its member** (see the file header). -/
-theorem alloc1 (id : w64) (ctxs : List (List w8)) (boot : List Draft.LogEntry)
-    (Hlow : uint.Z id % 2 ^ 16 ≠ 0) (HB : Draft.BootLog [id] ctxs boot)
-    (Hcc : bootCCOk [id] (Draft.LogEntry.toEntries boot 0))
+theorem alloc1 (id : w64) (ctxs : List (List w8)) (boot : List LogEntry)
+    (Hlow : uint.Z id % 2 ^ 16 ≠ 0) (HB : BootLog [id] ctxs boot)
+    (Hcc : bootCCOk [id] (LogEntry.toEntries boot 0))
     (dir : w64 → List GoString) (Hone : ∀ f, dir f ≠ [] → f = id)
     (Hrb : receiptBound GF ≤ 2 ^ 64 - 2) (Hrb2 : receiptBound GF + boot.length ≤ 2 ^ 61) :
-    ⊢ bootMarshal (GF := GF) [id] ctxs (Draft.LogEntry.toEntries boot 0) ={⊤}=∗
+    ⊢ bootMarshal (GF := GF) [id] ctxs (LogEntry.toEntries boot 0) ={⊤}=∗
       ∃ (γ : SrvRaft) (ρ : ReqNames) (E₀ : apply.AEnv GF)
         (Φs : w64 → w64 → List w8 → GName → IProp GF) (γn : NetNames GF),
-      ⌜γ.vs = [id] ∧ γ.dyn = false ∧ γ.boot = Draft.LogEntry.toEntries boot 0 ∧
+      ⌜γ.vs = [id] ∧ γ.dyn = false ∧ γ.boot = LogEntry.toEntries boot 0 ∧
         γn.N = srvNet γ ∧ γn.dir = dir ∧ ρ.rd.kv.log0 = [[], []]⌝ ∗
       memberBoot γ ctxs ρ E₀ Φs id ∗ netHttpOk γn id ∗
-      etcdKV ρ.rd.kv (kvModelSt ρ.rd.kv (bootEntries (Draft.LogEntry.toEntries boot 0))) := by
+      etcdKV ρ.rd.kv (kvModelSt ρ.rd.kv (bootEntries (LogEntry.toEntries boot 0))) := by
   iintro #Hmarsh
   imod newServerNames_alloc (GF := GF) with ⟨%idx, %cok, %rev, Hidx, Hcok, Hrev⟩
   -- the member's storage registry, its `bootstrap`'s to join

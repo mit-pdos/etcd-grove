@@ -33,7 +33,6 @@ theorem Range.wp_proof :
   ipersist start
   ipersist «end»
   imodintro
-  simp only [recv_eq_func_mk]
   iapply HΦ
   isplitr
   · ipureintro; intro h; cases h

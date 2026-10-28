@@ -3,10 +3,11 @@
 -- (`ext`, `ffi`, `go_gctx`, `sem`, the package's `Assumptions`), `GF`, `hG`, `StorageModel GF`, `AllG GF`.
 
 def node.Step.spec : Prop :=
-  ∀ (γ : NodeNames) (id : w64) (n ml : Loc) (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)),
+  ∀ (n : Loc) (γ : Cluster) (N : Namespace) (id : w64) (ml : Loc) (ctx : GoInterfaceOk)
+    (cd : context.ContextDesc (IProp GF)),
     ⊢
       ∀ Φ,
-        isPkgInit pkg_id.go_etcd_io.raft.v3 ∗ isNode γ id n ∗ nodeCtx ctx cd ∗ stepP γ id ml -∗
+        isPkgInit pkg_id.go_etcd_io.raft.v3 ∗ isNode n γ N id ∗ nodeCtx ctx cd ∗ stepIn γ N id ml -∗
           (▷ ∀ err, nodeErr cd err -∗ Φ (intoVal err)) -∗
             WP
               (((intoVal (methods node.ty.PointerType go!"Step" (intoVal n)))

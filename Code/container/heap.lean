@@ -54,12 +54,9 @@ noncomputable def down [GooseExts] [GoGlobalContext] : GoString :=
 noncomputable def Push.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "h"
   (Lam "x"
-  (App (Val exceptionDo)
+  (Seq (App (Val exceptionDo)
   (Let "x" (App (Val (GoInstruction (GoAlloc go.any))) (Var "x"))
   (Let "h" (App (Val (GoInstruction (GoAlloc Interface.ty))) (Var "h"))
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (Val doReturn)
-  (Val #()))))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doExecute)
   (Let "$a0" (App (Val (GoInstruction (GoLoad Interface.ty))) (Var "h"))
@@ -67,7 +64,8 @@ noncomputable def Push.impl [GooseExts] [GoGlobalContext] : val :=
   (App (App (App (Val (GoInstruction (FuncResolve up []))) (Val #())) (Var "$a0")) (Var "$a1")))))))
   (App (Val doExecute)
   (Let "$a0" (App (Val (GoInstruction (GoLoad go.any))) (Var "x"))
-  (App (App (Val (GoInstruction (MethodResolve Interface.ty go!"Push"))) (App (Val (GoInstruction (GoLoad Interface.ty))) (Var "h"))) (Var "$a0")))))))))))
+  (App (App (Val (GoInstruction (MethodResolve Interface.ty go!"Push"))) (App (Val (GoInstruction (GoLoad Interface.ty))) (Var "h"))) (Var "$a0"))))))))
+  (Val #()))))
 
 /-- Fix re-establishes the heap ordering after the element at index i has changed its value.
     Changing the value of the element at index i and then calling Fix is equivalent to,
@@ -78,12 +76,9 @@ noncomputable def Push.impl [GooseExts] [GoGlobalContext] : val :=
 noncomputable def Fix.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "h"
   (Lam "i"
-  (App (Val exceptionDo)
+  (Seq (App (Val exceptionDo)
   (Let "i" (App (Val (GoInstruction (GoAlloc go.int))) (Var "i"))
   (Let "h" (App (Val (GoInstruction (GoAlloc Interface.ty))) (Var "h"))
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (Val doReturn)
-  (Val #()))))
   (If (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (Let "$a0" (App (Val (GoInstruction (GoLoad Interface.ty))) (Var "h"))
   (Let "$a1" (App (Val (GoInstruction (GoLoad go.int))) (Var "i"))
   (Let "$a2" (App (App (Val (GoInstruction (MethodResolve Interface.ty go!"Len"))) (App (Val (GoInstruction (GoLoad Interface.ty))) (Var "h"))) (Val #()))
@@ -93,18 +88,16 @@ noncomputable def Fix.impl [GooseExts] [GoGlobalContext] : val :=
   (Let "$a1" (App (Val (GoInstruction (GoLoad go.int))) (Var "i"))
   (App (App (App (Val (GoInstruction (FuncResolve up []))) (Val #())) (Var "$a0")) (Var "$a1")))))
   (App (Val doExecute)
-  (Val #())))))))))
+  (Val #()))))))
+  (Val #()))))
 
 /-- go: heap.go:89:6 -/
 noncomputable def up.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "h"
   (Lam "j"
-  (App (Val exceptionDo)
+  (Seq (App (Val exceptionDo)
   (Let "j" (App (Val (GoInstruction (GoAlloc go.int))) (Var "j"))
   (Let "h" (App (Val (GoInstruction (GoAlloc Interface.ty))) (Var "h"))
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (Val doReturn)
-  (Val #()))))
   (App (App (App (Val doFor) (Lam BAnon
   (Val #true))) (Lam BAnon
   (Let "$r0" (App (Val (GoInstruction (GoOp GoDiv go.int))) (Pair (App (Val (GoInstruction (GoOp GoSub go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (Var "j")) (Val #(W64 1)))) (Val #(W64 2))))
@@ -128,14 +121,16 @@ noncomputable def up.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "i") (Var "$r0")))))))))
   (Lam BAnon
-  (Val #())))))))))
+  (Val #()))))))
+  (Val #()))))
 
 /-- go: heap.go:100:6 -/
 noncomputable def down.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "h"
   (Lam "i0"
   (Lam "n"
-  (App (Val exceptionDo)
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
+  (Seq (App (Val exceptionDo)
   (Let "n" (App (Val (GoInstruction (GoAlloc go.int))) (Var "n"))
   (Let "i0" (App (Val (GoInstruction (GoAlloc go.int))) (Var "i0"))
   (Let "h" (App (Val (GoInstruction (GoAlloc Interface.ty))) (Var "h"))
@@ -143,8 +138,12 @@ noncomputable def down.impl [GooseExts] [GoGlobalContext] : val :=
   (Let "i" (App (Val (GoInstruction (GoAlloc go.int))) (App (Val (GoInstruction (GoZeroVal go.int))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoOp GoGt go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (Var "i")) (App (Val (GoInstruction (GoLoad go.int))) (Var "i0"))))
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (App (Val (GoInstruction (GoOp GoGt go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (Var "i")) (App (Val (GoInstruction (GoLoad go.int))) (Var "i0")))))))
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "$res0") (Var "$r0"))))))))
   (App (App (App (Val doFor) (Lam BAnon
   (Val #true))) (Lam BAnon
   (Let "$r0" (App (Val (GoInstruction (GoOp GoPlus go.int))) (Pair (App (Val (GoInstruction (GoOp GoMul go.int))) (Pair (Val #(W64 2)) (App (Val (GoInstruction (GoLoad go.int))) (Var "i")))) (Val #(W64 1))))
@@ -194,7 +193,8 @@ noncomputable def down.impl [GooseExts] [GoGlobalContext] : val :=
   (Lam BAnon
   (Val #()))))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "i") (Var "$r0"))))))))))))))
+  (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "i") (Var "$r0")))))))))))
+  (App (Val (GoInstruction (GoLoad go.bool))) (Var "$res0")))))))
 
 noncomputable instance info' : PkgInfo pkg_id.container.heap where
   pkgImportedPkgs := [pkg_id.sort]

@@ -41,6 +41,8 @@ theorem confchange.toConfChangeSingle.wp_proof
   iNamed Hcs
   -- `in` is a Lean keyword: name its cell by hand before `wp_auto` names the others
   wp_pures
+  wp_alloc out_ptr as out
+  wp_pures
   wp_alloc in_ptr as Hin
   wp_auto
   ihave %Holen := ownSlice_len $$ Ho

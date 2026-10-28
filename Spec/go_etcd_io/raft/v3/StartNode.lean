@@ -1,49 +1,14 @@
 /- Lean-first (no Rocq counterpart).
 
-## `StartNode(c, peers)` (node.go:271): the start of a new cluster
+## `StartNode`
 
-`setupNode(c, peers)` -- `NewRawNode(c)` on the empty storage of a new cluster (whose conf state
-is **empty**: `NewRawNode.spec_empty`), then `rn.Bootstrap(peers)` (`RawNode.Bootstrap.spec`):
-`becomeFollower(1, None)`, one `EntryConfChange` per peer at term `1` and indices `1..n`
-appended to the log and committed (`raftLog.committed = n`), each applied to the tracker
-(`applyConfChange`), nothing applied to the application -- in a `node` whose goroutine `run` it
-starts, for the cluster's term budget `bud`. It returns the node (`isNode`, persistent: what
-`Propose`, `Step`, `Tick` and `Ready` take) and the driver's token (`nodeDriver`), at the empty
-delivered log, and the driver's view of the configuration (`nodeCfg`, at index `0` and the
-peers' configuration), as `RestartNode.spec` does (2026-10-16, stage R8b, D12).
-
-**Why the driver starts at `[]`.** `Bootstrap` leaves `applied = 0`: the application sees the
-conf changes through the first `Ready`, whose `CommittedEntries` are the boot entries beside
-`Entries 1..n` and the hard state `{Term: 1, Commit: n}` (`prevHardSt = emptyState`). So the
-delivered log is empty although the committed log is `bootLog` (`isCommitted γ bootLog`, the
-allocation's): the driver's `Advance` delivers it.
-
-**The ghost state.** The cluster's ghost state is allocated before the call, in the mode `md`
-(statically `ownRaftGhost_alloc_boot`, `Protocol/Facts.lean`: every member at `bootPState
-bootLog`, the committed log `bootLog` from the start, `RaftNames.reBoot = bootLog`, `γ.reCfg` the
-peers; dynamically, since 2026-10-25, T-M M2a, `raft_dyn_alloc_boot`, `Protocol/ResultsDyn.lean`:
-every member at `rboot c0 bootLog`, `c0` the peers' configuration, at the configuration index `0`,
-so that the application's re-application of the boot entries through the first `Ready` is the
-dynamic mode's ordinary `ApplyConfChange`). This node takes its `bootInit γ md cv.ID' V bootLog`
-and `isCommitted γ bootLog`, and the log's description `BootLogOk ps bootLog` (entry `k`: type
-`1`, term `1`, index `k + 1`, bytes decoding to `AddNode ps[k]`; until 2026-10-27 also admitted by
-the cluster's conf-change policy, now each a tracked proposal the allocation registered).
-
-**The bytes** (`bootMarshal`, `InvBoot.lean`): `proto.Marshal` of the `k`-th peer's conf change
-returns `bootLog[k]`'s bytes -- protobuf's determinism at these inputs, a trust-boundary fact
-taken as a premise in the style of `RestartNode.spec`'s `InitialState` closure, discharged where
-the node is composed.
-
-**The peers**: a `[]Peer` slice at `dq` holding `pv`, their ids `ps` (distinct, non-zero, at most
-`2^62`, this node among them, the ghost configuration) and their `Context` bytes `ctxs`
-(read-only, `peersCtx`). The `Config` premises are `NewRawNode`'s (static mode only: no
-`StepDownOnRemoval` requirement). **The term budget** is at least at term `1`, the bootstrap
-term (`budget_alloc_boot`, `InvNode.lean`: a budget allocated for a new cluster; `run` starts
-with `termLB bud term`). -/
+The node API's spec. (2026-10-28: moved here from `NodeApiDraft.lean`, where it was drafted over the
+API's sealed predicates, now `InvNode.lean`'s; until then this file held the triple over raft's
+internals, now the proof's private `StartNode.specRaw`.)
+-/
 module
 
 public import Proof.go_etcd_io.raft.v3.InvNode
-public import Proof.go_etcd_io.raft.v3.ApiVocab
 
 @[expose] public section
 
@@ -61,15 +26,15 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [StorageModel GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
-/-- See the file header. -/
+/-- **`StartNode(c, peers)`**: starts node `cv.ID'` of the cluster `γ` from its boot token
+(`cluster_alloc`), of the peers `ps` with the contexts `ctxs`. The Go-level premises are today's.
+(2026-10-27: the term budget is the cluster's, in the boot token; the storage's certificates are
+the cluster's, `storageCertLink`: the cluster takes snapshots.) -/
 abbrev StartNode.spec : Prop :=
-  ∀ (γ : RaftNames) (md : RNMode) (bud : BudgetNames) (c : Loc) (cv : Config)
-    (lok si : GoInterfaceOk)
-    (σ : StorState)
-    (hs : HardStateM) (csm : ConfStateM) (R : IProp GF)
-    (peers : GoSlice) (dq : DFrac) (pv : List Peer) (ps : List w64) (ctxs : List (List w8))
-    (bootLog : List EntryM) (sn : Bool),
-  -- `NewRawNode`'s premises
+  ∀ (γ : Cluster) (N : Namespace) (c : Loc) (cv : Config) (lok si : GoInterfaceOk)
+    (σ : StorState) (hs : HardStateM) (csm : ConfStateM) (R : IProp GF)
+    (peers : GoSlice) (dq : DFrac) (pv : List Peer) (ps : List w64) (ctxs : List (List w8)),
+  -- `NewRawNode`'s premises (unchanged)
   ConfigValid cv →
   cv.Logger' = interface.ok lok →
   cv.Storage' = interface.ok si →
@@ -80,67 +45,79 @@ abbrev StartNode.spec : Prop :=
   (cv.MaxCommittedSizePerReady' ≠ W64 0 ∨ cv.MaxSizePerMsg' ≠ W64 0) →
   cv.AsyncStorageWrites' = false →
   cv.Applied' = W64 0 →
-  -- an empty storage: no entries, no `HardState`, no snapshot
-  σ.prev = entryID.mk (W64 0) (W64 0) →
-  σ.ents = [] →
-  (uint.Z σ.ss.index' = 0 ∨ σ.ss = σ.prev) →
-  σ.pend = [] →
-  HsEmpty hs →
-  -- the conf state empty: a new cluster's
-  csm.Voters' = [] →
-  csm.VotersOutgoing' = [] →
-  csm.Learners' = [] →
-  csm.LearnersNext' = [] →
+  -- an empty storage and conf state (unchanged)
+  σ.prev = entryID.mk (W64 0) (W64 0) → σ.ents = [] → (uint.Z σ.ss.index' = 0 ∨ σ.ss = σ.prev) →
+  σ.pend = [] → HsEmpty hs →
+  csm.Voters' = [] → csm.VotersOutgoing' = [] → csm.Learners' = [] → csm.LearnersNext' = [] →
   csm.AutoLeave' = false →
-  -- the peers: their ids `ps`, distinct and non-zero, this node among them, the cluster
-  ps = pv.map Peer.ID' →
-  ps ≠ [] → ps.Nodup → W64 0 ∉ ps →
-  (ps.length : Int) ≤ 2 ^ 62 →
+  -- the peers (unchanged)
+  ps = pv.map Peer.ID' → ps ≠ [] → ps.Nodup → W64 0 ∉ ps → (ps.length : Int) ≤ 2 ^ 62 →
   cv.ID' ∈ ps →
-  γ.reCfg = GMap.listToSet ps →
-  -- the bootstrap log, the ghost state's
-  γ.reBoot = bootLog →
-  BootLogOk ps bootLog →
-  -- (D19i part 1) the floor not raised yet: the storage's view, fresh to raft
   σ.fl = W64 0 →
-  -- (D22 S-d4, 2026-10-21) the node takes a `MsgSnap` from the network (`NodeNames.snapIn`) only
-  -- outside the no-snapshot mode and (2026-10-25, T-M M2a) in the static mode
-  (sn = true → γ.reNoSnap = false ∧ md = .static) →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ c ↦ cv ∗ isLogger lok ∗
       isStorage (interface.ok si) ∗ ownStorage (interface.ok si) σ ∗
-      -- `NewRawNode`'s `InitialState` premise (D7's shape; the conf state's record `csm` empty)
       (∀ (Φ : val → IProp GF) (ss' : entryID), ownStorage (interface.ok si) { σ with ss := ss' } -∗
            (∀ (hp cs : Loc) (al : Bool), ownStorage (interface.ok si) { σ with ss := ss' } -∗
             R -∗ hsOpt hp hs -∗ csPts cs DFrac.discard csm al -∗
             Φ (PairV (PairV #hp #cs) #interface.nil)) -∗
            WP (App (Val #(methods si.ty go!"InitialState" si.v)) (Val #())) {{ Φ }}) ∗
-      -- the peers, their contexts, and `Marshal` at their conf changes (`InvBoot.lean`)
-      peers ↦*{dq} pv ∗ peersCtx pv ctxs ∗ bootMarshal ps ctxs bootLog ∗
-      -- this node's ghost state at the bootstrap state in the mode `md` (2026-10-25, T-M M2a;
-      -- until then static), and the committed boot log
-      bootInit γ md cv.ID' (GMap.listToSet ps) bootLog ∗ isCommitted γ bootLog ∗
-      -- the cluster's term budget, at least at the bootstrap term `1` (`budget_alloc_boot`)
-      inv budgetN (budgetInv bud) ∗ termLB bud (W64 1) ∗
-      -- (2026-10-19, D21 M3) in the cluster's no-snapshot mode (`RaftNames.reNoSnap`), a storage
-      -- never compacted past index `1` (`Bootstrap`'s)
-      NsCap γ.reNoSnap (interface.ok si) ∗
-      -- (D22 S-b′3, 2026-10-20) the storage's certificate link (`certLink`: none needed in the
-      -- no-snapshot mode)
-      certLink γ (interface.ok si) }}
+      peers ↦*{dq} pv ∗ peersCtx pv ctxs ∗
+      -- the node's boot token (in place of `bootInit`, `isCommitted γ bootLog`, `bootMarshal`,
+      -- the term budget)
+      nodeBoot γ N ps ctxs cv.ID' ∗
+      -- (2026-10-27) the storage's certificates are the cluster's (until then: never compacted past
+      -- index `1`, `storCap`, raft's no-snapshot mode)
+      storageCertLink γ N (interface.ok si) }}
     (App (App (Val #(functions StartNode [])) (Val #c)) (Val #peers))
   {{ (nd : GoInterface), RET #nd;
-      -- (D17d, 2026-10-18) what the `InitialState` premise gives back: `InitialState` runs before
-      -- the node's goroutine starts
-      R ∗ ∃ (γn : NodeNames) (n : Loc),
-        ⌜γn.raft = γ ∧ γn.bud = bud ∧ γn.stor = interface.ok si ∧ γn.mode = md ∧
-         γn.snapIn = sn ∧ nd = interface.mkOk (go.GoType.PointerType node.ty) #n⌝ ∗
-        -- (D43 M3, 2026-10-25) the mode is static exactly when the names are (`ownRawNode_mode`)
-        ⌜md = .static ↔ γ.reDyn = none⌝ ∗
-        isNode γn cv.ID' n ∗ nodeDriver γn cv.ID' n [] hsZero ∗
-        -- the driver's view of the configuration: the peers'
-        nodeCfg γn 0 (cfgState (GMap.listToSet ps) ∅) ∗
-        -- the peers' slice, read only
-        peers ↦*{dq} pv }}
+      R ∗ ∃ (n : Loc), ⌜nd = interface.mkOk (go.GoType.PointerType node.ty) #n⌝ ∗
+        isNode n γ N cv.ID' ∗ nodeDriver n γ N (NodeDriverState.init (interface.ok si)) }}
+
+/-- **`StartNode(c, peers)`** in a dynamic cluster: as `StartNode.spec`, from the dynamic boot
+token (`dynamicCluster_alloc`), on a storage never compacted past index `1` (raft's no-snapshot
+mode, `storCap`; in place of the certificate link), and the node's configuration view at index `0`
+and the peers' membership: the node applies the bootstrap entries again, through its first
+`Ready`s. (Today `StartNode.spec` at `md = .dyn …`.) -/
+abbrev StartNode.dynamicSpec : Prop :=
+  ∀ (γ : Cluster) (N : Namespace) (c : Loc) (cv : Config) (lok si : GoInterfaceOk)
+    (σ : StorState) (hs : HardStateM) (csm : ConfStateM) (R : IProp GF)
+    (peers : GoSlice) (dq : DFrac) (pv : List Peer) (ps : List w64) (ctxs : List (List w8)),
+  -- `NewRawNode`'s premises (unchanged)
+  ConfigValid cv →
+  cv.Logger' = interface.ok lok →
+  cv.Storage' = interface.ok si →
+  sint.Z cv.MaxInflightMsgs' < 2 ^ 62 →
+  cv.DisableProposalForwarding' = false →
+  cv.ReadOnlyOption' = W64 0 →
+  cv.DisableConfChangeValidation' = false →
+  (cv.MaxCommittedSizePerReady' ≠ W64 0 ∨ cv.MaxSizePerMsg' ≠ W64 0) →
+  cv.AsyncStorageWrites' = false →
+  cv.Applied' = W64 0 →
+  -- an empty storage and conf state (unchanged)
+  σ.prev = entryID.mk (W64 0) (W64 0) → σ.ents = [] → (uint.Z σ.ss.index' = 0 ∨ σ.ss = σ.prev) →
+  σ.pend = [] → HsEmpty hs →
+  csm.Voters' = [] → csm.VotersOutgoing' = [] → csm.Learners' = [] → csm.LearnersNext' = [] →
+  csm.AutoLeave' = false →
+  -- the peers (unchanged)
+  ps = pv.map Peer.ID' → ps ≠ [] → ps.Nodup → W64 0 ∉ ps → (ps.length : Int) ≤ 2 ^ 62 →
+  cv.ID' ∈ ps →
+  σ.fl = W64 0 →
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ c ↦ cv ∗ isLogger lok ∗
+      isStorage (interface.ok si) ∗ ownStorage (interface.ok si) σ ∗
+      (∀ (Φ : val → IProp GF) (ss' : entryID), ownStorage (interface.ok si) { σ with ss := ss' } -∗
+           (∀ (hp cs : Loc) (al : Bool), ownStorage (interface.ok si) { σ with ss := ss' } -∗
+            R -∗ hsOpt hp hs -∗ csPts cs DFrac.discard csm al -∗
+            Φ (PairV (PairV #hp #cs) #interface.nil)) -∗
+           WP (App (Val #(methods si.ty go!"InitialState" si.v)) (Val #())) {{ Φ }}) ∗
+      peers ↦*{dq} pv ∗ peersCtx pv ctxs ∗
+      nodeDynamicBoot γ N ps ctxs cv.ID' ∗
+      -- raft's no-snapshot mode: the storage is never compacted past index `1`
+      storCap (interface.ok si) 1 }}
+    (App (App (Val #(functions StartNode [])) (Val #c)) (Val #peers))
+  {{ (nd : GoInterface), RET #nd;
+      R ∗ ∃ (n : Loc), ⌜nd = interface.mkOk (go.GoType.PointerType node.ty) #n⌝ ∗
+        isNode n γ N cv.ID' ∗ nodeDriver n γ N (NodeDriverState.init (interface.ok si)) ∗
+        nodeConfig n γ N ⟨0, Membership.simple (GMap.listToSet ps)⟩ }}
 
 end spec
 

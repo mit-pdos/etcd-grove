@@ -287,6 +287,7 @@ theorem mvcc.watchableStore.progressIfSync.wp_proof
   iNamedSuffix Hws0 "W"
   ihave #Hsync : isPkgInit (PROP := IProp GF) pkg_id.sync $$ []
   · iPkgInit
+  wp_auto
   wp_apply wp_with_defer as %defer defer
   (try wp_auto)
   wp_apply +noauto sync.RWMutex.wp_RLock $$ [$Hslot] as ⟨Hrl, HP⟩
@@ -325,13 +326,13 @@ theorem mvcc.watchableStore.progressIfSync.wp_proof
       "HP" ∷ mvcc.watchStoreBody s γ sync.rfrac σ ∗
       "Hrel" ∷ monoNatAuthOwn γ.rel sync.rfrac σ.Lmu.length ∗
       "Hwsf" ∷ mvcc.wsFields s γ sync.rfrac ∗
-      "Hrd" ∷ mvcc.storeReader st γ.st ∗ "rev" ∷ rev_ptr ↦ r ∗
+      "Hrd" ∷ mvcc.storeReader st γ.st ∗ "rev" ∷ rev_ptr ↦ r ∗ "Hret" ∷ «$res0_ptr» ↦ false ∗
       "HΦ" ∷ (∀ b : Bool, m ↦${dq} M ∗ CS ∗ mvcc.watchReader s st γ -∗ Φ #b) ∗ "HCS" ∷ CS ∗
       "%Hi" ∷ ⌜0 ≤ i ∧ ∀ (j : Nat) (id : w64) (w : Loc), j < i.toNat → keys[j]? = some id →
         M !! id = some w → (σ.Ws !! w).isSome ∧
           ∀ γw, σ.M !! w = some γw → γw.now = true ∨ (γw.lo : Int) ≤ sint.Z r⌝)) $$ Hm
   iintro %keys ⟨%Hkset, %Hklen, %Hknodup⟩
-  isplitl [w s responseWatchID watchers Hrl Hdx HP Hrel Hwsf Hrd rev HΦ HCS]
+  isplitl [w s responseWatchID watchers Hrl Hdx HP Hrel Hwsf Hrd rev «$res0» HΦ HCS]
   · iexists _
     simp only [named]
     iframe
@@ -499,10 +500,10 @@ theorem mvcc.watchableStore.progressIfSync.wp_proof
       "HP" ∷ mvcc.watchStoreBody s γ sync.rfrac σ ∗
       "Hrel" ∷ monoNatAuthOwn γ.rel sync.rfrac σ.Lmu.length ∗
       "Hwsf" ∷ mvcc.wsFields s γ sync.rfrac ∗
-      "Hrd" ∷ mvcc.storeReader st γ.st ∗ "rev" ∷ rev_ptr ↦ r ∗
+      "Hrd" ∷ mvcc.storeReader st γ.st ∗ "rev" ∷ rev_ptr ↦ r ∗ "Hret" ∷ «$res0_ptr» ↦ false ∗
       "HΦ" ∷ (∀ b : Bool, m ↦${dq} M ∗ CS ∗ mvcc.watchReader s st γ -∗ Φ #b) ∗ "HCS" ∷ CS)) $$ Hm
   iintro %keys2 -
-  isplitl [w responseWatchID Hrl Hdx HP Hrel Hwsf Hrd rev HΦ HCS]
+  isplitl [w responseWatchID Hrl Hdx HP Hrel Hwsf Hrd rev Hret HΦ HCS]
   · iexists _
     simp only [named]
     iframe

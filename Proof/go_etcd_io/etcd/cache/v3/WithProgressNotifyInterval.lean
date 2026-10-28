@@ -28,7 +28,6 @@ theorem WithProgressNotifyInterval.wp_proof : WithProgressNotifyInterval.spec (G
   wp_auto
   ipersist d
   imodintro
-  simp only [recv_eq_func_mk]
   iapply HΦ
   unfold cfgOptSpec
   imodintro

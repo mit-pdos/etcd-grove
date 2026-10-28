@@ -84,7 +84,9 @@ noncomputable def New.impl [GooseExts] [GoGlobalContext] : val :=
   (Lam "retention"
   (Lam "rg"
   (Lam "c"
-  (App (Val exceptionDo)
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc Compactor.ty))) (App (Val (GoInstruction (GoZeroVal Compactor.ty))) (Val #())))
+  (Let "$res1" (App (Val (GoInstruction (GoAlloc go.error))) (App (Val (GoInstruction (GoZeroVal go.error))) (Val #())))
+  (Seq (App (Val exceptionDo)
   (Let "c" (App (Val (GoInstruction (GoAlloc Compactable.ty))) (Var "c"))
   (Let "rg" (App (Val (GoInstruction (GoAlloc RevGetter.ty))) (Var "rg"))
   (Let "retention" (App (Val (GoInstruction (GoAlloc _root_.Perennial.time.Duration.ty))) (Var "retention"))
@@ -93,32 +95,57 @@ noncomputable def New.impl [GooseExts] [GoGlobalContext] : val :=
   (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$sw" (App (Val (GoInstruction (GoLoad go.string))) (Var "mode"))
   (If (App (Val (GoInstruction (GoOp GoEquals go.string))) (Pair (Var "$sw") (App (Val (GoInstruction (Convert go.untypedString go.string))) (Val ModePeriodic))))
-  (App (Val doReturn)
-  (Pair (App (Val (GoInstruction (Convert (go.GoType.PointerType Periodic.ty) Compactor.ty))) (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)))) (Var "lg"))
+  (Let "$r0" (App (Val (GoInstruction (Convert (go.GoType.PointerType Periodic.ty) Compactor.ty))) (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)))) (Var "lg"))
   (Let "$a1" (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.github_com.jonboulle.clockwork.NewRealClock []))) (Val #())) (Val #()))
   (Let "$a2" (App (Val (GoInstruction (GoLoad _root_.Perennial.time.Duration.ty))) (Var "retention"))
   (Let "$a3" (App (Val (GoInstruction (GoLoad RevGetter.ty))) (Var "rg"))
   (Let "$a4" (App (Val (GoInstruction (GoLoad Compactable.ty))) (Var "c"))
-  (App (App (App (App (App (App (Val (GoInstruction (FuncResolve newPeriodic []))) (Val #())) (Var "$a0")) (Var "$a1")) (Var "$a2")) (Var "$a3")) (Var "$a4")))))))) (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))))
+  (App (App (App (App (App (App (Val (GoInstruction (FuncResolve newPeriodic []))) (Val #())) (Var "$a0")) (Var "$a1")) (Var "$a2")) (Var "$a3")) (Var "$a4"))))))))
+  (Let "$r1" (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res1") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore Compactor.ty))) (Pair (Var "$res0") (Var "$r0")))))))
   (If (App (Val (GoInstruction (GoOp GoEquals go.string))) (Pair (Var "$sw") (App (Val (GoInstruction (Convert go.untypedString go.string))) (Val ModeRevision))))
-  (App (Val doReturn)
-  (Pair (App (Val (GoInstruction (Convert (go.GoType.PointerType Revision.ty) Compactor.ty))) (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)))) (Var "lg"))
+  (Let "$r0" (App (Val (GoInstruction (Convert (go.GoType.PointerType Revision.ty) Compactor.ty))) (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)))) (Var "lg"))
   (Let "$a1" (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.github_com.jonboulle.clockwork.NewRealClock []))) (Val #())) (Val #()))
   (Let "$a2" (App (Val (GoInstruction (GoLoad _root_.Perennial.time.Duration.ty))) (Var "retention"))
   (Let "$a3" (App (Val (GoInstruction (GoLoad RevGetter.ty))) (Var "rg"))
   (Let "$a4" (App (Val (GoInstruction (GoLoad Compactable.ty))) (Var "c"))
-  (App (App (App (App (App (App (Val (GoInstruction (FuncResolve newRevision []))) (Val #())) (Var "$a0")) (Var "$a1")) (Var "$a2")) (Var "$a3")) (Var "$a4")))))))) (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))))
+  (App (App (App (App (App (App (Val (GoInstruction (FuncResolve newRevision []))) (Val #())) (Var "$a0")) (Var "$a1")) (Var "$a2")) (Var "$a3")) (Var "$a4"))))))))
+  (Let "$r1" (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (Pair (App (Val (GoInstruction (Convert go.untypedNil Compactor.ty))) (Val UntypedNil)) (Let "$a0" (Val #(go!"unsupported compaction mode %s"))
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res1") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore Compactor.ty))) (Pair (Var "$res0") (Var "$r0")))))))
+  (Let "$r0" (App (Val (GoInstruction (Convert go.untypedNil Compactor.ty))) (Val UntypedNil))
+  (Let "$r1" (Let "$a0" (Val #(go!"unsupported compaction mode %s"))
   (Let "$a1" (Let "$sl0" (App (Val (GoInstruction (Convert go.string go.any))) (App (Val (GoInstruction (GoLoad go.string))) (Var "mode")))
   (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType go.any)))) (LiteralValue [(KeyedElement none (ElementExpression go.any (Var "$sl0")))])))
-  (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.fmt.Errorf []))) (Val #())) (Var "$a0")) (Var "$a1")))))))))))
+  (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.fmt.Errorf []))) (Val #())) (Var "$a0")) (Var "$a1"))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res1") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore Compactor.ty))) (Pair (Var "$res0") (Var "$r0"))))))))))))
   (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)))) (Var "lg")) (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)))) (Val UntypedNil)))))
   (Let "$r0" (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.go_uber_org.zap.NewNop []))) (Val #())) (Val #()))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)))) (Pair (Var "lg") (Var "$r0")))))
   (App (Val doExecute)
-  (Val #())))))))))))))))
+  (Val #()))))))))))
+  (Pair (App (Val (GoInstruction (GoLoad Compactor.ty))) (Var "$res0")) (App (Val (GoInstruction (GoLoad go.error))) (Var "$res1")))))))))))
 
 /-- newPeriodic creates a new instance of Periodic compactor that purges
     the log older than h Duration.
@@ -130,7 +157,8 @@ noncomputable def newPeriodic.impl [GooseExts] [GoGlobalContext] : val :=
   (Lam "h"
   (Lam "rg"
   (Lam "c"
-  (App (Val exceptionDo)
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType Periodic.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType Periodic.ty)))) (Val #())))
+  (Seq (App (Val exceptionDo)
   (Let "c" (App (Val (GoInstruction (GoAlloc Compactable.ty))) (Var "c"))
   (Let "rg" (App (Val (GoInstruction (GoAlloc RevGetter.ty))) (Var "rg"))
   (Let "h" (App (Val (GoInstruction (GoAlloc _root_.Perennial.time.Duration.ty))) (Var "h"))
@@ -156,8 +184,12 @@ noncomputable def newPeriodic.impl [GooseExts] [GoGlobalContext] : val :=
   (Let "$r1" (Var "$ret1")
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Periodic.ty)))) (Var "pc"))
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Periodic.ty)))) (Var "pc")))))
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType Periodic.ty)))) (Pair (Var "$res0") (Var "$r0"))))))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore _root_.Perennial.context.CancelFunc.ty))) (Pair (Var "$l1") (Var "$r1")))))))
   (App (Val doExecute)
@@ -165,7 +197,8 @@ noncomputable def newPeriodic.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore (go.GoType.SliceType go.int64)))) (Pair (App (Val (GoInstruction (StructFieldRef Periodic.ty go!"revs"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Periodic.ty)))) (Var "pc"))) (Var "$r0"))))))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore (go.GoType.PointerType Periodic.ty)))) (Pair (Var "pc") (Var "$r0"))))))))))))))))))
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType Periodic.ty)))) (Pair (Var "pc") (Var "$r0")))))))))))))
+  (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Periodic.ty)))) (Var "$res0")))))))))
 
 /-- Run runs periodic compactor.
 
@@ -173,11 +206,8 @@ noncomputable def newPeriodic.impl [GooseExts] [GoGlobalContext] : val :=
 noncomputable def Periodic.Run.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "pc"
   (Lam BAnon
-  (App (Val exceptionDo)
+  (Seq (App (Val exceptionDo)
   (Let "pc" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType Periodic.ty)))) (Var "pc"))
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (Val doReturn)
-  (Val #()))))
   (Let "$r0" (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType Periodic.ty) go!"getCompactInterval"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Periodic.ty)))) (Var "pc"))) (Val #()))
   (Let "compactInterval" (App (Val (GoInstruction (GoAlloc _root_.Perennial.time.Duration.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.time.Duration.ty))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -188,10 +218,7 @@ noncomputable def Periodic.Run.impl [GooseExts] [GoGlobalContext] : val :=
   (Let "retentions" (App (Val (GoInstruction (GoAlloc go.int))) (App (Val (GoInstruction (GoZeroVal go.int))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$go" (Lam BAnon
-  (App (Val exceptionDo)
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (Val doReturn)
-  (Val #()))))
+  (Seq (App (Val exceptionDo)
   (Let "$r0" (Val #(W64 0))
   (Let "lastRevision" (App (Val (GoInstruction (GoAlloc go.int64))) (App (Val (GoInstruction (GoZeroVal go.int64))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -338,7 +365,8 @@ noncomputable def Periodic.Run.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore _root_.Perennial.time.Time.ty))) (Pair (Var "lastSuccess") (Var "$r0")))))))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore go.int64))) (Pair (Var "lastRevision") (Var "$r0"))))))))))
+  (App (Val (GoInstruction (GoStore go.int64))) (Pair (Var "lastRevision") (Var "$r0"))))))))
+  (Val #())))
   (App (Val doExecute)
   (Fork
   (App (Var "$go") (Val #())))))))
@@ -347,7 +375,8 @@ noncomputable def Periodic.Run.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore _root_.Perennial.time.Duration.ty))) (Pair (Var "retryInterval") (Var "$r0")))))))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore _root_.Perennial.time.Duration.ty))) (Pair (Var "compactInterval") (Var "$r0"))))))))))))
+  (App (Val (GoInstruction (GoStore _root_.Perennial.time.Duration.ty))) (Pair (Var "compactInterval") (Var "$r0")))))))))
+  (Val #()))))
 
 /-- if given compaction period x is <1-hour, compact every x duration.
     (e.g. --auto-compaction-mode 'periodic' --auto-compaction-retention='10m', then compact every 10-minute)
@@ -358,14 +387,19 @@ noncomputable def Periodic.Run.impl [GooseExts] [GoGlobalContext] : val :=
 noncomputable def Periodic.getCompactInterval.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "pc"
   (Lam BAnon
-  (App (Val exceptionDo)
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc _root_.Perennial.time.Duration.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.time.Duration.ty))) (Val #())))
+  (Seq (App (Val exceptionDo)
   (Let "pc" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType Periodic.ty)))) (Var "pc"))
   (Let "$r0" (App (Val (GoInstruction (GoLoad _root_.Perennial.time.Duration.ty))) (App (Val (GoInstruction (StructFieldRef Periodic.ty go!"period"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Periodic.ty)))) (Var "pc"))))
   (Let "itv" (App (Val (GoInstruction (GoAlloc _root_.Perennial.time.Duration.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.time.Duration.ty))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoLoad _root_.Perennial.time.Duration.ty))) (Var "itv"))
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (App (Val (GoInstruction (GoLoad _root_.Perennial.time.Duration.ty))) (Var "itv")))))
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore _root_.Perennial.time.Duration.ty))) (Pair (Var "$res0") (Var "$r0"))))))))
   (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoGt _root_.Perennial.time.Duration.ty))) (Pair (App (Val (GoInstruction (GoLoad _root_.Perennial.time.Duration.ty))) (Var "itv")) (Val _root_.Perennial.time.Hour))))
   (Let "$r0" (Val _root_.Perennial.time.Hour)
   (App (Val doExecute)
@@ -373,29 +407,41 @@ noncomputable def Periodic.getCompactInterval.impl [GooseExts] [GoGlobalContext]
   (App (Val doExecute)
   (Val #()))))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore _root_.Perennial.time.Duration.ty))) (Pair (Var "itv") (Var "$r0")))))))))))
+  (App (Val (GoInstruction (GoStore _root_.Perennial.time.Duration.ty))) (Pair (Var "itv") (Var "$r0")))))))))
+  (App (Val (GoInstruction (GoLoad _root_.Perennial.time.Duration.ty))) (Var "$res0"))))))
 
 /-- go: periodic.go:177:21 -/
 noncomputable def Periodic.getRetentions.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "pc"
   (Lam BAnon
-  (App (Val exceptionDo)
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc go.int))) (App (Val (GoInstruction (GoZeroVal go.int))) (Val #())))
+  (Seq (App (Val exceptionDo)
   (Let "pc" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType Periodic.ty)))) (Var "pc"))
+  (Let "$r0" (App (Val (GoInstruction (GoOp GoPlus go.int))) (Pair (App (Val (GoInstruction (Convert _root_.Perennial.time.Duration.ty go.int))) (App (Val (GoInstruction (GoOp GoDiv _root_.Perennial.time.Duration.ty))) (Pair (App (Val (GoInstruction (GoLoad _root_.Perennial.time.Duration.ty))) (App (Val (GoInstruction (StructFieldRef Periodic.ty go!"period"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Periodic.ty)))) (Var "pc")))) (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType Periodic.ty) go!"getRetryInterval"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Periodic.ty)))) (Var "pc"))) (Val #()))))) (Val #(W64 1))))
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (App (Val (GoInstruction (GoOp GoPlus go.int))) (Pair (App (Val (GoInstruction (Convert _root_.Perennial.time.Duration.ty go.int))) (App (Val (GoInstruction (GoOp GoDiv _root_.Perennial.time.Duration.ty))) (Pair (App (Val (GoInstruction (GoLoad _root_.Perennial.time.Duration.ty))) (App (Val (GoInstruction (StructFieldRef Periodic.ty go!"period"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Periodic.ty)))) (Var "pc")))) (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType Periodic.ty) go!"getRetryInterval"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Periodic.ty)))) (Var "pc"))) (Val #()))))) (Val #(W64 1)))))))))
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (App (Val (GoInstruction (GoLoad go.int))) (Var "$res0"))))))
 
 /-- go: periodic.go:183:21 -/
 noncomputable def Periodic.getRetryInterval.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "pc"
   (Lam BAnon
-  (App (Val exceptionDo)
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc _root_.Perennial.time.Duration.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.time.Duration.ty))) (Val #())))
+  (Seq (App (Val exceptionDo)
   (Let "pc" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType Periodic.ty)))) (Var "pc"))
   (Let "$r0" (App (Val (GoInstruction (GoLoad _root_.Perennial.time.Duration.ty))) (App (Val (GoInstruction (StructFieldRef Periodic.ty go!"period"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Periodic.ty)))) (Var "pc"))))
   (Let "itv" (App (Val (GoInstruction (GoAlloc _root_.Perennial.time.Duration.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.time.Duration.ty))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoOp GoDiv _root_.Perennial.time.Duration.ty))) (Pair (App (Val (GoInstruction (GoLoad _root_.Perennial.time.Duration.ty))) (Var "itv")) (App (Val (GoInstruction (Convert go.untypedInt _root_.Perennial.time.Duration.ty))) (Val retryDivisor))))
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (App (Val (GoInstruction (GoOp GoDiv _root_.Perennial.time.Duration.ty))) (Pair (App (Val (GoInstruction (GoLoad _root_.Perennial.time.Duration.ty))) (Var "itv")) (App (Val (GoInstruction (Convert go.untypedInt _root_.Perennial.time.Duration.ty))) (Val retryDivisor)))))))
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore _root_.Perennial.time.Duration.ty))) (Pair (Var "$res0") (Var "$r0"))))))))
   (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoGt _root_.Perennial.time.Duration.ty))) (Pair (App (Val (GoInstruction (GoLoad _root_.Perennial.time.Duration.ty))) (Var "itv")) (Val _root_.Perennial.time.Hour))))
   (Let "$r0" (Val _root_.Perennial.time.Hour)
   (App (Val doExecute)
@@ -403,7 +449,8 @@ noncomputable def Periodic.getRetryInterval.impl [GooseExts] [GoGlobalContext] :
   (App (Val doExecute)
   (Val #()))))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore _root_.Perennial.time.Duration.ty))) (Pair (Var "itv") (Var "$r0")))))))))))
+  (App (Val (GoInstruction (GoStore _root_.Perennial.time.Duration.ty))) (Pair (Var "itv") (Var "$r0")))))))))
+  (App (Val (GoInstruction (GoLoad _root_.Perennial.time.Duration.ty))) (Var "$res0"))))))
 
 /-- Stop stops periodic compactor.
 
@@ -411,13 +458,11 @@ noncomputable def Periodic.getRetryInterval.impl [GooseExts] [GoGlobalContext] :
 noncomputable def Periodic.Stop.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "pc"
   (Lam BAnon
-  (App (Val exceptionDo)
+  (Seq (App (Val exceptionDo)
   (Let "pc" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType Periodic.ty)))) (Var "pc"))
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (Val doReturn)
-  (Val #()))))
   (App (Val doExecute)
-  (App (App (Val (GoInstruction (GoLoad _root_.Perennial.context.CancelFunc.ty))) (App (Val (GoInstruction (StructFieldRef Periodic.ty go!"cancel"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Periodic.ty)))) (Var "pc")))) (Val #()))))))))
+  (App (App (Val (GoInstruction (GoLoad _root_.Perennial.context.CancelFunc.ty))) (App (Val (GoInstruction (StructFieldRef Periodic.ty go!"cancel"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Periodic.ty)))) (Var "pc")))) (Val #())))))
+  (Val #()))))
 
 /-- Pause pauses periodic compactor.
 
@@ -425,11 +470,8 @@ noncomputable def Periodic.Stop.impl [GooseExts] [GoGlobalContext] : val :=
 noncomputable def Periodic.Pause.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "pc"
   (Lam BAnon
-  (App (Val exceptionDo)
+  (Seq (App (Val exceptionDo)
   (Let "pc" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType Periodic.ty)))) (Var "pc"))
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (Val doReturn)
-  (Val #()))))
   (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$r0" (Val #true)
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -438,7 +480,8 @@ noncomputable def Periodic.Pause.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.bool))) (Pair (App (Val (GoInstruction (StructFieldRef Periodic.ty go!"paused"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Periodic.ty)))) (Var "pc"))) (Var "$r0"))))))))
   (App (Val doExecute)
-  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.RWMutex.ty) go!"Lock"))) (App (Val (GoInstruction (StructFieldRef Periodic.ty go!"mu"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Periodic.ty)))) (Var "pc")))) (Val #())))))))))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.RWMutex.ty) go!"Lock"))) (App (Val (GoInstruction (StructFieldRef Periodic.ty go!"mu"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Periodic.ty)))) (Var "pc")))) (Val #()))))))
+  (Val #()))))
 
 /-- Resume resumes periodic compactor.
 
@@ -446,11 +489,8 @@ noncomputable def Periodic.Pause.impl [GooseExts] [GoGlobalContext] : val :=
 noncomputable def Periodic.Resume.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "pc"
   (Lam BAnon
-  (App (Val exceptionDo)
+  (Seq (App (Val exceptionDo)
   (Let "pc" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType Periodic.ty)))) (Var "pc"))
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (Val doReturn)
-  (Val #()))))
   (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$r0" (Val #false)
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -459,7 +499,8 @@ noncomputable def Periodic.Resume.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.bool))) (Pair (App (Val (GoInstruction (StructFieldRef Periodic.ty go!"paused"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Periodic.ty)))) (Var "pc"))) (Var "$r0"))))))))
   (App (Val doExecute)
-  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.RWMutex.ty) go!"Lock"))) (App (Val (GoInstruction (StructFieldRef Periodic.ty go!"mu"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Periodic.ty)))) (Var "pc")))) (Val #())))))))))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.RWMutex.ty) go!"Lock"))) (App (Val (GoInstruction (StructFieldRef Periodic.ty go!"mu"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Periodic.ty)))) (Var "pc")))) (Val #()))))))
+  (Val #()))))
 
 /-- newRevision creates a new instance of Revisonal compactor that purges
     the log older than retention revisions from the current revision.
@@ -471,7 +512,8 @@ noncomputable def newRevision.impl [GooseExts] [GoGlobalContext] : val :=
   (Lam "retention"
   (Lam "rg"
   (Lam "c"
-  (App (Val exceptionDo)
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType Revision.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType Revision.ty)))) (Val #())))
+  (Seq (App (Val exceptionDo)
   (Let "c" (App (Val (GoInstruction (GoAlloc Compactable.ty))) (Var "c"))
   (Let "rg" (App (Val (GoInstruction (GoAlloc RevGetter.ty))) (Var "rg"))
   (Let "retention" (App (Val (GoInstruction (GoAlloc go.int64))) (Var "retention"))
@@ -495,14 +537,19 @@ noncomputable def newRevision.impl [GooseExts] [GoGlobalContext] : val :=
   (Let "$r1" (Var "$ret1")
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Revision.ty)))) (Var "rc"))
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Revision.ty)))) (Var "rc")))))
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType Revision.ty)))) (Pair (Var "$res0") (Var "$r0"))))))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore _root_.Perennial.context.CancelFunc.ty))) (Pair (Var "$l1") (Var "$r1")))))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore _root_.Perennial.context.Context.ty))) (Pair (Var "$l0") (Var "$r0"))))))))))))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore (go.GoType.PointerType Revision.ty)))) (Pair (Var "rc") (Var "$r0"))))))))))))))))))
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType Revision.ty)))) (Pair (Var "rc") (Var "$r0")))))))))))))
+  (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Revision.ty)))) (Var "$res0")))))))))
 
 /-- Run runs revision-based compactor.
 
@@ -510,19 +557,13 @@ noncomputable def newRevision.impl [GooseExts] [GoGlobalContext] : val :=
 noncomputable def Revision.Run.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "rc"
   (Lam BAnon
-  (App (Val exceptionDo)
+  (Seq (App (Val exceptionDo)
   (Let "rc" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType Revision.ty)))) (Var "rc"))
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (Val doReturn)
-  (Val #()))))
   (Let "$r0" (Val #(W64 0))
   (Let "prev" (App (Val (GoInstruction (GoAlloc go.int64))) (App (Val (GoInstruction (GoZeroVal go.int64))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$go" (Lam BAnon
-  (App (Val exceptionDo)
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (Val doReturn)
-  (Val #()))))
+  (Seq (App (Val exceptionDo)
   (App (App (App (Val doFor) (Lam BAnon
   (Val #true))) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -626,12 +667,14 @@ noncomputable def Revision.Run.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.Mutex.ty) go!"Lock"))) (App (Val (GoInstruction (StructFieldRef Revision.ty go!"mu"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Revision.ty)))) (Var "rc")))) (Val #()))))))])))))))
   (Lam BAnon
-  (Val #()))))))
+  (Val #()))))
+  (Val #())))
   (App (Val doExecute)
   (Fork
   (App (Var "$go") (Val #())))))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore go.int64))) (Pair (Var "prev") (Var "$r0"))))))))))))
+  (App (Val (GoInstruction (GoStore go.int64))) (Pair (Var "prev") (Var "$r0")))))))))
+  (Val #()))))
 
 /-- Stop stops revision-based compactor.
 
@@ -639,13 +682,11 @@ noncomputable def Revision.Run.impl [GooseExts] [GoGlobalContext] : val :=
 noncomputable def Revision.Stop.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "rc"
   (Lam BAnon
-  (App (Val exceptionDo)
+  (Seq (App (Val exceptionDo)
   (Let "rc" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType Revision.ty)))) (Var "rc"))
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (Val doReturn)
-  (Val #()))))
   (App (Val doExecute)
-  (App (App (Val (GoInstruction (GoLoad _root_.Perennial.context.CancelFunc.ty))) (App (Val (GoInstruction (StructFieldRef Revision.ty go!"cancel"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Revision.ty)))) (Var "rc")))) (Val #()))))))))
+  (App (App (Val (GoInstruction (GoLoad _root_.Perennial.context.CancelFunc.ty))) (App (Val (GoInstruction (StructFieldRef Revision.ty go!"cancel"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Revision.ty)))) (Var "rc")))) (Val #())))))
+  (Val #()))))
 
 /-- Pause pauses revision-based compactor.
 
@@ -653,11 +694,8 @@ noncomputable def Revision.Stop.impl [GooseExts] [GoGlobalContext] : val :=
 noncomputable def Revision.Pause.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "rc"
   (Lam BAnon
-  (App (Val exceptionDo)
+  (Seq (App (Val exceptionDo)
   (Let "rc" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType Revision.ty)))) (Var "rc"))
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (Val doReturn)
-  (Val #()))))
   (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$r0" (Val #true)
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -666,7 +704,8 @@ noncomputable def Revision.Pause.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.bool))) (Pair (App (Val (GoInstruction (StructFieldRef Revision.ty go!"paused"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Revision.ty)))) (Var "rc"))) (Var "$r0"))))))))
   (App (Val doExecute)
-  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.Mutex.ty) go!"Lock"))) (App (Val (GoInstruction (StructFieldRef Revision.ty go!"mu"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Revision.ty)))) (Var "rc")))) (Val #())))))))))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.Mutex.ty) go!"Lock"))) (App (Val (GoInstruction (StructFieldRef Revision.ty go!"mu"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Revision.ty)))) (Var "rc")))) (Val #()))))))
+  (Val #()))))
 
 /-- Resume resumes revision-based compactor.
 
@@ -674,11 +713,8 @@ noncomputable def Revision.Pause.impl [GooseExts] [GoGlobalContext] : val :=
 noncomputable def Revision.Resume.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "rc"
   (Lam BAnon
-  (App (Val exceptionDo)
+  (Seq (App (Val exceptionDo)
   (Let "rc" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType Revision.ty)))) (Var "rc"))
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (Val doReturn)
-  (Val #()))))
   (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$r0" (Val #false)
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -687,7 +723,8 @@ noncomputable def Revision.Resume.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.bool))) (Pair (App (Val (GoInstruction (StructFieldRef Revision.ty go!"paused"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Revision.ty)))) (Var "rc"))) (Var "$r0"))))))))
   (App (Val doExecute)
-  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.Mutex.ty) go!"Lock"))) (App (Val (GoInstruction (StructFieldRef Revision.ty go!"mu"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Revision.ty)))) (Var "rc")))) (Val #())))))))))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.Mutex.ty) go!"Lock"))) (App (Val (GoInstruction (StructFieldRef Revision.ty go!"mu"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Revision.ty)))) (Var "rc")))) (Val #()))))))
+  (Val #()))))
 
 noncomputable instance info' : PkgInfo pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3compactor where
   pkgImportedPkgs := [pkg_id.context, pkg_id.fmt, pkg_id.time, pkg_id.github_com.jonboulle.clockwork, pkg_id.go_uber_org.zap, pkg_id.go_etcd_io.etcd.api.v3.etcdserverpb, pkg_id.errors, pkg_id.sync, pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc]

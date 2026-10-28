@@ -272,12 +272,14 @@ theorem tokenSimple_info_of (P : IProp GF) [Persistent P] (p : Loc) (γt γf : G
         (Val #ctx)) (Val #token)) (Val #rev)) {{ Φ }} := by
   iintro ⟨#Hpkg, #Hok, #HP, HΦ⟩
   wp_method_call; wp_call
+  iapply wp_fupd
   (try wp_auto)
   wp_apply hValid $$ [] as %b -
   · iframe #
   (try wp_auto)
   cases b
   · (try wp_auto)
+    imodintro
     iapply HΦ
     isplitr
     · iunfold authInfoRO; ileft; ipureintro; rfl
@@ -316,14 +318,15 @@ theorem tokenSimple_info_of (P : IProp GF) [Persistent P] (p : Loc) (γt γf : G
     iframe Hmp Hm Hbig Hauth Hk HKa Hks Httl
     ipureintro; exact ⟨Hkks, Httlpos⟩
   (try wp_auto)
-  wp_alloc a as Ha
+  irename «$r0» => Ha
+  generalize «$r0_ptr» = a at *
   ihave %Hann := typedPointsto_not_null _ _ _ $$ Ha
   ihave Haf := typedPointsto_split _ _ _ $$ Ha
   simp only [TypedPointsto.typedPointstoDef]
   iNamed Haf
   ipersist Username
   ipersist Revision
-  (try wp_auto)
+  imodintro
   iapply HΦ
   isplitr
   · iunfold authInfoRO; iright

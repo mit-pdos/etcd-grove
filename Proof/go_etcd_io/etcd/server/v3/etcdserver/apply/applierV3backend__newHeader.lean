@@ -69,8 +69,8 @@ theorem apply.applierV3backend.newHeader.wp_proof
   · iframe #
   wp_apply HTerm as %tm -
   wp_apply HLead as %ld -
-  wp_alloc h as Hh
-  wp_auto
+  irename «$r0» => Hh
+  generalize «$r0_ptr» = h at *
   iapply HΦ
   iframe Hrd
   isplitl [Htoks Hwl]

@@ -33,7 +33,6 @@ theorem newStorageKeyReverseFunc.wp_proof : newStorageKeyReverseFunc.spec (GF :=
   wp_auto
   cases decide (rk = func.nil)
   · wp_auto
-    rw [recv_eq_func_mk]
     iapply HΦ
     itrivial
   · wp_auto

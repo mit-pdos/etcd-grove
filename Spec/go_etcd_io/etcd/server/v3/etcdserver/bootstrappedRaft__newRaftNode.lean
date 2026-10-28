@@ -91,7 +91,7 @@ abbrev bootstrappedRaft.newRaftNode.spec : Prop :=
       -- `StartNode`'s: a dynamic cluster's storage never compacted past index `1`, a static
       -- cluster's certificates the cluster's
       "#Hcert" ∷ (if γr.dyn then storCap (memStorIface bv.storage') 1
-        else Draft.storageCertLink γr.cl srvClusterN (memStorIface bv.storage')) ∗
+        else storageCertLink γr.cl srvClusterN (memStorIface bv.storage')) ∗
       -- `StartNode.spec`'s `InitialState` premise (D7's shape; the conf state empty)
       "#Hinit" ∷ □ (∀ (Φ : val → IProp GF) (ss' : entryID),
            ownStorage (memStorIface bv.storage') { memStorEmpty with ss := ss' } -∗
@@ -109,8 +109,8 @@ abbrev bootstrappedRaft.newRaftNode.spec : Prop :=
       -- the peers and their contexts
       "Hpeers" ∷ bv.peers' ↦*{dq} pv ∗ "#Hctx" ∷ peersCtx pv ctxs ∗
       -- this node's boot token (the cluster's allocation's)
-      "Hboot" ∷ (if γr.dyn then Draft.nodeDynamicBoot γr.cl srvClusterN ps ctxs cv.ID'
-        else Draft.nodeBoot γr.cl srvClusterN ps ctxs cv.ID') ∗
+      "Hboot" ∷ (if γr.dyn then nodeDynamicBoot γr.cl srvClusterN ps ctxs cv.ID'
+        else nodeBoot γr.cl srvClusterN ps ctxs cv.ID') ∗
       -- the contracts (`InvNodeStart.lean`)
       "#Hzap" ∷ rnLoggerZapOk ∗ "#Hsetlg" ∷ rnSetLoggerOk ∗ "#Htdok" ∷ rnTimeoutDetectorOk ∗
       "#Htkok" ∷ rnTickerOk E ∗ "#Hrs" ∷ rnRaftStatusOk ∗ "#Hns" ∷ rnNewStorageOk ∗
@@ -122,10 +122,10 @@ abbrev bootstrappedRaft.newRaftNode.spec : Prop :=
         ⌜γw.node = γr ∧ γw.id = cv.ID' ∧ γw.nl = n ∧ γw.pre = pre ∧ γw.ms = bv.storage' ∧
           γw.γs = γs⌝ ∗
         -- the node API's node
-        Draft.isNode n γr.cl srvClusterN cv.ID' ∗
-        Draft.nodeDriver n γr.cl srvClusterN (Draft.NodeDriverState.init (memStorIface bv.storage')) ∗
-        (if γr.dyn then Draft.nodeConfig n γr.cl srvClusterN
-          ⟨0, Draft.Membership.simple (GMap.listToSet ps)⟩ else iprop(True)) ∗
+        isNode n γr.cl srvClusterN cv.ID' ∗
+        nodeDriver n γr.cl srvClusterN (NodeDriverState.init (memStorIface bv.storage')) ∗
+        (if γr.dyn then nodeConfig n γr.cl srvClusterN
+          ⟨0, Membership.simple (GMap.listToSet ps)⟩ else iprop(True)) ∗
         -- the wrapper, over the config built here
         isRNIDRemoved f ∗ isRNWal st ∗
         -- (D22 J1a, 2026-10-26) a `*storage` over the snapshotter `ss` (`rnNewStorageOk`'s)

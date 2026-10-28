@@ -1,0 +1,5 @@
+# The durable state's Go functions are primitives: trusted models in terms of the durable-state
+# extension (GooseLang/Ext/Durable; TrustedCode/github_com/mit_pdos/etcd_grove/examples/durable.lean).
+translate = ["!*"]
+imports = ["!*"]
+trusted = ["Read", "Write"]

@@ -28,7 +28,6 @@ theorem WithBTreeDegree.wp_proof : WithBTreeDegree.spec (GF := GF) (hG := hG) :=
   wp_auto
   ipersist n
   imodintro
-  simp only [recv_eq_func_mk]
   iapply HΦ
   unfold cfgOptSpec
   imodintro

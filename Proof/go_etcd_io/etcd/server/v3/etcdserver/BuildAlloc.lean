@@ -311,7 +311,7 @@ the cluster's read credits (`2 ^ 48`, the node API's `readCredits`). (Until M4 f
 authorities and its whole read budget.) -/
 theorem srvMintInv_alloc (ρ : ReqNames) (E : CoPset) :
     ⊢ srvPropMint (GF := GF) ρ.raft ρ.ids -∗ srvRdCtxInv ρ.raft ρ.ids.issued -∗
-      Draft.readCredits ρ.raft.raft.cl (2 ^ 48) ={E}=∗ srvMintInv ρ := by
+      readCredits ρ.raft.raft.cl (2 ^ 48) ={E}=∗ srvMintInv ρ := by
   iintro #HP #HR Hc
   imod srvRdFreshInv_alloc ρ.raft ρ.ids E $$ HR Hc with #Hrd
   iunfold srvMintInv

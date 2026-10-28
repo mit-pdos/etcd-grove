@@ -63,8 +63,8 @@ theorem apply.applierV3backend.AuthEnable.wp_proof
   · -- enabled: a fresh response with the header
     wp_auto
     wp_apply (hHdr E p log) $$ [$Hpkg $Hb $Hrd $Hsw] as %h ⟨Hrd, Hsw, -⟩
-    wp_alloc l as Hl
-    wp_auto
+    irename «$r0» => Hl
+    generalize «$r0_ptr» = l at *
     iapply HΦ
     isplitl; rotate_left
     · first | iexact HeI | iapply applyErrIs_nil

@@ -61,7 +61,8 @@ theorem read.isStopped.wp_proof (hIs : errors.Is.spec (GF := GF) (hG := hG)) :
     wp_apply read_wp_Is_var hIs err eS HlS as %b2 -
     · iframe #
     wp_end
-  · wp_end
+  · wp_auto
+    wp_end
 
 end proof
 

@@ -179,8 +179,8 @@ abbrev NewServer.spec : Prop :=
       "#Hcfgro" ∷ bootCfgRO cfg U ∗ "Hrauth" ∷ memStorRegAuth (∅ : GMap Loc MemStorNamesRec) ∗
       -- the cluster's (the node API's allocation, 2026-10-27): this node's boot token, of the
       -- peers `γ.vs` with the contexts `ctxs`, and the server's raft invariant
-      "Hnboot" ∷ (if γ.dyn then Draft.nodeDynamicBoot γ.cl srvClusterN γ.vs ctxs id
-        else Draft.nodeBoot γ.cl srvClusterN γ.vs ctxs id) ∗
+      "Hnboot" ∷ (if γ.dyn then nodeDynamicBoot γ.cl srvClusterN γ.vs ctxs id
+        else nodeBoot γ.cl srvClusterN γ.vs ctxs id) ∗
       "#Hsrl" ∷ srvRaftLogInv ρ.rd.raft ∗
       -- (D21e (A), stage M4) the cluster's resources, allocated once (`srvClusterBoot_alloc`):
       -- the claims (with the reserved id `0`, D19c), the proposals' mint, the read contexts;
@@ -188,7 +188,7 @@ abbrev NewServer.spec : Prop :=
       -- credits (`srvMemberBoot_alloc`)
       "#Hidc" ∷ idClusterInv ρ.ids.issued ρ.ids.cnt Φs ∗ "#HNZ0" ∷ idNoZero ρ.ids ∗
       "#Hpmint" ∷ srvPropMint ρ.rd.raft ρ.ids ∗ "#Hrdctx" ∷ srvRdCtxInv ρ.rd.raft ρ.ids.issued ∗
-      "Hids" ∷ idShare ρ.ids ∗ "HrdCred" ∷ Draft.readCredits γ.cl (2 ^ 48) ∗
+      "Hids" ∷ idShare ρ.ids ∗ "HrdCred" ∷ readCredits γ.cl (2 ^ 48) ∗
       -- (linkv-txn stage B1, 2026-10-20) the member's entry of the registries' map, for `start`
       "Hwtok" ∷ idWaitTok ρ.ids ∗
       -- the names chosen before the call (D13a), fresh
@@ -332,8 +332,8 @@ abbrev NewServer.specM (on : Bool) : Prop :=
       "#Hcfgro" ∷ bootCfgRO cfg U ∗ "Hrauth" ∷ memStorRegAuth (∅ : GMap Loc MemStorNamesRec) ∗
       -- the cluster's (the node API's allocation, 2026-10-27): this node's boot token, of the
       -- peers `γ.vs` with the contexts `ctxs`, and the server's raft invariant
-      "Hnboot" ∷ (if γ.dyn then Draft.nodeDynamicBoot γ.cl srvClusterN γ.vs ctxs id
-        else Draft.nodeBoot γ.cl srvClusterN γ.vs ctxs id) ∗
+      "Hnboot" ∷ (if γ.dyn then nodeDynamicBoot γ.cl srvClusterN γ.vs ctxs id
+        else nodeBoot γ.cl srvClusterN γ.vs ctxs id) ∗
       "#Hsrl" ∷ srvRaftLogInv ρ.rd.raft ∗
       -- (D21e (A), stage M4) the cluster's resources, allocated once (`srvClusterBoot_alloc`):
       -- the claims (with the reserved id `0`, D19c), the proposals' mint, the read contexts;
@@ -341,7 +341,7 @@ abbrev NewServer.specM (on : Bool) : Prop :=
       -- credits (`srvMemberBoot_alloc`)
       "#Hidc" ∷ idClusterInv ρ.ids.issued ρ.ids.cnt Φs ∗ "#HNZ0" ∷ idNoZero ρ.ids ∗
       "#Hpmint" ∷ srvPropMint ρ.rd.raft ρ.ids ∗ "#Hrdctx" ∷ srvRdCtxInv ρ.rd.raft ρ.ids.issued ∗
-      "Hids" ∷ idShare ρ.ids ∗ "HrdCred" ∷ Draft.readCredits γ.cl (2 ^ 48) ∗
+      "Hids" ∷ idShare ρ.ids ∗ "HrdCred" ∷ readCredits γ.cl (2 ^ 48) ∗
       -- (linkv-txn stage B1, 2026-10-20) the member's entry of the registries' map, for `start`
       "Hwtok" ∷ idWaitTok ρ.ids ∗
       -- the names chosen before the call (D13a), fresh

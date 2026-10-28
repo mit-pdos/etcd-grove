@@ -61,8 +61,8 @@ theorem snapOpt_null_none (dq : DFrac) (s : Option SnapshotM) (h : s = none) :
 set_option hygiene false in
 /-- The tail of an iteration that steps the wire's copy of the message `q` into its node `n`:
 the copy's struct built from `m`'s fields' loads (`iNamed`), the appended entries slice and
-(D22 S-r) the snapshot's clone `snc` (`Hsnc`), owned (`msgPtsC_of_struct`), made `Draft.stepIn`
-(`Draft.stepIn_intro`, `deliverable_step`), `Node.Step`. Expects the tick credit `Htc`, the
+(D22 S-r) the snapshot's clone `snc` (`Hsnc`), owned (`msgPtsC_of_struct`), made `stepIn`
+(`stepIn_intro`, `deliverable_step`), `Node.Step`. Expects the tick credit `Htc`, the
 message's credits `Hc1`, `Hmok`, `HisNode`, and the loop's `Hk1`. -/
 local macro "deliver_tail " snc:term : tactic =>
   `(tactic| (
@@ -87,7 +87,7 @@ local macro "deliver_tail " snc:term : tactic =>
     wp_apply context.wp_Background
     ihave #Hbg := nodeCtx_background (GF := GF) bgCd
     have Hsteps := deliverable_step q.st.msg.To' q.st Hd rfl
-    imod Draft.stepIn_intro γ kvRaftN q.st.msg.To' «$r0_ptr» src q.st
+    imod stepIn_intro γ kvRaftN q.st.msg.To' «$r0_ptr» src q.st
       (fun h => ⟨(Hsteps.2.1 h).1, (Hsteps.2.1 h).2.2⟩) Hsteps.2.2 rfl
       $$ [Hmok Hmc Hc1 Htc] with Hstep
     · isplitr
@@ -116,7 +116,7 @@ local macro "deliver_pre" : tactic =>
 
 theorem deliver.wp_proof (wp_deliverable : deliverable.spec (GF := GF) (hG := hG))
     (wp_take : transfers.take.spec (GF := GF) (hG := hG))
-    (wp_node_Step : Draft.node.Step.spec (GF := GF) (hG := hG))
+    (wp_node_Step : node.Step.spec (GF := GF) (hG := hG))
     (wp_GetType : raftpb.Message.GetType.spec (GF := GF) (hG := hG))
     (wp_GetTo : raftpb.Message.GetTo.spec (GF := GF) (hG := hG))
     (wp_CloneSnapshot : proto.CloneSnapshot.spec (GF := GF) (hG := hG)) :
@@ -133,8 +133,8 @@ theorem deliver.wp_proof (wp_deliverable : deliverable.spec (GF := GF) (hG := hG
   ihave IH : iprop(∃ (k : w64) (mv : Loc),
       "i" ∷ i_ptr ↦ k ∗ "m" ∷ m_ptr ↦ mv ∗ "Hms" ∷ msl ↦* ms.map QMsg.loc ∗
       "Hmsok" ∷ ([∗list] q ∈ ms.drop (sint.nat k),
-        msgOwn q.loc (readyDq q.st) q.st ∗ Draft.sentMsg γ kvRaftN src q.st ∗
-          Draft.msgCredits γ kvRaftN q.st) ∗
+        msgOwn q.loc (readyDq q.st) q.st ∗ sentMsg γ kvRaftN src q.st ∗
+          msgCredits γ kvRaftN q.st) ∗
       "%Hk" ∷ ⌜0 ≤ sint.Z k ∧ sint.Z k ≤ (ms.length : Int)⌝) $$ [i m Hms Hmsok]
   · iexists W64 0, _
     iframe i m Hms
@@ -207,7 +207,7 @@ theorem deliver.wp_proof (wp_deliverable : deliverable.spec (GF := GF) (hG := hG
           iframe
           ipureintro; constructor <;> word
         wp_auto
-        ihave Htc : Draft.tickCredit γ (if q.st.msg.Type' = MsgTimeoutNow then 1 else 0) $$ [Hb]
+        ihave Htc : tickCredit γ (if q.st.msg.Type' = MsgTimeoutNow then 1 else 0) $$ [Hb]
         · have Htn' : q.st.msg.Type' = MsgTimeoutNow := Htn
           rw [ite_eq_left Htn']
           simp only [↓reduceIte]
@@ -231,8 +231,8 @@ theorem deliver.wp_proof (wp_deliverable : deliverable.spec (GF := GF) (hG := hG
           deliver_tail snc
       · rw [decide_eq_false Htn]
         wp_auto
-        imod Draft.tickCredit_zero (GF := GF) γ with Htc0
-        ihave Htc : Draft.tickCredit γ (if q.st.msg.Type' = MsgTimeoutNow then 1 else 0) $$ [Htc0]
+        imod tickCredit_zero (GF := GF) γ with Htc0
+        ihave Htc : tickCredit γ (if q.st.msg.Type' = MsgTimeoutNow then 1 else 0) $$ [Htc0]
         · have Htn' : ¬ q.st.msg.Type' = MsgTimeoutNow := Htn
           rw [ite_eq_right Htn']
           iexact Htc0

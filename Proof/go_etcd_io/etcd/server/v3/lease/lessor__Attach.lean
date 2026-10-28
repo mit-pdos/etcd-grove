@@ -32,6 +32,7 @@ theorem lease.lessor.Attach.wp_proof : lease.lessor.Attach.spec (GF := GF) (hG :
   icases Hinv with ⟨%Hlp, #Hpin, #Hmu⟩
   ihave #Hsync : isPkgInit (PROP := IProp GF) pkg_id.sync $$ []
   · iPkgInit
+  wp_auto
   wp_apply wp_with_defer as %defer defer
   wp_apply sync.RWMutex.wp_Lock_guard $$ [$Hmu] as ⟨Hlk, HR⟩
   iunfold lessorMu at HR

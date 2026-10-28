@@ -41,10 +41,13 @@ theorem checkParallel.wp_proof
     checkParallel.spec (GF := GF) (hG := hG) := by
   intro σ S m hsl sls hs cp dur Hlen Hn
   wp_start as ⟨#Hcci, #Hmf, #Hhsl, #Hparts⟩
+  wp_auto
   wp_apply wp_with_defer as %defer defer
   ihave %Hslen := ownSlice_len _ _ _ $$ Hhsl
   wp_if_destruct
-  · iapply HΦ
+  · simp only [github_com.anishathalye.porcupine.Ok]
+    wp_auto
+    iapply HΦ
     ipureintro
     intro _
     exact ⟨by decide, fun _ => rfl⟩

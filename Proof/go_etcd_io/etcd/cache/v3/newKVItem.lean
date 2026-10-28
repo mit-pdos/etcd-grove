@@ -28,10 +28,13 @@ theorem newKVItem.wp_proof : newKVItem.spec (GF := GF) (hG := hG) := by
   obtain ⟨k, l⟩ := e
   simp only [kvItemIs, kvAt]
   wp_start as ⟨%keySl, #Hl, #Hkey⟩
+  iapply wp_fupd
   wp_auto
   wp_apply wp_bytes_to_string _ k DFrac.discard $$ Hkey as _
-  wp_alloc p as Hp
+  irename «$r0» => Hp
+  generalize «$r0_ptr» = p at *
   ipersist Hp
+  imodintro
   wp_end
 
 end proof

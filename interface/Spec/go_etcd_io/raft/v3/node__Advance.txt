@@ -3,15 +3,44 @@
 -- (`ext`, `ffi`, `go_gctx`, `sem`, the package's `Assumptions`), `GF`, `hG`, `StorageModel GF`, `AllG GF`.
 
 def node.Advance.spec : Prop :=
-  ∀ (γ : NodeNames) (id : w64) (n : Loc) (ds es : List EntryM) (ca : Nat) (cfg : CCState) (p : HardStateM)
-    (L : Option SnapLoan),
-    (γ.mode.isDyn = true → NoConfIn ds ca ds.length) →
+  ∀ (n : Loc) (γ : Cluster) (N : Namespace) (vs : List w64) (snapOk : List LogEntry → List w8 → Prop)
+    (st : NodeDriverState) (es : List EntryM) (L : Option SnapLoan),
+    st.handling = some (es, L) →
       ⊢
         ∀ Φ,
           isPkgInit pkg_id.go_etcd_io.raft.v3 ∗
-              nodeDriverBusy γ id n ds es p L ∗ advReceipt γ.stor es L ∗ nodeCfg γ ca cfg -∗
-            ▷ (nodeDriver γ id n ds p ∗ nodeCfg γ ca cfg ∗ reqWit γ (reqOf L ds) -∗ Φ (intoVal ())) -∗
+              isStaticCluster γ N vs snapOk ∗ nodeDriver n γ N st ∗ advReceipt st.storage es L -∗
+            ▷
+                ((nodeDriver n γ N
+                      { storage := st.storage, delivered := st.delivered, hardState := st.hardState, handling := none } ∗
+                    match L with
+                    | none => ∃ x, storFloor st.storage x ∗ ⌜↑st.delivered.length ≤ uint.Z x⌝
+                    | some val => True) -∗
+                  Φ (intoVal ())) -∗
               WP
                 ((intoVal (methods node.ty.PointerType go!"Advance" (intoVal n)))
                   (intoVal ()))
                 {{ Φ }}
+
+def node.Advance.dynamicSpec : Prop :=
+  ∀ (n : Loc) (γ : Cluster) (N : Namespace) (c0 : Membership) (decode : ConfChangeDecoder) (st : NodeDriverState)
+    (es : List EntryM) (L : Option SnapLoan) (v : ConfigView),
+    st.handling = some (es, L) →
+      NoConfChangeIn st.delivered v.applied st.delivered.length →
+        ⊢
+          ∀ Φ,
+            isPkgInit pkg_id.go_etcd_io.raft.v3 ∗
+                isDynamicCluster γ N c0 decode ∗ nodeDriver n γ N st ∗ advReceipt st.storage es L ∗ nodeConfig n γ N v -∗
+              ▷
+                  ((nodeDriver n γ N
+                        { storage := st.storage, delivered := st.delivered, hardState := st.hardState,
+                          handling := none } ∗
+                      nodeConfig n γ N v ∗
+                        match L with
+                        | none => ∃ x, storFloor st.storage x ∗ ⌜↑st.delivered.length ≤ uint.Z x⌝
+                        | some val => True) -∗
+                    Φ (intoVal ())) -∗
+                WP
+                  ((intoVal (methods node.ty.PointerType go!"Advance" (intoVal n)))
+                    (intoVal ()))
+                  {{ Φ }}

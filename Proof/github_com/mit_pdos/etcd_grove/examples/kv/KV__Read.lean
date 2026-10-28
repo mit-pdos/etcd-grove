@@ -37,7 +37,7 @@ variable [KVStor GF]
 
 theorem KV.Read.wp_proof
     (wp_encode : kv.encode.spec (GF := GF) (hG := hG))
-    (wp_node_ReadIndex : Draft.node.ReadIndex.spec (GF := GF) (hG := hG)) :
+    (wp_node_ReadIndex : node.ReadIndex.spec (GF := GF) (hG := hG)) :
     KV.Read.spec (GF := GF) (hG := hG) := by
   intro γr γp r key L0 Hkey
   wp_start as ⟨#Hreg, Hrdc, #Hlb⟩
@@ -115,10 +115,10 @@ theorem KV.Read.wp_proof
   · iPkgInit
   ihave #Hbg := nodeCtx_background (GF := GF) bgCd
   wp_apply +noauto wp_node_ReadIndex n γr.cluster kvRaftN id b cx
-    (fun ops => iprop(⌜Draft.opsOf l0 <+: ops⌝)) context.backgroundCtxVal
+    (fun ops => iprop(⌜opsOf l0 <+: ops⌝)) context.backgroundCtxVal
     bgCd $$ [$Hraftinit $HisNode $Hbg $Hb $Hrc $Hrdc] as %err -
   -- the answer: a read state of the context, and the value after a committed log at least that
-  -- long; the read took effect at a committed log that long (`Draft.readStateOk_ctx`), whose
+  -- long; the read took effect at a committed log that long (`readStateOk_ctx`), whose
   -- requested entries extend `l0`'s
   wp_auto_lc 2
   wp_apply +noauto wp_handoff_receive (t := go.string) γh ch (readAns γr cx)
@@ -133,13 +133,13 @@ theorem KV.Read.wp_proof
   icases Hgot with ⟨Hw, -⟩
   iunfold readAns at Hw
   icases Hw with ⟨%i, %ap, #Hok, #Hap, %Hi⟩
-  imod Draft.readStateOk_ctx γr.cluster kvRaftN cx i (fun ops => iprop(⌜Draft.opsOf l0 <+: ops⌝)) ap
+  imod readStateOk_ctx γr.cluster kvRaftN cx i (fun ops => iprop(⌜opsOf l0 <+: ops⌝)) ap
       ⊤ CoPset.subseteq_top (by have := Hi.1; word) $$ Hok Hrc Hap with ⟨%l, %Hlen, #Hl, HQ⟩
   imod lc_fupd_elim_later $$ Hlc1 HQ with HQ
   imod lc_fupd_elim_later $$ Hlc2 HQ with HQ
   icases HQ with #%HQ
   wp_auto
-  ihave %Hag := Draft.isCommittedLogLb_agree γr.cluster l ap $$ [Hl Hap]
+  ihave %Hag := isCommittedLogLb_agree γr.cluster l ap $$ [Hl Hap]
   · iframe Hl Hap
   have Hlap : l <+: ap := by
     rcases Hag with h | h

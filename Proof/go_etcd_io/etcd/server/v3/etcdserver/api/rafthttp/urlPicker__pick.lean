@@ -25,6 +25,7 @@ theorem rafthttp.urlPicker.pick.wp_proof :
     rafthttp.urlPicker.pick.spec (GF := GF) (hG := hG) := by
   intro pk P 
   wp_start as #Hpk
+  wp_auto
   wp_apply wp_with_defer as %defer defer
   ihave #Hsync : isPkgInit (PROP := IProp GF) pkg_id.sync $$ []
   · iPkgInit

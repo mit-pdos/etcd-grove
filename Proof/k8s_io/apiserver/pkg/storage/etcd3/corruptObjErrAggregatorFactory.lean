@@ -33,7 +33,6 @@ theorem corruptObjErrAggregatorFactory.wp_proof : corruptObjErrAggregatorFactory
   wp_auto
   cases decide (sint.Z n ≤ sint.Z (W64 0))
   · wp_auto
-    rw [recv_eq_func_mk]
     iapply HΦ
     itrivial
   · wp_auto

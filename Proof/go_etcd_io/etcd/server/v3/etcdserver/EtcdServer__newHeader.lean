@@ -80,8 +80,8 @@ theorem EtcdServer.newHeader.wp_proof
   wp_apply hLead s $$ [] as %l -
   · iframe #
   try wp_auto
-  wp_alloc h as Hh
-  wp_auto
+  irename «$r0» => Hh
+  generalize «$r0_ptr» = h at *
   iapply HΦ
   iframe Hsr
   iexists _, log

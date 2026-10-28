@@ -1,8 +1,8 @@
 /-
 # Raft's node API over an abstract log: the pure vocabulary (2026-10-27)
 
-The records and pure definitions the drafted API (`NodeApiDraft.lean`) is stated in, which its
-implementation (`NodeApiImpl.lean`) shares: an entry of the committed log as a client sees it
+The records and pure definitions the node API (`InvNode.lean`, the specs) is stated in, which its
+implementation (`InvApi.lean`) shares: an entry of the committed log as a client sees it
 (`LogEntry`), the fillers and the requested entries (`opsOf`), the bootstrap log (`BootLog`), the
 state of a node's `Ready` loop (`NodeDriverState`), a `Ready`'s committed entries
 (`committedEntriesAt`). Moved out of the draft unchanged, in its namespace.
@@ -11,6 +11,8 @@ module
 
 public import Proof.go_etcd_io.raft.v3.InvNodeCtx
 public import Proof.go_etcd_io.raft.v3.InvMemstorage
+public import Proof.go_etcd_io.raft.v3.Protocol.CommitWit
+public import Proof.go_etcd_io.raft.v3.ApiVocab
 
 @[expose] public section
 
@@ -18,7 +20,6 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace Draft
 
 open Iris Iris.BI go_etcd_io.raft.v3
 
@@ -153,6 +154,5 @@ instance committedEntriesAt_persistent (sl : GoSlice) (base : Nat) (ce : List Lo
 
 end iprop
 
-end Draft
 end EtcdGrove
 end Perennial

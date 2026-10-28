@@ -88,21 +88,21 @@ def cfgOk (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) : Prop :=
 
 /-- **`Main`'s named premises** (persistent): putget's (`putget.premises`) at `cachekv`'s
 configuration, URLs and peer directory. -/
-def premises (N : Nat) (id : w64) (ctxs : List (List w8)) (boot : List Draft.LogEntry) :
+def premises (N : Nat) (id : w64) (ctxs : List (List w8)) (boot : List LogEntry) :
     IProp GF :=
   iprop(
     (□ ∀ (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (U : BootURLs) (γ : SrvRaft),
       ⌜cfgOk cfg ∧ urlsOk U ∧ γ.vs = [id] ∧ γ.dyn = false ∧
-        γ.boot = Draft.LogEntry.toEntries boot 0⌝ -∗
+        γ.boot = LogEntry.toEntries boot 0⌝ -∗
       letI : MemStorReg GF := ⟨γ.reg⟩; bootstrapContract cfg U γ id ctxs N (ckDir id)) ∗
-    bootMarshal [id] ctxs (Draft.LogEntry.toEntries boot 0) ∗
+    bootMarshal [id] ctxs (LogEntry.toEntries boot 0) ∗
     rnLoggerZapOk ∗ rnSetLoggerOk ∗ rnTimeoutDetectorOk ∗ rnNewStorageOk ∗
     (□ ∀ E : RNEnv GF, ⌜E.T = iprop(True)⌝ -∗ rnTickerOk E) ∗
     rnStopOkStarted ∗
     v3rpc.runsNoRequireLeader)
 
 instance premises_persistent (N : Nat) (id : w64) (ctxs : List (List w8))
-    (boot : List Draft.LogEntry) : Persistent (premises (GF := GF) N id ctxs boot) := by
+    (boot : List LogEntry) : Persistent (premises (GF := GF) N id ctxs boot) := by
   unfold premises; infer_instance
 
 end defs

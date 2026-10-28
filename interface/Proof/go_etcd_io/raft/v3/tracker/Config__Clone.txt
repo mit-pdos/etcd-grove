@@ -6,39 +6,50 @@ def clonedMap (m m' : Loc) (s : GMap w64 Unit) : IProp GF :=
   iprop(⌜m = map.nil ∧ m' = map.nil⌝ ∨ ⌜m ≠ map.nil⌝ ∗ ownMap m' (DFrac.own 1) s)
 
 def cloneMapBody [GoGlobalContext] : Expr :=
-  exceptionDo
-    (Let (BNamed "m") ((GoAlloc (go.uint64.MapType (go.StructType []))) "m")
-      ((exceptionSeq
-          (Lam BAnon
-            (Let (BNamed "$r0")
-              (((FuncResolve go.make2 [go.uint64.MapType (go.StructType [])]) (intoVal ()))
-                (Let (BNamed "$a0") (![go.uint64.MapType (go.StructType [])] "m")
-                  (((FuncResolve go.len [go.uint64.MapType (go.StructType [])]) (intoVal ())) "$a0")))
-              (Let (BNamed "mm")
-                ((GoAlloc (go.uint64.MapType (go.StructType [])))
-                  ((GoZeroVal (go.uint64.MapType (go.StructType []))) (intoVal ())))
-                ((exceptionSeq
-                    (Lam BAnon
-                      ((exceptionSeq (Lam BAnon (return: ![go.uint64.MapType (go.StructType [])] "mm")))
-                        (Let (BNamed "$range") (![go.uint64.MapType (go.StructType [])] "m")
-                          (Let (BNamed "k") ((GoAlloc go.uint64) ((GoZeroVal go.uint64) (intoVal ())))
-                            (((map.forRange go.uint64 (go.StructType [])) "$range")
-                              (Lam (BNamed "$key")
-                                (Lam (BNamed "$value")
-                                  ((exceptionSeq
-                                      (Lam BAnon
-                                        (Let (BNamed "$r0") ((CompositeLiteral (go.StructType [])) (LiteralValue []))
-                                          (do:
-                                            (((map.insert go.uint64) ![go.uint64.MapType (go.StructType [])] "mm")
-                                                ![go.uint64] "k")
-                                              "$r0"))))
-                                    (do: "k" <-[go.uint64] "$key"))))))))))
-                  (do: "mm" <-[go.uint64.MapType (go.StructType [])] "$r0"))))))
-        (if:
-          (Convert go.untypedBool go.bool)
-            (![go.uint64.MapType (go.StructType [])] "m" =⟨go.uint64.MapType (go.StructType [])⟩
-              (Convert go.untypedNil (go.uint64.MapType (go.StructType []))) UntypedNil) then
-          return: (Convert go.untypedNil (go.uint64.MapType (go.StructType []))) UntypedNil else do: intoVal ())))
+  Let (BNamed "$res0")
+    ((GoAlloc (go.uint64.MapType (go.StructType []))) ((GoZeroVal (go.uint64.MapType (go.StructType []))) (intoVal ())))
+    (Seq
+      (exceptionDo
+        (Let (BNamed "m") ((GoAlloc (go.uint64.MapType (go.StructType []))) "m")
+          ((exceptionSeq
+              (Lam BAnon
+                (Let (BNamed "$r0")
+                  (((FuncResolve go.make2 [go.uint64.MapType (go.StructType [])]) (intoVal ()))
+                    (Let (BNamed "$a0") (![go.uint64.MapType (go.StructType [])] "m")
+                      (((FuncResolve go.len [go.uint64.MapType (go.StructType [])]) (intoVal ())) "$a0")))
+                  (Let (BNamed "mm")
+                    ((GoAlloc (go.uint64.MapType (go.StructType [])))
+                      ((GoZeroVal (go.uint64.MapType (go.StructType []))) (intoVal ())))
+                    ((exceptionSeq
+                        (Lam BAnon
+                          ((exceptionSeq
+                              (Lam BAnon
+                                (Let (BNamed "$r0") (![go.uint64.MapType (go.StructType [])] "mm")
+                                  ((exceptionSeq (Lam BAnon (return: intoVal ())))
+                                    (do: "$res0" <-[go.uint64.MapType (go.StructType [])] "$r0")))))
+                            (Let (BNamed "$range") (![go.uint64.MapType (go.StructType [])] "m")
+                              (Let (BNamed "k") ((GoAlloc go.uint64) ((GoZeroVal go.uint64) (intoVal ())))
+                                (((map.forRange go.uint64 (go.StructType [])) "$range")
+                                  (Lam (BNamed "$key")
+                                    (Lam (BNamed "$value")
+                                      ((exceptionSeq
+                                          (Lam BAnon
+                                            (Let (BNamed "$r0") ((CompositeLiteral (go.StructType [])) (LiteralValue []))
+                                              (do:
+                                                (((map.insert go.uint64) ![go.uint64.MapType (go.StructType [])] "mm")
+                                                    ![go.uint64] "k")
+                                                  "$r0"))))
+                                        (do: "k" <-[go.uint64] "$key"))))))))))
+                      (do: "mm" <-[go.uint64.MapType (go.StructType [])] "$r0"))))))
+            (if:
+              (Convert go.untypedBool go.bool)
+                (![go.uint64.MapType (go.StructType [])] "m" =⟨go.uint64.MapType (go.StructType [])⟩
+                  (Convert go.untypedNil (go.uint64.MapType (go.StructType []))) UntypedNil) then
+              Let (BNamed "$r0") ((Convert go.untypedNil (go.uint64.MapType (go.StructType []))) UntypedNil)
+                ((exceptionSeq (Lam BAnon (return: intoVal ())))
+                  (do: "$res0" <-[go.uint64.MapType (go.StructType [])] "$r0")) else
+              do: intoVal ()))))
+      ![go.uint64.MapType (go.StructType [])] "$res0")
 
 theorem clonedMap_C [package_sem : Assumptions] (m m' : Loc) (dq : DFrac) (s : GMap w64 Unit) : ⊢
     ownIdsetC m dq s -∗ clonedMap m m' s -∗ ownIdsetC m dq s ∗ ownIdsetC m' (DFrac.own 1) s

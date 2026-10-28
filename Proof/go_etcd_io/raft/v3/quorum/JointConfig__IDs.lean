@@ -87,7 +87,7 @@ theorem quorum.JointConfig.IDs.wp_proof :
       wp_auto
       wp_for_post
       simp only [named]
-      iframe HΦ Hp
+      iframe HΦ Hp «$res0»
       iexists W64 0 + W64 1, _, _
       iframe i cc m Hmref Hv1
       isplitl []
@@ -130,7 +130,7 @@ theorem quorum.JointConfig.IDs.wp_proof :
     rw [Int.toNat_natCast, ← Hklen, List.take_length] at Hmv
     wp_for_post
     simp only [named]
-    iframe HΦ Hp
+    iframe HΦ Hp «$res0»
     iexists W64 0 + W64 1, _, _
     iframe i cc m Hmref Hv1
     isplitl [Hv0]
@@ -144,7 +144,7 @@ theorem quorum.JointConfig.IDs.wp_proof :
       wp_auto
       wp_for_post
       simp only [named]
-      iframe HΦ Hp
+      iframe HΦ Hp «$res0»
       iexists W64 1 + W64 1, _, _
       iframe i cc m Hmref Hv0
       isplitl []
@@ -187,7 +187,7 @@ theorem quorum.JointConfig.IDs.wp_proof :
     rw [Int.toNat_natCast, ← Hklen, List.take_length] at Hmv
     wp_for_post
     simp only [named]
-    iframe HΦ Hp
+    iframe HΦ Hp «$res0»
     iexists W64 1 + W64 1, _, _
     iframe i cc m Hmref Hv0
     isplitl [Hv1]

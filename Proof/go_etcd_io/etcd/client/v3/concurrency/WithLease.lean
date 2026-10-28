@@ -30,7 +30,6 @@ theorem WithLease.wp_proof : WithLease.spec (GF := GF) (hG := hG) := by
   wp_auto
   ipersist leaseID
   imodintro
-  simp only [recv_eq_func_mk]
   iapply HΦ
   unfold sessionOptSpec
   imodintro

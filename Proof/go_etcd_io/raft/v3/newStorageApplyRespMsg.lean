@@ -35,6 +35,7 @@ theorem newStorageApplyRespMsg.wp_proof
   haveI : go.NotInterface go.int32 := ⟨by unfold go.int32; trivial⟩
   wp_apply wp_MessageType_Enum (W32 22) as %pty Hpty
   rw [show go_etcd_io.raft.v3.LocalApplyThread = #(W64 18446744073709551614) from rfl]
+  iapply wp_fupd
   wp_auto
   imod cellRO_alloc $$ Hpty with #cTy
   imod cellRO_alloc $$ «$v1» with #cTo
@@ -43,7 +44,8 @@ theorem newStorageApplyRespMsg.wp_proof
   simp only [entsRO, entsPts]
   icases Hents with ⟨%els, #Hes, #Hel⟩
   ihave #Hnilb := ownSlice_nil (V := w8) (GF := GF) DFrac.discard
-  wp_alloc ml as Hml
+  irename «$r0» => Hml
+  generalize «$r0_ptr» = ml at *
   imod msgOwn_of_struct ml (⟨zero_val _, pty, «$v1_ptr», «$v2_ptr», «$v3_ptr», null, null, ents,
       null, null, null, null, null, slice.nil, slice.nil, slice.nil, 0⟩ : raftpb.Message) els
       ⟨applyAckM id, ce, none, [], []⟩ ⊤ rfl $$ [Hml] with Hm
@@ -55,7 +57,7 @@ theorem newStorageApplyRespMsg.wp_proof
     isplitl []; · ipureintro; trivial
     iapply ownSlice_nil
   ihave Hm := msgOwn_to_msgIn _ _ (by simp [applyAckM, MsgStorageApplyResp, MsgApp]) $$ Hm
-  wp_auto
+  imodintro
   iapply HΦ
   iexact Hm
 

@@ -33,7 +33,6 @@ theorem WithTTL.wp_proof (hZI : zap.Int64.spec (GF := GF) (hG := hG))
   wp_auto
   ipersist ttl
   imodintro
-  simp only [recv_eq_func_mk]
   iapply HΦ
   unfold sessionOptSpec
   imodintro

@@ -73,6 +73,7 @@ theorem Main.wp_proof
   · iframe; iframe #
   icases Hup with (%Hok | ⟨%Hok, Htok, Hup⟩)
   · subst Hok
+    simp only [github_com.anishathalye.porcupine.Unknown]
     wp_auto
     iapply HΦ; ipureintro; right; rfl
   subst Hok
@@ -128,7 +129,7 @@ theorem Main.wp_proof
   (try wp_auto)
   -- the instance's invariant, at the cluster's start store (empty), for every member's names
   imod (linkvtxn.linkvInv_alloc_boot ρ₁.rd.kv hlog₁ (fun _ _ => True) (ids id₁ id₂ id₃)
-      (Draft.LogEntry.toEntries boot 0) (srvBootLogOk_of_BootLog _ _ _ Hbf.boot) ⊤) $$ Hetcd
+      (LogEntry.toEntries boot 0) (srvBootLogOk_of_BootLog _ _ _ Hbf.boot) ⊤) $$ Hetcd
     with ⟨%γl, #Hlinv, Hst⟩
   ihave #Hlinv₂ : linkvtxn.linkvInv γl ρ₂.rd.kv $$ []
   · rw [linkvInv_congr γl ρ₂.rd.kv ρ₁.rd.kv hst₂]; iexact Hlinv
