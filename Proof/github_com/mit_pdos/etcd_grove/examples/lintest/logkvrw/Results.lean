@@ -5,13 +5,15 @@ Lean-first (no Rocq counterpart).
 
 - **`logkvrw.wp_Main`** (`Link.lean`): `Main()` returns (never panics), so porcupine answered `Ok`
   on the trace of 4 clients of 10 operations of the log-applied register, for executions of
-  fewer than `2^63` steps (`receiptBound GF ≤ 2^63`, `CounterClock`'s premise), given
+  fewer than `2^63` steps (`receiptBound GF ≤ 2^63`, `CounterClock`'s premise) with fewer than
+  `2^30` live threads (`threadBound GF ≤ 2^30`, `New`'s premise), given
   `context`'s `isClosedchanInit`; every callee linked (the register's proofs, the driver's and
   porcupine's), under `[NaInvG GF]` (porcupine's camera of non-atomic invariants, which
   Perennial's `allG` does not provide: `notes/STATUS.md`, "Porcupine").
 - **`logkvrw_adequate`** (`Adequacy.lean`): the same as a closed theorem about the operational
   semantics of `initialize'(); Main()` from a fresh state, with no Iris in its statement and no
-  instance assumed (the bundle `logkvrwGF` provides `NaInvG`). The end-to-end result.
+  instance assumed (the bundle `logkvrwGF` provides `NaInvG`), for executions of fewer than
+  `2^30 - 1` steps. The end-to-end result.
 
 `#print axioms` of each is its trust base.
 -/

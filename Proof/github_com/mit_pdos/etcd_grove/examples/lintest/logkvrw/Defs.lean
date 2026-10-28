@@ -4,8 +4,9 @@ Lean-first (no Rocq counterpart).
 # lintest/logkvrw: the register's model, its abstract state and the server's lock invariant (2026-10-28)
 
 `examples/lintest/logkvrw/logkvrw.go` is a register whose writes go through a log: `Put` appends
-its value to the log under the mutex and waits until the apply goroutine (`applyLoop`) has
-applied it; `Get` reads the applied state. `Check` runs the lintest driver on it.
+its value to the log under the write lock of a read-write mutex and waits until the apply
+goroutine (`applyLoop`) has applied it; `Get` reads the applied state under the read lock.
+`Check` runs the lintest driver on it.
 
 ## The model (`regS`)
 
@@ -21,11 +22,27 @@ The register's abstract state is `regState γ v`: half of a ghost variable `γ`.
 `s` serving it is `isServer γ s` (persistent; the name of the log's requests, `γr`, is hidden in
 it). `Put` and `Get` are logically atomic over
 `regState` with no invariant of their own (mask `∅`): the same specs a register under a mutex
-would have. Nothing in them mentions the log.
+would have. Nothing in them mentions the log. `Get` takes the calling goroutine's thread token
+(`threadTok`) and gives it back: the read lock needs one of the `RWMutex`'s bounded reader
+tokens, which the server's thread pool lends for it (`Perennial/Proof/sync/RWMutexThreads.lean`).
 
-## The lock invariant (`logkvrwR γ s`)
+## The read-write lock (`rdR`, `wInv`)
 
-The mutex guards the log `s.log`, the applied count `s.applied` and the state `s.state`. The
+Perennial's guarded `RWMutex` protects a fractional `P q` (`rdR γ γb s q`): `RLock` gives
+`P rfrac`, `Lock` gives `P 1`. A reader needs only `s.state` and the lock's half of `γ` (to
+agree with the register's state at its linearization point), so `rdR` holds those, fractionally,
+and the half `γb` at `false` ("the writer's part is in `wInv`"). The rest of the base's lock
+invariant (the log, `applied`, the requests and their slots: `wrR`) is not fractional (the
+slots hold atomic updates and postconditions), so it is in an invariant (`wInv`) which a writer
+empties when it locks (flipping `γb` to `true`, with `rdR 1`'s half) and fills back before it
+unlocks. While it holds the write lock, a writer holds the base's whole lock invariant,
+`logkvrwR`, with the write lock `wLocked` (the lock's token and `γb`'s half at `true`):
+`WLock.lean` gives `Lock`/`Unlock` and the condition variable's `Locker` in these terms, so the
+writers' proofs are the base's.
+
+## The lock invariant (`logkvrwR γ s`), as the writers hold it
+
+The write lock guards the log `s.log`, the applied count `s.applied` and the state `s.state`. The
 log is a list of requests `rs` (`Req`: the value, the name of the writer's saved postcondition
 and the name of its ticket), recorded in a monotone ghost list `γr` (a writer keeps a
 persistent witness of its request's index). The state is the other half of `γ`. The first
@@ -42,6 +59,7 @@ module
 public import GeneratedProof.github_com.mit_pdos.etcd_grove.examples.lintest.logkvrw
 public import Proof.github_com.mit_pdos.etcd_grove.examples.lintest.Defs
 public import Perennial.Proof.sync.CondDefs
+public import Perennial.Proof.sync.RWMutexThreads
 public import Perennial.Ghost.SavedProp
 public import Perennial.Ghost.MonoList
 public import Perennial.Ghost.Token
@@ -212,9 +230,10 @@ abbrev appliedAddr (s : Loc) : Loc :=
 abbrev stateAddr (s : Loc) : Loc :=
   structFieldRef github_com.mit_pdos.etcd_grove.examples.lintest.logkvrw.Server go!"state" s
 
-/-- The `Locker` the condition variable was made with: `&s.mu`. -/
+/-- The `Locker` the condition variable was made with: `&s.mu` (a `*RWMutex`, whose
+`Lock`/`Unlock` are the write lock's). -/
 abbrev muLocker (s : Loc) : GoInterfaceOk :=
-  interface.mk (go.GoType.PointerType sync.Mutex.ty) #(muAddr s)
+  interface.mk (go.GoType.PointerType sync.RWMutex.ty) #(muAddr s)
 
 end addrs
 
@@ -268,11 +287,112 @@ def logkvrwR (γ γr : GName) (s : Loc) : IProp GF :=
     ([∗list] r ∈ rs.take (uint.nat a), doneSlot r) ∗
     ([∗list] r ∈ rs.drop (uint.nat a), pendSlot γ r))
 
+/-- The writer's part of the lock invariant: the log, `applied` and the requests' slots (the
+base's `logkvrwR` without the state, see the file header). -/
+def wrR (γ γr : GName) (s : Loc) : IProp GF :=
+  iprop(∃ (sl : GoSlice) (rs : List Req) (a : w64),
+    logAddr s ↦ sl ∗ sl ↦* rs.map Prod.fst ∗ ownSliceCap GoString sl (DFrac.own 1) ∗
+    appliedAddr s ↦ a ∗ monoListAuthOwn γr 1 rs ∗
+    ⌜uint.nat a ≤ rs.length⌝ ∗
+    ([∗list] r ∈ rs.take (uint.nat a), doneSlot r) ∗
+    ([∗list] r ∈ rs.drop (uint.nat a), pendSlot γ r))
+
+/-- The lock invariant splits into the writer's part and the state. -/
+theorem logkvrwR_split (γ γr : GName) (s : Loc) :
+    logkvrwR γ γr s ⊢
+      wrR γ γr s ∗ ∃ st : GoString, stateAddr s ↦ st ∗ ghostVar γ (1 : Qp).half st := by
+  iintro H
+  iunfold logkvrwR at H
+  icases H with ⟨%sl, %rs, %a, %st, Hlog, Hsl, Hcap, Happ, Hst, Hg, Hrs, %Ha, Hdone, Hpend⟩
+  isplitl [Hlog Hsl Hcap Happ Hrs Hdone Hpend]
+  · iunfold wrR
+    iexists sl, rs, a
+    iframe
+    ipureintro; exact Ha
+  · iexists st
+    iframe
+
+/-- ... and back. -/
+theorem logkvrwR_join (γ γr : GName) (s : Loc) (st : GoString) :
+    wrR γ γr s ∗ stateAddr s ↦ st ∗ ghostVar γ (1 : Qp).half st ⊢ logkvrwR γ γr s := by
+  iintro ⟨H, Hst, Hg⟩
+  iunfold wrR at H
+  icases H with ⟨%sl, %rs, %a, Hlog, Hsl, Hcap, Happ, Hrs, %Ha, Hdone, Hpend⟩
+  iunfold logkvrwR
+  iexists sl, rs, a, st
+  iframe
+  ipureintro; exact Ha
+
+/-- What the `RWMutex` guards, at fraction `q` (see the file header): the state, the lock's
+half of `γ` at it, and `γb`'s half at `false`. -/
+def rdR (γ γb : GName) (s : Loc) (q : Qp) : IProp GF :=
+  iprop(∃ st : GoString, stateAddr s ↦{DFrac.own q} st ∗ ghostVar γ q.half st ∗
+    ghostVar γb q.half false)
+
+instance rdR_timeless (γ γb : GName) (s : Loc) (q : Qp) : Timeless (rdR (GF := GF) γ γb s q) := by
+  unfold rdR; infer_instance
+
+instance rdR_fractional (γ γb : GName) (s : Loc) : Fractional (rdR (GF := GF) γ γb s) where
+  fractional q1 q2 := by
+    have hpt : ∀ v : GoString, (stateAddr s ↦{DFrac.own (q1 + q2)} v : IProp GF) ⊣⊢
+        stateAddr s ↦{DFrac.own q1} v ∗ stateAddr s ↦{DFrac.own q2} v :=
+      fun v => (typedPointsto_dfractional (GF := GF) _ v).dfractional (DFrac.own q1) (DFrac.own q2)
+    have hgv := fun (v : GoString) =>
+      (ghostVar_half_fractional (GF := GF) γ v).fractional q1 q2
+    have hgb := (ghostVar_half_fractional (GF := GF) γb false).fractional q1 q2
+    refine ⟨?_, ?_⟩
+    · iintro H
+      unfold rdR
+      icases H with ⟨%st, Hst, Hg, Hb⟩
+      icases (hpt st).1 $$ Hst with ⟨Hst1, Hst2⟩
+      icases (hgv st).1 $$ Hg with ⟨Hg1, Hg2⟩
+      icases hgb.1 $$ Hb with ⟨Hb1, Hb2⟩
+      isplitl [Hst1 Hg1 Hb1]
+      · iexists st; iframe
+      · iexists st; iframe
+    · iintro ⟨H1, H2⟩
+      unfold rdR
+      icases H1 with ⟨%st, Hst1, Hg1, Hb1⟩
+      icases H2 with ⟨%st2, Hst2, Hg2, Hb2⟩
+      icombine Hg1 Hg2 gives % ⟨_, Heq⟩
+      subst Heq
+      iexists st
+      isplitl [Hst1 Hst2]
+      · iapply (hpt st).2; iframe
+      isplitl [Hg1 Hg2]
+      · iapply (hgv st).2; iframe
+      iapply hgb.2; iframe
+
+/-- The writer's part, unless a writer holds it (`γb` at `true`; see the file header). -/
+def wInv (γ γr γb : GName) (s : Loc) : IProp GF :=
+  iprop(ghostVar γb (1 : Qp).half true ∨ (ghostVar γb (1 : Qp).half false ∗ wrR γ γr s))
+
+/-- The namespace of the server's invariants. -/
+abbrev logkvrwN : Namespace := nroot.@"logkvrw"
+/-- `wInv`'s namespace. -/
+abbrev wN : Namespace := logkvrwN.@"w"
+/-- The namespace of the reader tokens' thread pool. -/
+abbrev poolN : Namespace := logkvrwN.@"pool"
+
+/-- The write lock of `s.mu`, as the writers use it (persistent): the `RWMutex`'s guard and the
+writer's part's invariant. -/
+def wLock (γ γr γb : GName) (s : Loc) : IProp GF :=
+  iprop(sync.isRWMutexGuard (muAddr s) (rdR γ γb s) ∗ inv wN (wInv γ γr γb s))
+
+instance wLock_persistent (γ γr γb : GName) (s : Loc) : Persistent (wLock (GF := GF) γ γr γb s) := by
+  unfold wLock; infer_instance
+
+/-- The write lock held: the `RWMutex`'s token and `γb` at `true`. -/
+def wLocked (γ γb : GName) (s : Loc) : IProp GF :=
+  iprop(sync.ownRWMutexWLocked (muAddr s) (rdR γ γb s) ∗ ghostVar γb (1 : Qp).half true)
+
 /-- **The server `s` serves the register `γ`** (persistent): its condition variable (fixed
-after `New`) over its mutex, and the mutex with its lock invariant. -/
+after `New`) over its `RWMutex`'s write lock, the write lock (`wLock`), and the thread pool of
+the `RWMutex`'s reader tokens. -/
 def isServer (γ : GName) (s : Loc) : IProp GF :=
-  iprop(∃ (γr : GName) (c : Loc), condAddr s ↦□ c ∗ sync.isCond c (muLocker s) ∗
-    sync.isMutex (muAddr s) (logkvrwR γ γr s))
+  iprop(∃ (γr γb γp : GName) (c : Loc), condAddr s ↦□ c ∗ sync.isCond c (muLocker s) ∗
+    wLock γ γr γb s ∗
+    threadPool.isThreadPool poolN γp (sync.ownRWMutex (muAddr s) (rdR γ γb s)))
 
 instance isServer_persistent (γ : GName) (s : Loc) : Persistent (isServer (GF := GF) γ s) := by
   unfold isServer; infer_instance

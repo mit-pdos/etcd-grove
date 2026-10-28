@@ -1,7 +1,10 @@
 /- Lean-first (no Rocq counterpart).
 
 `New()` (logkvrw.go): a fresh server, serving a fresh register (`isServer γ s`) at `""`
-(`regState γ ""`), with its apply goroutine started.
+(`regState γ ""`), with its apply goroutine started. If fewer than `2^30` threads can be live
+(`threadBound GF ≤ 2^30`): the server lends its `RWMutex`'s reader tokens to live goroutines
+(`isServer`), and the lock has `2^30 - 1` of them (`rwmutexMaxReaders`; more readers at once
+would overflow its reader count).
 -/
 module
 
@@ -27,6 +30,7 @@ variable [package_sem : github_com.mit_pdos.etcd_grove.examples.lintest.logkvrw.
 
 /-- See the file header. -/
 abbrev New.spec : Prop :=
+  threadBound GF ≤ 2 ^ 30 →
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.lintest.logkvrw }}
     (App (Val (@! github_com.mit_pdos.etcd_grove.examples.lintest.logkvrw.New)) (Val #()))
   {{ (s : Loc), RET #s; ∃ γ : GName, isServer γ s ∗ regState (GF := GF) γ go!"" }}

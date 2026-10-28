@@ -1,7 +1,9 @@
 /- Lean-first (no Rocq counterpart).
 
 `(*Server).Get()` (logkvrw.go): logically atomic, with no invariant of its own (mask `∅`): it
-returns the register's state at its linearization point.
+returns the register's state at its linearization point. It takes the calling goroutine's thread
+token and gives it back: its read lock holds one of the `RWMutex`'s bounded reader tokens,
+which the server lends to live goroutines (`isServer`, `Defs.lean`).
 -/
 module
 
@@ -28,11 +30,12 @@ variable [package_sem : github_com.mit_pdos.etcd_grove.examples.lintest.logkvrw.
 /-- See the file header. -/
 abbrev Server.Get.spec : Prop :=
   ∀ (γ : GName) (s : Loc),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.lintest.logkvrw ∗ isServer γ s }}
+  {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.lintest.logkvrw ∗ isServer γ s ∗
+      threadTok }}
     <<{ ∀∀ x, regState γ x }>>
       (App (Val (s @!! go.GoType.PointerType github_com.mit_pdos.etcd_grove.examples.lintest.logkvrw.Server.ty @!! go!"Get")) (Val #())) @@ ∅
     <<{ regState γ x }>>
-  {{ RET #x; True }}
+  {{ RET #x; threadTok }}
 
 end spec
 

@@ -6,7 +6,8 @@ through. A write calls `Put`, whose atomic update is the caller's: at its linear
 the register goes to the written value, and the model's step on the write with the output `""`
 (what `Apply` then returns) is that value (`regStep_put`). A read calls `Get`, whose update
 leaves the register at `x` and returns `x`: the model's step on the read with the output `x`
-leaves it at `x` (`regStep_get`).
+leaves it at `x` (`regStep_get`). The caller's thread token (`applySpecTok`) goes to `Get`, which
+needs it for its read lock, and back.
 -/
 module
 
@@ -41,10 +42,10 @@ theorem Server.Apply.wp_proof
     Server.Apply.spec (GF := GF) (hG := hG) := by
   intro γ s
   iintro #Hpkg #Hs
-  unfold applySpec
+  unfold applySpecTok
   iintro %i
   imodintro
-  iintro %Φ %Hin HAU
+  iintro %Φ ⟨%Hin, Htt⟩ HAU
   obtain ⟨b, w, rfl⟩ := Hin
   wp_method_call
   wp_call
@@ -70,13 +71,14 @@ theorem Server.Apply.wp_proof
     iintro -
     wp_auto
     iapply HΦ
+    iframe Htt
     simp only [regS]
     ipureintro
     exact ⟨true, w, rfl, nofun⟩
   | false =>
     wp_auto
     -- `s.Get()`: its update is the caller's, with the output the state read
-    wp_apply_core (wp_Get γ s) $$ [$Hpkg $Hs]
+    wp_apply_core (wp_Get γ s) $$ [$Hpkg $Hs $Htt]
     simp only [LawfulSet.diff_empty]
     imod HAU with ⟨%x, Hx, Hclose⟩
     imodintro
@@ -90,9 +92,10 @@ theorem Server.Apply.wp_proof
       rw [regStep_get]
       simp
     imodintro
-    iintro -
+    iintro Htt
     wp_auto
     iapply HΦ
+    iframe Htt
     simp only [regS]
     ipureintro
     exact ⟨false, w, rfl, fun _ => ⟨_, rfl⟩⟩

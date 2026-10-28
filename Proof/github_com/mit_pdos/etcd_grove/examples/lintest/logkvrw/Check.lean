@@ -1,7 +1,8 @@
 /-
 Lean-first (no Rocq counterpart).
 
-The proof of `Check`: `Run`'s premises, met by the fresh server (`New`), its method value
+The proof of `Check`: the premises of `RunTok` (`Run`'s spec over `applySpecTok`, a local copy:
+`DriverTok.lean`), met by the fresh server (`New`), its method value
 `s.Apply` (`Server.Apply.spec`, no invariant of its own: `Eapp = ∅`), its model (`Model`), the
 generator closure (`genSpec`: for a client's index `id ≥ 0`, `vals[id%4]` is in bounds, and it
 returns a boxed `Op`, `regInOk`; the slice `vals` it reads is made read-only for it) and the
@@ -13,7 +14,7 @@ public import Spec.github_com.mit_pdos.etcd_grove.examples.lintest.logkvrw.Check
 public import Spec.github_com.mit_pdos.etcd_grove.examples.lintest.logkvrw.Model
 public import Spec.github_com.mit_pdos.etcd_grove.examples.lintest.logkvrw.New
 public import Spec.github_com.mit_pdos.etcd_grove.examples.lintest.logkvrw.Server__Apply
-public import Spec.github_com.mit_pdos.etcd_grove.examples.lintest.Run
+public import Spec.github_com.mit_pdos.etcd_grove.examples.lintest.logkvrw.RunTok
 
 @[expose] public section
 
@@ -48,15 +49,15 @@ variable [sem : go.Semantics]
 variable [package_sem : github_com.mit_pdos.etcd_grove.examples.lintest.logkvrw.Assumptions]
 
 theorem Check.wp_proof
-    (wp_Run : lintest.Run.spec (GF := GF) (hG := hG))
+    (wp_RunTok : RunTok.spec (GF := GF) (hG := hG))
     (wp_Model : Model.spec (GF := GF) (hG := hG))
     (wp_New : New.spec (GF := GF) (hG := hG))
     (wp_Apply : Server.Apply.spec (GF := GF) (hG := hG)) :
     Check.spec (GF := GF) (hG := hG) := by
-  intro clockVal t0 Eclk clock clients ops dur HN H0 H31 Hops Hmul
+  intro clockVal t0 Eclk clock clients ops dur Htb HN H0 H31 Hops Hmul
   wp_start as ⟨#Hcc, #Hclk, Ht0⟩
   wp_auto
-  wp_apply wp_New as %s ⟨%γ, #Hs, Hst⟩
+  wp_apply (wp_New Htb) as %s ⟨%γ, #Hs, Hst⟩
   wp_apply wp_slice_literal (V := GoString) [go!"a", go!"b", go!"c", go!"d"]
   isplitr
   · ipureintro; rfl
@@ -68,7 +69,7 @@ theorem Check.wp_proof
   imod ownSlice_persist $$ Hvals with #Hvals
   wp_apply wp_Model as %m #Hm
   ihave #Happ := wp_Apply γ s $$ Hpkg Hs
-  wp_apply wp_Run GoString regS m _ _ clock regInOk (regState γ) clockVal t0 ∅ Eclk clients ops
+  wp_apply wp_RunTok GoString regS m _ _ clock regInOk (regState γ) clockVal t0 ∅ Eclk clients ops
     dur (by simp) HN H0 H31 Hops Hmul $$ [Hst Ht0]
   · iframe
     iframe #

@@ -1,7 +1,7 @@
 /-
 Lean-first (no Rocq counterpart).
 
-The proof of `(*Server).Put`: under the mutex, the write's entry is appended to the log, and
+The proof of `(*Server).Put`: under the write lock, the write's entry is appended to the log, and
 its pending slot (`pendSlot`) gets the caller's atomic update, with the update's result `P`
 (`True -∗ Φ #()`) saved under a fresh name and a fresh ticket kept by `Put`; the request is
 recorded in the requests' monotone list, `Put` keeping a witness of its index. The apply
@@ -14,12 +14,11 @@ saved proposition's agreement goes with `Unlock`'s step.
 module
 
 public import Spec.github_com.mit_pdos.etcd_grove.examples.lintest.logkvrw.Server__Put
-public import Perennial.Spec.sync.Mutex__Lock
-public import Perennial.Spec.sync.Mutex__Unlock
 public import Perennial.Spec.sync.Cond__Wait
 public import Perennial.Spec.sync.Cond__Broadcast
 public import Perennial.Proof.sync.Link
 public import Perennial.Proof.sync.Results
+public import Proof.github_com.mit_pdos.etcd_grove.examples.lintest.logkvrw.WLock
 
 @[expose] public section
 
@@ -48,12 +47,12 @@ theorem Server.Put.wp_proof : Server.Put.spec (GF := GF) (hG := hG) := by
   ihave #Hsync : isPkgInit (PROP := IProp GF) pkg_id.sync $$ []
   · iPkgInit
   iunfold isServer at Hs
-  icases Hs with ⟨%γr, %c, #Hc, #Hcond, #Hmu⟩
-  ihave #Hlocker := sync.Mutex_is_Locker (muAddr s) (logkvrwR γ γr s) $$ Hsync Hmu
+  icases Hs with ⟨%γr, %γb, %γp, %c, #Hc, #Hcond, #Hw, #Hpool⟩
+  ihave #Hlocker := wLocker γ γr γb s $$ Hsync Hw
   wp_method_call
   wp_call
   wp_auto
-  wp_apply sync.Mutex.wp_Lock (muAddr s) (logkvrwR γ γr s) $$ [$Hmu] as ⟨Hlocked, HR⟩
+  wp_apply wp_wLock γ γr γb s $$ [$Hsync $Hw] as ⟨Hlocked, HR⟩
   iunfold logkvrwR at HR
   icases HR with ⟨%sl, %rs, %a, %st, Hlog, Hsl, Hcap, Happ, Hst, Hg, Hrs, %Ha, Hdone, Hpend⟩
   wp_auto
@@ -97,7 +96,7 @@ theorem Server.Put.wp_proof : Server.Put.spec (GF := GF) (hG := hG) := by
       iexists sl1, rs1, a1, st1
       iframe
       ipureintro; exact Ha1
-    wp_apply sync.Cond.wp_Wait c (muLocker s) (iprop(sync.ownMutex (muAddr s) ∗ logkvrwR γ γr s))
+    wp_apply sync.Cond.wp_Wait c (muLocker s) (iprop(wLocked γ γb s ∗ ▷ logkvrwR γ γr s))
       $$ [Hlocked HR] as ⟨Hlocked, HR⟩
     · isplitr
       · iexact Hcond
@@ -148,8 +147,8 @@ theorem Server.Put.wp_proof : Server.Put.spec (GF := GF) (hG := hG) := by
         iframe
         ipureintro; exact Ha1
       wp_auto
-      wp_apply sync.Mutex.wp_Unlock (muAddr s) (logkvrwR γ γr s) $$ [$Hmu $Hlocked HR]
-      · inext; iexact HR
+      wp_apply wp_wUnlock γ γr γb s $$ [$Hsync $Hw $Hlocked HR]
+      · iexact HR
       iapply HA
       itrivial
     · iexfalso

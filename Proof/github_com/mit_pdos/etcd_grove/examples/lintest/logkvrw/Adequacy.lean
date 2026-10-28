@@ -7,7 +7,7 @@ A closed theorem about the operational semantics of `Main()`
 `initialize'(); Main()` -- the logkvrw package's initialization (which initializes its
 dependencies, porcupine and `context` among them, then the package) followed by `Main` --
 started from a fresh state (no package initialized, one thread), for every real execution of
-fewer than `2^63` steps, never gets stuck, no thread of it ends in a panic, and the main
+fewer than `2^30 - 1` steps, never gets stuck, no thread of it ends in a panic, and the main
 thread's result, if it has one, is `#()`.
 
 `Main` runs `Check(lintest.CounterClock(), 4, 10, 0)` -- 4 goroutines of 10 operations each
@@ -25,8 +25,11 @@ generated; `context`'s `isClosedchanInit`, which `Main.spec` takes, from `contex
 
 - **The length bound.** `CounterClock`'s spec takes `receiptBound GF ≤ 2^63` (time receipts
   bound the `atomic.Int64` the clock increments, so it does not wrap), and `goose_adequacy`'s
-  receipt bound `N` must exceed the execution's length `n`: `N = n + 1 ≤ 2^63`, so the theorem
-  is about executions of `n < 2^63` steps.
+  receipt bound `N` must exceed the execution's length `n`: `N = n + 1 ≤ 2^63`. `New`'s spec
+  takes `threadBound GF ≤ 2^30` (the server's `RWMutex` admits `2^30 - 1` readers at once; its
+  reader tokens are lent to live threads), and the thread bound is `T = n + 2` (an execution of
+  `n` steps has fewer than `n + 2` live threads): `n + 2 ≤ 2^30`, so the theorem is about
+  executions of `n < 2^30 - 1` steps (the base's: `n < 2^63`).
 - **Non-atomic invariants.** Porcupine's `checkSingle` shares the model's state values in
   iris-lean's non-atomic invariants (`porcupine/Shared.lean`), whose camera (`NaInvF`) is not in
   Perennial's `allG`; the porcupine results take `[NaInvG GF]`. Here `logkvrwGF` has a slot for
@@ -109,7 +112,7 @@ def logkvrwProgram [GoSemanticsFunctions] : Expr :=
 
 /-- **Porcupine accepts every trace of the log-applied register.** Every real execution of
 `logkvrwProgram` (the logkvrw package's initialization, then `Main()`) from a fresh state --
-no package initialized (`IsInit`), one live thread -- of `n < 2^63` steps: if the main thread
+no package initialized (`IsInit`), one live thread -- of `n < 2^30 - 1` steps: if the main thread
 has finished, its result is `#()`; no thread is stuck (each is a value or can step); no thread
 has ended in a panic.
 
@@ -128,16 +131,17 @@ theorem logkvrw_adequate [lctx : GoLocalContext] [sem : go.Semantics]
     [package_sem : github_com.mit_pdos.etcd_grove.examples.lintest.logkvrw.Assumptions]
     (σ : state) (g : GlobalState) (Hlctx : σ.goState.goLctx = lctx) (Hinit : IsInit σ)
     (Hthreads : σ.threads = 1)
-    (n : Nat) (Hn : n < 2 ^ 63) (κs : List Observation) (t2 : List Expr) (σ2 : CfgState)
+    (n : Nat) (Hn : n < 2 ^ 30 - 1) (κs : List Observation) (t2 : List Expr) (σ2 : CfgState)
     (Hsteps : RealNsteps n ([logkvrwProgram], ((σ, g) : CfgState)) κs (t2, σ2)) :
     (∀ v t2', t2 = Val v :: t2' → v = #()) ∧
     (∀ e2, e2 ∈ t2 → RealNotStuck e2 σ2) ∧
     (∀ v, Val v ∈ t2 → v.isPanic = false) := by
   refine init_adequate (GF := logkvrwGF) github_com.mit_pdos.etcd_grove.examples.lintest.logkvrw.initialize' ((@! github_com.mit_pdos.etcd_grove.examples.lintest.logkvrw.Main) #())
     (fun v => v = #()) (fun p h => intoVal_ne_PanicV () p h.symm) σ g ⟨trivial, trivial⟩ ⟨trivial, trivial⟩ Hlctx Hinit
-    Hthreads n κs t2 σ2 Hsteps fun hG HN _ => ?_
+    Hthreads n κs t2 σ2 Hsteps fun hG HN HT => ?_
   letI : HeapGS .hasLC logkvrwGF := heapWith hG lctx
   have Hbound : receiptBound logkvrwGF ≤ 2 ^ 63 := by rw [HN]; omega
+  have Htb : threadBound logkvrwGF ≤ 2 ^ 30 := by rw [HT]; omega
   unfold progOk0
   refine ⟨_, _, github_com.mit_pdos.etcd_grove.examples.lintest.logkvrw.wp_initialize' _
     github_com.mit_pdos.etcd_grove.examples.lintest.logkvrw.getIsPkgInit_wf, ?_⟩
@@ -145,7 +149,7 @@ theorem logkvrw_adequate [lctx : GoLocalContext] [sem : go.Semantics]
   ihave #Hcc : context.isClosedchanInit (GF := logkvrwGF) $$ []
   · iapply context.isClosedchanInit_of_init
     iPkgInit
-  wp_apply (logkvrw.wp_Main Hbound) $$ [Hpkg Hcc]
+  wp_apply (logkvrw.wp_Main Hbound Htb) $$ [Hpkg Hcc]
   · iframe #
   ipureintro
   rfl

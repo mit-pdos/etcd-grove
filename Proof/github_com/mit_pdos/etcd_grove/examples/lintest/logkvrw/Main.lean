@@ -41,10 +41,10 @@ theorem Main.wp_proof
     (wp_CounterClock : lintest.CounterClock.spec (GF := GF) (hG := hG))
     (wp_Check : Check.spec (GF := GF) (hG := hG)) :
     Main.spec (GF := GF) (hG := hG) := by
-  intro Hbound
+  intro Hbound Htb
   wp_start as #Hcc
   wp_apply wp_CounterClock logkvrwClockN Hbound as %f ⟨%clockVal, #Hclk, Ht0⟩
-  wp_apply wp_Check clockVal (W64 0) ↑logkvrwClockN f (W64 4) (W64 10) (W64 0)
+  wp_apply wp_Check clockVal (W64 0) ↑logkvrwClockN f (W64 4) (W64 10) (W64 0) Htb
     lintestN_logkvrwClockN (by decide) (by decide) (by decide) (by decide) $$ [Ht0]
     as %r %Hr
   · iframe

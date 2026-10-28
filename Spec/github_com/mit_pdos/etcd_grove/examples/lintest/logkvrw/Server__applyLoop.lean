@@ -1,7 +1,7 @@
 /- Lean-first (no Rocq counterpart).
 
 `(*Server).applyLoop()` (logkvrw.go): the apply goroutine; it never returns. Its only
-resource is the server (`isServer`): whatever it applies, it applies under the mutex, against
+resource is the server (`isServer`): whatever it applies, it applies under the write lock, against
 the lock invariant (an internal spec: only `New` calls it).
 -/
 module

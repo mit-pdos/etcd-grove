@@ -1,12 +1,15 @@
 /- Lean-first (no Rocq counterpart).
 
 `(*Server).Apply` (logkvrw.go): the method value `s.Apply` is logically atomic against the
-register's model (`applySpec`, `Proof/.../lintest/Defs.lean`), over the register's abstract state
-(`regState γ`), with no invariant of its own (`Eapp = ∅`), for a boxed `Op` input (`regInOk`).
+register's model (`applySpecTok`, `Proof/.../lintest/logkvrw/DriverTok.lean`: the driver's
+`applySpec` with the calling goroutine's thread token, which `Get` needs), over the register's
+abstract state (`regState γ`), with no invariant of its own (`Eapp = ∅`), for a boxed `Op` input
+(`regInOk`).
 -/
 module
 
 public import Proof.github_com.mit_pdos.etcd_grove.examples.lintest.logkvrw.Defs
+public import Proof.github_com.mit_pdos.etcd_grove.examples.lintest.logkvrw.DriverTok
 
 @[expose] public section
 
@@ -31,7 +34,7 @@ abbrev Server.Apply.spec : Prop :=
   ∀ (γ : GName) (s : Loc),
   ⊢ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.lintest.logkvrw -∗
     isServer γ s -∗
-    applySpec (regS (GF := GF)) regInOk (regState γ) ∅
+    applySpecTok (regS (GF := GF)) regInOk (regState γ) ∅
       (methods (go.GoType.PointerType github_com.mit_pdos.etcd_grove.examples.lintest.logkvrw.Server.ty) go!"Apply" #s)
 
 end spec

@@ -4,7 +4,8 @@
 the generator `func(id int) any` (a write of `vals[id%4]` for an even client, a read for an odd
 one), with the given clock. For any clock with `clockSpec` (whose invariants are not
 `lintestN`), under `Run`'s bounds on `clients` and `ops`, the result is never `Illegal`, and it
-is `Ok` if `timeout ≤ 0`.
+is `Ok` if `timeout ≤ 0`. If fewer than `2^30` threads can be live (`New`'s premise: the server's
+`RWMutex` admits `2^30 - 1` readers at once).
 -/
 module
 
@@ -32,7 +33,7 @@ variable [package_sem : github_com.mit_pdos.etcd_grove.examples.lintest.logkvrw.
 abbrev Check.spec : Prop :=
   ∀ (clockVal : w64 → IProp GF) (t0 : w64) (Eclk : CoPset) (clock : GoFunc)
     (clients ops dur : w64),
-  (↑lintestN : CoPset) ⊆ ⊤ \ Eclk →
+  threadBound GF ≤ 2 ^ 30 → (↑lintestN : CoPset) ⊆ ⊤ \ Eclk →
   0 ≤ sint.Z clients → sint.Z clients < 2 ^ 31 → 0 ≤ sint.Z ops →
   sint.Z clients * sint.Z ops < 2 ^ 60 →
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.lintest.logkvrw ∗

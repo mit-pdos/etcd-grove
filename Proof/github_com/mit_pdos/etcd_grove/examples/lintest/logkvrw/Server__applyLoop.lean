@@ -1,7 +1,7 @@
 /-
 Lean-first (no Rocq counterpart).
 
-The proof of `(*Server).applyLoop`: the loop holds the mutex and its lock invariant
+The proof of `(*Server).applyLoop`: the loop holds the write lock and its lock invariant
 (`logkvrwR`) between `Wait`s. Applying the entry at `applied` is the linearization point of its
 writer's `Put`: the entry's pending slot (`pendSlot`) holds the writer's atomic update, which
 takes the register (the caller's half of the ghost variable, agreeing with the lock
@@ -11,11 +11,11 @@ entry's done slot (`doneSlot`), where the writer collects it.
 module
 
 public import Spec.github_com.mit_pdos.etcd_grove.examples.lintest.logkvrw.Server__applyLoop
-public import Perennial.Spec.sync.Mutex__Lock
 public import Perennial.Spec.sync.Cond__Wait
 public import Perennial.Spec.sync.Cond__Broadcast
 public import Perennial.Proof.sync.Link
 public import Perennial.Proof.sync.Results
+public import Proof.github_com.mit_pdos.etcd_grove.examples.lintest.logkvrw.WLock
 
 @[expose] public section
 
@@ -43,10 +43,10 @@ theorem Server.applyLoop.wp_proof : Server.applyLoop.spec (GF := GF) (hG := hG) 
   ihave #Hsync : isPkgInit (PROP := IProp GF) pkg_id.sync $$ []
   · iPkgInit
   iunfold isServer at Hs
-  icases Hs with ⟨%γr, %c, #Hc, #Hcond, #Hmu⟩
-  ihave #Hlocker := sync.Mutex_is_Locker (muAddr s) (logkvrwR γ γr s) $$ Hsync Hmu
+  icases Hs with ⟨%γr, %γb, %γp, %c, #Hc, #Hcond, #Hw, #Hpool⟩
+  ihave #Hlocker := wLocker γ γr γb s $$ Hsync Hw
   wp_auto
-  wp_apply sync.Mutex.wp_Lock (muAddr s) (logkvrwR γ γr s) $$ [$Hmu] as ⟨Hlocked, HR⟩
+  wp_apply wp_wLock γ γr γb s $$ [$Hsync $Hw] as ⟨Hlocked, HR⟩
   iclear HΦ
   wp_for
   wp_for
@@ -119,7 +119,7 @@ theorem Server.applyLoop.wp_proof : Server.applyLoop.spec (GF := GF) (hG := hG) 
     simp only [Hd, Bool.false_eq_true, ite_false]
     wp_auto
     wp_apply sync.Cond.wp_Broadcast $$ [$Hcond]
-    wp_apply sync.Cond.wp_Wait c (muLocker s) (iprop(sync.ownMutex (muAddr s) ∗ logkvrwR γ γr s))
+    wp_apply sync.Cond.wp_Wait c (muLocker s) (iprop(wLocked γ γb s ∗ ▷ logkvrwR γ γr s))
       $$ [Hlocked HR] as ⟨Hlocked, HR⟩
     · isplitr
       · iexact Hcond

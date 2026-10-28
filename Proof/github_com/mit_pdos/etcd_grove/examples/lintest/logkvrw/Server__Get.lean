@@ -1,16 +1,16 @@
 /-
 Lean-first (no Rocq counterpart).
 
-The proof of `(*Server).Get`: the linearization point is right after `s.mu.Lock()`: the lock
-invariant's half of the register's ghost variable agrees with the caller's (`regState`), and
-`s.state` is its value, which the critical section reads and returns.
+The proof of `(*Server).Get`: the caller's thread token borrows a reader token from the server's
+pool for the read lock, and gets it back after. The linearization point is right after
+`s.mu.RLock()`: the read lock's share of the lock's half of the register's ghost variable
+(`rdR`) agrees with the caller's (`regState`), and `s.state` is its value, which the critical
+section reads and returns.
 -/
 module
 
 public import Spec.github_com.mit_pdos.etcd_grove.examples.lintest.logkvrw.Server__Get
-public import Perennial.Spec.sync.Mutex__Lock
-public import Perennial.Spec.sync.Mutex__Unlock
-public import Perennial.Proof.sync.Link
+public import Perennial.Proof.sync.Results
 
 @[expose] public section
 
@@ -35,15 +35,21 @@ variable [package_sem : github_com.mit_pdos.etcd_grove.examples.lintest.logkvrw.
 
 theorem Server.Get.wp_proof : Server.Get.spec (GF := GF) (hG := hG) := by
   intro γ s
-  iintro %Φ ⟨#Hpkg, #Hs⟩ HAU
+  iintro %Φ ⟨#Hpkg, #Hs, Htt⟩ HAU
   iunfold isServer at Hs
-  icases Hs with ⟨%γr, %c, #Hc, #Hcond, #Hmu⟩
+  icases Hs with ⟨%γr, %γb, %γp, %c, #Hc, #Hcond, #Hw, #Hpool⟩
+  -- a reader token, for the thread token
+  iapply fupd_wp
+  imod threadPool.borrow poolN γp _ ⊤ (fun _ _ => CoPset.mem_full) $$ [Hpool Htt]
+    with ⟨Hown, Hloan⟩
+  · iframe #; iframe
+  imodintro
   wp_method_call
   wp_call
   wp_auto
-  wp_apply sync.Mutex.wp_Lock (muAddr s) (logkvrwR γ γr s) $$ [$Hmu] as ⟨Hlocked, HR⟩
-  iunfold logkvrwR at HR
-  icases HR with ⟨%sl, %rs, %a, %st, Hlog, Hsl, Hcap, Happ, Hst, Hg, Hrs, %Ha, Hdone, Hpend⟩
+  wp_apply sync.RWMutex.wp_RLock $$ [$Hown] as ⟨Hrl, HP⟩
+  iunfold rdR at HP
+  icases HP with ⟨%st, Hst, Hg, Hb⟩
   wp_auto
   -- the linearization point
   simp only [LawfulSet.diff_empty]
@@ -56,14 +62,18 @@ theorem Server.Get.wp_proof : Server.Get.spec (GF := GF) (hG := hG) := by
   imod Hclose $$ [Hx] with HΦ
   · iunfold regState; iexact Hx
   imodintro
-  wp_apply sync.Mutex.wp_Unlock (muAddr s) (logkvrwR γ γr s)
-    $$ [$Hmu $Hlocked Hlog Hsl Hcap Happ Hst Hg Hrs Hdone Hpend]
-  · iunfold logkvrwR
-    iexists sl, rs, a, st
+  wp_apply +noauto sync.RWMutex.wp_RUnlock $$ [$Hrl Hst Hg Hb] as Hown
+  · iunfold rdR
+    iexists st
     iframe
-    ipureintro; exact Ha
+  iapply fupd_wp
+  imod threadPool.giveBack poolN γp _ ⊤ (fun _ _ => CoPset.mem_full) $$ [Hpool Hloan Hown]
+    with Htt
+  · iframe #; iframe
+  imodintro
+  wp_auto
   iapply HΦ
-  itrivial
+  iexact Htt
 
 end proof
 

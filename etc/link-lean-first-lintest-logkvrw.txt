@@ -2,16 +2,20 @@
 # (all Lean-first), read by `etc/gen-link.py --lintest-logkvrw`:
 # `<fn>: <callees in the order of <fn>.wp_proof's hypotheses>`.
 #
-# the driver, linked in lintest's `Link.lean`.
-Run: @
-# the instance (examples/lintest/logkvrw/logkv.go)
+# porcupine's checker, linked in porcupine's `Link.lean`.
+CheckOperationsVerbose: @
+# the driver over `applySpecTok` (the library spec with a thread token): local copies of the
+# driver's `runClient` and `Run` specs and proofs (notes/logkv-eval-rw.md)
+logkvrw_runClientTok:
+logkvrw_RunTok: logkvrw_runClientTok CheckOperationsVerbose
+# the instance (examples/lintest/logkvrw/logkvrw.go)
 logkvrw_Model:
 logkvrw_Server__applyLoop:
 logkvrw_New: logkvrw_Server__applyLoop
 logkvrw_Server__Put:
 logkvrw_Server__Get:
 logkvrw_Server__Apply: logkvrw_Server__Put logkvrw_Server__Get
-logkvrw_Check: Run logkvrw_Model logkvrw_New logkvrw_Server__Apply
+logkvrw_Check: logkvrw_RunTok logkvrw_Model logkvrw_New logkvrw_Server__Apply
 # the program (Main), over the driver's clock (linked in lintest's `Link.lean`)
 CounterClock: @
 logkvrw_Main: CounterClock logkvrw_Check
