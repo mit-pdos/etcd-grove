@@ -2,11 +2,13 @@
 Lean-first (no Rocq counterpart).
 
 The proof of `(*Server).applyLoop`: the loop holds the mutex and its lock invariant
-(`logkvsnapR`) between `Wait`s. Applying the entry at `applied` is the linearization point of its
-writer's `Put`: the entry's pending slot (`pendSlot`) holds the writer's atomic update, which
-takes the register (the caller's half of the ghost variable, agreeing with the lock
-invariant's half, the value of `s.state`) to the entry's value; its result `P` goes to the
-entry's done slot (`doneSlot`), where the writer collects it.
+(`logkvsnapR`) between `Wait`s. Applying the entry at the current snapshot's `index` is the
+linearization point of its writer's `Put`: the entry's pending slot (`pendSlot`) holds the
+writer's atomic update, which takes the register (the caller's half of the ghost variable,
+agreeing with the lock invariant's half, the current snapshot's `val`) to the entry's value; its
+result `P` goes to the entry's done slot (`doneSlot`), where the writer collects it. The new
+snapshot is made read-only (`ipersist`) once published in `s.snap`, under a `wp_fupd` taken
+before the body's last steps (the body's end is not a WP).
 -/
 module
 
@@ -51,11 +53,12 @@ theorem Server.applyLoop.wp_proof : Server.applyLoop.spec (GF := GF) (hG := hG) 
   wp_for
   wp_for
   iunfold logkvsnapR at HR
-  icases HR with ⟨%sl, %rs, %a, %st, Hlog, Hsl, Hcap, Happ, Hst, Hg, Hrs, %Ha, Hdone, Hpend⟩
+  icases HR with ⟨%sl, %rs, %a, %st, %p, Hlog, Hsl, Hcap, Hsnap, #Hp, Hg, Hrs, %Ha, Hdone, Hpend⟩
+  iStructNamed Hp
   ihave %Hlen := ownSlice_len $$ Hsl
   wp_auto
   wp_if_destruct
-  · -- `s.applied < len(s.log)`: apply the entry at `applied`
+  · -- `s.snap.index < len(s.log)`: apply the entry at `index`
     have Hlt : uint.nat a < rs.length := by
       have := of_decide_eq_true (GoGlobalContext.intoVal_inj_bool Hif)
       simp only [List.length_map] at Hlen
@@ -85,19 +88,24 @@ theorem Server.applyLoop.wp_proof : Server.applyLoop.spec (GF := GF) (hG := hG) 
     imod Hclose $$ [Hx] with HPr
     · iunfold regState; iexact Hx
     imodintro
+    -- the new snapshot is made read-only (`ipersist`) after the body, under an update
+    iapply wp_fupd
     wp_apply wp_load_slice_index sl (sint.Z a) (List.map Prod.fst rs) _ rs[uint.nat a].1
       Hidx.1 $$ [$Hsl] as Hsl
     · ipureintro; exact Hlook
+    ipersist «$r0»
+    imodintro
     wp_for_post
     iframe
     iunfold logkvsnapR
     have Hn : uint.nat (a + W64 1) = uint.nat a + 1 := by
       simp only [List.length_map] at Hlen
       word
-    iexists sl, rs, a + W64 1, rs[uint.nat a].1
+    iexists sl, rs, a + W64 1, rs[uint.nat a].1, «$r0_ptr»
     rw [Hn, List.take_add_one, List.getElem?_eq_getElem Hlt]
     simp only [Option.toList_some]
     iframe
+    iframe #
     isplitr
     · ipureintro; omega
     iapply BigSepL.bigSepL_singleton.2
@@ -107,10 +115,11 @@ theorem Server.applyLoop.wp_proof : Server.applyLoop.spec (GF := GF) (hG := hG) 
     ileft
     iexact HPr
   · -- caught up: wake the writers, then wait for more entries
-    ihave HR : logkvsnapR γ γr s $$ [Hlog Hsl Hcap Happ Hst Hg Hrs Hdone Hpend]
+    ihave HR : logkvsnapR γ γr s $$ [Hlog Hsl Hcap Hsnap Hg Hrs Hdone Hpend]
     · iunfold logkvsnapR
-      iexists sl, rs, a, st
+      iexists sl, rs, a, st, p
       iframe
+      iframe #
       ipureintro; exact Ha
     have Hd : decide (uint.Z a < uint.Z sl.len) = false := by
       cases h : decide (uint.Z a < uint.Z sl.len)

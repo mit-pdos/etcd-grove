@@ -25,16 +25,17 @@ would have. Nothing in them mentions the log.
 
 ## The lock invariant (`logkvsnapR γ s`)
 
-The mutex guards the log `s.log`, the applied count `s.applied` and the state `s.state`. The
+The mutex guards the log `s.log` and the pointer `s.snap` to the current snapshot, a read-only
+(`↦□`) `snapshot{val: st, index: a}`: the applied count `a` and the state `st`. The
 log is a list of requests `rs` (`Req`: the value, the name of the writer's saved postcondition
 and the name of its ticket), recorded in a monotone ghost list `γr` (a writer keeps a
 persistent witness of its request's index). The state is the other half of `γ`. The first
-`applied` requests are done (`doneSlot`): the writer's postcondition `P` waits there until the
+`a` requests are done (`doneSlot`): the writer's postcondition `P` waits there until the
 writer takes it, leaving its ticket. The others are pending (`pendSlot`): each holds its
 writer's atomic update (`regAu`), a fancy update that takes the register to its value and gives
 back the postcondition `P`. `applyLoop` fires it when it applies the entry (the linearization
 point of `Put`, in the apply goroutine), and moves the slot from pending to done; the writer,
-woken once `applied` passes its index, collects `P`: the saved proposition (`savedPropOwn`,
+woken once `a` passes its index, collects `P`: the saved proposition (`savedPropOwn`,
 discarded) says it is its own (`▷ (P ≡ P')`), the ticket (`token`) that it was not taken yet.
 -/
 module
@@ -205,18 +206,18 @@ abbrev condAddr (s : Loc) : Loc :=
 /-- The address of `s.log`. -/
 abbrev logAddr (s : Loc) : Loc :=
   structFieldRef github_com.mit_pdos.etcd_grove.examples.lintest.logkvsnap.Server go!"log" s
-/-- The address of `s.applied`. -/
-abbrev appliedAddr (s : Loc) : Loc :=
-  structFieldRef github_com.mit_pdos.etcd_grove.examples.lintest.logkvsnap.Server go!"applied" s
-/-- The address of `s.state`. -/
-abbrev stateAddr (s : Loc) : Loc :=
-  structFieldRef github_com.mit_pdos.etcd_grove.examples.lintest.logkvsnap.Server go!"state" s
+/-- The address of `s.snap`. -/
+abbrev snapAddr (s : Loc) : Loc :=
+  structFieldRef github_com.mit_pdos.etcd_grove.examples.lintest.logkvsnap.Server go!"snap" s
 
 /-- The `Locker` the condition variable was made with: `&s.mu`. -/
 abbrev muLocker (s : Loc) : GoInterfaceOk :=
   interface.mk (go.GoType.PointerType sync.Mutex.ty) #(muAddr s)
 
 end addrs
+
+/-- The Go struct `snapshot`. -/
+abbrev Snap [GooseExts] := github_com.mit_pdos.etcd_grove.examples.lintest.logkvsnap.snapshot
 
 /-- A request in the log: the value written, the name of the writer's saved postcondition and
 the name of its ticket. -/
@@ -260,9 +261,9 @@ def doneSlot (r : Req) : IProp GF :=
 
 /-- The lock invariant of `s.mu` (see the file header). -/
 def logkvsnapR (γ γr : GName) (s : Loc) : IProp GF :=
-  iprop(∃ (sl : GoSlice) (rs : List Req) (a : w64) (st : GoString),
+  iprop(∃ (sl : GoSlice) (rs : List Req) (a : w64) (st : GoString) (p : Loc),
     logAddr s ↦ sl ∗ sl ↦* rs.map Prod.fst ∗ ownSliceCap GoString sl (DFrac.own 1) ∗
-    appliedAddr s ↦ a ∗ stateAddr s ↦ st ∗
+    snapAddr s ↦ p ∗ p ↦□ (⟨st, a⟩ : Snap) ∗
     ghostVar γ (1 : Qp).half st ∗ monoListAuthOwn γr 1 rs ∗
     ⌜uint.nat a ≤ rs.length⌝ ∗
     ([∗list] r ∈ rs.take (uint.nat a), doneSlot r) ∗
